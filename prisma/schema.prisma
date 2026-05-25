@@ -1,0 +1,235 @@
+// Supercar Content Engine — database schema
+//
+// Designed for PostgreSQL (Supabase / Neon / RDS) in production but compatible
+// with SQLite for local development. To switch, set DATABASE_URL accordingly
+// and change `provider` below. Enum types are emulated as strings for SQLite
+// portability — application code validates them via Zod.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Sources — every connector the engine can pull from.
+// ---------------------------------------------------------------------------
+model Source {
+  id          String   @id @default(cuid())
+  platform    String   // "instagram" | "tiktok" | "youtube" | "twitter" | "rss" | "auction" | "manual"
+  label       String
+  enabled     Boolean  @default(false)
+  config      Json?    // connector-specific config (handles, feed urls, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  discovered  DiscoveredContent[]
+
+  @@unique([platform, label])
+  @@index([enabled])
+}
+
+// ---------------------------------------------------------------------------
+// Discovered content — the review queue.
+// ---------------------------------------------------------------------------
+model DiscoveredContent {
+  id              String   @id @default(cuid())
+  sourceId        String?
+  source          Source?  @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  platform        String   // mirrors Source.platform for fast filtering
+  originalAuthor  String?  // @handle / channel
+  authorUrl       String?
+  url             String   @unique
+  mediaUrl        String?
+  thumbnailUrl    String?
+  mediaType       String?  // "image" | "video" | "carousel" | "short"
+  caption         String?
+  carMake         String?
+  carModel        String?
+  carYear         Int?
+
+  // engagement snapshot at discovery
+  likes           Int?
+  comments        Int?
+  views           Int?
+  shares          Int?
+  saves           Int?
+
+  aiScore         Float?   // 0-100
+  aiReason        String?
+  predictedReach  Int?
+  duplicateOfId   String?  // points at the earlier item if duplicate
+  cooldownUntil   DateTime?
+
+  rightsStatus    String   @default("unknown") // "unknown" | "requested" | "granted" | "denied"
+  rightsNote      String?
+
+  status          String   @default("new") // new | shortlisted | permission_requested | approved | rejected | posted
+  shortlistedAt   DateTime?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  postedAt        DateTime?
+
+  discoveredAt    DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  captions        Caption[]
+  schedule        PostingSchedule?
+  score           ContentScore?
+
+  @@index([status])
+  @@index([platform])
+  @@index([aiScore])
+  @@index([discoveredAt])
+  @@index([carMake, carModel])
+}
+
+// ---------------------------------------------------------------------------
+// Instagram historical posts (our own account).
+// ---------------------------------------------------------------------------
+model InstagramPost {
+  id            String   @id // Instagram media id (numeric string)
+  caption       String?
+  mediaType     String?  // IMAGE | VIDEO | CAROUSEL_ALBUM | REEL
+  permalink     String?
+  mediaUrl      String?
+  thumbnailUrl  String?
+  timestamp     DateTime
+
+  carMake       String?
+  carModel      String?
+  theme         String?  // detected content theme
+  captionStyle  String?  // "luxury" | "question" | "short" | "story" | ...
+  hashtags      String[] // captured from caption
+  postedHour    Int?     // 0-23 (local)
+  postedDow     Int?     // 0-6
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  metrics       PostMetric[]
+
+  @@index([timestamp])
+  @@index([carMake, carModel])
+  @@index([theme])
+  @@index([postedHour, postedDow])
+}
+
+// ---------------------------------------------------------------------------
+// Time-series performance metrics for our own posts.
+// ---------------------------------------------------------------------------
+model PostMetric {
+  id            String   @id @default(cuid())
+  postId        String
+  post          InstagramPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  capturedAt    DateTime @default(now())
+  likes         Int      @default(0)
+  comments      Int      @default(0)
+  saves         Int?
+  shares        Int?
+  reach         Int?
+  impressions   Int?
+  videoViews    Int?
+  engagementRate Float?
+
+  @@index([postId, capturedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Content scores — outputs of the learning engine for discovered items.
+// ---------------------------------------------------------------------------
+model ContentScore {
+  id                  String   @id @default(cuid())
+  contentId           String   @unique
+  content             DiscoveredContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  qualityScore        Float    // 0-100 AI quality
+  audienceFitScore    Float    // 0-100 based on our historical data
+  noveltyScore        Float    // 0-100 duplication / cooldown penalty
+  predictedEngagement Float    // 0-100
+  finalScore          Float    // composite
+
+  rationale           String?  // human-readable explanation
+  features            Json?    // raw feature payload used for ranking
+  modelVersion        String   @default("v0.1.0")
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Generated captions for a piece of content.
+// ---------------------------------------------------------------------------
+model Caption {
+  id          String   @id @default(cuid())
+  contentId   String
+  content     DiscoveredContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  shortText   String
+  luxuryText  String
+  questionText String
+  hashtags    String[]
+  creditLine  String
+  selected    Boolean  @default(false)
+
+  modelVersion String  @default("v0.1.0")
+  createdAt    DateTime @default(now())
+
+  @@index([contentId])
+}
+
+// ---------------------------------------------------------------------------
+// Competitor monitoring.
+// ---------------------------------------------------------------------------
+model CompetitorAccount {
+  id           String   @id @default(cuid())
+  platform     String   // "instagram" | "tiktok" | ...
+  handle       String
+  url          String?
+  followers    Int?
+  notes        String?
+  active       Boolean  @default(true)
+  lastCheckedAt DateTime?
+  createdAt    DateTime @default(now())
+
+  @@unique([platform, handle])
+  @@index([active])
+}
+
+// ---------------------------------------------------------------------------
+// Scheduled posts (post-approval).
+// ---------------------------------------------------------------------------
+model PostingSchedule {
+  id            String   @id @default(cuid())
+  contentId     String   @unique
+  content       DiscoveredContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  scheduledFor  DateTime
+  caption       String?
+  hashtags      String[]
+  status        String   @default("scheduled") // scheduled | publishing | published | failed | cancelled
+  autoPost      Boolean  @default(false)
+  publishedAt   DateTime?
+  externalPostId String?
+  error         String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([scheduledFor])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// App settings — single-row key/value store.
+// ---------------------------------------------------------------------------
+model Setting {
+  key        String   @id
+  value      Json
+  updatedAt  DateTime @updatedAt
+}

@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #070809;
+  --surface: #0b0d10;
+  --surface-2: #14181d;
+  --border: #1b2128;
+  --text: #e6eaef;
+  --text-dim: #8a96a4;
+  --accent: #d4af37;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-feature-settings: "cv02", "cv03", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: theme("colors.ink.700");
+}
+
+::selection {
+  background: theme("colors.accent.DEFAULT");
+  color: theme("colors.ink.950");
+}
+
+/* Subtle gradient backdrop on the main shell */
+.app-shell {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(212, 175, 55, 0.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(90, 169, 255, 0.04), transparent 60%),
+    var(--bg);
+}
+
+.card {
+  @apply bg-ink-900 border border-ink-700 rounded-2xl shadow-card;
+}
+
+.card-hover {
+  @apply transition-all duration-150 hover:border-ink-600 hover:shadow-glow;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors;
+}
+
+.btn-primary {
+  @apply btn bg-accent text-ink-950 hover:bg-accent-soft;
+}
+
+.btn-secondary {
+  @apply btn bg-ink-800 text-ink-100 hover:bg-ink-700 border border-ink-700;
+}
+
+.btn-ghost {
+  @apply btn text-ink-200 hover:bg-ink-800;
+}
+
+.input {
+  @apply w-full px-3 py-2 rounded-lg bg-ink-850 border border-ink-700 text-ink-100 placeholder:text-ink-400 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent;
+}
+
+.label {
+  @apply block text-xs uppercase tracking-wider text-ink-300 mb-1.5;
+}
+
+.badge {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border;
+}
+
+.section-title {
+  @apply text-xs uppercase tracking-[0.18em] text-ink-300 font-semibold;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: theme("colors.ink.900");
+}
+::-webkit-scrollbar-thumb {
+  background: theme("colors.ink.700");
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: theme("colors.ink.600");
+}
