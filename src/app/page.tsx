@@ -200,6 +200,12 @@ export default async function DashboardPage() {
               <Sparkles className="w-3.5 h-3.5" /> Quick links
             </div>
             <div className="grid grid-cols-2 gap-2">
+              <Link href="/today" className="btn-primary text-xs">
+                Today&apos;s picks →
+              </Link>
+              <Link href="/favourites" className="btn-secondary text-xs">
+                Favourites →
+              </Link>
               <Link href="/analytics" className="btn-secondary text-xs">
                 Analytics →
               </Link>

@@ -11,11 +11,13 @@ import {
   Settings as SettingsIcon,
   Download,
   Star,
+  Sunrise,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/today", label: "Today's Picks", icon: Sunrise },
   { href: "/discovery", label: "Discovery Queue", icon: ListChecks },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
