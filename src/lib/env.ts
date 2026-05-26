@@ -16,6 +16,7 @@ export const env = {
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
 
   youtubeApiKey: process.env.YOUTUBE_API_KEY ?? "",
+  twitterBearerToken: process.env.TWITTER_BEARER_TOKEN ?? "",
 
   meta: {
     appId: process.env.META_APP_ID ?? "",
@@ -47,4 +48,8 @@ export function hasYouTubeCredentials(): boolean {
 
 export function hasTikTokCredentials(): boolean {
   return Boolean(env.tiktok.accessToken);
+}
+
+export function hasTwitterCredentials(): boolean {
+  return Boolean(env.twitterBearerToken);
 }

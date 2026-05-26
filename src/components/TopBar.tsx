@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Music2, Play, RefreshCw, Rss, Search, Zap } from "lucide-react";
+import { Music2, Play, RefreshCw, Rss, Search, Twitter, Zap } from "lucide-react";
 
 export function TopBar() {
   const [syncing, setSyncing] = useState(false);
   const [syncingRss, setSyncingRss] = useState(false);
   const [syncingYt, setSyncingYt] = useState(false);
   const [syncingTt, setSyncingTt] = useState(false);
+  const [syncingX, setSyncingX] = useState(false);
   const [rescoring, setRescoring] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -74,6 +75,21 @@ export function TopBar() {
     }
   }
 
+  async function syncX() {
+    setSyncingX(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/twitter/sync", { method: "POST" });
+      const data = await res.json();
+      const suffix = data.usingMock ? " (mock; X API requires paid tier)" : ` across ${data.queries} quer${data.queries === 1 ? "y" : "ies"}`;
+      setMessage(`X: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
+    } catch {
+      setMessage("X sync failed.");
+    } finally {
+      setSyncingX(false);
+    }
+  }
+
   async function rescore() {
     setRescoring(true);
     setMessage(null);
@@ -112,6 +128,10 @@ export function TopBar() {
           <button onClick={syncTikTok} className="btn-secondary" disabled={syncingTt}>
             <Music2 className={`w-4 h-4 ${syncingTt ? "animate-spin" : ""}`} />
             {syncingTt ? "Syncing…" : "Sync TT"}
+          </button>
+          <button onClick={syncX} className="btn-secondary" disabled={syncingX}>
+            <Twitter className={`w-4 h-4 ${syncingX ? "animate-spin" : ""}`} />
+            {syncingX ? "Syncing…" : "Sync X"}
           </button>
           <button onClick={rescore} className="btn-primary" disabled={rescoring}>
             <Zap className="w-4 h-4" />
