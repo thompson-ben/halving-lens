@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ContentCard, type ContentCardItem } from "@/components/ContentCard";
 import { EmptyState } from "@/components/EmptyState";
 import { Dna, ListChecks } from "lucide-react";
-import { CONTENT_STATUSES, PLATFORMS, PLATFORM_LABELS, STATUS_LABELS, type ContentStatus, type Platform } from "@/types";
+import { CONTENT_STATUSES, PRIMARY_PLATFORMS, PLATFORM_LABELS, STATUS_LABELS, type ContentStatus, type Platform } from "@/types";
 import { cn } from "@/lib/utils";
 
 export default function DiscoveryPage() {
@@ -93,7 +93,7 @@ export default function DiscoveryPage() {
             onChange={(v) => setPlatform(v as Platform | "all")}
             options={[
               { value: "all", label: "All" },
-              ...PLATFORMS.map((p) => ({ value: p, label: PLATFORM_LABELS[p] })),
+              ...PRIMARY_PLATFORMS.map((p) => ({ value: p, label: PLATFORM_LABELS[p] })),
             ]}
           />
         </div>

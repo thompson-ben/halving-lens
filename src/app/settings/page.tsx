@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Instagram, AlertCircle, Check, Save, Shield } from "lucide-react";
+import { Instagram, AlertCircle, Check, Save, Shield, Dna } from "lucide-react";
 
 type Source = { id: string; platform: string; label: string; enabled: boolean };
 type Settings = Record<string, unknown>;
+
+// Sources we treat as "primary" in the IG-first UI. Everything else is
+// surfaced under a secondary collapsed group so the operator can still
+// toggle them on without code changes.
+const PRIMARY_SOURCE_PLATFORMS = new Set(["instagram", "manual"]);
 
 export default function SettingsPage() {
   const [sources, setSources] = useState<Source[]>([]);
@@ -12,6 +17,9 @@ export default function SettingsPage() {
   const [igState, setIgState] = useState<{ configured: boolean; connected: boolean; authUrl?: string; message?: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showSecondary, setShowSecondary] = useState(false);
+  const [recomputing, setRecomputing] = useState(false);
+  const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/sources").then((r) => r.json()).then((d) => setSources(d.sources));
@@ -41,9 +49,28 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  async function recomputeDna() {
+    setRecomputing(true);
+    setRecomputeMsg(null);
+    try {
+      const res = await fetch("/api/dna/recompute", { method: "POST" });
+      const data = await res.json();
+      setRecomputeMsg(
+        `Recomputed in ${data.durationMs}ms — ${data.topPerformerCount} top performers, ${data.contentScored} items scored (${data.model}).`,
+      );
+    } catch {
+      setRecomputeMsg("Recompute failed.");
+    } finally {
+      setRecomputing(false);
+    }
+  }
+
   function update<K extends string>(key: K, value: unknown) {
     setSettings((cur) => ({ ...cur, [key]: value }));
   }
+
+  const primarySources = sources.filter((s) => PRIMARY_SOURCE_PLATFORMS.has(s.platform));
+  const secondarySources = sources.filter((s) => !PRIMARY_SOURCE_PLATFORMS.has(s.platform));
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -87,25 +114,48 @@ export default function SettingsPage() {
 
       <section className="card p-6">
         <h2 className="text-base font-semibold text-ink-100 mb-1">Content sources</h2>
-        <p className="text-xs text-ink-300 mb-4">Toggle which connectors the discovery engine pulls from.</p>
+        <p className="text-xs text-ink-300 mb-4">
+          Currently focused on Instagram. Other connectors stay wired up — toggle them on below when you&apos;re ready.
+        </p>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {sources.map((s) => (
-            <label
-              key={s.id}
-              className="flex items-center justify-between rounded-lg border border-ink-700 bg-ink-850 px-4 py-3 cursor-pointer hover:border-ink-600"
-            >
-              <div>
-                <div className="text-sm text-ink-100">{s.label}</div>
-                <div className="text-[11px] text-ink-400">{s.platform}</div>
-              </div>
-              <input
-                type="checkbox"
-                checked={s.enabled}
-                onChange={(e) => toggleSource(s.id, e.target.checked)}
-                className="w-4 h-4 accent-[#d4af37]"
-              />
-            </label>
+          {primarySources.map((s) => (
+            <SourceToggle key={s.id} source={s} onToggle={toggleSource} />
           ))}
+        </div>
+
+        {secondarySources.length > 0 && (
+          <div className="mt-5 pt-5 border-t border-ink-700">
+            <button
+              onClick={() => setShowSecondary((v) => !v)}
+              className="text-xs text-ink-300 hover:text-ink-100 mb-3"
+            >
+              {showSecondary ? "▾" : "▸"} Other connectors (paused, {secondarySources.length})
+            </button>
+            {showSecondary && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-70">
+                {secondarySources.map((s) => (
+                  <SourceToggle key={s.id} source={s} onToggle={toggleSource} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="card p-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <Dna className="w-4 h-4 text-accent" />
+          <h2 className="text-base font-semibold text-ink-100">Content DNA</h2>
+        </div>
+        <p className="text-xs text-ink-300">
+          Recompute caption embeddings + similarity scores against your top-performing historical posts. Safe to re-run — idempotent.
+        </p>
+        <div className="flex items-center gap-3">
+          <button onClick={recomputeDna} className="btn-secondary text-xs" disabled={recomputing}>
+            <Dna className="w-3.5 h-3.5" /> {recomputing ? "Recomputing…" : "Recompute Content DNA"}
+          </button>
+          {recomputeMsg && <span className="text-[11px] text-ink-400">{recomputeMsg}</span>}
         </div>
       </section>
 
@@ -170,5 +220,22 @@ export default function SettingsPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function SourceToggle({ source, onToggle }: { source: Source; onToggle: (id: string, enabled: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between rounded-lg border border-ink-700 bg-ink-850 px-4 py-3 cursor-pointer hover:border-ink-600">
+      <div>
+        <div className="text-sm text-ink-100">{source.label}</div>
+        <div className="text-[11px] text-ink-400">{source.platform}</div>
+      </div>
+      <input
+        type="checkbox"
+        checked={source.enabled}
+        onChange={(e) => onToggle(source.id, e.target.checked)}
+        className="w-4 h-4 accent-[#d4af37]"
+      />
+    </label>
   );
 }

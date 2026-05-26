@@ -36,6 +36,11 @@ export const PLATFORMS: Platform[] = [
   "manual",
 ];
 
+// Subset surfaced in the IG-first UI. The other connectors stay wired up on
+// the backend so we can flip them on without a code change, but we don't
+// clutter the filter chips with them.
+export const PRIMARY_PLATFORMS: Platform[] = ["instagram", "manual"];
+
 export const PLATFORM_LABELS: Record<Platform, string> = {
   instagram: "Instagram",
   tiktok: "TikTok",

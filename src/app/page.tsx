@@ -3,13 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/StatCard";
 import { ContentCard } from "@/components/ContentCard";
 import { trainModel } from "@/lib/scoring";
-import { Heart, ListChecks, Sparkles, TrendingUp, CalendarClock, Trophy } from "lucide-react";
+import { similarityCutoff } from "@/lib/embeddings";
+import { Dna, Heart, ListChecks, Sparkles, TrendingUp, CalendarClock, Trophy } from "lucide-react";
 import { formatNumber, formatPercent } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [topQueue, posts, scheduled, queueCounts] = await Promise.all([
+  const [topQueue, posts, scheduled, queueCounts, dnaMatches, topPerformers] = await Promise.all([
     prisma.discoveredContent.findMany({
       where: { status: { in: ["new", "shortlisted"] } },
       orderBy: [{ aiScore: "desc" }],
@@ -21,6 +22,16 @@ export default async function DashboardPage() {
     }),
     prisma.postingSchedule.count({ where: { status: "scheduled" } }),
     prisma.discoveredContent.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.discoveredContent.count({
+      where: {
+        status: { in: ["new", "shortlisted"] },
+        bestSimilarityScore: { gte: similarityCutoff() },
+      },
+    }),
+    prisma.instagramPost.findMany({
+      where: { topPerformer: true },
+      select: { carMake: true, captionStyle: true, theme: true, hashtags: true },
+    }),
   ]);
 
   const model = trainModel(posts);
@@ -28,6 +39,10 @@ export default async function DashboardPage() {
   const queueNew = queueCounts.find((q) => q.status === "new")?._count._all ?? 0;
   const topBrand = Object.entries(model.carMakeLift).sort((a, b) => b[1] - a[1])[0];
   const bestSlot = model.bestPostingTimes[0];
+
+  // "What your top posts have in common" — derive a few quick stats from
+  // the posts flagged topPerformer by the Content DNA pipeline.
+  const dnaInsights = summariseTopPerformers(topPerformers);
 
   const dows = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -42,7 +57,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           label="Lifetime likes"
           value={formatNumber(totalLikes)}
@@ -61,6 +76,13 @@ export default async function DashboardPage() {
           value={queueNew}
           hint={`${queueCounts.find((q) => q.status === "shortlisted")?._count._all ?? 0} shortlisted`}
           icon={ListChecks}
+        />
+        <StatCard
+          label="DNA matches in queue"
+          value={dnaMatches}
+          hint={`Above ${Math.round(similarityCutoff() * 100)}% similarity`}
+          icon={Dna}
+          tone="accent"
         />
         <StatCard
           label="Scheduled posts"
@@ -137,6 +159,42 @@ export default async function DashboardPage() {
             </div>
           </div>
 
+          {dnaInsights.count > 0 && (
+            <div className="border-t border-ink-700 pt-4">
+              <div className="section-title flex items-center gap-2">
+                <Dna className="w-3.5 h-3.5" /> What your top posts have in common
+              </div>
+              <div className="mt-3 space-y-3">
+                <Insight
+                  title={`${dnaInsights.count} posts flagged as top performers`}
+                  detail={
+                    dnaInsights.topMake
+                      ? `Dominant brand: ${dnaInsights.topMake.label} (${dnaInsights.topMake.share}%).`
+                      : "Brand mix is even — no single brand dominates."
+                  }
+                />
+                {dnaInsights.topStyle && (
+                  <Insight
+                    title={`Caption style: ${dnaInsights.topStyle.label}`}
+                    detail={`${dnaInsights.topStyle.share}% of your top performers use this style.`}
+                  />
+                )}
+                {dnaInsights.topTheme && (
+                  <Insight
+                    title={`Theme: ${dnaInsights.topTheme.label}`}
+                    detail={`${dnaInsights.topTheme.share}% share among top performers.`}
+                  />
+                )}
+                {dnaInsights.topHashtag && (
+                  <Insight
+                    title={`Recurring hashtag: ${dnaInsights.topHashtag.label}`}
+                    detail={`Appears on ${dnaInsights.topHashtag.share}% of top performers.`}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-ink-700 pt-4">
             <div className="section-title flex items-center gap-2 mb-3">
               <Sparkles className="w-3.5 h-3.5" /> Quick links
@@ -169,4 +227,39 @@ function Insight({ title, detail }: { title: string; detail: string }) {
       <div className="text-xs text-ink-300 mt-0.5">{detail}</div>
     </div>
   );
+}
+
+type TopPostRow = {
+  carMake: string | null;
+  captionStyle: string | null;
+  theme: string | null;
+  hashtags: string[];
+};
+
+function summariseTopPerformers(rows: TopPostRow[]) {
+  const count = rows.length;
+  if (count === 0) {
+    return { count, topMake: null, topStyle: null, topTheme: null, topHashtag: null };
+  }
+  return {
+    count,
+    topMake: topShare(rows.map((r) => r.carMake)),
+    topStyle: topShare(rows.map((r) => r.captionStyle)),
+    topTheme: topShare(rows.map((r) => r.theme)),
+    topHashtag: topShare(rows.flatMap((r) => r.hashtags ?? [])),
+  };
+}
+
+function topShare(values: Array<string | null | undefined>): { label: string; share: number } | null {
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const v of values) {
+    if (!v) continue;
+    counts.set(v, (counts.get(v) ?? 0) + 1);
+    total += 1;
+  }
+  if (total === 0) return null;
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const [label, n] = sorted[0];
+  return { label, share: Math.round((n / total) * 100) };
 }
