@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchInstagramPosts, fetchPostInsights } from "@/lib/instagram";
 import { detectCar, extractHashtags } from "@/lib/utils";
@@ -11,7 +11,7 @@ import { hasInstagramCredentials } from "@/lib/env";
  * When credentials are missing or USE_MOCK_DATA is set, the underlying
  * library returns mock data, so this endpoint still demonstrates the flow.
  */
-export async function POST() {
+async function runSync() {
   const posts = await fetchInstagramPosts(60);
 
   let imported = 0;
@@ -72,8 +72,32 @@ export async function POST() {
     imported += 1;
   }
 
-  return NextResponse.json({
+  return {
     imported,
     usingMock: !hasInstagramCredentials(),
-  });
+  };
+}
+
+export async function POST() {
+  const result = await runSync();
+  return NextResponse.json(result);
+}
+
+// Vercel cron sends a GET request with `Authorization: Bearer <CRON_SECRET>`.
+export async function GET(request: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json(
+      { error: "CRON_SECRET is not configured" },
+      { status: 503 },
+    );
+  }
+
+  const auth = request.headers.get("authorization");
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const result = await runSync();
+  return NextResponse.json(result);
 }

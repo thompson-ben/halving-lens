@@ -107,7 +107,7 @@ export default async function DashboardPage() {
         <div className="card p-5 space-y-5">
           <div>
             <div className="section-title flex items-center gap-2">
-              <Trophy className="w-3.5 h-3.5" /> What's working
+              <Trophy className="w-3.5 h-3.5" /> What&apos;s working
             </div>
             <div className="mt-3 space-y-3">
               {topBrand && (

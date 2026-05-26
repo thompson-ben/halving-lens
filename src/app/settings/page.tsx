@@ -61,7 +61,7 @@ export default function SettingsPage() {
           <div className="text-sm text-ink-300">Loading…</div>
         ) : igState.connected ? (
           <div className="flex items-center gap-2 text-sm text-signal-green">
-            <Check className="w-4 h-4" /> Connected. Use the "Sync IG" button up top to refresh historical posts.
+            <Check className="w-4 h-4" /> Connected. Use the &quot;Sync IG&quot; button up top to refresh historical posts.
           </div>
         ) : igState.configured ? (
           <div className="flex items-center gap-3">
