@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Plus } from "lucide-react";
-import { formatNumber } from "@/lib/utils";
+import { Users, Plus, Radar } from "lucide-react";
+import { formatNumber, relativeTime } from "@/lib/utils";
 import { EmptyState } from "@/components/EmptyState";
 
 type Competitor = {
@@ -13,12 +13,15 @@ type Competitor = {
   followers: number | null;
   notes: string | null;
   active: boolean;
+  lastCheckedAt: string | null;
 };
 
 export default function CompetitorsPage() {
   const [items, setItems] = useState<Competitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<string | null>(null);
   const [platform, setPlatform] = useState("instagram");
   const [handle, setHandle] = useState("");
   const [url, setUrl] = useState("");
@@ -31,6 +34,24 @@ export default function CompetitorsPage() {
       .then((d) => setItems(d.items))
       .finally(() => setLoading(false));
   }, []);
+
+  async function scan() {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const res = await fetch("/api/competitors/scan", { method: "POST" });
+      const data = await res.json();
+      const mockNote = data.usingMock ? " (mock — connect IG to scan live)" : "";
+      const skipNote = data.unsupported > 0 ? ` ${data.unsupported} skipped (non-IG)` : "";
+      setScanResult(`Scanned ${data.scanned}: ${data.imported} new, ${data.skipped} dup${skipNote}${mockNote}.`);
+      const refreshed = await fetch("/api/competitors").then((r) => r.json());
+      setItems(refreshed.items);
+    } catch {
+      setScanResult("Scan failed.");
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -59,9 +80,18 @@ export default function CompetitorsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-100">Competitor accounts</h1>
-        <p className="text-sm text-ink-300 mt-1">Track other supercar pages. Used for sourcing and benchmarking.</p>
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-ink-100">Competitor accounts</h1>
+          <p className="text-sm text-ink-300 mt-1">Track other supercar pages. Used for sourcing and benchmarking.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {scanResult && <span className="text-xs text-ink-300">{scanResult}</span>}
+          <button onClick={scan} className="btn-secondary" disabled={scanning}>
+            <Radar className={`w-4 h-4 ${scanning ? "animate-spin" : ""}`} />
+            {scanning ? "Scanning…" : "Scan now"}
+          </button>
+        </div>
       </div>
 
       <form onSubmit={add} className="card p-5 grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
@@ -109,6 +139,7 @@ export default function CompetitorsPage() {
                 <th className="px-4 py-3">Handle</th>
                 <th className="px-4 py-3">Platform</th>
                 <th className="px-4 py-3">Followers</th>
+                <th className="px-4 py-3">Last scanned</th>
                 <th className="px-4 py-3">Notes</th>
               </tr>
             </thead>
@@ -126,6 +157,7 @@ export default function CompetitorsPage() {
                   </td>
                   <td className="px-4 py-3 text-ink-300">{c.platform}</td>
                   <td className="px-4 py-3 text-ink-100">{formatNumber(c.followers)}</td>
+                  <td className="px-4 py-3 text-ink-300">{c.lastCheckedAt ? relativeTime(c.lastCheckedAt) : "—"}</td>
                   <td className="px-4 py-3 text-ink-300">{c.notes ?? "—"}</td>
                 </tr>
               ))}

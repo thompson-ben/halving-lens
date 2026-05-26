@@ -128,6 +128,59 @@ export async function fetchPostInsights(mediaId: string, mediaType: string): Pro
 }
 
 /**
+ * Look up a public IG Business / Creator account's recent media via the
+ * Graph API's business_discovery edge. Uses our own IG_BUSINESS_ACCOUNT_ID
+ * as the entry point — this is the official, non-scrape route for
+ * surfacing other accounts' recent posts.
+ *
+ * Constraints (per Meta docs):
+ *   - Only works against Business or Creator accounts (not personal).
+ *   - 200 calls/hour per IG User on read endpoints.
+ *   - Returns null on any error so callers can mark the competitor as
+ *     skipped without blowing up the whole scan.
+ */
+export type IGBusinessDiscoveryMedia = {
+  id: string;
+  caption?: string;
+  media_type?: string;
+  media_url?: string;
+  permalink?: string;
+  thumbnail_url?: string;
+  timestamp: string;
+  like_count?: number;
+  comments_count?: number;
+};
+
+export type IGBusinessDiscovery = {
+  username: string;
+  name?: string;
+  followers_count?: number;
+  media: IGBusinessDiscoveryMedia[];
+};
+
+export async function businessDiscovery(handle: string, mediaLimit = 12): Promise<IGBusinessDiscovery | null> {
+  if (!hasInstagramCredentials()) return null;
+  const clean = handle.replace(/^@+/, "");
+  const fields = `business_discovery.username(${clean}){username,name,followers_count,media.limit(${mediaLimit}){id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,like_count,comments_count}}`;
+  try {
+    const data = await graph<{ business_discovery?: { username: string; name?: string; followers_count?: number; media?: { data?: IGBusinessDiscoveryMedia[] } } }>(
+      `/${env.meta.igBusinessAccountId}`,
+      { fields },
+    );
+    const bd = data.business_discovery;
+    if (!bd) return null;
+    return {
+      username: bd.username,
+      name: bd.name,
+      followers_count: bd.followers_count,
+      media: bd.media?.data ?? [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Publish a media item to the connected IG Business Account.
  * Two-step process: create container, then publish.
  *
