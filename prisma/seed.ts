@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { PrismaClient, Prisma } from "@prisma/client";
-import { mockDiscoveredContent, mockInstagramPosts, mockCompetitors } from "../src/lib/mockData";
+import { mockDiscoveredContent, mockInstagramPosts, mockFavouriteAccounts } from "../src/lib/mockData";
 
 const prisma = new PrismaClient();
 
@@ -157,12 +157,12 @@ async function main() {
     });
   }
 
-  console.log("→ Seeding competitor accounts…");
-  for (const c of mockCompetitors) {
-    await prisma.competitorAccount.upsert({
-      where: { platform_handle: { platform: c.platform, handle: c.handle } },
-      update: {},
-      create: c,
+  console.log("→ Seeding favourite accounts…");
+  for (const a of mockFavouriteAccounts) {
+    await prisma.favouriteAccount.upsert({
+      where: { platform_handle: { platform: a.platform, handle: a.handle } },
+      update: a,
+      create: a,
     });
   }
 

@@ -154,25 +154,61 @@ export type IGBusinessDiscoveryMedia = {
 export type IGBusinessDiscovery = {
   username: string;
   name?: string;
+  biography?: string;
+  profile_picture_url?: string;
   followers_count?: number;
+  follows_count?: number;
+  media_count?: number;
   media: IGBusinessDiscoveryMedia[];
 };
 
 export async function businessDiscovery(handle: string, mediaLimit = 12): Promise<IGBusinessDiscovery | null> {
   if (!hasInstagramCredentials()) return null;
   const clean = handle.replace(/^@+/, "");
-  const fields = `business_discovery.username(${clean}){username,name,followers_count,media.limit(${mediaLimit}){id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,like_count,comments_count}}`;
+  const profileFields = [
+    "username",
+    "name",
+    "biography",
+    "profile_picture_url",
+    "followers_count",
+    "follows_count",
+    "media_count",
+  ].join(",");
+  const mediaFields = [
+    "id",
+    "caption",
+    "media_type",
+    "media_url",
+    "permalink",
+    "thumbnail_url",
+    "timestamp",
+    "like_count",
+    "comments_count",
+  ].join(",");
+  const fields = `business_discovery.username(${clean}){${profileFields},media.limit(${mediaLimit}){${mediaFields}}}`;
   try {
-    const data = await graph<{ business_discovery?: { username: string; name?: string; followers_count?: number; media?: { data?: IGBusinessDiscoveryMedia[] } } }>(
-      `/${env.meta.igBusinessAccountId}`,
-      { fields },
-    );
+    const data = await graph<{
+      business_discovery?: {
+        username: string;
+        name?: string;
+        biography?: string;
+        profile_picture_url?: string;
+        followers_count?: number;
+        follows_count?: number;
+        media_count?: number;
+        media?: { data?: IGBusinessDiscoveryMedia[] };
+      };
+    }>(`/${env.meta.igBusinessAccountId}`, { fields });
     const bd = data.business_discovery;
     if (!bd) return null;
     return {
       username: bd.username,
       name: bd.name,
+      biography: bd.biography,
+      profile_picture_url: bd.profile_picture_url,
       followers_count: bd.followers_count,
+      follows_count: bd.follows_count,
+      media_count: bd.media_count,
       media: bd.media?.data ?? [],
     };
   } catch {

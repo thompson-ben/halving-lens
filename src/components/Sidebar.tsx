@@ -10,7 +10,7 @@ import {
   Sparkles,
   Settings as SettingsIcon,
   Download,
-  Users,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ const NAV = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/import", label: "Import URL", icon: Download },
-  { href: "/competitors", label: "Competitors", icon: Users },
+  { href: "/favourites", label: "Favourite Accounts", icon: Star },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 

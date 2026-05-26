@@ -188,21 +188,53 @@ model Caption {
 }
 
 // ---------------------------------------------------------------------------
-// Competitor monitoring.
+// Favourite Accounts — Instagram-first account intelligence.
+//
+// Replaces the older CompetitorAccount table. These aren't competitors to
+// avoid — they're inspiration seeds. The system uses them as discovery
+// anchors and audience pattern signals, not as a hard filter on sourcing.
+// Each scan refreshes the live monitoring snapshot (followers, posts-per-
+// week, avg engagement, engagement velocity, top recent post) without
+// requiring a separate time-series table for v1.
 // ---------------------------------------------------------------------------
-model CompetitorAccount {
-  id           String   @id @default(cuid())
-  platform     String   // "instagram" | "tiktok" | ...
-  handle       String
-  url          String?
-  followers    Int?
-  notes        String?
-  active       Boolean  @default(true)
-  lastCheckedAt DateTime?
-  createdAt    DateTime @default(now())
+model FavouriteAccount {
+  id              String   @id @default(cuid())
+  platform        String   @default("instagram")
+  handle          String
+  displayName     String?
+  url             String?
+  profilePicUrl   String?
+  bio             String?
+
+  // Profile counters (from business_discovery on each scan)
+  followersCount  Int?
+  followsCount    Int?
+  mediaCount      Int?
+
+  // Operator-authored metadata
+  tags            String[]
+  notes           String?
+  active          Boolean  @default(true)
+
+  // Monitoring signals computed from the most recent scan window
+  postsPerWeek    Float?
+  avgLikes        Float?
+  avgComments     Float?
+  engagementVelocity Float?  // (avgLikes + avgComments) / followers, normalised
+  topPost         Json?     // snapshot of the best-performing recent post
+
+  // Where this account came from — manual entry, LLM suggestion, similarity
+  // graph, etc. Used by the discovery suggestions feature later.
+  discoveredFrom  String   @default("manual") // "manual" | "suggested" | "similar"
+
+  lastScannedAt   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([platform, handle])
   @@index([active])
+  @@index([followersCount])
+  @@index([engagementVelocity])
 }
 
 // ---------------------------------------------------------------------------
