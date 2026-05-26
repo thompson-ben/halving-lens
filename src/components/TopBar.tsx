@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Music2, Play, RefreshCw, Rss, Search, Twitter, Zap } from "lucide-react";
+import { Gavel, Music2, Play, RefreshCw, Rss, Search, Twitter, Zap } from "lucide-react";
 
 export function TopBar() {
   const [syncing, setSyncing] = useState(false);
@@ -9,6 +9,7 @@ export function TopBar() {
   const [syncingYt, setSyncingYt] = useState(false);
   const [syncingTt, setSyncingTt] = useState(false);
   const [syncingX, setSyncingX] = useState(false);
+  const [syncingAuction, setSyncingAuction] = useState(false);
   const [rescoring, setRescoring] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -90,6 +91,21 @@ export function TopBar() {
     }
   }
 
+  async function syncAuctions() {
+    setSyncingAuction(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/auction/sync", { method: "POST" });
+      const data = await res.json();
+      const suffix = data.usingMock ? " (mock feeds)" : ` from ${data.feeds} feed${data.feeds === 1 ? "" : "s"}`;
+      setMessage(`Auctions: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
+    } catch {
+      setMessage("Auction sync failed.");
+    } finally {
+      setSyncingAuction(false);
+    }
+  }
+
   async function rescore() {
     setRescoring(true);
     setMessage(null);
@@ -132,6 +148,10 @@ export function TopBar() {
           <button onClick={syncX} className="btn-secondary" disabled={syncingX}>
             <Twitter className={`w-4 h-4 ${syncingX ? "animate-spin" : ""}`} />
             {syncingX ? "Syncing…" : "Sync X"}
+          </button>
+          <button onClick={syncAuctions} className="btn-secondary" disabled={syncingAuction}>
+            <Gavel className={`w-4 h-4 ${syncingAuction ? "animate-spin" : ""}`} />
+            {syncingAuction ? "Syncing…" : "Sync auctions"}
           </button>
           <button onClick={rescore} className="btn-primary" disabled={rescoring}>
             <Zap className="w-4 h-4" />

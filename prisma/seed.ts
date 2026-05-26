@@ -14,26 +14,6 @@ type SourceSeed = {
 const DEFAULT_SOURCES: SourceSeed[] = [
   { platform: "instagram", label: "Instagram", enabled: true },
   { platform: "tiktok", label: "TikTok", enabled: false },
-<<<<<<< HEAD
-  { platform: "youtube", label: "YouTube Shorts", enabled: false },
-  {
-    platform: "twitter",
-    label: "X / Twitter",
-    enabled: false,
-    // Stored on the Source row so they're editable per environment.
-    // Each query is wrapped with `has:media -is:retweet -is:reply lang:en`
-    // by the connector, so the operator only writes the topic part.
-    config: {
-      queries: [
-        "Ferrari OR Lamborghini OR Pagani",
-        "Porsche GT3 OR Porsche 911 GT3 RS",
-        "McLaren OR Bugatti OR Koenigsegg",
-      ],
-      perQueryLimit: 20,
-    },
-  },
-  { platform: "rss", label: "Car Blogs (RSS)", enabled: true },
-=======
   {
     platform: "youtube",
     label: "YouTube Shorts",
@@ -52,7 +32,22 @@ const DEFAULT_SOURCES: SourceSeed[] = [
       perQueryLimit: 10,
     },
   },
-  { platform: "twitter", label: "X / Twitter", enabled: false },
+  {
+    platform: "twitter",
+    label: "X / Twitter",
+    enabled: false,
+    // Stored on the Source row so they're editable per environment.
+    // Each query is wrapped with `has:media -is:retweet -is:reply lang:en`
+    // by the connector, so the operator only writes the topic part.
+    config: {
+      queries: [
+        "Ferrari OR Lamborghini OR Pagani",
+        "Porsche GT3 OR Porsche 911 GT3 RS",
+        "McLaren OR Bugatti OR Koenigsegg",
+      ],
+      perQueryLimit: 20,
+    },
+  },
   {
     platform: "rss",
     label: "Car Blogs (RSS)",
@@ -67,8 +62,16 @@ const DEFAULT_SOURCES: SourceSeed[] = [
       ],
     },
   },
->>>>>>> origin/main
-  { platform: "auction", label: "Auction Sites", enabled: false },
+  {
+    platform: "auction",
+    label: "Auction Sites",
+    enabled: false,
+    // Bring a Trailer is the only major house with a public RSS feed.
+    // Add more URLs here as auction sitemap pollers ship.
+    config: {
+      feeds: ["https://bringatrailer.com/feed/"],
+    },
+  },
   { platform: "manual", label: "Manual URL Import", enabled: true },
 ];
 
