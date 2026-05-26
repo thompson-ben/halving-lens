@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { env, hasInstagramCredentials } from "@/lib/env";
+import { env } from "@/lib/env";
+import { getResolvedInstagramCreds } from "@/lib/instagramCreds";
 
 /**
  * Returns the OAuth authorisation URL for connecting an Instagram Business
@@ -10,13 +11,18 @@ import { env, hasInstagramCredentials } from "@/lib/env";
  * the UI can prompt the user with the setup guide.
  */
 export async function GET() {
+  const creds = await getResolvedInstagramCreds();
+  const connected = Boolean(creds.accessToken && creds.igBusinessAccountId);
+
   if (!env.meta.appId || !env.meta.redirectUri) {
     return NextResponse.json(
       {
         configured: false,
-        connected: hasInstagramCredentials(),
+        connected,
+        source: creds.source,
+        personalHandle: creds.personalHandle || null,
         message:
-          "META_APP_ID and META_REDIRECT_URI must be set. See META_API_SETUP.md.",
+          "META_APP_ID and META_REDIRECT_URI must be set in env to use the OAuth flow. You can still paste a long-lived access token below.",
       },
       { status: 200 },
     );
@@ -40,7 +46,9 @@ export async function GET() {
 
   return NextResponse.json({
     configured: true,
-    connected: hasInstagramCredentials(),
+    connected,
+    source: creds.source,
+    personalHandle: creds.personalHandle || null,
     authUrl: `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}`,
   });
 }

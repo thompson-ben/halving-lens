@@ -5,10 +5,16 @@
 // See META_API_SETUP.md for full instructions on obtaining the access token
 // and Business Account ID.
 
-import { env, hasInstagramCredentials } from "./env";
+import { env } from "./env";
+import { getResolvedInstagramCreds, hasResolvedInstagramCreds } from "./instagramCreds";
 import { mockInstagramPosts } from "./mockData";
 
 const GRAPH_BASE = "https://graph.facebook.com/v21.0";
+
+// Re-export so existing call sites that imported `hasInstagramCredentials`
+// from this module keep working — they all live in API routes that already
+// run async, so the synchronous → async swap is transparent.
+export { hasResolvedInstagramCreds as hasInstagramCredentials };
 
 export type IGMedia = {
   id: string;
@@ -39,12 +45,13 @@ export class InstagramError extends Error {
 }
 
 async function graph<T>(path: string, params: Record<string, string> = {}): Promise<T> {
-  if (!hasInstagramCredentials()) {
+  const creds = await getResolvedInstagramCreds();
+  if (!creds.accessToken || !creds.igBusinessAccountId) {
     throw new InstagramError("Instagram credentials are not configured", 401);
   }
   const url = new URL(`${GRAPH_BASE}${path}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  url.searchParams.set("access_token", env.meta.accessToken);
+  url.searchParams.set("access_token", creds.accessToken);
 
   const res = await fetch(url.toString(), { cache: "no-store" });
   if (!res.ok) {
@@ -59,7 +66,8 @@ async function graph<T>(path: string, params: Record<string, string> = {}): Prom
  * Falls back to mock data when credentials aren't configured.
  */
 export async function fetchInstagramPosts(limit = 50): Promise<IGMedia[]> {
-  if (!hasInstagramCredentials() || env.useMockData) {
+  const creds = await getResolvedInstagramCreds();
+  if (!creds.accessToken || !creds.igBusinessAccountId || env.useMockData) {
     return mockInstagramPosts.slice(0, limit).map((p) => ({
       id: p.id,
       caption: p.caption,
@@ -85,7 +93,7 @@ export async function fetchInstagramPosts(limit = 50): Promise<IGMedia[]> {
     "comments_count",
   ].join(",");
 
-  const data = await graph<{ data: IGMedia[] }>(`/${env.meta.igBusinessAccountId}/media`, {
+  const data = await graph<{ data: IGMedia[] }>(`/${creds.igBusinessAccountId}/media`, {
     fields,
     limit: String(limit),
   });
@@ -98,7 +106,8 @@ export async function fetchInstagramPosts(limit = 50): Promise<IGMedia[]> {
  * partial responses.
  */
 export async function fetchPostInsights(mediaId: string, mediaType: string): Promise<IGInsight> {
-  if (!hasInstagramCredentials() || env.useMockData) {
+  const credsReady = await hasResolvedInstagramCreds();
+  if (!credsReady || env.useMockData) {
     const seed = mockInstagramPosts.find((p) => p.id === mediaId);
     return {
       reach: seed?.reach,
@@ -163,7 +172,8 @@ export type IGBusinessDiscovery = {
 };
 
 export async function businessDiscovery(handle: string, mediaLimit = 12): Promise<IGBusinessDiscovery | null> {
-  if (!hasInstagramCredentials()) return null;
+  const creds = await getResolvedInstagramCreds();
+  if (!creds.accessToken || !creds.igBusinessAccountId) return null;
   const clean = handle.replace(/^@+/, "");
   const profileFields = [
     "username",
@@ -198,7 +208,7 @@ export async function businessDiscovery(handle: string, mediaLimit = 12): Promis
         media_count?: number;
         media?: { data?: IGBusinessDiscoveryMedia[] };
       };
-    }>(`/${env.meta.igBusinessAccountId}`, { fields });
+    }>(`/${creds.igBusinessAccountId}`, { fields });
     const bd = data.business_discovery;
     if (!bd) return null;
     return {
@@ -224,14 +234,15 @@ export async function businessDiscovery(handle: string, mediaLimit = 12): Promis
  * Auto-post is off by default and gated behind a settings flag.
  */
 export async function publishImage(opts: { imageUrl: string; caption: string }): Promise<{ id: string }> {
-  if (!hasInstagramCredentials()) {
+  const creds = await getResolvedInstagramCreds();
+  if (!creds.accessToken || !creds.igBusinessAccountId) {
     throw new InstagramError("Instagram credentials are not configured", 401);
   }
-  const container = await graph<{ id: string }>(`/${env.meta.igBusinessAccountId}/media`, {
+  const container = await graph<{ id: string }>(`/${creds.igBusinessAccountId}/media`, {
     image_url: opts.imageUrl,
     caption: opts.caption,
   });
-  const published = await graph<{ id: string }>(`/${env.meta.igBusinessAccountId}/media_publish`, {
+  const published = await graph<{ id: string }>(`/${creds.igBusinessAccountId}/media_publish`, {
     creation_id: container.id,
   });
   return published;

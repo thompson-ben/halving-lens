@@ -11,7 +11,8 @@ import {
   type IGBusinessDiscovery,
   type IGBusinessDiscoveryMedia,
 } from "@/lib/instagram";
-import { env, hasInstagramCredentials } from "@/lib/env";
+import { env } from "@/lib/env";
+import { hasResolvedInstagramCreds } from "@/lib/instagramCreds";
 
 type ScanReport = {
   scanned: number;
@@ -194,7 +195,7 @@ async function ingestMedia(
 
 async function runScan(): Promise<ScanReport> {
   const favourites = await prisma.favouriteAccount.findMany({ where: { active: true } });
-  const usingMock = env.useMockData || !hasInstagramCredentials();
+  const usingMock = env.useMockData || !(await hasResolvedInstagramCreds());
 
   let imported = 0;
   let skipped = 0;

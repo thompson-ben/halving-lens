@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchInstagramPosts, fetchPostInsights } from "@/lib/instagram";
 import { detectCar, extractHashtags } from "@/lib/utils";
-import { hasInstagramCredentials } from "@/lib/env";
+import { hasResolvedInstagramCreds } from "@/lib/instagramCreds";
 
 /**
  * Pull (or refresh) historical Instagram posts and their insights into our
@@ -74,7 +74,7 @@ async function runSync() {
 
   return {
     imported,
-    usingMock: !hasInstagramCredentials(),
+    usingMock: !(await hasResolvedInstagramCreds()),
   };
 }
 

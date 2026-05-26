@@ -14,7 +14,14 @@ const PRIMARY_SOURCE_PLATFORMS = new Set(["instagram", "manual"]);
 export default function SettingsPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [settings, setSettings] = useState<Settings>({});
-  const [igState, setIgState] = useState<{ configured: boolean; connected: boolean; authUrl?: string; message?: string } | null>(null);
+  const [igState, setIgState] = useState<{
+    configured: boolean;
+    connected: boolean;
+    authUrl?: string;
+    message?: string;
+    source?: "settings" | "env" | "mixed" | "none";
+    personalHandle?: string | null;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showSecondary, setShowSecondary] = useState(false);
@@ -125,38 +132,8 @@ export default function SettingsPage() {
         <p className="text-sm text-ink-300 mt-1">Configure sources, posting behaviour and Instagram connection.</p>
       </div>
 
-      <section className="card p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <Instagram className="w-4 h-4 text-accent" />
-          <h2 className="text-base font-semibold text-ink-100">Instagram connection</h2>
-        </div>
-        {!igState ? (
-          <div className="text-sm text-ink-300">Loading…</div>
-        ) : igState.connected ? (
-          <div className="flex items-center gap-2 text-sm text-signal-green">
-            <Check className="w-4 h-4" /> Connected. Use the &quot;Sync IG&quot; button up top to refresh historical posts.
-          </div>
-        ) : igState.configured ? (
-          <div className="flex items-center gap-3">
-            <a href={igState.authUrl} className="btn-primary">
-              Connect Instagram Business Account
-            </a>
-            <span className="text-xs text-ink-300">
-              Requires an IG Business account linked to a Facebook Page.
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-start gap-2 text-sm text-signal-amber">
-            <AlertCircle className="w-4 h-4 mt-0.5" />
-            <div>
-              {igState.message ?? "Instagram credentials not configured."}
-              <div className="mt-1 text-ink-300">
-                See <code className="text-accent">META_API_SETUP.md</code> for the step-by-step guide.
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
+      <InstagramConnectionCard igState={igState} />
+
 
       <section className="card p-6">
         <h2 className="text-base font-semibold text-ink-100 mb-1">Content sources</h2>
@@ -359,5 +336,274 @@ function SourceToggle({ source, onToggle }: { source: Source; onToggle: (id: str
         className="w-4 h-4 accent-[#d4af37]"
       />
     </label>
+  );
+}
+
+type IGState = {
+  configured: boolean;
+  connected: boolean;
+  authUrl?: string;
+  message?: string;
+  source?: "settings" | "env" | "mixed" | "none";
+  personalHandle?: string | null;
+};
+
+function InstagramConnectionCard({ igState }: { igState: IGState | null }) {
+  const [handle, setHandle] = useState("");
+  const [token, setToken] = useState("");
+  const [igAcctId, setIgAcctId] = useState("");
+  const [pageId, setPageId] = useState("");
+  const [tokenMasked, setTokenMasked] = useState("");
+  const [savedSource, setSavedSource] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [testResult, setTestResult] = useState<
+    | { ok: true; username: string; followers?: number | null; mediaCount?: number | null }
+    | { ok: false; message: string }
+    | null
+  >(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/instagram/manual-token")
+      .then((r) => r.json())
+      .then((d) => {
+        setHandle(d.personalHandle ?? "");
+        setIgAcctId(d.igBusinessAccountId ?? "");
+        setPageId(d.pageId ?? "");
+        setTokenMasked(d.accessTokenMasked ?? "");
+        setSavedSource(d.source ?? null);
+      });
+  }, []);
+
+  async function saveHandle() {
+    setBusy(true);
+    try {
+      await fetch("/api/instagram/manual-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personalHandle: handle }),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveToken() {
+    if (!token || !igAcctId) return;
+    setBusy(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/instagram/manual-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accessToken: token,
+          igBusinessAccountId: igAcctId,
+          pageId: pageId || undefined,
+          personalHandle: handle || undefined,
+        }),
+      });
+      if (res.ok) {
+        setToken("");
+        // Re-pull to refresh the masked display + source.
+        const d = await fetch("/api/instagram/manual-token").then((r) => r.json());
+        setTokenMasked(d.accessTokenMasked ?? "");
+        setSavedSource(d.source ?? null);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function clearOverrides() {
+    if (!confirm("Remove the in-app token/account overrides and fall back to env vars?")) return;
+    setBusy(true);
+    try {
+      await fetch("/api/instagram/manual-token", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys: ["accessToken", "igBusinessAccountId", "pageId"] }),
+      });
+      setIgAcctId("");
+      setPageId("");
+      setTokenMasked("");
+      setSavedSource("none");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function testConnection() {
+    setBusy(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/instagram/test", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        setTestResult({ ok: true, username: data.username, followers: data.followers, mediaCount: data.mediaCount });
+      } else {
+        setTestResult({ ok: false, message: data.message ?? "Test failed." });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const connected = Boolean(igState?.connected);
+
+  return (
+    <section className="card p-6 space-y-5">
+      <div className="flex items-center gap-2">
+        <Instagram className="w-4 h-4 text-accent" />
+        <h2 className="text-base font-semibold text-ink-100">Instagram connection</h2>
+        {savedSource && savedSource !== "none" && (
+          <span className="ml-auto text-[10px] uppercase tracking-wider text-ink-400">
+            source: {savedSource}
+          </span>
+        )}
+      </div>
+
+      <div>
+        <label className="label">Your Instagram handle</label>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">@</span>
+            <input
+              className="input pl-7"
+              placeholder="VIPWHIPS"
+              value={handle}
+              onChange={(e) => setHandle(e.target.value.replace(/^@+/, ""))}
+            />
+          </div>
+          <button onClick={saveHandle} className="btn-secondary text-xs" disabled={busy}>
+            <Save className="w-3.5 h-3.5" /> Save handle
+          </button>
+        </div>
+        <div className="text-[11px] text-ink-400 mt-1">
+          Display only — used to label &quot;your account&quot; in the UI. Doesn&apos;t give the app access until you also connect below.
+        </div>
+      </div>
+
+      {connected ? (
+        <div className="rounded-lg border border-signal-green/40 bg-signal-green/5 p-3 text-sm text-signal-green flex items-center gap-2">
+          <Check className="w-4 h-4" />
+          Connected{handle ? ` as @${handle}` : ""}. Use the &quot;Sync IG&quot; button up top to refresh historical posts.
+        </div>
+      ) : (
+        <div className="rounded-lg border border-signal-amber/30 bg-signal-amber/5 p-3 text-sm text-signal-amber flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 mt-0.5" />
+          <div>
+            Not connected yet. Two options:
+            <ul className="list-disc list-inside text-ink-300 mt-1 space-y-1">
+              <li>
+                <span className="text-ink-100">OAuth flow</span> — requires <code className="text-accent">META_APP_ID</code>,{" "}
+                <code className="text-accent">META_APP_SECRET</code>, <code className="text-accent">META_REDIRECT_URI</code> in env. Walks you through Facebook Login.
+              </li>
+              <li>
+                <span className="text-ink-100">Paste token</span> — get a long-lived token from{" "}
+                <a
+                  className="text-accent hover:underline"
+                  href="https://developers.facebook.com/tools/explorer/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Graph API Explorer
+                </a>{" "}
+                and paste it below. No redeploy needed.
+              </li>
+            </ul>
+            <div className="mt-1 text-ink-300">
+              Full setup walkthrough in <code className="text-accent">META_API_SETUP.md</code>.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {igState?.configured && igState?.authUrl && (
+        <div>
+          <a href={igState.authUrl} className="btn-primary">
+            <Instagram className="w-4 h-4" /> Connect via OAuth
+          </a>
+        </div>
+      )}
+
+      <div className="border-t border-ink-700 pt-5">
+        <button
+          onClick={() => setAdvancedOpen((v) => !v)}
+          className="text-sm font-medium text-ink-100 hover:text-accent flex items-center gap-2"
+        >
+          {advancedOpen ? "▾" : "▸"} Paste credentials manually
+        </button>
+        {advancedOpen && (
+          <div className="space-y-3 mt-3">
+            <div>
+              <label className="label">IG Business Account ID</label>
+              <input
+                className="input"
+                placeholder="178414XXXXXXXXX"
+                value={igAcctId}
+                onChange={(e) => setIgAcctId(e.target.value.trim())}
+              />
+            </div>
+            <div>
+              <label className="label">Facebook Page ID (optional)</label>
+              <input
+                className="input"
+                placeholder="for publishing flows"
+                value={pageId}
+                onChange={(e) => setPageId(e.target.value.trim())}
+              />
+            </div>
+            <div>
+              <label className="label">Long-lived access token</label>
+              <input
+                type="password"
+                className="input font-mono"
+                placeholder={tokenMasked ? `current: ${tokenMasked}` : "paste a 60-day token"}
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+              />
+              <div className="text-[11px] text-ink-400 mt-1">
+                Stored in the Settings table. Leave blank to keep the existing token while you change other fields.
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={saveToken} className="btn-primary text-xs" disabled={busy || (!token && !igAcctId)}>
+                <Save className="w-3.5 h-3.5" /> Save credentials
+              </button>
+              <button onClick={testConnection} className="btn-secondary text-xs" disabled={busy}>
+                <Instagram className="w-3.5 h-3.5" /> Test connection
+              </button>
+              {tokenMasked && (
+                <button onClick={clearOverrides} className="btn-ghost text-xs" disabled={busy}>
+                  <AlertCircle className="w-3.5 h-3.5" /> Clear overrides
+                </button>
+              )}
+            </div>
+            {testResult && (
+              <div
+                className={`rounded-lg border px-3 py-2 text-xs ${
+                  testResult.ok
+                    ? "border-signal-green/40 bg-signal-green/5 text-signal-green"
+                    : "border-signal-red/40 bg-signal-red/5 text-signal-red"
+                }`}
+              >
+                {testResult.ok ? (
+                  <>
+                    <Check className="inline w-3.5 h-3.5 mr-1" />
+                    Connected as <span className="font-semibold">@{testResult.username}</span> · {testResult.followers?.toLocaleString() ?? "?"} followers · {testResult.mediaCount ?? "?"} posts.
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="inline w-3.5 h-3.5 mr-1" />
+                    {testResult.message}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
