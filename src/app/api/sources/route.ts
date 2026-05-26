@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const sources = await prisma.source.findMany({ orderBy: { label: "asc" } });
   return NextResponse.json({ sources });

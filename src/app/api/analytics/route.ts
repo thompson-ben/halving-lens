@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { trainModel } from "@/lib/scoring";
 
+// Hits Prisma at request time; never prerender at build (DB may not exist).
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const posts = await prisma.instagramPost.findMany({
     include: { metrics: { orderBy: { capturedAt: "desc" }, take: 1 } },

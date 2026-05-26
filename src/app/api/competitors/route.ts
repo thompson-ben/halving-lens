@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const items = await prisma.competitorAccount.findMany({ orderBy: { followers: "desc" } });
   return NextResponse.json({ items });
