@@ -113,7 +113,8 @@ export default function FavouritesPage() {
       const res = await fetch("/api/favourites/scan", { method: "POST" });
       const data = await res.json();
       const mockNote = data.usingMock ? " (mock — connect IG to scan live)" : "";
-      setScanResult(`Scanned ${data.scanned}: ${data.imported} new posts, ${data.skipped} dup${mockNote}.`);
+      const autoNote = data.autoShortlisted > 0 ? `, ${data.autoShortlisted} auto-shortlisted` : "";
+      setScanResult(`Scanned ${data.scanned}: ${data.imported} new posts, ${data.skipped} dup${autoNote}${mockNote}.`);
       await refresh();
     } catch {
       setScanResult("Scan failed.");

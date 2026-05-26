@@ -81,6 +81,11 @@ const DEFAULT_SETTINGS: Array<{ key: string; value: unknown }> = [
   { key: "min_quality_score", value: 65 },
   { key: "repost_cooldown_days", value: 30 },
   { key: "timezone", value: "Europe/London" },
+  // Auto-shortlist: when enabled, items scoring above the composite
+  // threshold (0-100) get promoted from "new" to "shortlisted" after each
+  // favourites scan. Off by default — operator opts in from Settings.
+  { key: "auto_shortlist_enabled", value: false },
+  { key: "auto_shortlist_threshold", value: 75 },
 ];
 
 async function main() {

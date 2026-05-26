@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Instagram, AlertCircle, Check, Save, Shield, Dna } from "lucide-react";
+import { Instagram, AlertCircle, Check, Save, Shield, Dna, Wand2 } from "lucide-react";
 
 type Source = { id: string; platform: string; label: string; enabled: boolean };
 type Settings = Record<string, unknown>;
@@ -20,6 +20,8 @@ export default function SettingsPage() {
   const [showSecondary, setShowSecondary] = useState(false);
   const [recomputing, setRecomputing] = useState(false);
   const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
+  const [dryRunMsg, setDryRunMsg] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
     fetch("/api/sources").then((r) => r.json()).then((d) => setSources(d.sources));
@@ -67,6 +69,32 @@ export default function SettingsPage() {
 
   function update<K extends string>(key: K, value: unknown) {
     setSettings((cur) => ({ ...cur, [key]: value }));
+  }
+
+  async function previewAutoShortlist() {
+    setPreviewing(true);
+    setDryRunMsg(null);
+    try {
+      // Save current settings first so the preview uses what's on screen.
+      await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const res = await fetch("/api/picks/auto-shortlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dryRun: true }),
+      });
+      const data = await res.json();
+      setDryRunMsg(
+        `Would shortlist ${data.shortlisted}/${data.candidatesEvaluated} candidates at threshold ${data.threshold}.`,
+      );
+    } catch {
+      setDryRunMsg("Preview failed.");
+    } finally {
+      setPreviewing(false);
+    }
   }
 
   const primarySources = sources.filter((s) => PRIMARY_SOURCE_PLATFORMS.has(s.platform));
@@ -156,6 +184,64 @@ export default function SettingsPage() {
             <Dna className="w-3.5 h-3.5" /> {recomputing ? "Recomputing…" : "Recompute Content DNA"}
           </button>
           {recomputeMsg && <span className="text-[11px] text-ink-400">{recomputeMsg}</span>}
+        </div>
+      </section>
+
+      <section className="card p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Wand2 className="w-4 h-4 text-accent" />
+          <h2 className="text-base font-semibold text-ink-100">Automation</h2>
+        </div>
+        <p className="text-xs text-ink-300">
+          Auto-shortlist promotes newly-discovered items from <code>new</code> to <code>shortlisted</code> when their
+          composite score (DNA + AI quality + recency + source engagement, with brand-cooldown penalty) exceeds the
+          threshold. Runs after each favourites scan. Today&apos;s Picks then shows only items that need your judgement.
+        </p>
+
+        <label className="flex items-start justify-between gap-4 rounded-lg border border-ink-700 bg-ink-850 px-4 py-3">
+          <div>
+            <div className="text-sm text-ink-100">Auto-shortlist enabled</div>
+            <div className="text-[11px] text-ink-400 mt-1">
+              Off by default. Turn on once you trust the scoring on your content mix.
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={Boolean(settings.auto_shortlist_enabled)}
+            onChange={(e) => update("auto_shortlist_enabled", e.target.checked)}
+            className="w-4 h-4 accent-[#d4af37] mt-1"
+          />
+        </label>
+
+        <div className="rounded-lg border border-ink-700 bg-ink-850 px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-ink-100">
+              Composite threshold: <span className="text-accent tabular-nums">{Number(settings.auto_shortlist_threshold ?? 75)}</span>
+            </label>
+            <div className="text-[11px] text-ink-400">Range 0–100</div>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={Number(settings.auto_shortlist_threshold ?? 75)}
+            onChange={(e) => update("auto_shortlist_threshold", Number(e.target.value))}
+            className="w-full accent-[#d4af37]"
+          />
+          <div className="text-[11px] text-ink-400">
+            Lower threshold = more auto-shortlists. Recommended starting point: 75.
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button onClick={previewAutoShortlist} className="btn-secondary text-xs" disabled={previewing}>
+            <Wand2 className="w-3.5 h-3.5" /> {previewing ? "Previewing…" : "Preview at current threshold"}
+          </button>
+          <button onClick={saveSettings} className="btn-primary text-xs" disabled={saving}>
+            <Save className="w-3.5 h-3.5" /> Save automation
+          </button>
+          {dryRunMsg && <span className="text-[11px] text-ink-400">{dryRunMsg}</span>}
         </div>
       </section>
 

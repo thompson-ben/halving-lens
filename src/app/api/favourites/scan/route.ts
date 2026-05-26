@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { detectCar } from "@/lib/utils";
 import { scoreContentWithAI } from "@/lib/openai";
 import { embedText, findBestMatch, type TopPostRef } from "@/lib/embeddings";
+import { autoShortlistRun } from "@/lib/autoShortlist";
 import {
   businessDiscovery,
   type IGBusinessDiscovery,
@@ -17,6 +18,7 @@ type ScanReport = {
   skipped: number;
   usingMock: boolean;
   notes: string[];
+  autoShortlisted: number;
 };
 
 // Mock fallback: synthesises a plausible business_discovery response per
@@ -227,12 +229,34 @@ async function runScan(): Promise<ScanReport> {
     skipped += r.skipped;
   }
 
+  // After ingest, run the auto-shortlist pass once. It's a no-op when the
+  // setting is off; otherwise it promotes any new items above the
+  // composite threshold so the operator opens Today's Picks to a curated
+  // shortlist instead of an untriaged firehose.
+  const settings = await loadAutoShortlistSettings();
+  const auto = await autoShortlistRun({ settings, dryRun: false });
+  if (auto.ran) {
+    notes.push(`Auto-shortlisted ${auto.shortlisted} (threshold ${auto.threshold}).`);
+  }
+
   return {
     scanned: favourites.length,
     imported,
     skipped,
     usingMock,
     notes,
+    autoShortlisted: auto.ran ? auto.shortlisted : 0,
+  };
+}
+
+async function loadAutoShortlistSettings() {
+  const rows = await prisma.setting.findMany({
+    where: { key: { in: ["auto_shortlist_enabled", "auto_shortlist_threshold"] } },
+  });
+  const out = new Map(rows.map((r) => [r.key, r.value]));
+  return {
+    enabled: Boolean(out.get("auto_shortlist_enabled") ?? false),
+    threshold: Number(out.get("auto_shortlist_threshold") ?? 75),
   };
 }
 
