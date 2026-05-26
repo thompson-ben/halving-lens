@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, ChevronRight, Dna, EyeOff, RefreshCw, Sunrise, X } from "lucide-react";
+import { Check, ChevronRight, Crop, Dna, EyeOff, RefreshCw, Sunrise, X } from "lucide-react";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { EmptyState } from "@/components/EmptyState";
 import { formatNumber, relativeTime } from "@/lib/utils";
@@ -30,11 +30,23 @@ type Pick = {
   aiReason: string | null;
   status: string;
   discoveredAt: string;
+  width: number | null;
+  height: number | null;
   bestSimilarityScore: number | null;
   similarToPost: { caption: string | null; permalink: string | null } | null;
   compositeScore: number;
   scoreBreakdown: ScoreBreakdown;
 };
+
+function aspectChip(w: number | null, h: number | null): string | null {
+  if (!w || !h) return null;
+  const r = w / h;
+  if (Math.abs(r - 1) <= 0.03) return "1:1";
+  if (Math.abs(r - 0.8) <= 0.03) return "4:5";
+  if (r >= 1.5) return "wide";
+  if (r <= 0.7) return "9:16";
+  return `${w}×${h}`;
+}
 
 const SKIP_STORAGE_KEY = "today-picks:skipped";
 
@@ -73,18 +85,21 @@ export default function TodayPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const [feedReadyOnly, setFeedReadyOnly] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/picks?limit=12`);
+      const params = new URLSearchParams({ limit: "12" });
+      if (feedReadyOnly) params.set("feedReady", "true");
+      const res = await fetch(`/api/picks?${params.toString()}`);
       const data = await res.json();
       setItems(data.items ?? []);
       setMeta({ candidatePoolSize: data.candidatePoolSize, cooldownBrandCount: data.cooldownBrandCount });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [feedReadyOnly]);
 
   useEffect(() => {
     setSkipped(loadSkipped());
@@ -139,6 +154,18 @@ export default function TodayPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFeedReadyOnly((v) => !v)}
+            className={`text-xs px-2.5 py-1 rounded-md border transition-colors flex items-center gap-1.5 ${
+              feedReadyOnly
+                ? "bg-accent text-ink-950 border-accent"
+                : "bg-ink-850 border-ink-700 text-ink-200 hover:border-ink-600"
+            }`}
+            title="Only show 1:1 square or 4:5 portrait — what fits cleanly on the IG feed"
+          >
+            <Crop className="w-3.5 h-3.5" />
+            IG feed-ready only
+          </button>
           {skipped.size > 0 && (
             <button onClick={clearSkipsAndRefresh} className="btn-ghost text-xs" title="Clear today's skipped items">
               <EyeOff className="w-3.5 h-3.5" /> Reset {skipped.size} skipped
@@ -242,12 +269,20 @@ function PickRow({
 
         <p className="text-sm text-ink-200 line-clamp-2">{pick.caption}</p>
 
-        <div className="flex items-center gap-3 text-xs text-ink-300 mt-1">
+        <div className="flex items-center gap-3 text-xs text-ink-300 mt-1 flex-wrap">
           <span>♥ {formatNumber(pick.likes)}</span>
           <span>💬 {formatNumber(pick.comments)}</span>
           {pick.bestSimilarityScore != null && pick.bestSimilarityScore > 0 && (
             <span className="flex items-center gap-1 text-accent">
               <Dna className="w-3 h-3" /> {dnaPct}% DNA
+            </span>
+          )}
+          {aspectChip(pick.width, pick.height) && (
+            <span
+              className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full border border-ink-700"
+              title={`${pick.width} × ${pick.height}px`}
+            >
+              {aspectChip(pick.width, pick.height)}
             </span>
           )}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Instagram, AlertCircle, Check, Save, Shield, Dna, Wand2 } from "lucide-react";
+import { Instagram, AlertCircle, Check, Save, Shield, Dna, Wand2, Crop } from "lucide-react";
 
 type Source = { id: string; platform: string; label: string; enabled: boolean };
 type Settings = Record<string, unknown>;
@@ -22,6 +22,8 @@ export default function SettingsPage() {
   const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
   const [dryRunMsg, setDryRunMsg] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/sources").then((r) => r.json()).then((d) => setSources(d.sources));
@@ -69,6 +71,22 @@ export default function SettingsPage() {
 
   function update<K extends string>(key: K, value: unknown) {
     setSettings((cur) => ({ ...cur, [key]: value }));
+  }
+
+  async function backfillDimensions() {
+    setBackfilling(true);
+    setBackfillMsg(null);
+    try {
+      const res = await fetch("/api/content/backfill-dimensions?limit=200", { method: "POST" });
+      const data = await res.json();
+      setBackfillMsg(
+        `Probed ${data.probed}: ${data.succeeded} succeeded, ${data.failed} failed. ${data.remaining} still pending — run again if needed.`,
+      );
+    } catch {
+      setBackfillMsg("Backfill failed.");
+    } finally {
+      setBackfilling(false);
+    }
   }
 
   async function previewAutoShortlist() {
@@ -184,6 +202,24 @@ export default function SettingsPage() {
             <Dna className="w-3.5 h-3.5" /> {recomputing ? "Recomputing…" : "Recompute Content DNA"}
           </button>
           {recomputeMsg && <span className="text-[11px] text-ink-400">{recomputeMsg}</span>}
+        </div>
+      </section>
+
+      <section className="card p-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <Crop className="w-4 h-4 text-accent" />
+          <h2 className="text-base font-semibold text-ink-100">Image dimensions</h2>
+        </div>
+        <p className="text-xs text-ink-300">
+          Probes the source image of every discovered item to record pixel dimensions, so the aspect-ratio filter
+          (1:1 square, 4:5 portrait, IG feed-ready) can pick them up. New items get probed on ingest — use this for
+          backfilling anything imported before this feature shipped.
+        </p>
+        <div className="flex items-center gap-3">
+          <button onClick={backfillDimensions} className="btn-secondary text-xs" disabled={backfilling}>
+            <Crop className="w-3.5 h-3.5" /> {backfilling ? "Probing…" : "Backfill missing dimensions"}
+          </button>
+          {backfillMsg && <span className="text-[11px] text-ink-400">{backfillMsg}</span>}
         </div>
       </section>
 

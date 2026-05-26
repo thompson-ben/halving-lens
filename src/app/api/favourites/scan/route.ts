@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { detectCar } from "@/lib/utils";
 import { scoreContentWithAI } from "@/lib/openai";
 import { embedText, findBestMatch, type TopPostRef } from "@/lib/embeddings";
+import { probeImageDimensions } from "@/lib/imageDimensions";
 import { autoShortlistRun } from "@/lib/autoShortlist";
 import {
   businessDiscovery,
@@ -151,6 +152,13 @@ async function ingestMedia(
       }
     }
 
+    // Probe image dimensions on ingest. We probe the media_url (not the
+    // thumbnail, which is a CDN-resized variant). Skip for video — the
+    // probe would download the moov atom and we don't filter video by
+    // aspect anyway.
+    const probeUrl = m.media_type?.toLowerCase() === "video" ? null : (m.media_url ?? m.thumbnail_url ?? null);
+    const dims = await probeImageDimensions(probeUrl);
+
     await prisma.discoveredContent.create({
       data: {
         sourceId: source?.id ?? null,
@@ -173,6 +181,8 @@ async function ingestMedia(
         captionEmbedding,
         bestSimilarityScore,
         similarToPostId,
+        width: dims?.width ?? null,
+        height: dims?.height ?? null,
         discoveredAt: new Date(m.timestamp),
       },
     });

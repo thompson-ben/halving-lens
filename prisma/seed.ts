@@ -114,13 +114,26 @@ async function main() {
   }
 
   console.log("→ Seeding discovered content…");
-  for (const item of mockDiscoveredContent) {
+  // Rotate through a few realistic IG dimensions so the aspect-ratio
+  // filter has variety in mock mode. Indexes 0/3/6… get 4:5 portrait,
+  // 1/4/7… get 1:1 square, 2/5/8… get a non-feed-ready landscape so
+  // the filter actually excludes something.
+  const dimRotation: Array<{ width: number; height: number }> = [
+    { width: 1080, height: 1350 }, // 4:5 portrait
+    { width: 1080, height: 1080 }, // 1:1 square
+    { width: 1080, height: 566 },  // 1.91:1 landscape (won't pass feed-ready filter)
+  ];
+  for (let i = 0; i < mockDiscoveredContent.length; i += 1) {
+    const item = mockDiscoveredContent[i];
+    const dims = dimRotation[i % dimRotation.length];
     const source = await prisma.source.findFirst({ where: { platform: item.platform } });
     await prisma.discoveredContent.upsert({
       where: { url: item.url },
       update: {},
       create: {
         ...item,
+        width: dims.width,
+        height: dims.height,
         sourceId: source?.id ?? null,
       },
     });

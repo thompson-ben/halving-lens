@@ -3,9 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { ContentCard, type ContentCardItem } from "@/components/ContentCard";
 import { EmptyState } from "@/components/EmptyState";
-import { Dna, ListChecks } from "lucide-react";
+import { Crop, Dna, ListChecks } from "lucide-react";
 import { CONTENT_STATUSES, PRIMARY_PLATFORMS, PLATFORM_LABELS, STATUS_LABELS, type ContentStatus, type Platform } from "@/types";
 import { cn } from "@/lib/utils";
+
+type AspectFilter = "any" | "feed" | "square" | "portrait";
+const ASPECT_LABELS: Record<AspectFilter, string> = {
+  any: "Any aspect",
+  feed: "IG feed-ready (1:1 or 4:5)",
+  square: "1:1 Square (1080×1080)",
+  portrait: "4:5 Portrait (1080×1350)",
+};
 
 export default function DiscoveryPage() {
   const [items, setItems] = useState<ContentCardItem[]>([]);
@@ -13,6 +21,7 @@ export default function DiscoveryPage() {
   const [status, setStatus] = useState<ContentStatus | "all">("all");
   const [platform, setPlatform] = useState<Platform | "all">("all");
   const [similar, setSimilar] = useState(false);
+  const [aspect, setAspect] = useState<AspectFilter>("any");
   const [q, setQ] = useState("");
   const [recomputing, setRecomputing] = useState(false);
   const [recomputeMsg, setRecomputeMsg] = useState<string | null>(null);
@@ -22,13 +31,14 @@ export default function DiscoveryPage() {
     if (status !== "all") params.set("status", status);
     if (platform !== "all") params.set("platform", platform);
     if (similar) params.set("similar", "true");
+    if (aspect !== "any") params.set("aspect", aspect);
     if (q) params.set("q", q);
     setLoading(true);
     fetch(`/api/content?${params.toString()}`)
       .then((r) => r.json())
       .then((d) => setItems(d.items))
       .finally(() => setLoading(false));
-  }, [status, platform, similar, q]);
+  }, [status, platform, similar, aspect, q]);
 
   async function recomputeDna() {
     setRecomputing(true);
@@ -44,6 +54,7 @@ export default function DiscoveryPage() {
       if (status !== "all") params.set("status", status);
       if (platform !== "all") params.set("platform", platform);
       if (similar) params.set("similar", "true");
+      if (aspect !== "any") params.set("aspect", aspect);
       if (q) params.set("q", q);
       const r = await fetch(`/api/content?${params.toString()}`);
       const d = await r.json();
@@ -118,6 +129,25 @@ export default function DiscoveryPage() {
             {recomputing ? "Recomputing…" : "Recompute Content DNA"}
           </button>
           {recomputeMsg && <span className="text-[11px] text-ink-400">{recomputeMsg}</span>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-ink-700">
+          <span className="section-title flex items-center gap-1.5">
+            <Crop className="w-3.5 h-3.5" /> Aspect
+          </span>
+          {(Object.keys(ASPECT_LABELS) as AspectFilter[]).map((a) => (
+            <button
+              key={a}
+              onClick={() => setAspect(a)}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-xs border transition-colors",
+                aspect === a
+                  ? "bg-accent text-ink-950 border-accent"
+                  : "bg-ink-850 border-ink-700 text-ink-200 hover:border-ink-600",
+              )}
+            >
+              {ASPECT_LABELS[a]}
+            </button>
+          ))}
         </div>
       </div>
 

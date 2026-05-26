@@ -26,6 +26,8 @@ export type ContentCardItem = {
   rightsStatus: string;
   status: string;
   discoveredAt: string | Date;
+  width?: number | null;
+  height?: number | null;
   bestSimilarityScore?: number | null;
   similarToPost?: {
     id: string;
@@ -96,6 +98,14 @@ export function ContentCard({
             {PLATFORM_LABELS[item.platform as Platform] ?? item.platform}
           </span>
           <StatusBadge status={item.status} />
+          {item.width && item.height && (
+            <span
+              className="badge bg-ink-950/70 text-ink-200 border-ink-700 tabular-nums"
+              title={`${item.width} × ${item.height}px`}
+            >
+              {aspectLabel(item.width, item.height)}
+            </span>
+          )}
         </div>
         <div className="absolute top-3 right-3">
           <ScoreBadge score={item.aiScore ?? null} />
@@ -201,6 +211,15 @@ export function ContentCard({
       </div>
     </article>
   );
+}
+
+function aspectLabel(w: number, h: number): string {
+  const r = w / h;
+  if (Math.abs(r - 1) <= 0.03) return "1:1";
+  if (Math.abs(r - 0.8) <= 0.03) return "4:5";
+  if (r >= 1.5) return "landscape";
+  if (r <= 0.7) return "9:16";
+  return `${w}×${h}`;
 }
 
 function Stat({ icon: Icon, value }: { icon: typeof Heart; value?: number | null }) {

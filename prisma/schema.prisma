@@ -72,6 +72,14 @@ model DiscoveredContent {
   rightsStatus    String   @default("unknown") // "unknown" | "requested" | "granted" | "denied"
   rightsNote      String?
 
+  // Image dimensions probed from the source URL on ingest. Used by the
+  // aspect-ratio filter on /discovery and /today so the operator can
+  // restrict the queue to IG-feed-compatible posts (1:1 square or 4:5
+  // portrait). Null when the probe failed (timeouts, video media, dead
+  // URLs) — the backfill route refills missing ones.
+  width           Int?
+  height          Int?
+
   // Content DNA — caption embedding + closest "top performer" match.
   // Populated by /api/dna/recompute (or on ingest, when an OpenAI key is
   // configured). bestSimilarityScore is cosine similarity in [0,1] against
@@ -99,6 +107,7 @@ model DiscoveredContent {
   @@index([discoveredAt])
   @@index([carMake, carModel])
   @@index([bestSimilarityScore])
+  @@index([width, height])
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { similarityCutoff } from "@/lib/embeddings";
+import { isFeedReady } from "@/lib/imageDimensions";
 import { loadCooldownBrands, scoreCandidate } from "@/lib/picks";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const limit = Math.max(1, Math.min(20, Number(searchParams.get("limit") ?? 10)));
+  const feedReadyOnly = searchParams.get("feedReady") === "true";
 
   const [candidates, cooldownBrands] = await Promise.all([
     prisma.discoveredContent.findMany({
@@ -18,8 +20,12 @@ export async function GET(req: Request) {
     loadCooldownBrands(),
   ]);
 
+  const filtered = feedReadyOnly
+    ? candidates.filter((c) => isFeedReady(c.width, c.height))
+    : candidates;
+
   const now = Date.now();
-  const ranked = candidates
+  const ranked = filtered
     .map((c) => scoreCandidate(c, cooldownBrands, now))
     .sort((a, b) => b.composite - a.composite)
     .slice(0, limit);
@@ -54,6 +60,7 @@ export async function GET(req: Request) {
     items,
     similarityCutoff: similarityCutoff(),
     cooldownBrandCount: cooldownBrands.size,
-    candidatePoolSize: candidates.length,
+    candidatePoolSize: filtered.length,
+    feedReadyFilterApplied: feedReadyOnly,
   });
 }
