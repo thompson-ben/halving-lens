@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, Search, Zap } from "lucide-react";
+import { RefreshCw, Rss, Search, Zap } from "lucide-react";
 
 export function TopBar() {
   const [syncing, setSyncing] = useState(false);
+  const [syncingRss, setSyncingRss] = useState(false);
   const [rescoring, setRescoring] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -23,6 +24,21 @@ export function TopBar() {
       setMessage("Sync failed.");
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function syncRss() {
+    setSyncingRss(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/rss/sync", { method: "POST" });
+      const data = await res.json();
+      const suffix = data.usingMock ? " (mock feeds)" : ` from ${data.feeds} feed${data.feeds === 1 ? "" : "s"}`;
+      setMessage(`RSS: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
+    } catch {
+      setMessage("RSS sync failed.");
+    } finally {
+      setSyncingRss(false);
     }
   }
 
@@ -52,6 +68,10 @@ export function TopBar() {
           <button onClick={syncInstagram} className="btn-secondary" disabled={syncing}>
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Syncing…" : "Sync IG"}
+          </button>
+          <button onClick={syncRss} className="btn-secondary" disabled={syncingRss}>
+            <Rss className={`w-4 h-4 ${syncingRss ? "animate-spin" : ""}`} />
+            {syncingRss ? "Syncing…" : "Sync RSS"}
           </button>
           <button onClick={rescore} className="btn-primary" disabled={rescoring}>
             <Zap className="w-4 h-4" />

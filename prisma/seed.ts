@@ -1,15 +1,35 @@
 /* eslint-disable no-console */
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { mockDiscoveredContent, mockInstagramPosts, mockCompetitors } from "../src/lib/mockData";
 
 const prisma = new PrismaClient();
 
-const DEFAULT_SOURCES = [
+type SourceSeed = {
+  platform: string;
+  label: string;
+  enabled: boolean;
+  config?: Record<string, unknown>;
+};
+
+const DEFAULT_SOURCES: SourceSeed[] = [
   { platform: "instagram", label: "Instagram", enabled: true },
   { platform: "tiktok", label: "TikTok", enabled: false },
   { platform: "youtube", label: "YouTube Shorts", enabled: false },
   { platform: "twitter", label: "X / Twitter", enabled: false },
-  { platform: "rss", label: "Car Blogs (RSS)", enabled: true },
+  {
+    platform: "rss",
+    label: "Car Blogs (RSS)",
+    enabled: true,
+    // Feed URLs are stored on the Source row so they're editable without a
+    // code deploy. The defaults below cover the major editorial outlets.
+    config: {
+      feeds: [
+        "https://www.carscoops.com/feed/",
+        "https://www.motor1.com/rss/news/all/",
+        "https://www.autoblog.com/rss.xml",
+      ],
+    },
+  },
   { platform: "auction", label: "Auction Sites", enabled: false },
   { platform: "manual", label: "Manual URL Import", enabled: true },
 ];
@@ -25,10 +45,16 @@ const DEFAULT_SETTINGS: Array<{ key: string; value: unknown }> = [
 async function main() {
   console.log("→ Seeding sources…");
   for (const src of DEFAULT_SOURCES) {
+    const config = src.config ? { config: src.config as Prisma.InputJsonValue } : {};
     await prisma.source.upsert({
       where: { platform_label: { platform: src.platform, label: src.label } },
-      update: { enabled: src.enabled },
-      create: src,
+      update: { enabled: src.enabled, ...config },
+      create: {
+        platform: src.platform,
+        label: src.label,
+        enabled: src.enabled,
+        ...config,
+      },
     });
   }
 
