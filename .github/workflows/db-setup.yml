@@ -1,0 +1,47 @@
+name: DB setup
+
+# One-shot workflow to apply the Prisma schema to a fresh Supabase database
+# and (optionally) seed it with default sources + mock historical content.
+#
+# Required repository secrets:
+#   - DATABASE_URL  (Supabase pooled connection, port 6543, with ?pgbouncer=true)
+#   - DIRECT_URL    (Supabase direct connection, port 5432)
+#
+# Trigger from the Actions tab → "DB setup" → "Run workflow".
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Also run db:seed after schema push
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  setup:
+    name: Apply schema and seed
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Push Prisma schema to Supabase
+        run: npx prisma db push --accept-data-loss
+
+      - name: Seed default sources, settings, and mock content
+        if: ${{ inputs.seed == 'true' }}
+        run: npm run db:seed
