@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { detectCar } from "@/lib/utils";
 import { scoreContentWithAI } from "@/lib/openai";
+import { embedText, findBestMatch, type TopPostRef } from "@/lib/embeddings";
 import {
   businessDiscovery,
   type IGBusinessDiscovery,
@@ -88,11 +89,24 @@ function computeSignals(media: IGBusinessDiscoveryMedia[], followers: number | n
   };
 }
 
+async function loadTopPerformerRefs(): Promise<TopPostRef[]> {
+  const posts = await prisma.instagramPost.findMany({
+    where: { topPerformer: true, NOT: { captionEmbedding: { isEmpty: true } } },
+    select: { id: true, captionEmbedding: true },
+  });
+  return posts
+    .filter((p) => p.captionEmbedding.length > 0)
+    .map((p) => ({ id: p.id, embedding: p.captionEmbedding }));
+}
+
 async function ingestMedia(
   handle: string,
   media: IGBusinessDiscoveryMedia[],
 ): Promise<{ imported: number; skipped: number }> {
   const source = await prisma.source.findFirst({ where: { platform: "instagram" } });
+  // Loaded once per scan — top performers don't shift mid-scan, and we'd
+  // otherwise repeat the same query for every imported piece of content.
+  const topRefs = await loadTopPerformerRefs();
   let imported = 0;
   let skipped = 0;
 
@@ -117,6 +131,24 @@ async function ingestMedia(
       ? `${ai.reason} (from favourite @${handle})`
       : `Surfaced from favourite @${handle}.`;
 
+    // Best-effort DNA scoring on ingest so new items show up in the
+    // "Similar to top performers" tab immediately. Falls back to null
+    // when there are no top-performer embeddings to compare against yet.
+    let captionEmbedding: number[] = [];
+    let bestSimilarityScore: number | null = null;
+    let similarToPostId: string | null = null;
+    if (m.caption) {
+      const vec = await embedText(m.caption);
+      if (vec) {
+        captionEmbedding = vec;
+        const match = findBestMatch(vec, topRefs);
+        if (match) {
+          bestSimilarityScore = match.score;
+          similarToPostId = match.postId;
+        }
+      }
+    }
+
     await prisma.discoveredContent.create({
       data: {
         sourceId: source?.id ?? null,
@@ -136,6 +168,9 @@ async function ingestMedia(
         aiReason: reason,
         status: "new",
         rightsStatus: "unknown",
+        captionEmbedding,
+        bestSimilarityScore,
+        similarToPostId,
         discoveredAt: new Date(m.timestamp),
       },
     });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, MessageCircle, Eye, Bookmark, Share2, ExternalLink, Sparkles, Check, X } from "lucide-react";
+import { Heart, MessageCircle, Eye, Bookmark, Share2, ExternalLink, Sparkles, Check, X, Dna } from "lucide-react";
 import { ScoreBadge } from "./ScoreBadge";
 import { StatusBadge } from "./StatusBadge";
 import { formatNumber, relativeTime } from "@/lib/utils";
@@ -26,6 +26,13 @@ export type ContentCardItem = {
   rightsStatus: string;
   status: string;
   discoveredAt: string | Date;
+  bestSimilarityScore?: number | null;
+  similarToPost?: {
+    id: string;
+    caption?: string | null;
+    permalink?: string | null;
+    thumbnailUrl?: string | null;
+  } | null;
 };
 
 export function ContentCard({
@@ -116,6 +123,29 @@ export function ContentCard({
           <Stat icon={Bookmark} value={item.saves} />
           <Stat icon={Share2} value={item.shares} />
         </div>
+
+        {item.bestSimilarityScore != null && item.bestSimilarityScore > 0 && (
+          <div className="mb-3 flex items-center gap-2 text-xs text-ink-200 bg-ink-850 border border-ink-700 rounded-lg p-2">
+            <Dna className="w-3.5 h-3.5 text-accent shrink-0" />
+            <span>
+              <span className="font-semibold text-ink-100">{Math.round(item.bestSimilarityScore * 100)}%</span>
+              <span className="text-ink-300"> DNA match</span>
+              {item.similarToPost?.caption && (
+                <span className="text-ink-400"> · similar to “{item.similarToPost.caption.slice(0, 40)}{item.similarToPost.caption.length > 40 ? "…" : ""}”</span>
+              )}
+            </span>
+            {item.similarToPost?.permalink && (
+              <a
+                href={item.similarToPost.permalink}
+                target="_blank"
+                rel="noreferrer"
+                className="ml-auto text-accent hover:underline shrink-0"
+              >
+                view
+              </a>
+            )}
+          </div>
+        )}
 
         {item.aiReason && (
           <button
