@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, Rss, Search, Zap } from "lucide-react";
+import { Play, RefreshCw, Rss, Search, Zap } from "lucide-react";
 
 export function TopBar() {
   const [syncing, setSyncing] = useState(false);
   const [syncingRss, setSyncingRss] = useState(false);
+  const [syncingYt, setSyncingYt] = useState(false);
   const [rescoring, setRescoring] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -42,6 +43,21 @@ export function TopBar() {
     }
   }
 
+  async function syncYouTube() {
+    setSyncingYt(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/youtube/sync", { method: "POST" });
+      const data = await res.json();
+      const suffix = data.usingMock ? " (mock)" : ` across ${data.queries} quer${data.queries === 1 ? "y" : "ies"}`;
+      setMessage(`YouTube: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
+    } catch {
+      setMessage("YouTube sync failed.");
+    } finally {
+      setSyncingYt(false);
+    }
+  }
+
   async function rescore() {
     setRescoring(true);
     setMessage(null);
@@ -72,6 +88,10 @@ export function TopBar() {
           <button onClick={syncRss} className="btn-secondary" disabled={syncingRss}>
             <Rss className={`w-4 h-4 ${syncingRss ? "animate-spin" : ""}`} />
             {syncingRss ? "Syncing…" : "Sync RSS"}
+          </button>
+          <button onClick={syncYouTube} className="btn-secondary" disabled={syncingYt}>
+            <Play className={`w-4 h-4 ${syncingYt ? "animate-spin" : ""}`} />
+            {syncingYt ? "Syncing…" : "Sync YT"}
           </button>
           <button onClick={rescore} className="btn-primary" disabled={rescoring}>
             <Zap className="w-4 h-4" />

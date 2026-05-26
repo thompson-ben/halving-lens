@@ -15,6 +15,8 @@ export const env = {
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
 
+  youtubeApiKey: process.env.YOUTUBE_API_KEY ?? "",
+
   meta: {
     appId: process.env.META_APP_ID ?? "",
     appSecret: process.env.META_APP_SECRET ?? "",
@@ -31,4 +33,8 @@ export function hasInstagramCredentials(): boolean {
 
 export function hasOpenAI(): boolean {
   return Boolean(env.openaiApiKey);
+}
+
+export function hasYouTubeCredentials(): boolean {
+  return Boolean(env.youtubeApiKey);
 }

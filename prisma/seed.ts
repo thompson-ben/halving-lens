@@ -14,7 +14,24 @@ type SourceSeed = {
 const DEFAULT_SOURCES: SourceSeed[] = [
   { platform: "instagram", label: "Instagram", enabled: true },
   { platform: "tiktok", label: "TikTok", enabled: false },
-  { platform: "youtube", label: "YouTube Shorts", enabled: false },
+  {
+    platform: "youtube",
+    label: "YouTube Shorts",
+    enabled: false,
+    // Search queries are stored on the Source row so they're editable per
+    // environment without a code deploy. Quota cost: 100 units per query
+    // (search) + ~1 unit per result (videos.list batch).
+    config: {
+      queries: [
+        "Ferrari supercar shorts",
+        "Lamborghini supercar shorts",
+        "Porsche GT3 shorts",
+        "McLaren supercar shorts",
+        "Bugatti shorts",
+      ],
+      perQueryLimit: 10,
+    },
+  },
   { platform: "twitter", label: "X / Twitter", enabled: false },
   {
     platform: "rss",
