@@ -25,6 +25,12 @@ export const env = {
     igBusinessAccountId: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID ?? "",
     pageId: process.env.FACEBOOK_PAGE_ID ?? "",
   },
+
+  tiktok: {
+    clientKey: process.env.TIKTOK_CLIENT_KEY ?? "",
+    clientSecret: process.env.TIKTOK_CLIENT_SECRET ?? "",
+    accessToken: process.env.TIKTOK_ACCESS_TOKEN ?? "",
+  },
 };
 
 export function hasInstagramCredentials(): boolean {
@@ -37,4 +43,8 @@ export function hasOpenAI(): boolean {
 
 export function hasYouTubeCredentials(): boolean {
   return Boolean(env.youtubeApiKey);
+}
+
+export function hasTikTokCredentials(): boolean {
+  return Boolean(env.tiktok.accessToken);
 }
