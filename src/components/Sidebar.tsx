@@ -1,66 +1,80 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  ListChecks,
-  BarChart3,
-  CalendarDays,
-  Sparkles,
-  Settings as SettingsIcon,
-  Download,
-  Star,
-  Sunrise,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Activity, Crown, LineChart, Radar, Waves, Wallet, Bell, Settings, type LucideIcon } from "lucide-react";
+import { Logo } from "./Logo";
 
 const NAV = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/today", label: "Today's Picks", icon: Sunrise },
-  { href: "/discovery", label: "Discovery Queue", icon: ListChecks },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/import", label: "Import URL", icon: Download },
-  { href: "/favourites", label: "Favourite Accounts", icon: Star },
-  { href: "/settings", label: "Settings", icon: SettingsIcon },
-];
+  { href: "/", label: "Markets", icon: LineChart },
+  { href: "/smart-money", label: "Smart Money", icon: Crown },
+  { href: "/flows", label: "DEX Flow", icon: Waves },
+  { href: "/scanner", label: "Scanner", icon: Radar },
+  { href: "/alerts", label: "Alerts", icon: Bell },
+] as const;
+
+const SECONDARY = [
+  { href: "/portfolio", label: "Portfolio", icon: Wallet },
+  { href: "/activity", label: "Activity", icon: Activity },
+  { href: "/settings", label: "Settings", icon: Settings },
+] as const;
 
 export function Sidebar() {
-  const pathname = usePathname();
   return (
-    <aside className="w-60 shrink-0 border-r border-ink-700 bg-ink-950/60 backdrop-blur sticky top-0 h-screen hidden md:flex flex-col">
-      <div className="px-5 py-5 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-deep flex items-center justify-center text-ink-950 font-bold">
-          <Sparkles className="w-4 h-4" />
-        </div>
+    <aside className="hidden md:flex md:w-60 lg:w-64 shrink-0 flex-col border-r border-white/5 bg-ink-900/60 backdrop-blur sticky top-0 h-screen">
+      <Link href="/" className="flex items-center gap-2.5 px-5 h-16 border-b border-white/5">
+        <Logo size={28} />
         <div className="leading-tight">
-          <div className="text-sm font-semibold text-ink-100">Supercar</div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-ink-300">Content Engine</div>
+          <div className="font-semibold text-[15px] tracking-tight text-ink-100">
+            Chain<span className="text-gradient">glass</span>
+          </div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">on-chain markets</div>
         </div>
-      </div>
-      <nav className="px-2 flex-1">
-        {NAV.map((item) => {
-          const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                active ? "bg-ink-800 text-ink-100" : "text-ink-300 hover:bg-ink-850 hover:text-ink-100",
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {item.label}
-            </Link>
-          );
-        })}
+      </Link>
+
+      <nav className="flex-1 px-3 py-5 flex flex-col gap-1">
+        <div className="px-3 pb-2 text-[10px] uppercase tracking-[0.18em] text-ink-400">
+          Discover
+        </div>
+        {NAV.map((item) => (
+          <NavItem key={item.href} {...item} />
+        ))}
+
+        <div className="px-3 pt-6 pb-2 text-[10px] uppercase tracking-[0.18em] text-ink-400">
+          You
+        </div>
+        {SECONDARY.map((item) => (
+          <NavItem key={item.href} {...item} />
+        ))}
       </nav>
-      <div className="p-4 border-t border-ink-700">
-        <div className="text-[11px] text-ink-400">v0.1.0 · Phase 1</div>
+
+      <div className="m-3 p-4 rounded-xl border border-white/5 bg-gradient-to-br from-accent/10 to-violet-glow/5">
+        <div className="flex items-center gap-2 text-xs text-accent">
+          <span className="relative inline-block w-1.5 h-1.5 rounded-full bg-accent live-dot" />
+          <span>Live indexer</span>
+        </div>
+        <div className="mt-1.5 text-[11px] text-ink-300 leading-relaxed">
+          Block lag <span className="text-ink-100 font-mono">0.4s</span> · 6 chains · 12M wallets
+          labeled
+        </div>
       </div>
     </aside>
+  );
+}
+
+function NavItem({
+  href,
+  label,
+  icon: Icon,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-3 px-3 py-2 rounded-lg text-[13.5px] text-ink-200 hover:bg-white/[0.04] hover:text-ink-100 transition-colors"
+    >
+      <Icon size={16} className="text-ink-400 group-hover:text-accent transition-colors" />
+      <span>{label}</span>
+    </Link>
   );
 }

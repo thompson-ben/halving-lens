@@ -1,36 +1,43 @@
-import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/cn";
 
-export function StatCard({
-  label,
-  value,
-  hint,
-  icon: Icon,
-  tone = "default",
-}: {
+interface Props {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
+  delta?: { value: number; suffix?: string } | string;
   hint?: string;
-  icon?: LucideIcon;
-  tone?: "default" | "positive" | "negative" | "accent";
-}) {
-  const toneClass =
-    tone === "positive"
-      ? "text-signal-green"
-      : tone === "negative"
-        ? "text-signal-red"
-        : tone === "accent"
-          ? "text-accent"
-          : "text-ink-100";
+  accent?: boolean;
+  className?: string;
+  icon?: React.ReactNode;
+}
+
+export function StatCard({ label, value, delta, hint, accent, className, icon }: Props) {
+  const deltaNode =
+    typeof delta === "object" && delta !== null ? (
+      <span
+        className={cn(
+          "font-mono text-[12px] tabular-nums",
+          delta.value > 0 ? "text-signal-green" : delta.value < 0 ? "text-signal-red" : "text-ink-300",
+        )}
+      >
+        {delta.value > 0 ? "+" : ""}
+        {delta.value.toFixed(2)}
+        {delta.suffix ?? "%"}
+      </span>
+    ) : typeof delta === "string" ? (
+      <span className="text-[12px] text-ink-300">{delta}</span>
+    ) : null;
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-2">
-        <span className="section-title">{label}</span>
-        {Icon && <Icon className="w-4 h-4 text-ink-400" />}
+    <div className={cn(accent ? "card-glow" : "card", "p-5", className)}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-ink-400">
+          {icon}
+          {label}
+        </div>
+        {deltaNode}
       </div>
-      <div className={cn("text-3xl font-semibold", toneClass)}>{value}</div>
-      {hint && <div className="mt-1 text-xs text-ink-400">{hint}</div>}
+      <div className="mt-3 font-display text-2xl font-semibold text-ink-100 tabular-nums">{value}</div>
+      {hint && <div className="mt-1 text-[11.5px] text-ink-400">{hint}</div>}
     </div>
   );
 }

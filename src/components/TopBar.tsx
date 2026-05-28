@@ -1,164 +1,62 @@
-"use client";
-
-import { useState } from "react";
-import { Gavel, Music2, Play, RefreshCw, Rss, Search, Twitter, Zap } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 
 export function TopBar() {
-  const [syncing, setSyncing] = useState(false);
-  const [syncingRss, setSyncingRss] = useState(false);
-  const [syncingYt, setSyncingYt] = useState(false);
-  const [syncingTt, setSyncingTt] = useState(false);
-  const [syncingX, setSyncingX] = useState(false);
-  const [syncingAuction, setSyncingAuction] = useState(false);
-  const [rescoring, setRescoring] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  async function syncInstagram() {
-    setSyncing(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/instagram/sync", { method: "POST" });
-      const data = await res.json();
-      setMessage(
-        data.usingMock
-          ? `Synced ${data.imported} mock posts (live IG not configured).`
-          : `Synced ${data.imported} posts from Instagram.`,
-      );
-    } catch {
-      setMessage("Sync failed.");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  async function syncRss() {
-    setSyncingRss(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/rss/sync", { method: "POST" });
-      const data = await res.json();
-      const suffix = data.usingMock ? " (mock feeds)" : ` from ${data.feeds} feed${data.feeds === 1 ? "" : "s"}`;
-      setMessage(`RSS: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
-    } catch {
-      setMessage("RSS sync failed.");
-    } finally {
-      setSyncingRss(false);
-    }
-  }
-
-  async function syncYouTube() {
-    setSyncingYt(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/youtube/sync", { method: "POST" });
-      const data = await res.json();
-      const suffix = data.usingMock ? " (mock)" : ` across ${data.queries} quer${data.queries === 1 ? "y" : "ies"}`;
-      setMessage(`YouTube: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
-    } catch {
-      setMessage("YouTube sync failed.");
-    } finally {
-      setSyncingYt(false);
-    }
-  }
-
-  async function syncTikTok() {
-    setSyncingTt(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/tiktok/sync", { method: "POST" });
-      const data = await res.json();
-      const suffix = data.usingMock ? " (mock; connect TikTok in .env)" : "";
-      setMessage(`TikTok: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
-    } catch {
-      setMessage("TikTok sync failed.");
-    } finally {
-      setSyncingTt(false);
-    }
-  }
-
-  async function syncX() {
-    setSyncingX(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/twitter/sync", { method: "POST" });
-      const data = await res.json();
-      const suffix = data.usingMock ? " (mock; X API requires paid tier)" : ` across ${data.queries} quer${data.queries === 1 ? "y" : "ies"}`;
-      setMessage(`X: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
-    } catch {
-      setMessage("X sync failed.");
-    } finally {
-      setSyncingX(false);
-    }
-  }
-
-  async function syncAuctions() {
-    setSyncingAuction(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/auction/sync", { method: "POST" });
-      const data = await res.json();
-      const suffix = data.usingMock ? " (mock feeds)" : ` from ${data.feeds} feed${data.feeds === 1 ? "" : "s"}`;
-      setMessage(`Auctions: ${data.imported} new, ${data.skipped} skipped${suffix}.`);
-    } catch {
-      setMessage("Auction sync failed.");
-    } finally {
-      setSyncingAuction(false);
-    }
-  }
-
-  async function rescore() {
-    setRescoring(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/score", { method: "POST" });
-      const data = await res.json();
-      setMessage(`Rescored ${data.updated} items (model ${data.modelVersion}).`);
-    } catch {
-      setMessage("Rescore failed.");
-    } finally {
-      setRescoring(false);
-    }
-  }
-
   return (
-    <header className="sticky top-0 z-10 border-b border-ink-700 bg-ink-950/70 backdrop-blur">
-      <div className="px-6 md:px-8 py-3 flex items-center gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
-          <input className="input pl-9" placeholder="Search content, makes, models…" />
+    <header className="h-16 border-b border-white/5 bg-ink-950/60 backdrop-blur sticky top-0 z-10">
+      <div className="h-full px-6 lg:px-10 flex items-center gap-4">
+        <div className="relative flex-1 max-w-xl">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none"
+          />
+          <input
+            type="text"
+            placeholder="Search tokens, wallets (0x…), ENS, or contract address"
+            className="w-full h-9 pl-9 pr-3 rounded-lg bg-ink-850 border border-white/5 text-[13px] text-ink-100 placeholder:text-ink-400 focus:outline-none focus:border-accent/40 focus:bg-ink-800 transition-colors"
+          />
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          {message && <span className="text-xs text-ink-300 mr-2">{message}</span>}
-          <button onClick={syncInstagram} className="btn-secondary" disabled={syncing}>
-            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing…" : "Sync IG"}
-          </button>
-          <button onClick={syncRss} className="btn-secondary" disabled={syncingRss}>
-            <Rss className={`w-4 h-4 ${syncingRss ? "animate-spin" : ""}`} />
-            {syncingRss ? "Syncing…" : "Sync RSS"}
-          </button>
-          <button onClick={syncYouTube} className="btn-secondary" disabled={syncingYt}>
-            <Play className={`w-4 h-4 ${syncingYt ? "animate-spin" : ""}`} />
-            {syncingYt ? "Syncing…" : "Sync YT"}
-          </button>
-          <button onClick={syncTikTok} className="btn-secondary" disabled={syncingTt}>
-            <Music2 className={`w-4 h-4 ${syncingTt ? "animate-spin" : ""}`} />
-            {syncingTt ? "Syncing…" : "Sync TT"}
-          </button>
-          <button onClick={syncX} className="btn-secondary" disabled={syncingX}>
-            <Twitter className={`w-4 h-4 ${syncingX ? "animate-spin" : ""}`} />
-            {syncingX ? "Syncing…" : "Sync X"}
-          </button>
-          <button onClick={syncAuctions} className="btn-secondary" disabled={syncingAuction}>
-            <Gavel className={`w-4 h-4 ${syncingAuction ? "animate-spin" : ""}`} />
-            {syncingAuction ? "Syncing…" : "Sync auctions"}
-          </button>
-          <button onClick={rescore} className="btn-primary" disabled={rescoring}>
-            <Zap className="w-4 h-4" />
-            {rescoring ? "Rescoring…" : "Rescore queue"}
-          </button>
+
+        <div className="flex items-center gap-2">
+          <ChainPill />
+          <MarketChip label="BTC" value="$97,842" change={-1.82} />
+          <MarketChip label="ETH" value="$3,421" change={-2.31} />
+          <MarketChip label="SOL" value="$184.22" change={3.18} />
+          <div className="hidden lg:flex items-center gap-2 pl-3 ml-1 border-l border-white/5">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/40 to-violet-glow/40 grid place-items-center text-[11px] font-semibold text-ink-950">
+              BT
+            </div>
+          </div>
         </div>
       </div>
     </header>
+  );
+}
+
+function ChainPill() {
+  return (
+    <button
+      type="button"
+      className="hidden md:flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ink-850 border border-white/5 text-[12.5px] text-ink-200 hover:border-accent/30 hover:text-ink-100 transition-colors"
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+      All chains
+      <ChevronDown size={13} className="text-ink-400" />
+    </button>
+  );
+}
+
+function MarketChip({ label, value, change }: { label: string; value: string; change: number }) {
+  const positive = change >= 0;
+  return (
+    <div className="hidden xl:flex items-center gap-2 h-9 px-3 rounded-lg bg-ink-850/60 border border-white/5">
+      <span className="text-[10.5px] uppercase tracking-widest text-ink-400">{label}</span>
+      <span className="font-mono text-[12px] text-ink-100">{value}</span>
+      <span
+        className={`font-mono text-[11px] ${positive ? "text-signal-green" : "text-signal-red"}`}
+      >
+        {positive ? "+" : ""}
+        {change.toFixed(2)}%
+      </span>
+    </div>
   );
 }
