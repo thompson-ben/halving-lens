@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { TODAY, TODAY_DAY_IN_CYCLE, DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
+import { SOURCE, TODAY, TODAY_DAY_IN_CYCLE, DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
 import { compositeCycleIndex } from "@/lib/metrics";
 import { fmtUsd } from "@/lib/format";
 
@@ -62,6 +62,8 @@ export function TopBar() {
             <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">{cci.value}</span>
             <span className="text-[11px] text-ink-350">{cci.label}</span>
           </Pill>
+
+          <SourcePill />
         </div>
       </div>
     </header>
@@ -79,5 +81,29 @@ function Pill({ children }: { children: React.ReactNode }) {
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <span className="text-[10px] uppercase tracking-[0.18em] text-ink-400">{children}</span>
+  );
+}
+
+function SourcePill() {
+  const isLive = SOURCE.mode !== "synthetic";
+  const label =
+    SOURCE.mode === "synthetic"
+      ? "Modelled"
+      : SOURCE.mode === "mixed"
+        ? "Live + modelled"
+        : "Live";
+  const dot = isLive ? "bg-signal-green" : "bg-ink-400";
+  const title = SOURCE.fetchedAt
+    ? `Snapshot fetched ${new Date(SOURCE.fetchedAt).toUTCString()}`
+    : "Synthetic data — run npm run sync to fetch live";
+  return (
+    <div
+      title={title}
+      className="hidden lg:flex items-center gap-2 h-9 px-3.5 rounded-lg bg-white/[0.02] border border-white/[0.04]"
+    >
+      <span className={`relative w-1.5 h-1.5 rounded-full ${dot} ${isLive ? "text-signal-green live-dot" : ""}`} />
+      <span className="text-[10.5px] uppercase tracking-[0.16em] text-ink-400">Data</span>
+      <span className="text-[11.5px] text-ink-200">{label}</span>
+    </div>
   );
 }

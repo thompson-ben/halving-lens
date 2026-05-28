@@ -4,8 +4,9 @@
 >
 > Every paid Bitcoin cycle chart, free — with halving-aligned overlays nobody else has.
 
-Concept / MVP scaffold. Renders end-to-end against deterministic synthetic
-cycle data so the app runs with zero API keys.
+Concept / MVP scaffold. Ships with a synthetic data fallback so a fresh
+clone runs with zero API keys. `npm run sync` pulls live data from public
+sources and overwrites the snapshot — no signup, no rate-limited keys.
 
 ---
 
@@ -94,17 +95,57 @@ npm run lint        # next lint
 
 ---
 
-## What's still concept
+## Data pipeline
 
-1. **Real chain data.** All cycle samples are synthesised from anchor prices + a deterministic walk. Wire-up path:
-   - **Price + market cap:** CoinGecko / Coinbase public API
-   - **MVRV / NUPL / SOPR / Realised Cap:** derive from UTXO age data via mempool.space + blockchain.com, or pay for one Glassnode key
-   - **Hash / miner data:** mempool.space, blockstream
-   - **ETF flow:** BitMEX Research daily CSV
-2. **HODL Waves real data.** Currently synthesised from a heat factor; in production this is computed off UTXO age bands.
-3. **Live updates.** Daily cron + server cache. None of these metrics need sub-minute freshness.
+`src/lib/data/snapshot.ts` is the single source of truth the app reads from.
+By default it re-exports the synthetic generator so a clone runs offline.
 
-The UI is the spec — wire real data behind it without changing the page contracts.
+```bash
+npm run sync         # fetch live data, overwrite snapshot
+npm run sync:reset   # restore the synthetic default
+```
+
+### Sources
+
+| Metric                     | Source                                    | Free?  |
+| -------------------------- | ----------------------------------------- | ------ |
+| Price + market cap         | CoinGecko `/coins/bitcoin/market_chart`   | yes    |
+| Realised cap + supply      | CoinMetrics community API                 | yes    |
+| Current block + hash rate  | mempool.space                             | yes    |
+| Mayer Multiple             | derived (price / 200d SMA)                | —      |
+| MVRV / MVRV-Z              | derived (marketCap / realisedCap + stdz)  | —      |
+| NUPL                       | derived ((mcap - realisedCap) / mcap)     | —      |
+| Realised Price             | derived (realisedCap / supply)            | —      |
+| Puell Multiple             | derived (reward × 144 × price / 365d SMA) | —      |
+| Rainbow band               | derived per-cycle                         | —      |
+| SOPR, RHODL, Reserve Risk  | **modelled** — no free public source      | —      |
+
+`SOURCE.mode` in the snapshot becomes `"mixed"` when CoinMetrics data is
+present, `"live"` when only CoinGecko + mempool succeeded, and
+`"synthetic"` for the default fallback. The topbar shows a small badge so
+you always know which mode is active.
+
+### Deploy (Vercel / Netlify)
+
+Set the build command to `npm run sync && npm run build`. The host has
+outbound, the snapshot regenerates on every deploy, and the build bundles
+the fresh data. No DB, no cron jobs, no scheduled tasks needed.
+
+For lower-frequency refresh, add a daily GitHub Action that runs
+`npm run sync` and commits the new snapshot.
+
+### What's still concept
+
+1. **HODL Waves real data.** Currently synthesised from a heat factor; in
+   production this is computed off UTXO age bands (Glassnode endpoint).
+2. **SOPR / RHODL / Reserve Risk.** No free public source. Options:
+   pay a single Glassnode key (~$39/mo), self-index UTXOs (weeks of work),
+   or scrape Look Into Bitcoin's daily charts.
+3. **ETF flow data.** BitMEX Research CSV is the simplest plug; not yet
+   wired.
+
+The UI is the spec — wire real data behind it without changing the page
+contracts.
 
 ## Deliberately not built
 
