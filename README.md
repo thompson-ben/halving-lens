@@ -1,98 +1,83 @@
 # Halving.lens
 
-> Bitcoin halving cycle analytics — every chart Glassnode and CryptoQuant
-> charge for, **free**, with a feature they don't have: every metric
-> overlaid across all four halving cycles, aligned to day zero.
+> The clearest view of the Bitcoin cycle.
+>
+> Every paid Bitcoin cycle chart, free — with halving-aligned overlays nobody else has.
 
-Concept / MVP scaffold. Every screen renders end-to-end against
-deterministic synthetic cycle data so the app runs with zero API keys.
-
----
-
-## The wedge
-
-Two camps spend money on Bitcoin analytics today:
-
-1. **Glassnode / CryptoQuant** ($29–$799/mo) — the canonical chart
-   library: MVRV, NUPL, SOPR, HODL Waves, Reserve Risk, Hash Ribbons.
-   Power tools, but the free tier strips cycle history and overlays.
-2. **Look Into Bitcoin, BTC Magazine Pro, Bitbo** — free at the surface,
-   paid for depth, alerts, and overlays.
-
-Nobody combines:
-
-- **The full metric library, free** — calibrated zones, full history, real
-  band interpretations.
-- **Cycle-aligned overlays on every chart** — the headline. Pick any
-  metric, see it drawn for cycles 2, 3, 4, and 5 simultaneously,
-  anchored to halving day zero. This view doesn't exist anywhere free.
-- **A composite cycle index** — one number, 0–100, calibrated so every
-  prior cycle peaked above 85.
-- **The "where were we then" panel** — for any metric, what value did
-  prior cycles read at the same day-from-halving as today.
+Concept / MVP scaffold. Renders end-to-end against deterministic synthetic
+cycle data so the app runs with zero API keys.
 
 ---
 
-## Screens
+## Strategic position
 
-| Route | What it does |
+**Bitcoin-only. Cycle intelligence platform.**
+
+Not a CoinGecko clone. Not a TradingView. Not a generic crypto terminal.
+
+The product answers one question well: **where is Bitcoin in the cycle,
+and how does that compare to every prior cycle?**
+
+## The moat
+
+Not the charts themselves — every metric on the site is plotted elsewhere.
+The moat is **every metric aligned to halving day zero across all cycles**.
+For any oscillator, you can answer:
+
+- Where are we today?
+- Where did each prior cycle sit at the same day from halving?
+- Is this cycle hotter or cooler than the prior three?
+- What happened next, historically?
+
+That comparison view is the headline.
+
+---
+
+## What's built
+
+### Pages
+
+| Route | Purpose |
 | --- | --- |
-| `/` | Cycle dashboard — clock, composite index, mini-overlay, six metric cards |
-| `/cycles` | The 4-cycle overlay (full size) + per-cycle stats table |
-| `/metrics` | Library of paywalled metrics, grouped by category |
-| `/metrics/[slug]` | Single-metric page: zoned chart, 4-cycle overlay, cross-cycle snapshot |
-| `/onchain` | HODL Waves, exchange reserves, supply by entity (planned view) |
-| `/etf` | Spot ETF flows, BTC absorbed, premium tracker (planned) |
-| `/miners` | Hash Ribbons, miner reserves, hash price (planned) |
-| `/derivatives` | Funding, OI, taker ratios, basis (planned) |
-| `/alerts` | Push / email / webhook alerts on any metric or zone crossing (planned) |
+| `/` | Cycle dashboard — clock, composite cycle index (CCI), **cycle analog** ("today most closely resembles Cycle 4 at day 485 from halving"), normalised 4-cycle overlay, metric library teasers, Cycle Replay teaser |
+| `/cycles` | Full 4-cycle overlay + per-cycle stats table + diminishing returns vs supercycle framing |
+| `/replay` | **Signature feature.** Scrub through 1458 days of halving cycle. Watch every metric evolve across all four cycles in sync. Play/pause transport |
+| `/metrics` | Library, grouped: Valuation, Behaviour, Price models, Miners, Cycle models |
+| `/metrics/[slug]` | Per-metric: zoned chart, 4-cycle overlay, "where each cycle sat at day 770" snapshot. 9 metrics: **MVRV-Z, NUPL, Mayer Multiple, Puell Multiple, Reserve Risk, Rainbow band, SOPR, RHODL Ratio, Realised Price** |
+| `/hodl-waves` | Supply by age cohort — the most heavily paywalled on-chain chart, free, with cycle context |
+| `/onchain` `/etf` `/miners` `/derivatives` `/alerts` | Planned views — what comes next, with which paid product each replaces |
 
-The six metric pages built end-to-end today: **MVRV Z-Score, NUPL, Mayer
-Multiple, Puell Multiple, Reserve Risk, Rainbow band.**
+### Design system
+
+- **Typography:** Fraunces (display, editorial serif) + Inter (UI) + JetBrains Mono (numbers)
+- **Palette:** charcoal/navy base, muted cyan accent, restrained signal colours
+- **Card surface:** subtle gradient overlays + edge highlight + soft shadow
+- **Charts:** smooth gradient strokes, soft grid lines, glass tooltips, fade-in animation
+- **Watermark:** every key card/chart has a small `halving.lens` watermark for shareable screenshots
+
+### Cycle overlay engine
+
+- `CycleOverlayChart` — single client component drives every overlay. Accepts a `mode` ("price" / "normalized" / "metric") and an optional metric slug
+- `MetricChart` — single-cycle chart with zone bands
+- `MetricGauge` — banded horizontal gauge with current-value marker
+- `CycleReplay` — interactive client component with state-driven slider
+
+Adding a new metric is: (1) extend `CycleSample` in `btcData.ts`, (2) add it to the `METRICS` registry in `metrics.ts` with bands and description. Every page picks it up automatically.
 
 ---
 
 ## Stack
 
 - **Next.js 14** (App Router) + **React 18** + **TypeScript**
-- **Tailwind CSS** — dark palette with cyan/violet accent
-- **Recharts** — overlay chart and metric chart with zone bands
-- Custom SVG for the cycle clock and band gauges
-- All pages are server components; charts are client components
+- **Tailwind CSS** — refined dark palette, custom card surfaces
+- **Recharts** for charts, custom SVG for the cycle clock and gauges
+- All pages static or server-rendered. Only `/replay` is a client component (slider state)
 
-No database, no APIs to provision — runs from `src/lib/btcData.ts`.
-
----
-
-## Repository layout
-
-```
-src/
-├── app/
-│   ├── page.tsx                  # Cycle dashboard
-│   ├── cycles/page.tsx           # 4-cycle overlay
-│   ├── metrics/page.tsx          # Metric library
-│   ├── metrics/[slug]/page.tsx   # Single-metric page
-│   ├── onchain | etf | miners | derivatives | alerts  # Planned views
-│   ├── layout.tsx                # Sidebar + topbar
-│   └── globals.css
-├── components/
-│   ├── CycleClock.tsx            # SVG halving-cycle gauge
-│   ├── CycleOverlayChart.tsx     # The 4-cycle overlay (Recharts)
-│   ├── MetricChart.tsx           # Single-metric chart with zone bands
-│   ├── MetricGauge.tsx           # Horizontal banded gauge
-│   ├── MetricCard.tsx            # Library card
-│   └── PlannedView.tsx           # Shared "what's coming" page
-└── lib/
-    ├── btcData.ts                # 4 cycles × weekly samples × all metrics
-    ├── metrics.ts                # Metric registry + zones + CCI
-    ├── format.ts                 # USD/PCT formatters
-    └── cn.ts                     # clsx helper
-```
+No database, no APIs. Runs from `src/lib/btcData.ts`.
 
 ---
 
-## Run it
+## Run
 
 ```bash
 npm install
@@ -109,27 +94,21 @@ npm run lint        # next lint
 
 ---
 
-## What's still concept (not built)
+## What's still concept
 
-1. **Real chain data.** All cycle samples in `btcData.ts` are synthesised
-   from anchor prices + a deterministic walk. Wire-up path:
-   - **Price**: CoinGecko / Coinbase public API for spot + weekly bars.
-   - **MVRV / NUPL / Realised Cap**: derive from UTXO age data via
-     mempool.space / blockchain.com APIs, or pay for one Glassnode key.
-   - **Hash / difficulty / miner data**: mempool.space, blockstream.
-   - **ETF flow**: BitMEX Research daily CSV, scrape SEC EDGAR.
-   - **Funding / OI**: Binance / Bybit / OKX public endpoints +
-     Coinglass aggregator.
-2. **Live updates.** Daily cron + server-rendered cache is enough for
-   v1 — none of these metrics need sub-minute freshness.
-3. **Alerts.** Eval rules against the daily snapshot, fan-out to
-   email/Telegram/webhook.
-4. **Account system.** Save watchlists, custom alert thresholds, and
-   user-tweaked cycle alignments (e.g. anchor on the post-halving
-   sell-off rather than halving itself).
+1. **Real chain data.** All cycle samples are synthesised from anchor prices + a deterministic walk. Wire-up path:
+   - **Price + market cap:** CoinGecko / Coinbase public API
+   - **MVRV / NUPL / SOPR / Realised Cap:** derive from UTXO age data via mempool.space + blockchain.com, or pay for one Glassnode key
+   - **Hash / miner data:** mempool.space, blockstream
+   - **ETF flow:** BitMEX Research daily CSV
+2. **HODL Waves real data.** Currently synthesised from a heat factor; in production this is computed off UTXO age bands.
+3. **Live updates.** Daily cron + server cache. None of these metrics need sub-minute freshness.
 
-The UI is the spec — wire the real data without changing the page
-contracts.
+The UI is the spec — wire real data behind it without changing the page contracts.
+
+## Deliberately not built
+
+Per product direction: no auth, billing, portfolio tracking, altcoin dashboards, mobile apps, public API, notifications, or social features in the MVP. Build the clearest cycle view first. Layer the rest on later.
 
 ---
 

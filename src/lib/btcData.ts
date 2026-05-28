@@ -19,6 +19,9 @@ export interface CycleSample {
   puell: number; // miner issuance / 365d MA
   reserveRisk: number; // 0.001 .. 0.02
   rainbow: number; // 0..8 band index (0 = fire sale, 8 = maximum bubble)
+  sopr: number; // spent output profit ratio; >1 = realising profit
+  rhodl: number; // RHODL ratio (1w realised vs 1-2y realised, multiplied by age)
+  realizedPrice: number; // aggregate cost-basis price
 }
 
 export interface Cycle {
@@ -128,19 +131,25 @@ const ANCHORS: Record<Exclude<CycleId, 1>, CycleAnchor[]> = {
 };
 
 // Per-cycle peak metric values (rough — declines each cycle).
-const PEAK_METRICS: Record<Exclude<CycleId, 1>, { mvrv: number; mvrvZ: number; nupl: number; mayer: number; puell: number; reserveRisk: number }> = {
-  2: { mvrv: 5.8, mvrvZ: 11.2, nupl: 0.85, mayer: 3.5, puell: 7.2, reserveRisk: 0.020 },
-  3: { mvrv: 4.6, mvrvZ: 8.7, nupl: 0.78, mayer: 3.4, puell: 4.4, reserveRisk: 0.013 },
-  4: { mvrv: 3.8, mvrvZ: 7.0, nupl: 0.75, mayer: 2.8, puell: 3.1, reserveRisk: 0.008 },
-  5: { mvrv: 3.1, mvrvZ: 3.6, nupl: 0.68, mayer: 2.05, puell: 2.4, reserveRisk: 0.0044 },
+const PEAK_METRICS: Record<
+  Exclude<CycleId, 1>,
+  { mvrv: number; mvrvZ: number; nupl: number; mayer: number; puell: number; reserveRisk: number; sopr: number; rhodl: number }
+> = {
+  2: { mvrv: 5.8, mvrvZ: 11.2, nupl: 0.85, mayer: 3.5, puell: 7.2, reserveRisk: 0.020, sopr: 1.45, rhodl: 67000 },
+  3: { mvrv: 4.6, mvrvZ: 8.7, nupl: 0.78, mayer: 3.4, puell: 4.4, reserveRisk: 0.013, sopr: 1.28, rhodl: 41000 },
+  4: { mvrv: 3.8, mvrvZ: 7.0, nupl: 0.75, mayer: 2.8, puell: 3.1, reserveRisk: 0.008, sopr: 1.20, rhodl: 29000 },
+  5: { mvrv: 3.1, mvrvZ: 3.6, nupl: 0.68, mayer: 2.05, puell: 2.4, reserveRisk: 0.0044, sopr: 1.11, rhodl: 14000 },
 };
 
 // Bottom metric values per cycle.
-const TROUGH_METRICS: Record<Exclude<CycleId, 1>, { mvrv: number; mvrvZ: number; nupl: number; mayer: number; puell: number; reserveRisk: number }> = {
-  2: { mvrv: 0.70, mvrvZ: -0.4, nupl: -0.2, mayer: 0.55, puell: 0.40, reserveRisk: 0.0015 },
-  3: { mvrv: 0.80, mvrvZ: -0.3, nupl: -0.18, mayer: 0.58, puell: 0.45, reserveRisk: 0.0017 },
-  4: { mvrv: 0.85, mvrvZ: -0.2, nupl: -0.15, mayer: 0.62, puell: 0.30, reserveRisk: 0.0019 },
-  5: { mvrv: 0.95, mvrvZ: 0.05, nupl: 0.08, mayer: 0.78, puell: 0.55, reserveRisk: 0.0024 },
+const TROUGH_METRICS: Record<
+  Exclude<CycleId, 1>,
+  { mvrv: number; mvrvZ: number; nupl: number; mayer: number; puell: number; reserveRisk: number; sopr: number; rhodl: number }
+> = {
+  2: { mvrv: 0.70, mvrvZ: -0.4, nupl: -0.2, mayer: 0.55, puell: 0.40, reserveRisk: 0.0015, sopr: 0.91, rhodl: 280 },
+  3: { mvrv: 0.80, mvrvZ: -0.3, nupl: -0.18, mayer: 0.58, puell: 0.45, reserveRisk: 0.0017, sopr: 0.92, rhodl: 420 },
+  4: { mvrv: 0.85, mvrvZ: -0.2, nupl: -0.15, mayer: 0.62, puell: 0.30, reserveRisk: 0.0019, sopr: 0.94, rhodl: 590 },
+  5: { mvrv: 0.95, mvrvZ: 0.05, nupl: 0.08, mayer: 0.78, puell: 0.55, reserveRisk: 0.0024, sopr: 0.98, rhodl: 1100 },
 };
 
 function pseudoRand(seed: number) {
@@ -240,8 +249,16 @@ function buildCycle(
     const nupl = trough.nupl + (peak.nupl - trough.nupl) * k + (rand() - 0.5) * 0.01;
     const mayer = trough.mayer + (peak.mayer - trough.mayer) * k + (rand() - 0.5) * 0.03;
     const puell = trough.puell + (peak.puell - trough.puell) * k + (rand() - 0.5) * 0.08;
-    const reserveRisk = trough.reserveRisk + (peak.reserveRisk - trough.reserveRisk) * k + (rand() - 0.5) * 0.0003;
+    const reserveRisk =
+      trough.reserveRisk + (peak.reserveRisk - trough.reserveRisk) * k + (rand() - 0.5) * 0.0003;
     const rainbow = rainbowBand(price, id);
+    const sopr = trough.sopr + (peak.sopr - trough.sopr) * k + (rand() - 0.5) * 0.008;
+    // RHODL is exponential — use log-space interpolation.
+    const rhodl = Math.exp(
+      Math.log(trough.rhodl) + (Math.log(peak.rhodl) - Math.log(trough.rhodl)) * k,
+    ) * (1 + (rand() - 0.5) * 0.06);
+    // Realized price approximates MVRV's denominator — i.e. price / mvrv.
+    const realizedPrice = price / Math.max(0.4, mvrv);
 
     samples.push({
       day: d,
@@ -253,6 +270,9 @@ function buildCycle(
       puell: Math.max(0.2, puell),
       reserveRisk: Math.max(0.001, reserveRisk),
       rainbow,
+      sopr: Math.max(0.85, sopr),
+      rhodl: Math.max(100, rhodl),
+      realizedPrice,
     });
   }
 
@@ -312,5 +332,100 @@ export function comparativeSnapshot() {
       gainToCyclePeak: (c.peakPrice / halvingPrice - 1) * 100,
       daysFromHereToPeak: c.peakDay - TODAY_DAY_IN_CYCLE,
     };
+  });
+}
+
+// "Today most closely resembles ___" — compare current cycle's normalised
+// metric signature against every prior cycle, at every day, and return the
+// closest match. Reports what happened in the analog cycle's *forward* window.
+export interface CycleAnalog {
+  cycle: Cycle;
+  day: number; // day in that historical cycle
+  similarity: number; // 0..1
+  sample: CycleSample;
+  // What happened next in that historical cycle, from this analog point onward.
+  peakAfter: { price: number; daysAhead: number; gainPct: number } | null;
+  troughAfter: { price: number; daysAhead: number; drawdownPct: number } | null;
+  endOfCycle: { price: number; daysAhead: number; returnPct: number };
+}
+
+function normalise(s: CycleSample, cycle: Cycle) {
+  return [
+    s.mvrvZ / 12,
+    s.nupl,
+    Math.log(s.mayer) / Math.log(4),
+    s.rainbow / 8,
+    s.price / cycle.peakPrice,
+  ];
+}
+
+export function cycleAnalog(): CycleAnalog {
+  const today = TODAY;
+  const todayVec = normalise(today, CURRENT_CYCLE);
+  let best: CycleAnalog | null = null;
+  for (const cycle of CYCLES) {
+    if (cycle.id === 5) continue;
+    // Only consider matches earlier than day 1100 so we can report meaningful
+    // forward windows. Restricting also gives more useful narrative analogs.
+    for (const sample of cycle.samples) {
+      if (sample.day > 1100) continue;
+      const vec = normalise(sample, cycle);
+      let sumSq = 0;
+      for (let i = 0; i < vec.length; i++) {
+        const d = vec[i] - todayVec[i];
+        sumSq += d * d;
+      }
+      const distance = Math.sqrt(sumSq / vec.length);
+      const similarity = Math.max(0, 1 - distance);
+      if (!best || similarity > best.similarity) {
+        const future = cycle.samples.filter((s) => s.day > sample.day);
+        const peakSample =
+          future.length > 0
+            ? future.reduce((acc, s) => (s.price > acc.price ? s : acc))
+            : null;
+        const troughSample =
+          future.length > 0
+            ? future.reduce((acc, s) => (s.price < acc.price ? s : acc))
+            : null;
+        const endSample = future[future.length - 1] ?? sample;
+        best = {
+          cycle,
+          day: sample.day,
+          similarity,
+          sample,
+          peakAfter: peakSample
+            ? {
+                price: peakSample.price,
+                daysAhead: peakSample.day - sample.day,
+                gainPct: (peakSample.price / sample.price - 1) * 100,
+              }
+            : null,
+          troughAfter: troughSample
+            ? {
+                price: troughSample.price,
+                daysAhead: troughSample.day - sample.day,
+                drawdownPct: (troughSample.price / sample.price - 1) * 100,
+              }
+            : null,
+          endOfCycle: {
+            price: endSample.price,
+            daysAhead: endSample.day - sample.day,
+            returnPct: (endSample.price / sample.price - 1) * 100,
+          },
+        };
+      }
+    }
+  }
+  return best!;
+}
+
+// All three prior cycles at the same day-in-cycle as today — for the
+// "today vs all prior cycles" intelligence block.
+export function cyclesAtSameDay() {
+  return CYCLES.filter((c) => c.id !== 5).map((c) => {
+    const sample = c.samples.reduce((closest, s) =>
+      Math.abs(s.day - TODAY_DAY_IN_CYCLE) < Math.abs(closest.day - TODAY_DAY_IN_CYCLE) ? s : closest,
+    );
+    return { cycle: c, sample };
   });
 }

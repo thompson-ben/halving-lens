@@ -13,19 +13,23 @@ export function PlannedView({
   features: { name: string; detail: string; paidAt?: string }[];
 }) {
   return (
-    <div className="max-w-3xl py-6">
-      <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-2">{eyebrow}</div>
-      <h1 className="font-display text-3xl font-semibold text-ink-100 tracking-tight">{title}</h1>
-      <p className="mt-3 text-[14px] text-ink-300 max-w-2xl leading-relaxed">{description}</p>
+    <div className="space-y-12 pt-2 max-w-4xl">
+      <header>
+        <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-4">{eyebrow}</div>
+        <h1 className="font-display text-[40px] lg:text-[52px] font-medium tracking-tightest text-ink-50 leading-[1.05] max-w-3xl">
+          {title}
+        </h1>
+        <p className="mt-5 text-[15.5px] text-ink-300 max-w-2xl leading-relaxed">{description}</p>
+      </header>
 
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {features.map((f) => (
-          <div key={f.name} className="card p-5">
-            <div className="text-[12.5px] font-medium text-ink-100">{f.name}</div>
-            <p className="mt-1 text-[12px] text-ink-400 leading-relaxed">{f.detail}</p>
+          <div key={f.name} className="card p-6">
+            <div className="text-[13px] font-medium text-ink-100">{f.name}</div>
+            <p className="mt-2 text-[12.5px] text-ink-300 leading-relaxed">{f.detail}</p>
             {f.paidAt && (
-              <div className="mt-3 text-[10.5px] uppercase tracking-wider text-accent/70">
-                Paid at · <span className="text-accent">{f.paidAt}</span>
+              <div className="mt-4 text-[10px] uppercase tracking-[0.18em] text-accent/70">
+                Paid at <span className="text-accent">{f.paidAt}</span>
               </div>
             )}
           </div>
@@ -34,7 +38,7 @@ export function PlannedView({
 
       <Link
         href="/"
-        className="mt-8 inline-flex items-center gap-1.5 text-[13px] text-accent hover:text-accent-soft"
+        className="inline-flex items-center gap-1.5 text-[13px] text-accent hover:text-accent-soft"
       >
         Back to dashboard <ArrowRight size={14} />
       </Link>

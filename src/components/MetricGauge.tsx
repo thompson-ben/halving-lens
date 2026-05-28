@@ -37,8 +37,9 @@ export function MetricGauge({
   domainMin?: number;
   domainMax?: number;
 }) {
-  const lo = domainMin ?? metric.yMin ?? metric.bands[0].max;
-  const hi = domainMax ?? metric.yMax ?? metric.bands[metric.bands.length - 1].min + 2;
+  const hasBands = metric.bands.length > 0;
+  const lo = domainMin ?? metric.yMin ?? (hasBands ? metric.bands[0].max : 0);
+  const hi = domainMax ?? metric.yMax ?? (hasBands ? metric.bands[metric.bands.length - 1].min + 2 : value * 2);
   const range = hi - lo || 1;
 
   // Build segments for each band that overlaps the domain.
@@ -87,15 +88,17 @@ export function MetricGauge({
           }}
         />
       </div>
-      <div className="flex items-center justify-between mt-2 text-[11px]">
-        <span className="text-ink-400">
-          {metric.bands[0].label} <span className="text-ink-600">·</span>
-        </span>
-        <span className={cn("font-medium", ZONE_TEXT[zone])}>{label}</span>
-        <span className="text-ink-400">
-          <span className="text-ink-600">·</span> {metric.bands[metric.bands.length - 1].label}
-        </span>
-      </div>
+      {hasBands && (
+        <div className="flex items-center justify-between mt-2 text-[11px]">
+          <span className="text-ink-400">
+            {metric.bands[0].label} <span className="text-ink-600">·</span>
+          </span>
+          <span className={cn("font-medium", ZONE_TEXT[zone])}>{label}</span>
+          <span className="text-ink-400">
+            <span className="text-ink-600">·</span> {metric.bands[metric.bands.length - 1].label}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

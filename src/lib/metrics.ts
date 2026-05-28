@@ -188,6 +188,68 @@ export const METRICS: MetricDef[] = [
     yMin: 0,
     yMax: 9,
   },
+  {
+    slug: "sopr",
+    name: "SOPR",
+    short: "SOPR",
+    group: "behaviour",
+    paidAt: "Glassnode Advanced",
+    unit: "ratio",
+    decimals: 3,
+    description:
+      "Spent Output Profit Ratio. The aggregate ratio between sell price and acquisition cost of every coin moved on-chain. >1 means the network is realising profit; <1 means realising loss.",
+    why:
+      "Sustained SOPR < 1 has marked every major bottom — the network can no longer realise a profit. Spikes above 1.10 cluster around tops.",
+    bands: [
+      { min: -Infinity, max: 0.97, zone: "bottom", label: "Capitulation" },
+      { min: 0.97, max: 1.0, zone: "accumulation", label: "Realising losses" },
+      { min: 1.0, max: 1.05, zone: "neutral", label: "Mild profit" },
+      { min: 1.05, max: 1.1, zone: "bullish", label: "Strong profit" },
+      { min: 1.1, max: Infinity, zone: "top", label: "Top zone" },
+    ],
+    pick: (s) => s.sopr,
+    yMin: 0.88,
+    yMax: 1.5,
+  },
+  {
+    slug: "realized-price",
+    name: "Realised price",
+    short: "RP",
+    group: "valuation",
+    paidAt: "Glassnode Advanced",
+    unit: "$",
+    decimals: 0,
+    description:
+      "The aggregate cost-basis of every coin in circulation. Spot price minus realised price tells you whether the network is in profit or in loss on average.",
+    why:
+      "Spot crossing below realised price is the textbook capitulation event — has marked every bear-market bottom (2015, 2018, 2022).",
+    bands: [],
+    pick: (s) => s.realizedPrice,
+    yMin: 0,
+  },
+  {
+    slug: "rhodl",
+    name: "RHODL Ratio",
+    short: "RHODL",
+    group: "cycle",
+    paidAt: "Glassnode Advanced",
+    unit: "ratio",
+    decimals: 0,
+    description:
+      "Ratio of 1-week realised value to 1–2-year realised value, multiplied by network age. Reads the imbalance between fresh hands and seasoned holders.",
+    why:
+      "Crosses into the red zone only at cycle tops (2013, 2017, 2021). One of the cleanest cycle-top signals on record.",
+    bands: [
+      { min: -Infinity, max: 1000, zone: "bottom", label: "Generational buy" },
+      { min: 1000, max: 5000, zone: "accumulation", label: "Accumulation" },
+      { min: 5000, max: 15000, zone: "neutral", label: "Mid-cycle" },
+      { min: 15000, max: 30000, zone: "bullish", label: "Late expansion" },
+      { min: 30000, max: Infinity, zone: "top", label: "Cycle top zone" },
+    ],
+    pick: (s) => s.rhodl,
+    yMin: 200,
+    yMax: 70000,
+  },
 ];
 
 export function metricBySlug(slug: string): MetricDef | undefined {
@@ -195,6 +257,7 @@ export function metricBySlug(slug: string): MetricDef | undefined {
 }
 
 export function zoneFor(metric: MetricDef, value: number): { zone: Zone; label: string } {
+  if (!metric.bands.length) return { zone: "neutral", label: "Tracked" };
   for (const b of metric.bands) {
     if (value >= b.min && value < b.max) return { zone: b.zone, label: b.label };
   }
