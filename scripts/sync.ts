@@ -392,6 +392,7 @@ export const SNAPSHOT: Snapshot = ${json};
 }
 
 async function main() {
+  const strict = process.argv.includes("--strict");
   try {
     const snapshot = await build();
     await mkdir(dirname(SNAPSHOT_PATH), { recursive: true });
@@ -401,9 +402,14 @@ async function main() {
     console.log(`  cycles: ${snapshot.cycles.length}`);
     console.log(`  today day in cycle: ${snapshot.todayDayInCycle}`);
   } catch (e) {
-    console.error("\n✗ Sync failed:", (e as Error).message);
-    console.error("  snapshot.ts left untouched (synthetic fallback remains active)");
-    process.exit(1);
+    const msg = (e as Error).message;
+    if (strict) {
+      console.error("\n✗ Sync failed (--strict):", msg);
+      process.exit(1);
+    }
+    console.warn(`\n! Sync could not reach upstream sources: ${msg}`);
+    console.warn("  Snapshot left untouched. App will use whatever snapshot is checked in.");
+    console.warn("  (Pass --strict to fail the build on sync errors instead of warning.)");
   }
 }
 

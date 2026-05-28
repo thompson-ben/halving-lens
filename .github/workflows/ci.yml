@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   check:
-    name: Lint & typecheck
+    name: Lint, typecheck, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,13 +25,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Prisma client is imported across the app, so typecheck needs it
-      # generated even though no DB connection is required.
-      - name: Generate Prisma client
-        run: npx prisma generate
-
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
+
+      # Build against whatever snapshot is checked in — does not hit the
+      # network. Vercel runs `npm run sync` separately on deploy.
+      - name: Build
+        run: npm run build
