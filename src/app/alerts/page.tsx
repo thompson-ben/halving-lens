@@ -1,16 +1,16 @@
-import { ComingSoon } from "@/components/ComingSoon";
+import { PlannedView } from "@/components/PlannedView";
 
 export default function AlertsPage() {
   return (
-    <ComingSoon
+    <PlannedView
       eyebrow="Alerts"
-      title="Wake me when the chain moves"
-      description="Push, email, Telegram, and webhook alerts on any chain event — wallet trades, holder shifts, listings, governance votes. Built on the same labeled-wallet graph as the rest of the app."
+      title="Ping me when the cycle moves"
+      description="Push, email, Telegram, and webhook alerts on any of the metrics in the library — zone crossings, cycle-relative deviations, Pi Cycle triggers, or composite index thresholds."
       features={[
-        { name: "Wallet alerts", detail: "Ping me when @Ansem opens a new position > $250k." },
-        { name: "Token thresholds", detail: "Smart-money flow into $WIF crosses $5M in a day." },
-        { name: "Concentration shifts", detail: "Top-10 concentration on $ONDO drops below 40%." },
-        { name: "Webhook out", detail: "Fire to your trading bot or Discord channel directly." },
+        { name: "Zone crossings", detail: "Alert when MVRV-Z crosses into the top zone." },
+        { name: "Pi Cycle Top", detail: "Fire the moment the 111DMA crosses 2× the 350DMA — it has called every cycle peak." },
+        { name: "Cycle deviation", detail: "Ping me if cycle 5 starts tracking cycle 4 by >20%." },
+        { name: "Composite index", detail: "Alert when the CCI moves out of mid-cycle." },
       ]}
     />
   );

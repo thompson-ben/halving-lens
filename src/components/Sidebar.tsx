@@ -1,20 +1,28 @@
 import Link from "next/link";
-import { Activity, Crown, LineChart, Radar, Waves, Wallet, Bell, Settings, type LucideIcon } from "lucide-react";
+import {
+  Gauge,
+  Layers,
+  LineChart,
+  Pickaxe,
+  Radio,
+  Repeat,
+  Sparkles,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { Logo } from "./Logo";
 
 const NAV = [
-  { href: "/", label: "Markets", icon: LineChart },
-  { href: "/smart-money", label: "Smart Money", icon: Crown },
-  { href: "/flows", label: "DEX Flow", icon: Waves },
-  { href: "/scanner", label: "Scanner", icon: Radar },
-  { href: "/alerts", label: "Alerts", icon: Bell },
+  { href: "/", label: "Cycle dashboard", icon: Gauge },
+  { href: "/cycles", label: "4-cycle overlay", icon: Layers },
+  { href: "/metrics", label: "Metric library", icon: Sparkles },
+  { href: "/onchain", label: "On-chain", icon: LineChart },
+  { href: "/etf", label: "ETF flow", icon: Wallet },
+  { href: "/miners", label: "Miners", icon: Pickaxe },
+  { href: "/derivatives", label: "Derivatives", icon: Repeat },
 ] as const;
 
-const SECONDARY = [
-  { href: "/portfolio", label: "Portfolio", icon: Wallet },
-  { href: "/activity", label: "Activity", icon: Activity },
-  { href: "/settings", label: "Settings", icon: Settings },
-] as const;
+const SECONDARY = [{ href: "/alerts", label: "Alerts", icon: Radio }] as const;
 
 export function Sidebar() {
   return (
@@ -23,15 +31,17 @@ export function Sidebar() {
         <Logo size={28} />
         <div className="leading-tight">
           <div className="font-semibold text-[15px] tracking-tight text-ink-100">
-            Chain<span className="text-gradient">glass</span>
+            Halving<span className="text-gradient">.lens</span>
           </div>
-          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">on-chain markets</div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-400">
+            bitcoin cycles, free
+          </div>
         </div>
       </Link>
 
-      <nav className="flex-1 px-3 py-5 flex flex-col gap-1">
+      <nav className="flex-1 px-3 py-5 flex flex-col gap-1 overflow-y-auto">
         <div className="px-3 pb-2 text-[10px] uppercase tracking-[0.18em] text-ink-400">
-          Discover
+          Cycle
         </div>
         {NAV.map((item) => (
           <NavItem key={item.href} {...item} />
@@ -45,29 +55,21 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="m-3 p-4 rounded-xl border border-white/5 bg-gradient-to-br from-accent/10 to-violet-glow/5">
+      <div className="m-3 p-4 rounded-xl border border-white/5 bg-gradient-to-br from-accent/10 to-signal-violet/5">
         <div className="flex items-center gap-2 text-xs text-accent">
           <span className="relative inline-block w-1.5 h-1.5 rounded-full bg-accent live-dot" />
-          <span>Live indexer</span>
+          <span>Block 906,412</span>
         </div>
         <div className="mt-1.5 text-[11px] text-ink-300 leading-relaxed">
-          Block lag <span className="text-ink-100 font-mono">0.4s</span> · 6 chains · 12M wallets
-          labeled
+          Mined <span className="text-ink-100 font-mono">2m ago</span> · 770 days since the 2024
+          halving
         </div>
       </div>
     </aside>
   );
 }
 
-function NavItem({
-  href,
-  label,
-  icon: Icon,
-}: {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-}) {
+function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
   return (
     <Link
       href={href}

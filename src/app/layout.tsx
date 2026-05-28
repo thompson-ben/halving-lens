@@ -7,9 +7,9 @@ import { TopBar } from "@/components/TopBar";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Chainglass — on-chain analytics for crypto markets",
+  title: "Halving.lens — Bitcoin cycles, free",
   description:
-    "CoinGecko-style coverage with a chain-native lens. Track smart money, holder x-ray, and DEX flow in one place.",
+    "Every Glassnode and CryptoQuant chart, free — with one feature they don't have: every metric overlaid across all four halving cycles, aligned to day zero.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

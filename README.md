@@ -1,45 +1,66 @@
-# Chainglass
+# Halving.lens
 
-> On-chain analytics for crypto markets — CoinGecko-style coverage with a
-> chain-native lens. Track smart money, holder x-ray, and DEX flow in one
-> dashboard.
+> Bitcoin halving cycle analytics — every chart Glassnode and CryptoQuant
+> charge for, **free**, with a feature they don't have: every metric
+> overlaid across all four halving cycles, aligned to day zero.
 
-This is a concept / MVP scaffold. Every screen is wired up against
-deterministic mock data so the app renders end-to-end with zero API keys.
+Concept / MVP scaffold. Every screen renders end-to-end against
+deterministic synthetic cycle data so the app runs with zero API keys.
 
 ---
 
 ## The wedge
 
-CoinGecko is a **price aggregator**. It tells you what a token *did*.
-Chainglass is an **on-chain reader**. It tells you what wallets are
-*doing*, right now:
+Two camps spend money on Bitcoin analytics today:
 
-- **Smart money flow per token** — net USD bought/sold by the top 200
-  wallets in the last 24h, surfaced as a first-class column on the markets
-  table.
-- **Holder x-ray** — distribution by wallet rank, with insider, team, and
-  fresh-wallet flags.
-- **Wallet profiles** — public, followable, alertable. A LinkedIn for
-  on-chain traders.
-- **DEX flow tape** — every swap above a threshold from labeled wallets,
-  MEV-filtered.
+1. **Glassnode / CryptoQuant** ($29–$799/mo) — the canonical chart
+   library: MVRV, NUPL, SOPR, HODL Waves, Reserve Risk, Hash Ribbons.
+   Power tools, but the free tier strips cycle history and overlays.
+2. **Look Into Bitcoin, BTC Magazine Pro, Bitbo** — free at the surface,
+   paid for depth, alerts, and overlays.
 
-The composite "Chainglass score" on each token page rolls these signals
-into a single 1–99 number, so the table feel of CoinGecko stays — you just
-get an extra column that's hard to look away from.
+Nobody combines:
+
+- **The full metric library, free** — calibrated zones, full history, real
+  band interpretations.
+- **Cycle-aligned overlays on every chart** — the headline. Pick any
+  metric, see it drawn for cycles 2, 3, 4, and 5 simultaneously,
+  anchored to halving day zero. This view doesn't exist anywhere free.
+- **A composite cycle index** — one number, 0–100, calibrated so every
+  prior cycle peaked above 85.
+- **The "where were we then" panel** — for any metric, what value did
+  prior cycles read at the same day-from-halving as today.
+
+---
+
+## Screens
+
+| Route | What it does |
+| --- | --- |
+| `/` | Cycle dashboard — clock, composite index, mini-overlay, six metric cards |
+| `/cycles` | The 4-cycle overlay (full size) + per-cycle stats table |
+| `/metrics` | Library of paywalled metrics, grouped by category |
+| `/metrics/[slug]` | Single-metric page: zoned chart, 4-cycle overlay, cross-cycle snapshot |
+| `/onchain` | HODL Waves, exchange reserves, supply by entity (planned view) |
+| `/etf` | Spot ETF flows, BTC absorbed, premium tracker (planned) |
+| `/miners` | Hash Ribbons, miner reserves, hash price (planned) |
+| `/derivatives` | Funding, OI, taker ratios, basis (planned) |
+| `/alerts` | Push / email / webhook alerts on any metric or zone crossing (planned) |
+
+The six metric pages built end-to-end today: **MVRV Z-Score, NUPL, Mayer
+Multiple, Puell Multiple, Reserve Risk, Rainbow band.**
 
 ---
 
 ## Stack
 
 - **Next.js 14** (App Router) + **React 18** + **TypeScript**
-- **Tailwind CSS** — custom dark palette with cyan/violet on-chain accent
-- **Recharts** + custom SVG sparklines
-- **lucide-react** icons
-- All pages are server components; no client state in the MVP
+- **Tailwind CSS** — dark palette with cyan/violet accent
+- **Recharts** — overlay chart and metric chart with zone bands
+- Custom SVG for the cycle clock and band gauges
+- All pages are server components; charts are client components
 
-The whole app lives under `src/` — no database, no APIs to provision.
+No database, no APIs to provision — runs from `src/lib/btcData.ts`.
 
 ---
 
@@ -48,20 +69,25 @@ The whole app lives under `src/` — no database, no APIs to provision.
 ```
 src/
 ├── app/
-│   ├── page.tsx                 # Markets table (homepage)
-│   ├── token/[symbol]/page.tsx  # Token detail + on-chain x-ray
-│   ├── smart-money/page.tsx     # Smart money leaderboard
-│   ├── smart-money/[address]/   # Individual wallet profile
-│   ├── flows/page.tsx           # DEX flow live tape
-│   ├── scanner|alerts|portfolio|activity|settings/ — concept pages
-│   ├── layout.tsx               # Sidebar + topbar shell
+│   ├── page.tsx                  # Cycle dashboard
+│   ├── cycles/page.tsx           # 4-cycle overlay
+│   ├── metrics/page.tsx          # Metric library
+│   ├── metrics/[slug]/page.tsx   # Single-metric page
+│   ├── onchain | etf | miners | derivatives | alerts  # Planned views
+│   ├── layout.tsx                # Sidebar + topbar
 │   └── globals.css
-├── components/                  # MarketsTable, SmartMoneyFeed, …
+├── components/
+│   ├── CycleClock.tsx            # SVG halving-cycle gauge
+│   ├── CycleOverlayChart.tsx     # The 4-cycle overlay (Recharts)
+│   ├── MetricChart.tsx           # Single-metric chart with zone bands
+│   ├── MetricGauge.tsx           # Horizontal banded gauge
+│   ├── MetricCard.tsx            # Library card
+│   └── PlannedView.tsx           # Shared "what's coming" page
 └── lib/
-    ├── mockData.ts              # Tokens, wallets, trades, holders
-    ├── format.ts                # USD/PCT/address formatters
-    ├── types.ts                 # Shared types
-    └── cn.ts                    # clsx helper
+    ├── btcData.ts                # 4 cycles × weekly samples × all metrics
+    ├── metrics.ts                # Metric registry + zones + CCI
+    ├── format.ts                 # USD/PCT formatters
+    └── cn.ts                     # clsx helper
 ```
 
 ---
@@ -76,33 +102,34 @@ npm run dev
 Open http://localhost:3000.
 
 ```bash
-npm run build      # production build
-npm run typecheck  # strict TS check
-npm run lint       # next lint
+npm run build       # production build
+npm run typecheck   # strict TS
+npm run lint        # next lint
 ```
 
 ---
 
 ## What's still concept (not built)
 
-- **Real chain data.** Today every number is from `mockData.ts`. The
-  wedge requires either:
-  - Third-party APIs (Alchemy/Helius for raw chain, Dune for queries,
-    Birdeye for Solana, Etherscan/Basescan/etc. for explorer-style
-    lookups), or
-  - A self-hosted indexer (Ponder, Subsquid, or custom RPC + a
-    Postgres-backed store) for the labeled-wallet graph that gives the
-    smart-money product its moat.
-- **Smart wallet labeling.** Initial seed via well-known wallets
-  (Cobie, Ansem, public foundation/insider lists) + heuristic scoring
-  (realised PnL, hold time, MEV filter). Hardest and most defensible
-  piece long-term.
-- **Real-time tape.** WebSocket subscriptions on indexed swap events,
-  with a server-sent push to the client. Today the "live" feed is static.
-- **Alerts.** Push/email/Telegram/webhook rules, evaluated against the
-  same indexed event stream.
+1. **Real chain data.** All cycle samples in `btcData.ts` are synthesised
+   from anchor prices + a deterministic walk. Wire-up path:
+   - **Price**: CoinGecko / Coinbase public API for spot + weekly bars.
+   - **MVRV / NUPL / Realised Cap**: derive from UTXO age data via
+     mempool.space / blockchain.com APIs, or pay for one Glassnode key.
+   - **Hash / difficulty / miner data**: mempool.space, blockstream.
+   - **ETF flow**: BitMEX Research daily CSV, scrape SEC EDGAR.
+   - **Funding / OI**: Binance / Bybit / OKX public endpoints +
+     Coinglass aggregator.
+2. **Live updates.** Daily cron + server-rendered cache is enough for
+   v1 — none of these metrics need sub-minute freshness.
+3. **Alerts.** Eval rules against the daily snapshot, fan-out to
+   email/Telegram/webhook.
+4. **Account system.** Save watchlists, custom alert thresholds, and
+   user-tweaked cycle alignments (e.g. anchor on the post-halving
+   sell-off rather than halving itself).
 
-The UI is the spec. Wire the data behind it without changing pages.
+The UI is the spec — wire the real data without changing the page
+contracts.
 
 ---
 
