@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -9,7 +10,13 @@ import { PRIMARY, SECONDARY, type NavLink } from "./navItems";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+
+  // Portals need the DOM — only render the overlay after mount.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Close on route change.
   useEffect(() => {
@@ -43,8 +50,10 @@ export function MobileNav() {
         <Menu size={20} strokeWidth={1.8} />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Navigation">
+      {mounted &&
+        open &&
+        createPortal(
+          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
           <button
             type="button"
             aria-label="Close menu"
@@ -86,8 +95,9 @@ export function MobileNav() {
               ))}
             </div>
           </nav>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </div>
   );
 }
