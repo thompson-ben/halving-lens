@@ -144,12 +144,18 @@ interface CoinMetricsRow {
 }
 
 // CoinMetrics community — daily price, market cap, realised cap and circulating
-// supply for BTC. Keyless, full history, and does not block datacenter IPs.
-async function fetchCoinMetrics(): Promise<CoinMetricsRow[]> {
-  const url =
-    "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMrktCurUSD,CapRealUSD,SplyCur&frequency=1d&format=json&page_size=10000";
+// supply for BTC. Keyless, full history. Some metrics (notably CapRealUSD,
+// realised cap) require a Pro key — requesting one paid metric 403s the whole
+// batch — so we try the full set then degrade to free-only metrics.
+const CM_METRICS_FULL = ["PriceUSD", "CapMrktCurUSD", "CapRealUSD", "SplyCur"];
+const CM_METRICS_FREE = ["PriceUSD", "CapMrktCurUSD", "SplyCur"];
+
+async function fetchCoinMetricsMetrics(metrics: string[]): Promise<CoinMetricsRow[]> {
+  const base =
+    "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics" +
+    `?assets=btc&metrics=${metrics.join(",")}&frequency=1d&format=json&page_size=10000`;
   // CoinMetrics paginates — walk pages.
-  let next: string | undefined = url;
+  let next: string | undefined = base;
   const out: CoinMetricsRow[] = [];
   let safety = 0;
   const num = (s?: string): number | undefined => {
@@ -181,6 +187,21 @@ async function fetchCoinMetrics(): Promise<CoinMetricsRow[]> {
     next = page.next_page_url;
   }
   return out;
+}
+
+// Try the full metric set; if it 403s (a paid metric in the batch), retry with
+// the free-only subset so we still get price + market cap + supply.
+async function fetchCoinMetrics(): Promise<{ rows: CoinMetricsRow[]; hadRealisedCap: boolean }> {
+  try {
+    const rows = await fetchCoinMetricsMetrics(CM_METRICS_FULL);
+    return { rows, hadRealisedCap: rows.some((r) => Number.isFinite(r.realisedCap)) };
+  } catch (e) {
+    console.warn(
+      `  CoinMetrics full metric set rejected (${(e as Error).message}); retrying free-only metrics…`,
+    );
+    const rows = await fetchCoinMetricsMetrics(CM_METRICS_FREE);
+    return { rows, hadRealisedCap: false };
+  }
 }
 
 async function fetchMempoolTip(): Promise<{ height: number; hashrate?: number }> {
@@ -346,21 +367,24 @@ function daysBetween(a: string, b: number): number {
 async function build(): Promise<Snapshot> {
   console.log("→ Fetching CoinMetrics (price + market cap + realised cap + supply)…");
   let cm: CoinMetricsRow[] = [];
+  let hadRealisedCap = false;
   try {
-    cm = await fetchCoinMetrics();
-    console.log(`  got ${cm.length} daily rows from CoinMetrics`);
+    const res = await fetchCoinMetrics();
+    cm = res.rows;
+    hadRealisedCap = res.hadRealisedCap;
+    console.log(
+      `  got ${cm.length} daily rows from CoinMetrics (realised cap: ${hadRealisedCap ? "yes" : "no — free tier"})`,
+    );
   } catch (e) {
     console.warn(`  CoinMetrics unavailable — will try CryptoCompare for price. (${(e as Error).message})`);
   }
 
   const cmHasPrice = cm.some((r) => Number.isFinite(r.price));
 
-  // On-chain (realised cap + supply) only comes from CoinMetrics. Index it so
-  // it can be joined onto whichever price series we end up using.
+  // On-chain data from CoinMetrics. Supply is free; realised cap may be absent
+  // on the free tier. Key on supply so the join works even without realised cap.
   const chainByTs = new Map(
-    cm
-      .filter((r) => Number.isFinite(r.realisedCap) && Number.isFinite(r.supply))
-      .map((c) => [c.ts, c]),
+    cm.filter((r) => Number.isFinite(r.supply)).map((c) => [c.ts, c]),
   );
 
   // Base daily price series, by preference:
@@ -454,20 +478,23 @@ async function build(): Promise<Snapshot> {
 
   const todayDayInCycle = daysBetween(HALVINGS[5], Date.now());
 
-  const onchainAvailable = daily.some(
+  // Realised cap (paid metric) drives MVRV / NUPL / Realised Price. Supply is
+  // free and, when present, is real even without realised cap.
+  const realisedCapAvailable = daily.some(
     (d) => Number.isFinite(d.realisedCap) && (d.realisedCap as number) > 0,
   );
+  const supplyAvailable = daily.some((d) => Number.isFinite(d.supply) && (d.supply as number) > 0);
   return {
     source: {
-      mode: onchainAvailable ? "mixed" : "live",
+      mode: realisedCapAvailable ? "mixed" : "live",
       fetchedAt: new Date().toISOString(),
       sources: {
         price: priceSource,
-        realizedCap: onchainAvailable ? "CoinMetrics community CapRealUSD" : "synthetic fallback",
-        supply: onchainAvailable ? "CoinMetrics community SplyCur" : "synthetic fallback",
-        mvrv: onchainAvailable ? "derived: marketCap / realisedCap" : "synthetic",
-        nupl: onchainAvailable ? "derived: (marketCap - realisedCap) / marketCap" : "synthetic",
-        realizedPrice: onchainAvailable ? "derived: realisedCap / supply" : "synthetic",
+        realizedCap: realisedCapAvailable ? "CoinMetrics community CapRealUSD" : "synthetic fallback",
+        supply: supplyAvailable ? "CoinMetrics community SplyCur" : "synthetic fallback",
+        mvrv: realisedCapAvailable ? "derived: marketCap / realisedCap" : "synthetic",
+        nupl: realisedCapAvailable ? "derived: (marketCap - realisedCap) / marketCap" : "synthetic",
+        realizedPrice: realisedCapAvailable ? "derived: realisedCap / supply" : "synthetic",
         mayer: "derived: price / 200d SMA",
         puell: "derived: (reward × 144 × price) / 365d SMA",
         rainbow: "derived: per-cycle band of price vs cycle peak",
