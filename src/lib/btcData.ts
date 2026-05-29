@@ -18,6 +18,7 @@ export type { Cycle, CycleId, CycleSample, Snapshot, SnapshotSource };
 export { HALVINGS, NEXT_HALVING_DATE, DAYS_PER_CYCLE };
 
 export const SOURCE: SnapshotSource = SNAPSHOT.source;
+export const SENTIMENT = SNAPSHOT.sentiment ?? null;
 export const CYCLES: Cycle[] = SNAPSHOT.cycles;
 export const TODAY_DAY_IN_CYCLE: number = SNAPSHOT.todayDayInCycle;
 export const CURRENT_CYCLE = CYCLES[CYCLES.length - 1];

@@ -41,6 +41,7 @@ import {
   type Cycle,
   type CycleId,
   type CycleSample,
+  type SentimentData,
   type Snapshot,
 } from "../src/lib/data/types";
 import { syntheticSnapshot } from "../src/lib/data/synthetic";
@@ -141,6 +142,28 @@ interface CoinMetricsRow {
   marketCap?: number;
   realisedCap?: number;
   supply?: number;
+}
+
+// Crypto Fear & Greed index — alternative.me. Free, keyless, daily history.
+// 0 = extreme fear, 100 = extreme greed. limit caps how many days we keep.
+async function fetchFearGreed(): Promise<SentimentData> {
+  const url = "https://api.alternative.me/fng/?limit=800&format=json";
+  const data = await fetchJson<{
+    data: Array<{ value: string; value_classification: string; timestamp: string }>;
+  }>(url);
+  const points = data.data
+    .map((d) => ({
+      ts: Math.floor((parseInt(d.timestamp, 10) * 1000) / MS_PER_DAY) * MS_PER_DAY,
+      value: parseFloat(d.value),
+      classification: d.value_classification,
+    }))
+    .filter((p) => Number.isFinite(p.ts) && Number.isFinite(p.value))
+    .sort((a, b) => a.ts - b.ts);
+  return {
+    source: "alternative.me Crypto Fear & Greed",
+    fetchedAt: new Date().toISOString(),
+    points,
+  };
 }
 
 // CoinMetrics community — daily price, market cap, realised cap and circulating
@@ -381,6 +404,17 @@ async function build(): Promise<Snapshot> {
 
   const cmHasPrice = cm.some((r) => Number.isFinite(r.price));
 
+  // Market sentiment — Fear & Greed index. Independent of price sources; a
+  // failure here must not break the rest of the snapshot.
+  console.log("→ Fetching Fear & Greed index…");
+  let sentiment: Snapshot["sentiment"] = null;
+  try {
+    sentiment = await fetchFearGreed();
+    console.log(`  got ${sentiment.points.length} daily sentiment points`);
+  } catch (e) {
+    console.warn(`  Fear & Greed unavailable — sentiment will be omitted. (${(e as Error).message})`);
+  }
+
   // On-chain data from CoinMetrics. Supply is free; realised cap may be absent
   // on the free tier. Key on supply so the join works even without realised cap.
   const chainByTs = new Map(
@@ -505,6 +539,7 @@ async function build(): Promise<Snapshot> {
     },
     cycles,
     todayDayInCycle,
+    sentiment,
   };
 }
 

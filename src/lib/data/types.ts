@@ -118,4 +118,18 @@ export interface Snapshot {
   source: SnapshotSource;
   cycles: Cycle[];
   todayDayInCycle: number; // today - cycle 5 halving, in days
+  sentiment?: SentimentData | null; // Fear & Greed index; absent until synced
+}
+
+// Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.
+export interface SentimentPoint {
+  ts: number; // unix ms (UTC midnight)
+  value: number; // 0..100
+  classification: string; // e.g. "Fear", "Greed"
+}
+
+export interface SentimentData {
+  source: string;
+  fetchedAt: string; // ISO
+  points: SentimentPoint[]; // ascending by ts
 }
