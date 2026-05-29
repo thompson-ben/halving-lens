@@ -57,7 +57,7 @@ export function CyclePositionHero() {
             <Stat label="BTC price" value={fmtUsd(TODAY.price)} />
             {change && (
               <Stat
-                label={`Last ${change.days}d`}
+                label={`${change.days}d change`}
                 value={fmtPct(change.pct, 1)}
                 tone={change.pct >= 0 ? "green" : "red"}
               />

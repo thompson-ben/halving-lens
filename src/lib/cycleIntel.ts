@@ -148,6 +148,11 @@ export function cyclePhase(): CyclePhase {
 // ── Recent change (live-derived) ────────────────────────────────────────────
 // We only have weekly samples, so we report the most recent sample-to-sample
 // change and label it with its true span rather than faking a 24h figure.
+//
+// FOLLOW-UP TASK: source a true 24h BTC change from the live price API (e.g.
+// CoinGecko /simple/price?include_24hr_change, or CoinMetrics) during sync and
+// store it on the snapshot. Once available we can show both 24h and 7d change.
+// Until then we only ever show the real 7d change — never a fabricated 24h one.
 
 export function recentChange(): { pct: number; days: number } | null {
   const s = CURRENT_CYCLE.samples;
@@ -275,4 +280,60 @@ export function forwardOutcomes(): ForwardOutcomes {
       : null;
 
   return { horizons, daysToPeak, avgDaysToPeak };
+}
+
+// ── Cycle divergence read (real price + peak timing) ────────────────────────
+// Honest, carefully-worded interpretation of how this cycle compares with the
+// classic four-year rhythm: later by calendar timing, but cooler by price.
+// Computed from real data so it stays truthful as the cycle progresses.
+
+export interface CycleDivergence {
+  priorsPeakedByNow: number;
+  priorCount: number;
+  later: boolean; // most prior cycles had already peaked by this day
+  cooler: boolean; // current price gain is below the prior average
+  chip: string; // short, non-alarmist label
+  keyInsight: string; // one-line takeaway
+  summary: string; // careful paragraph for normal users
+}
+
+export function cycleDivergence(): CycleDivergence {
+  const priors = CYCLES.filter((c) => c.id !== 5);
+  const priorCount = priors.length;
+  const priorsPeakedByNow = priors.filter((c) => c.peakDay < TODAY_DAY_IN_CYCLE).length;
+
+  const currentGain = currentGainFromHalving();
+  const priorGains = priorCyclesAtSameDay().map((p) => p.gainFromHalving);
+  const priorAvg = priorGains.reduce((a, b) => a + b, 0) / (priorGains.length || 1);
+
+  const later = priorsPeakedByNow >= Math.ceil(priorCount / 2);
+  const cooler = currentGain < priorAvg;
+
+  const chip = later && cooler ? "Later-running · cooler cycle" : later ? "Later-running cycle" : cooler ? "Cooler than prior cycles" : "Tracking prior cycles";
+
+  const keyInsight =
+    later && cooler
+      ? "The cycle is later by calendar timing, but cooler by price behaviour."
+      : later
+        ? "By calendar timing, this is later in the cycle than the classic pattern."
+        : cooler
+          ? "Price is running cooler than previous cycles at this point."
+          : "This cycle is broadly tracking previous cycles at this point.";
+
+  const peakedPhrase =
+    priorsPeakedByNow === priorCount
+      ? `all ${numberWord(priorCount)} previous cycles had already reached their major peak by this point after the halving`
+      : priorsPeakedByNow > 0
+        ? `${numberWord(priorsPeakedByNow)} of the ${numberWord(priorCount)} previous cycles had already reached their major peak by this point after the halving`
+        : "previous cycles had not yet peaked by this point after the halving";
+
+  const summary = later
+    ? `Historically, ${peakedPhrase}. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.`
+    : `Compared with previous cycles at the same point after the halving, the current cycle is ${cooler ? "running cooler" : "broadly in line"}. This is historical context, not a forecast.`;
+
+  return { priorsPeakedByNow, priorCount, later, cooler, chip, keyInsight, summary };
+}
+
+function numberWord(n: number): string {
+  return ["zero", "one", "two", "three", "four", "five"][n] ?? String(n);
 }

@@ -49,6 +49,7 @@ export function TopBar() {
                 {fmtPct(change.pct, 1)}
               </span>
             )}
+            {change && <span className="text-[10px] text-ink-400">{change.days}d</span>}
           </Pill>
 
           <Pill>
@@ -122,6 +123,7 @@ function MobileStatus({ change }: { change: { pct: number; days: number } | null
             {fmtPct(change.pct, 1)}
           </span>
         )}
+        {change && <span className="text-[9.5px] text-ink-400">{change.days}d</span>}
       </div>
       <div className="flex items-center gap-1.5 pl-2.5 border-l border-white/[0.06]">
         <span className={`relative w-1.5 h-1.5 rounded-full ${dot} ${isLive ? "live-dot" : ""}`} />

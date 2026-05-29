@@ -1,9 +1,10 @@
-import { forwardOutcomes } from "@/lib/cycleIntel";
+import { cycleDivergence, forwardOutcomes } from "@/lib/cycleIntel";
 import { TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { fmtPct } from "@/lib/format";
 
 export function WhatHappenedNext() {
   const { horizons, daysToPeak, avgDaysToPeak } = forwardOutcomes();
+  const divergence = cycleDivergence();
 
   return (
     <section>
@@ -19,6 +20,23 @@ export function WhatHappenedNext() {
           price moved over the following months in each completed cycle. This is history, not a
           forecast — past cycles don&apos;t guarantee future returns.
         </p>
+      </div>
+
+      {/* Carefully-worded divergence read */}
+      <div className="card-glow p-6 lg:p-7 mb-5 relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/30 bg-accent/[0.06] mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span className="text-[12px] font-medium text-accent">{divergence.chip}</span>
+          </div>
+          <p className="font-display text-[19px] lg:text-[22px] font-medium tracking-tight-2 text-ink-100 leading-snug max-w-3xl">
+            {divergence.keyInsight}
+          </p>
+          <p className="mt-3.5 text-[14px] text-ink-300 max-w-3xl leading-relaxed">
+            {divergence.summary}
+          </p>
+        </div>
+        <div className="watermark">halving.lens · cycle divergence</div>
       </div>
 
       <div className="card divide-y divide-white/[0.04]">
