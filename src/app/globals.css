@@ -114,19 +114,14 @@ body {
   background-color: rgba(255, 255, 255, 0.022);
 }
 
-/* Live dot: pulses a few times on load as an indicator, then settles steady. */
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.8); }
-}
+/* Live dot: a steady dot with a soft static halo. No flashing. */
 .live-dot::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -2px;
   border-radius: 9999px;
   background: currentColor;
-  opacity: 1;
-  animation: live-pulse 2.2s ease-in-out 3;
+  opacity: 0.18;
 }
 
 /* Fades for chart loads */

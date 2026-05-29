@@ -98,9 +98,9 @@ export default function SentimentPage() {
                 Fear &amp; Greed vs Bitcoin price
               </h2>
               <p className="text-[12.5px] text-ink-400 mt-1.5 max-w-2xl">
-                Sentiment (teal) over the BTC price (gold, log scale). The shaded bands flag the
-                extremes — see how green &ldquo;fear&rdquo; patches tend to sit near lows and red
-                &ldquo;greed&rdquo; patches near tops.
+                Each day&apos;s Fear &amp; Greed is coloured red (fear) → green (greed), plotted over
+                the BTC price (gold, log scale). Watch how red &ldquo;fear&rdquo; clusters tend to
+                sit near lows and green &ldquo;greed&rdquo; clusters near tops.
               </p>
             </div>
             <div className="card p-4 sm:p-7 relative">
