@@ -1,58 +1,105 @@
-import { CycleOverlayChart } from "@/components/CycleOverlayChart";
-import { CYCLES } from "@/lib/btcData";
-import { fmtPct, fmtUsd } from "@/lib/format";
 import { format } from "date-fns";
+import { CycleOverlayPanel } from "@/components/CycleOverlayPanel";
+import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
+import { CYCLES, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
+import { cycleDivergence, cycleTrackingHeadline } from "@/lib/cycleIntel";
+import { fmtPct, fmtUsd } from "@/lib/format";
+
+const fmtMult = (m: number) => (m >= 10 ? `${m.toFixed(0)}×` : `${m.toFixed(1)}×`);
 
 export default function CyclesPage() {
+  const headline = cycleTrackingHeadline();
+  const divergence = cycleDivergence();
+
+  // Real peak multiples per completed cycle, for the diminishing-returns read.
+  const completed = CYCLES.filter((c) => c.id !== 5);
+  const peakMultiples = completed.map((c) => ({
+    short: c.short,
+    year: format(new Date(c.halvingDate), "yyyy"),
+    mult: c.peakPrice / c.samples[0].price,
+  }));
+
   return (
-    <div className="space-y-14">
+    <div className="space-y-12 lg:space-y-16">
       <header className="pt-2">
         <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-4">
-          4-cycle overlay
+          Cycle comparison
         </div>
-        <h1 className="font-display text-[40px] lg:text-[52px] font-medium tracking-tightest text-ink-50 leading-[1.05] max-w-3xl">
-          Every halving cycle, aligned to day zero.
+        <h1 className="font-display text-[34px] sm:text-[40px] lg:text-[52px] font-medium tracking-tightest text-ink-50 leading-[1.05] max-w-3xl">
+          Every halving cycle, lined up from day zero.
         </h1>
-        <p className="mt-5 text-[15.5px] text-ink-300 max-w-2xl leading-relaxed">
-          Pick any metric and see how the current cycle stacks against the prior three at the same
-          day from halving. This view doesn't exist anywhere free.
+        <p className="mt-5 text-[15px] lg:text-[15.5px] text-ink-300 max-w-2xl leading-relaxed">
+          All four cycles drawn on the same axis, aligned to halving day. See how today&apos;s cycle
+          compares with the prior three at the same number of days after the halving.
         </p>
       </header>
 
-      <div className="card p-7 lg:p-8 relative">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <div>
-            <h2 className="font-display text-[20px] font-medium tracking-tight-2 text-ink-100">
-              Price · normalised to halving = 1×
-            </h2>
-            <div className="text-[11.5px] text-ink-400 mt-1">
-              Log Y-axis. X = days since each halving.
-            </div>
+      {/* Plain-English interpretation above the chart */}
+      <section className="card-glow p-6 lg:p-8 relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/30 bg-accent/[0.06] mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span className="text-[12px] font-medium text-accent">{divergence.chip}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px]">
-            {["Price (USD)", "Normalised (×)", "Drawdown"].map((p, i) => (
-              <button
-                key={p}
-                className={`px-3 py-1.5 rounded-md border ${
-                  i === 1
-                    ? "border-accent/30 bg-accent/10 text-accent"
-                    : "border-white/[0.04] bg-white/[0.015] text-ink-350 hover:text-ink-100 hover:border-white/10"
-                } transition-colors`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <h2 className="font-display text-[20px] sm:text-[24px] lg:text-[28px] font-medium tracking-tight-2 text-ink-100 leading-snug max-w-3xl">
+            {headline}
+          </h2>
+          <p className="mt-3.5 text-[14px] text-ink-300 max-w-3xl leading-relaxed">
+            {divergence.summary}
+          </p>
         </div>
-        <CycleOverlayChart mode="normalized" height={460} />
-        <div className="watermark">halving.lens · normalised price</div>
-      </div>
+        <div className="watermark">halving.lens · cycle comparison</div>
+      </section>
 
+      {/* The signature chart */}
+      <CycleOverlayPanel height={460} />
+
+      {/* Same day from halving comparison cards */}
+      <TodayVsPriorCycles />
+
+      {/* Cycle-by-cycle stats — table on desktop, cards on mobile */}
       <section>
         <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100 mb-5">
           Cycle-by-cycle stats
         </h2>
-        <div className="card overflow-hidden">
+
+        {/* Mobile: stacked cards */}
+        <div className="sm:hidden space-y-3">
+          {CYCLES.map((c) => {
+            const peakGain = (c.peakPrice / c.samples[0].price - 1) * 100;
+            const drawdown = (c.troughPrice / c.peakPrice - 1) * 100;
+            const isCurrent = c.id === 5;
+            return (
+              <div
+                key={c.id}
+                className={`rounded-xl p-5 border ${
+                  isCurrent ? "border-accent/30 bg-accent/[0.04]" : "border-white/[0.04] bg-white/[0.012]"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: c.color }} />
+                  <span className={`font-medium text-[13px] ${isCurrent ? "text-accent" : "text-ink-100"}`}>
+                    {c.label}
+                  </span>
+                  {isCurrent && (
+                    <span className="text-[9.5px] text-accent uppercase tracking-[0.18em]">current</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <Mini label="Halving price" value={fmtUsd(c.samples[0].price, { compact: true })} />
+                  <Mini label="Peak" value={fmtUsd(c.peakPrice, { compact: true })} />
+                  <Mini label="Peak gain" value={fmtPct(peakGain, 0)} tone="green" />
+                  <Mini label="Days to peak" value={`${c.peakDay}d`} />
+                  <Mini label="Drawdown" value={fmtPct(drawdown, 0)} tone="red" />
+                  <Mini label="Reward" value={`${c.rewardBtc} BTC`} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden sm:block card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-[0.18em] text-ink-400 border-b border-white/[0.04]">
@@ -75,19 +122,12 @@ export default function CyclesPage() {
                   <tr key={c.id} className="row-hover border-b border-white/[0.03] last:border-0">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2.5">
-                        <span
-                          className="inline-block w-2 h-2 rounded-full"
-                          style={{ background: c.color }}
-                        />
-                        <span
-                          className={`font-medium text-[13px] ${isCurrent ? "text-accent" : "text-ink-100"}`}
-                        >
+                        <span className="inline-block w-2 h-2 rounded-full" style={{ background: c.color }} />
+                        <span className={`font-medium text-[13px] ${isCurrent ? "text-accent" : "text-ink-100"}`}>
                           {c.label}
                         </span>
                         {isCurrent && (
-                          <span className="text-[9.5px] text-accent uppercase tracking-[0.18em]">
-                            current
-                          </span>
+                          <span className="text-[9.5px] text-accent uppercase tracking-[0.18em]">current</span>
                         )}
                       </div>
                     </td>
@@ -120,29 +160,49 @@ export default function CyclesPage() {
         </div>
       </section>
 
+      {/* Two carefully-framed theses */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="card p-7">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-ink-400 mb-2">One view</div>
           <h3 className="font-display text-[18px] font-medium text-ink-100 tracking-tight-2 mb-2">
-            The diminishing returns thesis
+            Diminishing returns
           </h3>
           <p className="text-[12.5px] text-ink-300 leading-relaxed">
-            Every cycle's peak gain has shrunk: cycle 2 did 92×, cycle 3 did 30×, cycle 4 did 7.8×.
-            The base case for cycle 5, extrapolating that decay, is roughly 3–4× from the halving
-            price — $200k–260k. Where we are today vs. that path is on the overlay above.
+            Each cycle&apos;s peak gain has been smaller than the last —{" "}
+            {peakMultiples.map((p) => fmtMult(p.mult)).join(", ")} for the{" "}
+            {peakMultiples.map((p) => p.year).join(", ")} cycles. If that pattern continues, this
+            cycle would deliver a far smaller multiple than past cycles rather than a repeat of early
+            returns. History, not a forecast.
           </p>
         </div>
         <div className="card p-7">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-ink-400 mb-2">Another view</div>
           <h3 className="font-display text-[18px] font-medium text-ink-100 tracking-tight-2 mb-2">
-            The supercycle thesis
+            ETF-era divergence
           </h3>
           <p className="text-[12.5px] text-ink-300 leading-relaxed">
-            Spot ETFs absorbed ~5% of supply within a year of approval. If that demand stays
-            structural, the historical drawdown pattern (80–85% from peak) gets cut — supply is
-            held in custody by Larry Fink, not on Binance ready to dump. The flat metric profile
-            of cycle 5 is the chief evidence.
+            The 2024 cycle is the first with US spot Bitcoin ETFs — a source of demand that did not
+            exist in 2012, 2016 or 2020. If that demand stays structural, it could change the shape
+            of the cycle relative to history. The flatter, cooler profile so far (above) is the
+            chief evidence — though it&apos;s still early, and this is not a guarantee.
           </p>
         </div>
       </section>
+    </div>
+  );
+}
+
+function Mini({ label, value, tone }: { label: string; value: string; tone?: "green" | "red" }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-ink-400">{label}</div>
+      <div
+        className={`mt-0.5 font-mono text-[12.5px] tabular-nums ${
+          tone === "green" ? "text-signal-green" : tone === "red" ? "text-signal-red" : "text-ink-100"
+        }`}
+      >
+        {value}
+      </div>
     </div>
   );
 }

@@ -337,3 +337,34 @@ export function cycleDivergence(): CycleDivergence {
 function numberWord(n: number): string {
   return ["zero", "one", "two", "three", "four", "five"][n] ?? String(n);
 }
+
+// ── Comparative tracking headline (real price) ──────────────────────────────
+// Careful, factual statement of how the current cycle's price multiple (vs its
+// own halving) compares with prior cycles at the same day from halving.
+
+function multipleAtToday(cycle: Cycle): number {
+  return sampleNearestDay(cycle, TODAY_DAY_IN_CYCLE).price / cycle.samples[0].price;
+}
+
+export function cycleTrackingHeadline(): string {
+  const current = TODAY.price / CURRENT_CYCLE.samples[0].price;
+  const priors = CYCLES.filter((c) => c.id !== 5).map((c) => ({
+    year: c.halvingDate.slice(0, 4),
+    mult: multipleAtToday(c),
+  }));
+  const below = priors.filter((p) => p.mult > current).map((p) => p.year); // current is below these
+  const above = priors.filter((p) => p.mult <= current).map((p) => p.year);
+
+  const list = (xs: string[]) =>
+    xs.length <= 1 ? xs[0] ?? "" : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
+
+  if (below.length === priors.length) {
+    return "Bitcoin is currently tracking below every previous cycle at the same point after the halving.";
+  }
+  if (above.length === priors.length) {
+    return "Bitcoin is currently tracking above every previous cycle at the same point after the halving.";
+  }
+  return `Bitcoin is currently tracking below the ${list(below)} cycle${
+    below.length > 1 ? "s" : ""
+  } but above the ${list(above)} cycle${above.length > 1 ? "s" : ""} at the same point after the halving.`;
+}

@@ -39,7 +39,7 @@ export function CycleOverlayChart({
       points: c.samples.map((s) => {
         let y: number;
         if (mode === "price") y = s.price;
-        else if (mode === "normalized") y = (s.price / halvingPrice) * 100;
+        else if (mode === "normalized") y = s.price / halvingPrice; // multiple of halving price (1× at day 0)
         else y = metric ? metric.pick(s) : 0;
         return { day: s.day, [`y${c.id}`]: y };
       }),
@@ -60,7 +60,7 @@ export function CycleOverlayChart({
 
   const yFormatter = (v: number) => {
     if (mode === "price") return v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v.toFixed(0)}`;
-    if (mode === "normalized") return `${v.toFixed(0)}×`;
+    if (mode === "normalized") return v >= 10 ? `${v.toFixed(0)}×` : `${v.toFixed(1)}×`;
     if (metric?.unit === "%") return `${v.toFixed(0)}%`;
     if (metric?.unit === "$") return v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v.toFixed(0)}`;
     return v.toFixed(metric?.decimals ?? 2);
