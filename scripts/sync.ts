@@ -145,17 +145,18 @@ interface CoinMetricsRow {
 }
 
 // Crypto Fear & Greed index — alternative.me. Free, keyless, daily history.
-// 0 = extreme fear, 100 = extreme greed. limit caps how many days we keep.
+// 0 = extreme fear, 100 = extreme greed. limit=0 returns all history (since
+// 2018) so the BTC-price overlay spans multiple cycles. We store ts+value only
+// (band/classification is derived in the UI from the value).
 async function fetchFearGreed(): Promise<SentimentData> {
-  const url = "https://api.alternative.me/fng/?limit=800&format=json";
+  const url = "https://api.alternative.me/fng/?limit=0&format=json";
   const data = await fetchJson<{
-    data: Array<{ value: string; value_classification: string; timestamp: string }>;
+    data: Array<{ value: string; timestamp: string }>;
   }>(url);
   const points = data.data
     .map((d) => ({
       ts: Math.floor((parseInt(d.timestamp, 10) * 1000) / MS_PER_DAY) * MS_PER_DAY,
       value: parseFloat(d.value),
-      classification: d.value_classification,
     }))
     .filter((p) => Number.isFinite(p.ts) && Number.isFinite(p.value))
     .sort((a, b) => a.ts - b.ts);

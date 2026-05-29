@@ -125,7 +125,7 @@ export interface Snapshot {
 export interface SentimentPoint {
   ts: number; // unix ms (UTC midnight)
   value: number; // 0..100
-  classification: string; // e.g. "Fear", "Greed"
+  classification?: string; // e.g. "Fear", "Greed" — derived in UI; not stored
 }
 
 export interface SentimentData {

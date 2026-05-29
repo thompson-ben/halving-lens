@@ -114,7 +114,7 @@ body {
   background-color: rgba(255, 255, 255, 0.022);
 }
 
-/* Pulsing live dot */
+/* Live dot: pulses a few times on load as an indicator, then settles steady. */
 @keyframes live-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(1.8); }
@@ -125,7 +125,8 @@ body {
   inset: 0;
   border-radius: 9999px;
   background: currentColor;
-  animation: live-pulse 2.2s ease-in-out infinite;
+  opacity: 1;
+  animation: live-pulse 2.2s ease-in-out 3;
 }
 
 /* Fades for chart loads */

@@ -3,8 +3,10 @@
 // snapshot has no sentiment yet (not synced), the page renders a connecting
 // state.
 
-import { CURRENT_CYCLE, SENTIMENT } from "./btcData";
+import { CURRENT_CYCLE, CYCLES, SENTIMENT } from "./btcData";
 import type { SentimentPoint } from "./data/types";
+
+const MS_DAY = 86_400_000;
 
 export type SentimentBand = "extreme-fear" | "fear" | "neutral" | "greed" | "extreme-greed";
 
@@ -14,15 +16,14 @@ export interface SentimentBandInfo {
   tone: "red" | "amber" | "muted" | "green" | "teal";
 }
 
-// Coloured by cycle risk (consistent with the rest of the app): low values
-// (fear) have historically been opportunity/cool; high values (euphoria) have
-// been risk/hot → red.
+// Standard Fear & Greed palette: fear = red, greed = green. The "euphoria
+// tends to appear near tops" caveat is carried in the words, not the colour.
 export function bandFor(value: number): SentimentBandInfo {
-  if (value < 25) return { band: "extreme-fear", label: "Extreme fear", tone: "teal" };
-  if (value < 45) return { band: "fear", label: "Fear", tone: "green" };
+  if (value < 25) return { band: "extreme-fear", label: "Extreme fear", tone: "red" };
+  if (value < 45) return { band: "fear", label: "Fear", tone: "amber" };
   if (value < 55) return { band: "neutral", label: "Neutral", tone: "muted" };
-  if (value < 75) return { band: "greed", label: "Optimistic", tone: "amber" };
-  return { band: "extreme-greed", label: "Euphoric", tone: "red" };
+  if (value < 75) return { band: "greed", label: "Greed", tone: "green" };
+  return { band: "extreme-greed", label: "Extreme greed", tone: "teal" };
 }
 
 export const SENTIMENT_AVAILABLE = !!SENTIMENT && SENTIMENT.points.length > 0;
@@ -131,3 +132,103 @@ export function sentimentRead(): SentimentRead | null {
 
   return { value: cur.value, band, change, alignment, summary };
 }
+
+// ---- Fear & Greed vs price -------------------------------------------------
+// A dated BTC price series, reconstructed from every cycle's day-indexed
+// samples (weekly), used to overlay price on the sentiment timeline and to
+// measure forward returns by sentiment band.
+
+interface PricePoint {
+  ts: number;
+  price: number;
+}
+
+function datedPrices(): PricePoint[] {
+  const out: PricePoint[] = [];
+  for (const c of CYCLES) {
+    const base = new Date(c.halvingDate).getTime();
+    for (const s of c.samples) {
+      if (s.price > 0) out.push({ ts: base + s.day * MS_DAY, price: s.price });
+    }
+  }
+  return out.sort((a, b) => a.ts - b.ts);
+}
+
+// Linearly interpolated price at a timestamp. clamp=false returns null when ts
+// falls outside the data range (used for forward-return windows).
+function priceAt(prices: PricePoint[], ts: number, clamp: boolean): number | null {
+  if (!prices.length) return null;
+  if (ts <= prices[0].ts) return clamp ? prices[0].price : null;
+  const last = prices[prices.length - 1];
+  if (ts >= last.ts) return clamp ? last.price : null;
+  for (let i = 1; i < prices.length; i++) {
+    if (prices[i].ts >= ts) {
+      const a = prices[i - 1];
+      const b = prices[i];
+      const f = (ts - a.ts) / (b.ts - a.ts || 1);
+      return a.price + (b.price - a.price) * f;
+    }
+  }
+  return last.price;
+}
+
+export interface PricedSentimentPoint {
+  ts: number;
+  value: number;
+  price: number;
+}
+
+export function pricedSentimentSeries(): PricedSentimentPoint[] {
+  const prices = datedPrices();
+  if (!prices.length) return [];
+  const out: PricedSentimentPoint[] = [];
+  for (const p of points()) {
+    const price = priceAt(prices, p.ts, true);
+    if (price != null && price > 0) out.push({ ts: p.ts, value: p.value, price });
+  }
+  return out;
+}
+
+export interface BandReturn {
+  band: SentimentBand;
+  label: string;
+  tone: SentimentBandInfo["tone"];
+  count: number;
+  avgReturn: number; // mean % change over the horizon
+}
+
+// For every historical day, the average forward BTC return `horizonDays` later,
+// grouped by the sentiment band that day fell in. This is the honest answer to
+// "did buying fear actually pay off?" — descriptive history, not a strategy.
+export function forwardReturnByBand(horizonDays = 90): BandReturn[] {
+  const prices = datedPrices();
+  const pts = points();
+  if (prices.length < 2 || !pts.length) return [];
+  const lastTs = prices[prices.length - 1].ts;
+  const acc = new Map<
+    SentimentBand,
+    { label: string; tone: SentimentBandInfo["tone"]; sum: number; n: number }
+  >();
+  for (const p of pts) {
+    const fwd = p.ts + horizonDays * MS_DAY;
+    if (fwd > lastTs) continue;
+    const p0 = priceAt(prices, p.ts, false);
+    const p1 = priceAt(prices, fwd, false);
+    if (p0 == null || p1 == null || p0 <= 0) continue;
+    const info = bandFor(p.value);
+    const cur =
+      acc.get(info.band) ?? { label: info.label, tone: info.tone, sum: 0, n: 0 };
+    cur.sum += (p1 / p0 - 1) * 100;
+    cur.n += 1;
+    acc.set(info.band, cur);
+  }
+  const order: SentimentBand[] = ["extreme-fear", "fear", "neutral", "greed", "extreme-greed"];
+  return order
+    .filter((b) => acc.has(b))
+    .map((b) => {
+      const v = acc.get(b)!;
+      return { band: b, label: v.label, tone: v.tone, count: v.n, avgReturn: v.sum / v.n };
+    });
+}
+
+export const FORWARD_HORIZON_DAYS = 90;

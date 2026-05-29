@@ -1,7 +1,13 @@
 import { format } from "date-fns";
-import { SentimentChart } from "@/components/SentimentChart";
+import { PriceSentimentChart } from "@/components/PriceSentimentChart";
 import { SENTIMENT } from "@/lib/btcData";
-import { SENTIMENT_AVAILABLE, sentimentRead } from "@/lib/sentiment";
+import {
+  FORWARD_HORIZON_DAYS,
+  forwardReturnByBand,
+  pricedSentimentSeries,
+  SENTIMENT_AVAILABLE,
+  sentimentRead,
+} from "@/lib/sentiment";
 
 const TONE_TEXT: Record<string, string> = {
   red: "text-signal-red",
@@ -13,6 +19,8 @@ const TONE_TEXT: Record<string, string> = {
 
 export default function SentimentPage() {
   const read = SENTIMENT_AVAILABLE ? sentimentRead() : null;
+  const overlay = SENTIMENT_AVAILABLE ? pricedSentimentSeries() : [];
+  const returns = SENTIMENT_AVAILABLE ? forwardReturnByBand(FORWARD_HORIZON_DAYS) : [];
 
   return (
     <div className="space-y-12 lg:space-y-14">
@@ -57,13 +65,13 @@ export default function SentimentPage() {
                   {read.band.label}
                 </div>
 
-                {/* 0–100 scale with marker */}
+                {/* 0–100 scale with marker (standard: fear red → greed green) */}
                 <div className="mt-6">
-                  <div className="h-1.5 rounded-full bg-gradient-to-r from-accent via-signal-amber to-signal-red opacity-70" />
+                  <div className="h-1.5 rounded-full bg-gradient-to-r from-signal-red via-signal-amber to-signal-green opacity-75" />
                   <div className="relative h-0">
                     <div
                       className="absolute w-3 h-3 -mt-[22px] rounded-full bg-ink-50 ring-2 ring-ink-950"
-                      style={{ left: `calc(${read.value}% - 6px)`, boxShadow: "0 0 12px rgba(94,234,212,0.5)" }}
+                      style={{ left: `calc(${read.value}% - 6px)`, boxShadow: "0 0 12px rgba(255,255,255,0.45)" }}
                     />
                   </div>
                   <div className="mt-3 flex justify-between text-[10px] text-ink-400 font-mono tracking-wider">
@@ -83,21 +91,62 @@ export default function SentimentPage() {
             <div className="watermark">halving.lens · sentiment</div>
           </section>
 
-          {/* History */}
+          {/* Fear & Greed vs price — does sentiment line up with tops/bottoms? */}
           <section>
             <div className="mb-5">
               <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100">
-                Sentiment over the current cycle
+                Fear &amp; Greed vs Bitcoin price
               </h2>
-              <p className="text-[12.5px] text-ink-400 mt-1.5 max-w-xl">
-                The dashed lines mark the fear / neutral / greed boundaries.
+              <p className="text-[12.5px] text-ink-400 mt-1.5 max-w-2xl">
+                Sentiment (teal) over the BTC price (gold, log scale). The shaded bands flag the
+                extremes — see how green &ldquo;fear&rdquo; patches tend to sit near lows and red
+                &ldquo;greed&rdquo; patches near tops.
               </p>
             </div>
             <div className="card p-4 sm:p-7 relative">
-              <SentimentChart points={SENTIMENT!.points} height={300} />
+              <PriceSentimentChart data={overlay} height={360} />
               <div className="watermark">halving.lens · fear &amp; greed</div>
             </div>
           </section>
+
+          {/* Did buying fear pay off? — forward returns by band */}
+          {returns.length > 0 && (
+            <section>
+              <div className="mb-5">
+                <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100">
+                  Did buying fear pay off?
+                </h2>
+                <p className="text-[12.5px] text-ink-400 mt-1.5 max-w-2xl">
+                  Average BTC return over the {FORWARD_HORIZON_DAYS} days following every historical
+                  day, grouped by the sentiment that day. This is what happened in the past — a
+                  description, not a strategy or a forecast.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {returns.map((r) => (
+                  <div key={r.band} className="card p-5">
+                    <div className={`text-[12px] font-medium ${TONE_TEXT[r.tone]}`}>{r.label}</div>
+                    <div
+                      className={`mt-2 font-display text-[26px] font-medium tracking-tight-2 tabular-nums ${
+                        r.avgReturn >= 0 ? "text-signal-green" : "text-signal-red"
+                      }`}
+                    >
+                      {r.avgReturn >= 0 ? "+" : ""}
+                      {r.avgReturn.toFixed(0)}%
+                    </div>
+                    <div className="mt-1 text-[10.5px] text-ink-500 font-mono">
+                      {r.count.toLocaleString()} days
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-[11.5px] text-ink-500 leading-relaxed max-w-2xl">
+                Past performance says nothing about the future, sample sizes for the extreme bands
+                are small, and these windows overlap. Treat it as a feel for the historical pattern,
+                not a signal.
+              </p>
+            </section>
+          )}
 
           {/* What/why + transparency */}
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
