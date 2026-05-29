@@ -4,8 +4,14 @@ import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CYCLES, type Cycle, type CycleSample } from "@/lib/btcData";
 import { METRICS, zoneFor } from "@/lib/metrics";
+import { metricStatus } from "@/lib/cycleIntel";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { MetricGauge } from "./MetricGauge";
+
+// Only metrics we can stand behind as real — never replay synthetic series.
+const LIVE_METRICS = METRICS.filter(
+  (m) => m.bands.length > 0 && metricStatus(m.slug) !== "coming-soon",
+);
 
 const MAX_DAY = 1458;
 const STEP = 7; // weekly
@@ -127,15 +133,16 @@ export function CycleReplay() {
       <div className="card p-7">
         <div className="mb-5">
           <h3 className="font-display text-[18px] font-medium tracking-tight-2 text-ink-100">
-            All metrics at day {day}, by cycle
+            Live signals at day {day}, by cycle
           </h3>
           <div className="text-[11.5px] text-ink-400 mt-1">
-            Drag the timeline to see how each oscillator evolved through each halving cycle.
+            Drag the timeline to see how each live-derived signal evolved through each halving
+            cycle.
           </div>
         </div>
 
         <div className="space-y-5">
-          {METRICS.filter((m) => m.bands.length > 0).map((metric) => (
+          {LIVE_METRICS.map((metric) => (
             <MetricRow key={metric.slug} metricSlug={metric.slug} day={day} />
           ))}
         </div>

@@ -18,6 +18,16 @@ export default function HodlWavesPage() {
         </p>
       </header>
 
+      <div className="rounded-xl border border-signal-amber/25 bg-signal-amber/[0.06] px-5 py-4 flex items-start gap-3">
+        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-signal-amber shrink-0" />
+        <p className="text-[13px] text-ink-200 leading-relaxed">
+          <span className="font-medium text-signal-amber">Illustrative — not live data.</span> HODL
+          Waves require on-chain UTXO-age data, which isn&apos;t available from a free source yet.
+          The shape below shows the canonical pattern for learning purposes; it will switch to live
+          data once an on-chain source is connected.
+        </p>
+      </div>
+
       <div className="card p-7 lg:p-8 relative">
         <div className="flex items-center justify-between mb-5">
           <div>

@@ -4,6 +4,7 @@ import { MetricGauge } from "./MetricGauge";
 import { cn } from "@/lib/cn";
 import type { MetricDef } from "@/lib/metrics";
 import { zoneFor } from "@/lib/metrics";
+import { comingSoonReason, metricStatus, STATUS_LABEL, type DataStatus } from "@/lib/cycleIntel";
 import { TODAY } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
 
@@ -16,7 +17,17 @@ const ZONE_TONE: Record<string, string> = {
   top: "text-signal-red border-signal-red/30 bg-signal-red/10",
 };
 
+const STATUS_TONE: Record<DataStatus, string> = {
+  live: "text-signal-green border-signal-green/25 bg-signal-green/10",
+  "live-derived": "text-signal-green border-signal-green/25 bg-signal-green/10",
+  "coming-soon": "text-ink-400 border-white/10 bg-white/[0.03]",
+};
+
 export function MetricCard({ metric }: { metric: MetricDef }) {
+  const status = metricStatus(metric.slug);
+
+  if (status === "coming-soon") return <ComingSoonCard metric={metric} />;
+
   const value = metric.pick(TODAY);
   const { zone, label } = zoneFor(metric, value);
   const display =
@@ -29,10 +40,17 @@ export function MetricCard({ metric }: { metric: MetricDef }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.22em] text-ink-400">
-            {metric.group}
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "px-1.5 py-0.5 rounded-full border text-[9px] font-medium tracking-wide uppercase",
+                STATUS_TONE[status],
+              )}
+            >
+              {STATUS_LABEL[status]}
+            </span>
           </div>
-          <h3 className="mt-1.5 font-display text-[18px] font-medium tracking-tight-2 text-ink-100 group-hover:text-accent transition-colors duration-200">
+          <h3 className="mt-2 font-display text-[18px] font-medium tracking-tight-2 text-ink-100 group-hover:text-accent transition-colors duration-200">
             {metric.name}
           </h3>
         </div>
@@ -56,14 +74,32 @@ export function MetricCard({ metric }: { metric: MetricDef }) {
           <MetricGauge metric={metric} value={value} />
         </div>
       )}
-      <div className="mt-5 pt-3.5 border-t border-white/[0.04] flex items-center justify-between text-[11px]">
-        <span className="text-ink-400">
-          Paid at <span className="text-ink-200">{metric.paidAt}</span>
-        </span>
+      <div className="mt-5 pt-3.5 border-t border-white/[0.04] flex items-center justify-end text-[11px]">
         <span className="inline-flex items-center gap-0.5 text-accent group-hover:gap-1.5 transition-all duration-200">
           View <ArrowUpRight size={11} />
         </span>
       </div>
     </Link>
+  );
+}
+
+function ComingSoonCard({ metric }: { metric: MetricDef }) {
+  return (
+    <div className="card p-6 block opacity-80">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <span className="px-1.5 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-400 text-[9px] font-medium tracking-wide uppercase">
+            Coming soon
+          </span>
+          <h3 className="mt-2 font-display text-[18px] font-medium tracking-tight-2 text-ink-300">
+            {metric.name}
+          </h3>
+        </div>
+      </div>
+      <p className="mt-4 text-[12.5px] text-ink-400 leading-relaxed">{metric.description}</p>
+      <div className="mt-5 pt-3.5 border-t border-white/[0.04] text-[11px] text-ink-500 leading-relaxed">
+        {comingSoonReason(metric.slug)}
+      </div>
+    </div>
   );
 }

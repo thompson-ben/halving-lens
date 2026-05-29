@@ -6,6 +6,7 @@ import { MetricChart } from "@/components/MetricChart";
 import { MetricGauge } from "@/components/MetricGauge";
 import { METRICS, metricBySlug, valueAtDay, zoneFor } from "@/lib/metrics";
 import { CYCLES, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
+import { comingSoonReason, metricSource, metricStatus, STATUS_LABEL } from "@/lib/cycleIntel";
 import { fmtUsd } from "@/lib/format";
 
 export function generateStaticParams() {
@@ -16,6 +17,54 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
   const metric = metricBySlug(params.slug);
   if (!metric) return notFound();
 
+  // Coming-soon metrics depend on data we don't have live. Never render their
+  // synthetic charts/values as if they were real — show an honest explainer.
+  if (metricStatus(metric.slug) === "coming-soon") {
+    return (
+      <div className="space-y-10">
+        <div>
+          <Link
+            href="/metrics"
+            className="inline-flex items-center gap-1.5 text-[12px] text-ink-400 hover:text-accent transition-colors"
+          >
+            <ArrowLeft size={12} /> Metric library
+          </Link>
+        </div>
+
+        <header className="space-y-4">
+          <span className="inline-block px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-400 text-[10px] font-medium tracking-wide uppercase">
+            Coming soon
+          </span>
+          <h1 className="font-display text-[40px] lg:text-[56px] font-medium tracking-tightest text-ink-50 leading-[1.05]">
+            {metric.name}
+          </h1>
+          <p className="text-[15.5px] text-ink-300 max-w-2xl leading-relaxed">{metric.description}</p>
+        </header>
+
+        <div className="card p-7 lg:p-8 space-y-6 max-w-2xl">
+          <Block title="Why does it matter?">{metric.why}</Block>
+          <Block title="Why it isn't live yet">{comingSoonReason(metric.slug)}</Block>
+          <div className="pt-5 border-t border-white/[0.04] grid grid-cols-2 gap-5 text-[12.5px]">
+            <div>
+              <div className="text-ink-400 uppercase tracking-[0.16em] text-[10px]">Status</div>
+              <div className="text-ink-200 mt-1">Coming soon</div>
+            </div>
+            <div>
+              <div className="text-ink-400 uppercase tracking-[0.16em] text-[10px]">When live</div>
+              <div className="text-ink-200 mt-1">{metric.paidAt}</div>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[13px] text-ink-400 max-w-2xl leading-relaxed">
+          We won&apos;t show estimated or modelled numbers for this metric as if they were real. It
+          will switch on automatically here once a live data source is connected.
+        </p>
+      </div>
+    );
+  }
+
+  const status = metricStatus(metric.slug);
   const current = metric.pick(TODAY);
   const { zone, label } = zoneFor(metric, current);
   const display =
@@ -38,8 +87,11 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
       </div>
 
       <header className="space-y-4">
-        <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
-          {metric.group} · paid at {metric.paidAt}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="px-2 py-0.5 rounded-full border border-signal-green/25 bg-signal-green/10 text-signal-green text-[10px] font-medium tracking-wide uppercase">
+            {STATUS_LABEL[status]}
+          </span>
+          <span className="text-[11px] text-ink-400">{metricSource(metric.slug)}</span>
         </div>
         <h1 className="font-display text-[44px] lg:text-[58px] font-medium tracking-tightest text-ink-50 leading-[1.05]">
           {metric.name}
@@ -225,6 +277,17 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="text-[12.5px] font-medium text-ink-100 mb-2 uppercase tracking-[0.16em]">
+        {title}
+      </h3>
+      <p className="text-[13.5px] text-ink-300 leading-relaxed">{children}</p>
     </div>
   );
 }
