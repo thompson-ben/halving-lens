@@ -7,9 +7,13 @@
  * Deploy: npm run sync && npm run build   (Vercel build command)
  *
  * Sources
- * - CoinGecko  /coins/bitcoin/market_chart   — daily price (USD), full history
- * - CoinMetrics community                    — realised cap, circulating supply
- * - mempool.space                            — current block height + hash rate
+ * - CoinMetrics community  — price (USD), market cap, realised cap, supply (primary)
+ * - CoinGecko market_chart — price + market cap (fallback if CoinMetrics is down)
+ * - mempool.space          — current block height + hash rate
+ *
+ * CoinMetrics is the primary source because its community API is keyless and
+ * does not block datacenter / CI IPs. CoinGecko's keyless endpoint 403s from
+ * cloud hosts (e.g. Vercel build servers), so it is a fallback only.
  *
  * Derived
  * - Mayer Multiple  = price / 200d SMA
@@ -100,27 +104,48 @@ async function fetchCoinGecko(): Promise<Array<{ ts: number; price: number; mark
   });
 }
 
-// CoinMetrics community — daily realised cap (USD) and circulating supply for BTC.
-// Format is CSV from their assets endpoint; we parse columns we need.
-async function fetchCoinMetrics(): Promise<Array<{ ts: number; realisedCap: number; supply: number }>> {
+interface CoinMetricsRow {
+  ts: number;
+  price?: number;
+  marketCap?: number;
+  realisedCap?: number;
+  supply?: number;
+}
+
+// CoinMetrics community — daily price, market cap, realised cap and circulating
+// supply for BTC. Keyless, full history, and does not block datacenter IPs.
+async function fetchCoinMetrics(): Promise<CoinMetricsRow[]> {
   const url =
-    "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapRealUSD,SplyCur&frequency=1d&format=json&page_size=10000";
+    "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMrktCurUSD,CapRealUSD,SplyCur&frequency=1d&format=json&page_size=10000";
   // CoinMetrics paginates — walk pages.
   let next: string | undefined = url;
-  const out: Array<{ ts: number; realisedCap: number; supply: number }> = [];
+  const out: CoinMetricsRow[] = [];
   let safety = 0;
+  const num = (s?: string): number | undefined => {
+    const v = s ? parseFloat(s) : NaN;
+    return Number.isFinite(v) ? v : undefined;
+  };
   while (next && safety++ < 20) {
     const page: {
-      data: Array<{ time: string; CapRealUSD?: string; SplyCur?: string }>;
+      data: Array<{
+        time: string;
+        PriceUSD?: string;
+        CapMrktCurUSD?: string;
+        CapRealUSD?: string;
+        SplyCur?: string;
+      }>;
       next_page_url?: string;
     } = await fetchJson(next);
     for (const row of page.data) {
       const ts = Date.parse(row.time);
-      const realisedCap = row.CapRealUSD ? parseFloat(row.CapRealUSD) : NaN;
-      const supply = row.SplyCur ? parseFloat(row.SplyCur) : NaN;
-      if (Number.isFinite(ts) && Number.isFinite(realisedCap) && Number.isFinite(supply)) {
-        out.push({ ts: Math.floor(ts / MS_PER_DAY) * MS_PER_DAY, realisedCap, supply });
-      }
+      if (!Number.isFinite(ts)) continue;
+      out.push({
+        ts: Math.floor(ts / MS_PER_DAY) * MS_PER_DAY,
+        price: num(row.PriceUSD),
+        marketCap: num(row.CapMrktCurUSD),
+        realisedCap: num(row.CapRealUSD),
+        supply: num(row.SplyCur),
+      });
     }
     next = page.next_page_url;
   }
@@ -137,24 +162,6 @@ async function fetchMempoolTip(): Promise<{ height: number; hashrate?: number }>
   } catch {
     return { height };
   }
-}
-
-// Join price + on-chain into a unified daily series.
-function joinDaily(
-  prices: Array<{ ts: number; price: number; marketCap: number }>,
-  chain: Array<{ ts: number; realisedCap: number; supply: number }>,
-): DailyPoint[] {
-  const chainByTs = new Map(chain.map((c) => [c.ts, c]));
-  return prices.map((p) => {
-    const c = chainByTs.get(p.ts);
-    return {
-      ts: p.ts,
-      price: p.price,
-      marketCap: p.marketCap,
-      realisedCap: c?.realisedCap,
-      supply: c?.supply,
-    };
-  });
 }
 
 // SMA over the last `window` daily points (inclusive of current).
@@ -306,17 +313,60 @@ function daysBetween(a: string, b: number): number {
 }
 
 async function build(): Promise<Snapshot> {
-  console.log("→ Fetching CoinGecko price history…");
-  const prices = await fetchCoinGecko();
-  console.log(`  got ${prices.length} daily price points (from ${new Date(prices[0].ts).toISOString().slice(0, 10)})`);
-
-  console.log("→ Fetching CoinMetrics realised cap + supply…");
-  let chain: Array<{ ts: number; realisedCap: number; supply: number }> = [];
+  console.log("→ Fetching CoinMetrics (price + market cap + realised cap + supply)…");
+  let cm: CoinMetricsRow[] = [];
   try {
-    chain = await fetchCoinMetrics();
-    console.log(`  got ${chain.length} daily chain rows`);
+    cm = await fetchCoinMetrics();
+    console.log(`  got ${cm.length} daily rows from CoinMetrics`);
   } catch (e) {
-    console.warn(`  CoinMetrics unavailable — derived on-chain metrics will fall back. (${(e as Error).message})`);
+    console.warn(`  CoinMetrics unavailable — will try CoinGecko for price. (${(e as Error).message})`);
+  }
+
+  const cmHasPrice = cm.some((r) => Number.isFinite(r.price));
+
+  // Base daily series. Prefer CoinMetrics (keyless, datacenter-friendly);
+  // fall back to CoinGecko for price + market cap if CoinMetrics is down.
+  let priceSource: string;
+  let daily: DailyPoint[];
+
+  if (cmHasPrice) {
+    priceSource = "CoinMetrics community PriceUSD";
+    daily = cm
+      .filter((r) => Number.isFinite(r.price))
+      .map((r) => ({
+        ts: r.ts,
+        price: r.price!,
+        marketCap: Number.isFinite(r.marketCap)
+          ? (r.marketCap as number)
+          : r.price! * (r.supply ?? 19_000_000),
+        realisedCap: r.realisedCap,
+        supply: r.supply,
+      }));
+    console.log(
+      `  using CoinMetrics price series (${daily.length} days from ${new Date(daily[0].ts).toISOString().slice(0, 10)})`,
+    );
+  } else {
+    console.log("→ CoinMetrics price unavailable; fetching CoinGecko price history…");
+    const prices = await fetchCoinGecko();
+    priceSource = "CoinGecko /coins/bitcoin/market_chart";
+    const chainByTs = new Map(
+      cm
+        .filter((r) => Number.isFinite(r.realisedCap) && Number.isFinite(r.supply))
+        .map((c) => [c.ts, c]),
+    );
+    daily = prices.map((p) => {
+      const c = chainByTs.get(p.ts);
+      return {
+        ts: p.ts,
+        price: p.price,
+        marketCap: p.marketCap,
+        realisedCap: c?.realisedCap,
+        supply: c?.supply,
+      };
+    });
+    console.log(
+      `  got ${prices.length} daily price points from CoinGecko (from ${new Date(prices[0].ts).toISOString().slice(0, 10)})`,
+    );
   }
 
   console.log("→ Fetching mempool.space tip…");
@@ -329,7 +379,6 @@ async function build(): Promise<Snapshot> {
   }
 
   const synthetic = syntheticSnapshot();
-  const daily = joinDaily(prices, chain);
 
   // Slice the joined series per cycle.
   const cycles: Cycle[] = [];
@@ -354,13 +403,15 @@ async function build(): Promise<Snapshot> {
 
   const todayDayInCycle = daysBetween(HALVINGS[5], Date.now());
 
-  const onchainAvailable = chain.length > 0;
+  const onchainAvailable = daily.some(
+    (d) => Number.isFinite(d.realisedCap) && (d.realisedCap as number) > 0,
+  );
   return {
     source: {
       mode: onchainAvailable ? "mixed" : "live",
       fetchedAt: new Date().toISOString(),
       sources: {
-        price: "CoinGecko /coins/bitcoin/market_chart",
+        price: priceSource,
         realizedCap: onchainAvailable ? "CoinMetrics community CapRealUSD" : "synthetic fallback",
         supply: onchainAvailable ? "CoinMetrics community SplyCur" : "synthetic fallback",
         mvrv: onchainAvailable ? "derived: marketCap / realisedCap" : "synthetic",
