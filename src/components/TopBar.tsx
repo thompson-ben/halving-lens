@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { SOURCE, TODAY, TODAY_DAY_IN_CYCLE, DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
 import { compositeCycleIndex } from "@/lib/metrics";
 import { fmtUsd } from "@/lib/format";
+import { MobileNav } from "./MobileNav";
 
 const ZONE_DOT: Record<string, string> = {
   bottom: "bg-signal-blue",
@@ -18,7 +19,9 @@ export function TopBar() {
 
   return (
     <header className="h-[72px] border-b border-white/[0.04] bg-ink-950/70 backdrop-blur-xl sticky top-0 z-10">
-      <div className="h-full px-8 lg:px-14 flex items-center gap-6">
+      <div className="h-full px-4 md:px-8 lg:px-14 flex items-center gap-3 md:gap-6">
+        <MobileNav />
+
         <div className="relative flex-1 max-w-md">
           <Search
             size={14}
