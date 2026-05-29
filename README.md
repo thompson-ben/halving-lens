@@ -109,7 +109,7 @@ npm run sync:reset   # restore the synthetic default
 
 | Metric                     | Source                                    | Free?  |
 | -------------------------- | ----------------------------------------- | ------ |
-| Price + market cap         | CoinMetrics community (CoinGecko fallback) | yes    |
+| Price + market cap         | CoinMetrics → CryptoCompare → CoinGecko   | yes    |
 | Realised cap + supply      | CoinMetrics community API                 | yes    |
 | Current block + hash rate  | mempool.space                             | yes    |
 | Mayer Multiple             | derived (price / 200d SMA)                | —      |

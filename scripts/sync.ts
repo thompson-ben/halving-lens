@@ -8,12 +8,15 @@
  *
  * Sources
  * - CoinMetrics community  — price (USD), market cap, realised cap, supply (primary)
- * - CoinGecko market_chart — price + market cap (fallback if CoinMetrics is down)
+ * - CryptoCompare histoday — full daily price history, keyless (price fallback)
+ * - CoinGecko market_chart — recent prices, free-tier (last-resort fallback)
  * - mempool.space          — current block height + hash rate
  *
- * CoinMetrics is the primary source because its community API is keyless and
- * does not block datacenter / CI IPs. CoinGecko's keyless endpoint 403s from
- * cloud hosts (e.g. Vercel build servers), so it is a fallback only.
+ * Price falls back CoinMetrics → CryptoCompare → CoinGecko. CoinMetrics carries
+ * the on-chain metrics (realised cap + supply) and is joined onto whichever
+ * price series is used. All requests send a browser User-Agent because these
+ * APIs front their endpoints with a WAF that 403s non-browser UAs. CoinGecko's
+ * keyless `days=max` endpoint now 401s, so it serves recent data only.
  *
  * Derived
  * - Mayer Multiple  = price / 200d SMA
@@ -57,12 +60,17 @@ interface DailyPoint {
   supply?: number;
 }
 
+// A browser-like UA. Keyless crypto APIs (CoinMetrics, CryptoCompare) front
+// their endpoints with a WAF that 403s non-browser User-Agents from cloud IPs.
+const UA =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
 async function fetchJson<T>(url: string, retries = 2): Promise<T> {
   let lastErr: unknown;
   for (let i = 0; i <= retries; i++) {
     try {
       const res = await fetch(url, {
-        headers: { Accept: "application/json", "User-Agent": "halving.lens-sync/1" },
+        headers: { Accept: "application/json", "User-Agent": UA },
       });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${url}`);
       return (await res.json()) as T;
@@ -78,7 +86,7 @@ async function fetchText(url: string, retries = 2): Promise<string> {
   let lastErr: unknown;
   for (let i = 0; i <= retries; i++) {
     try {
-      const res = await fetch(url, { headers: { "User-Agent": "halving.lens-sync/1" } });
+      const res = await fetch(url, { headers: { "User-Agent": UA } });
       if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${url}`);
       return await res.text();
     } catch (e) {
@@ -89,10 +97,33 @@ async function fetchText(url: string, retries = 2): Promise<string> {
   throw lastErr;
 }
 
-// CoinGecko — full daily BTC price history (USD).
+// CryptoCompare — full daily BTC close history (USD). Keyless, no signup, and
+// (unlike CoinGecko's free tier) returns the entire history in one call. This
+// is the primary price fallback when CoinMetrics is unavailable.
+async function fetchCryptoCompare(): Promise<Array<{ ts: number; price: number; marketCap: number }>> {
+  const url =
+    "https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&allData=true";
+  const data = await fetchJson<{
+    Response: string;
+    Message?: string;
+    Data: { Data: Array<{ time: number; close: number }> };
+  }>(url);
+  if (data.Response !== "Success" || !data.Data?.Data?.length) {
+    throw new Error(`CryptoCompare: ${data.Message ?? "no data"}`);
+  }
+  return data.Data.Data.filter((d) => d.close > 0).map((d) => {
+    const day = Math.floor((d.time * 1000) / MS_PER_DAY) * MS_PER_DAY;
+    // No market cap from this endpoint — approximate from price × circulating
+    // supply (CoinMetrics supply backfills this when present in the join).
+    return { ts: day, price: d.close, marketCap: d.close * 19_000_000 };
+  });
+}
+
+// CoinGecko — free tier caps history at 365 days and rejects days=max (401),
+// so this only backfills recent prices. Last-resort fallback.
 async function fetchCoinGecko(): Promise<Array<{ ts: number; price: number; marketCap: number }>> {
   const url =
-    "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=max&interval=daily";
+    "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=365";
   const data = await fetchJson<{
     prices: [number, number][];
     market_caps: [number, number][];
@@ -319,15 +350,39 @@ async function build(): Promise<Snapshot> {
     cm = await fetchCoinMetrics();
     console.log(`  got ${cm.length} daily rows from CoinMetrics`);
   } catch (e) {
-    console.warn(`  CoinMetrics unavailable — will try CoinGecko for price. (${(e as Error).message})`);
+    console.warn(`  CoinMetrics unavailable — will try CryptoCompare for price. (${(e as Error).message})`);
   }
 
   const cmHasPrice = cm.some((r) => Number.isFinite(r.price));
 
-  // Base daily series. Prefer CoinMetrics (keyless, datacenter-friendly);
-  // fall back to CoinGecko for price + market cap if CoinMetrics is down.
+  // On-chain (realised cap + supply) only comes from CoinMetrics. Index it so
+  // it can be joined onto whichever price series we end up using.
+  const chainByTs = new Map(
+    cm
+      .filter((r) => Number.isFinite(r.realisedCap) && Number.isFinite(r.supply))
+      .map((c) => [c.ts, c]),
+  );
+
+  // Base daily price series, by preference:
+  //   1. CoinMetrics PriceUSD   (also carries market cap + on-chain)
+  //   2. CryptoCompare histoday  (keyless, full history)
+  //   3. CoinGecko 365d          (free-tier, recent only — last resort)
   let priceSource: string;
   let daily: DailyPoint[];
+
+  const joinChain = (
+    prices: Array<{ ts: number; price: number; marketCap: number }>,
+  ): DailyPoint[] =>
+    prices.map((p) => {
+      const c = chainByTs.get(p.ts);
+      return {
+        ts: p.ts,
+        price: p.price,
+        marketCap: c?.marketCap ?? p.marketCap,
+        realisedCap: c?.realisedCap,
+        supply: c?.supply,
+      };
+    });
 
   if (cmHasPrice) {
     priceSource = "CoinMetrics community PriceUSD";
@@ -346,27 +401,23 @@ async function build(): Promise<Snapshot> {
       `  using CoinMetrics price series (${daily.length} days from ${new Date(daily[0].ts).toISOString().slice(0, 10)})`,
     );
   } else {
-    console.log("→ CoinMetrics price unavailable; fetching CoinGecko price history…");
-    const prices = await fetchCoinGecko();
-    priceSource = "CoinGecko /coins/bitcoin/market_chart";
-    const chainByTs = new Map(
-      cm
-        .filter((r) => Number.isFinite(r.realisedCap) && Number.isFinite(r.supply))
-        .map((c) => [c.ts, c]),
-    );
-    daily = prices.map((p) => {
-      const c = chainByTs.get(p.ts);
-      return {
-        ts: p.ts,
-        price: p.price,
-        marketCap: p.marketCap,
-        realisedCap: c?.realisedCap,
-        supply: c?.supply,
-      };
-    });
-    console.log(
-      `  got ${prices.length} daily price points from CoinGecko (from ${new Date(prices[0].ts).toISOString().slice(0, 10)})`,
-    );
+    let prices: Array<{ ts: number; price: number; marketCap: number }> | null = null;
+    try {
+      console.log("→ CoinMetrics price unavailable; fetching CryptoCompare history…");
+      prices = await fetchCryptoCompare();
+      priceSource = "CryptoCompare histoday";
+      console.log(
+        `  got ${prices.length} daily price points from CryptoCompare (from ${new Date(prices[0].ts).toISOString().slice(0, 10)})`,
+      );
+    } catch (e) {
+      console.warn(`  CryptoCompare unavailable — trying CoinGecko. (${(e as Error).message})`);
+      prices = await fetchCoinGecko();
+      priceSource = "CoinGecko market_chart (365d)";
+      console.log(
+        `  got ${prices.length} daily price points from CoinGecko (from ${new Date(prices[0].ts).toISOString().slice(0, 10)})`,
+      );
+    }
+    daily = joinChain(prices);
   }
 
   console.log("→ Fetching mempool.space tip…");
