@@ -35,6 +35,8 @@ export function TopBar() {
           />
         </div>
 
+        <MobileStatus change24h={change24h} />
+
         <div className="flex items-center gap-2">
           <Pill>
             <Eyebrow>BTC</Eyebrow>
@@ -87,7 +89,9 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SourcePill() {
+// Data-source badge state, shared by the desktop SourcePill and the compact
+// mobile status cluster.
+function sourceBadge() {
   const isLive = SOURCE.mode !== "synthetic";
   const label =
     SOURCE.mode === "synthetic"
@@ -99,6 +103,36 @@ function SourcePill() {
   const title = SOURCE.fetchedAt
     ? `Snapshot fetched ${new Date(SOURCE.fetchedAt).toUTCString()}`
     : "Synthetic data — run npm run sync to fetch live";
+  return { isLive, label, dot, title };
+}
+
+// Compact price + data badge for the mobile top bar, where the full pills are
+// hidden. Mirrors the BTC and Data pills in a space that fits a phone.
+function MobileStatus({ change24h }: { change24h: number }) {
+  const { isLive, label, dot, title } = sourceBadge();
+  return (
+    <div className="flex md:hidden items-center gap-2.5 shrink-0" title={title}>
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">
+          {fmtUsd(TODAY.price)}
+        </span>
+        <span
+          className={`font-mono text-[10.5px] ${change24h >= 0 ? "text-signal-green" : "text-signal-red"} tabular-nums`}
+        >
+          {change24h >= 0 ? "+" : ""}
+          {change24h.toFixed(2)}%
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 pl-2.5 border-l border-white/[0.06]">
+        <span className={`relative w-1.5 h-1.5 rounded-full ${dot} ${isLive ? "live-dot" : ""}`} />
+        <span className="text-[10.5px] text-ink-300">{label}</span>
+      </div>
+    </div>
+  );
+}
+
+function SourcePill() {
+  const { isLive, label, dot, title } = sourceBadge();
   return (
     <div
       title={title}
