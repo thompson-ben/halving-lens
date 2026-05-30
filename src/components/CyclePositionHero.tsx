@@ -52,20 +52,30 @@ export function CyclePositionHero() {
             <span className="text-ink-100">{heat.label}</span>.
           </p>
 
-          {/* Key stats */}
-          <div className="mt-7 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5">
-            <Stat label="BTC price" value={fmtUsd(TODAY.price)} />
-            {change && (
-              <Stat
-                label={`${change.days}d change`}
-                value={fmtPct(change.pct, 1)}
-                tone={change.pct >= 0 ? "green" : "red"}
+          {/* Progress bar — visualises the headline */}
+          <div className="mt-7 max-w-xl">
+            <div className="flex items-center justify-between text-[10.5px] font-mono text-ink-400 mb-2">
+              <span>2024 halving</span>
+              <span>{nextHalving} halving</span>
+            </div>
+            <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent/60 to-accent"
+                style={{ width: `${progressPct}%` }}
               />
-            )}
-            <Stat label="Days since halving" value={`${TODAY_DAY_IN_CYCLE}`} />
-            <Stat label="Days to next halving" value={`${DAYS_TO_NEXT_HALVING}`} hint={nextHalving} />
-            <Stat label="Through cycle" value={`${progressPct}%`} />
+            </div>
           </div>
+
+          {/* Stat strip — BTC price leads, halving distances support */}
+          <dl className="mt-7 grid grid-cols-1 sm:grid-cols-3 rounded-xl border border-white/[0.06] bg-white/[0.015] overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06] max-w-xl">
+            <Stat label="BTC price" value={fmtUsd(TODAY.price)} change={change} primary />
+            <Stat label="Days since halving" value={`${TODAY_DAY_IN_CYCLE}`} />
+            <Stat
+              label="Days to next halving"
+              value={`${DAYS_TO_NEXT_HALVING}`}
+              hint={nextHalving}
+            />
+          </dl>
         </div>
 
         {/* Right: the clock visual */}
@@ -81,23 +91,36 @@ export function CyclePositionHero() {
 function Stat({
   label,
   value,
-  tone,
   hint,
+  change,
+  primary,
 }: {
   label: string;
   value: string;
-  tone?: "green" | "red";
   hint?: string;
+  change?: { pct: number; days: number } | null;
+  primary?: boolean;
 }) {
-  const Icon = tone === "green" ? ArrowUpRight : tone === "red" ? ArrowDownRight : null;
-  const color =
-    tone === "green" ? "text-signal-green" : tone === "red" ? "text-signal-red" : "text-ink-100";
   return (
-    <div>
+    <div className="px-5 py-4">
       <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
-      <div className={`mt-1.5 flex items-baseline gap-1 font-mono text-[16px] tabular-nums ${color}`}>
-        {value}
-        {Icon && <Icon size={13} className={color} />}
+      <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
+        <span
+          className={`font-mono tabular-nums text-ink-50 ${primary ? "text-[22px]" : "text-[16px]"}`}
+        >
+          {value}
+        </span>
+        {change && (
+          <span
+            className={`inline-flex items-center gap-0.5 font-mono text-[12px] tabular-nums ${
+              change.pct >= 0 ? "text-signal-green" : "text-signal-red"
+            }`}
+          >
+            {change.pct >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+            {fmtPct(change.pct, 1)}
+            <span className="text-ink-400 ml-0.5">{change.days}d</span>
+          </span>
+        )}
       </div>
       {hint && <div className="text-[10.5px] text-ink-400 mt-0.5">{hint}</div>}
     </div>
