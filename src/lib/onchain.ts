@@ -234,10 +234,10 @@ export function adoptionRead(): AdoptionRead | null {
   const projOneYear = yoyPct != null ? current * (1 + yoyPct / 100) : null;
 
   const growthPhrase =
-    yoyPct != null ? ` Over the past year it's ${yoyPct >= 0 ? "grown" : "contracted"} ${Math.abs(yoyPct).toFixed(1)}%.` : "";
+    yoyPct != null ? ` Over the past year it's ${yoyPct >= 0 ? "up" : "down"} ${Math.abs(yoyPct).toFixed(1)}%.` : "";
   const summary =
-    `Bitcoin's address base has expanded across every cycle — adoption has historically kept growing through both bull and bear markets, largely decoupled from short-term price.${growthPhrase} ` +
-    `Projections assume the recent pace holds, which it may not — they're a trend line, not a forecast.`;
+    `Active addresses count the wallets transacting each day — a read on real network usage. It tends to climb over multi-year horizons as adoption grows, though it ebbs and flows with each cycle rather than rising in a straight line.${growthPhrase} ` +
+    `Any projection just extends the recent pace, which it may not hold — a trend line, not a forecast.`;
 
   return { current, yoyPct, cagr, projOneYear, summary };
 }

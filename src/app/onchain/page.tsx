@@ -209,15 +209,15 @@ function AdoptionSection({ adoption }: { adoption: NonNullable<ReturnType<typeof
     <section className="space-y-5">
       <div>
         <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100">
-          Adoption keeps compounding
+          Network adoption — active addresses
         </h2>
         <p className="text-[12.5px] text-ink-400 mt-1.5 max-w-2xl">
-          The address base vs price — adoption has historically grown through bull and bear markets
-          alike.
+          Daily active addresses vs price — real network usage tends to climb across cycles, with
+          plenty of swings along the way.
         </p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-        <Fact label="Addresses" value={fmtNum(adoption.current, { compact: true })} />
+        <Fact label="Active addresses" value={fmtNum(adoption.current, { compact: true })} />
         <Fact
           label="Growth · 1yr"
           value={adoption.yoyPct != null ? `${adoption.yoyPct >= 0 ? "+" : ""}${adoption.yoyPct.toFixed(1)}%` : "—"}

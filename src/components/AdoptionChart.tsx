@@ -35,7 +35,6 @@ export function AdoptionChart({ data, height = 340 }: { data: AdoptionPoint[]; h
           />
           <YAxis
             yAxisId="addr"
-            scale="log"
             domain={["auto", "auto"]}
             tickFormatter={(v) => fmtNum(v, { compact: true })}
             stroke="#384353"

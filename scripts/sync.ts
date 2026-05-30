@@ -295,6 +295,7 @@ const ONCHAIN_METRICS: Array<{ key: string; slugs: string[]; sane: [number, numb
   { key: "realizedPrice", slugs: ["realized-price"], sane: [1, 1e7] },
   { key: "reserveRisk", slugs: ["reserve-risk"], sane: [0, 0.2] },
   { key: "lthSupply", slugs: ["long-term-hodler-supply-btc"], sane: [5e6, 2.05e7] },
+  { key: "addresses", slugs: ["active-addresses"], sane: [1e4, 1e8] },
 ];
 
 const ONCHAIN_DATE_KEYS = ["d", "date", "theDay", "day", "unixTs", "timestamp", "time", "t"];
