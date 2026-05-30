@@ -513,6 +513,23 @@ async function build(): Promise<Snapshot> {
 
   const todayDayInCycle = daysBetween(HALVINGS[5], Date.now());
 
+  // Freshest spot price + true 24h/7d change from the daily close series (the
+  // per-cycle samples are weekly and can lag a few days).
+  const spot = (() => {
+    const n = daily.length;
+    if (n < 2) return null;
+    const last = daily[n - 1];
+    const d1 = daily[n - 2];
+    const d7 = daily[n - 8];
+    if (!(last.price > 0) || !(d1.price > 0)) return null;
+    return {
+      price: last.price,
+      ts: last.ts,
+      change24h: (last.price / d1.price - 1) * 100,
+      change7d: d7 && d7.price > 0 ? (last.price / d7.price - 1) * 100 : undefined,
+    };
+  })();
+
   // Realised cap (paid metric) drives MVRV / NUPL / Realised Price. Supply is
   // free and, when present, is real even without realised cap.
   const realisedCapAvailable = daily.some(
@@ -544,6 +561,7 @@ async function build(): Promise<Snapshot> {
     chain: tip
       ? { blockHeight: tip.height, hashrate: tip.hashrate, fetchedAt: new Date().toISOString() }
       : null,
+    spot,
   };
 }
 

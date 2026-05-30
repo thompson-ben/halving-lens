@@ -120,6 +120,7 @@ export interface Snapshot {
   todayDayInCycle: number; // today - cycle 5 halving, in days
   sentiment?: SentimentData | null; // Fear & Greed index; absent until synced
   chain?: ChainTip | null; // live block height; absent until synced
+  spot?: SpotPrice | null; // freshest daily price + changes; absent until synced
 }
 
 // Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.
@@ -140,4 +141,14 @@ export interface ChainTip {
   blockHeight: number;
   hashrate?: number; // H/s
   fetchedAt: string; // ISO
+}
+
+// Freshest daily spot price + true changes, from the daily close series. The
+// per-cycle samples are weekly (can be a few days stale), so the headline price
+// reads from here when present.
+export interface SpotPrice {
+  price: number;
+  ts: number; // unix ms of the latest daily close
+  change24h: number; // %
+  change7d?: number; // %
 }

@@ -10,6 +10,7 @@ import {
   CYCLES,
   CYCLE_PROGRESS_PCT,
   SOURCE,
+  SPOT,
   TODAY,
   TODAY_DAY_IN_CYCLE,
   type Cycle,
@@ -161,6 +162,14 @@ export function recentChange(): { pct: number; days: number } | null {
   const prev = s[s.length - 2];
   const days = Math.max(1, Math.round(last.day - prev.day));
   return { pct: (last.price / prev.price - 1) * 100, days };
+}
+
+// Headline price + change for the hero/top bar. Prefers the fresh daily spot
+// (real 24h change); falls back to the most recent weekly sample change.
+export function headlineSpot(): { price: number; pct: number | null; label: string } {
+  if (SPOT) return { price: SPOT.price, pct: SPOT.change24h, label: "24h" };
+  const rc = recentChange();
+  return { price: TODAY.price, pct: rc?.pct ?? null, label: rc ? `${rc.days}d` : "" };
 }
 
 // ── Today vs prior cycles (real price) ──────────────────────────────────────

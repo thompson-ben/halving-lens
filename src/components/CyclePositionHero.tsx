@@ -6,10 +6,9 @@ import {
   CYCLE_PROGRESS_PCT,
   DAYS_TO_NEXT_HALVING,
   NEXT_HALVING_DATE,
-  TODAY,
   TODAY_DAY_IN_CYCLE,
 } from "@/lib/btcData";
-import { cyclePhase, recentChange, relativeHeat } from "@/lib/cycleIntel";
+import { cyclePhase, headlineSpot, relativeHeat } from "@/lib/cycleIntel";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 const PHASE_TONE: Record<string, { text: string; dot: string; ring: string }> = {
@@ -23,7 +22,7 @@ const PHASE_TONE: Record<string, { text: string; dot: string; ring: string }> = 
 export function CyclePositionHero() {
   const phase = cyclePhase();
   const tone = PHASE_TONE[phase.tone];
-  const change = recentChange();
+  const spot = headlineSpot();
   const heat = relativeHeat();
   const progressPct = Math.round(CYCLE_PROGRESS_PCT * 100);
   const nextHalving = format(new Date(NEXT_HALVING_DATE), "MMM yyyy");
@@ -69,7 +68,12 @@ export function CyclePositionHero() {
 
           {/* Stat strip — BTC price leads, halving distances support */}
           <dl className="mt-7 grid grid-cols-1 sm:grid-cols-3 rounded-xl border border-white/[0.06] bg-white/[0.015] overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06] max-w-xl">
-            <Stat label="BTC price" value={fmtUsd(TODAY.price)} change={change} primary />
+            <Stat
+              label="BTC price"
+              value={fmtUsd(spot.price)}
+              change={spot.pct != null ? { pct: spot.pct, label: spot.label } : null}
+              primary
+            />
             <Stat label="Days since halving" value={`${TODAY_DAY_IN_CYCLE}`} />
             <Stat
               label="Days to next halving"
@@ -101,7 +105,7 @@ function Stat({
   label: string;
   value: string;
   hint?: string;
-  change?: { pct: number; days: number } | null;
+  change?: { pct: number; label: string } | null;
   primary?: boolean;
 }) {
   return (
@@ -121,7 +125,7 @@ function Stat({
           >
             {change.pct >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
             {fmtPct(change.pct, 1)}
-            <span className="text-ink-400 ml-0.5">{change.days}d</span>
+            <span className="text-ink-400 ml-0.5">{change.label}</span>
           </span>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
-import { SOURCE, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
-import { cyclePhase, recentChange } from "@/lib/cycleIntel";
+import { SOURCE, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
+import { cyclePhase, headlineSpot } from "@/lib/cycleIntel";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { HalvingCountdownMini } from "./HalvingCountdownMini";
 import { lastUpdatedShort } from "./LastUpdated";
@@ -16,7 +16,7 @@ const PHASE_DOT: Record<string, string> = {
 
 export function TopBar() {
   const phase = cyclePhase();
-  const change = recentChange();
+  const spot = headlineSpot();
 
   return (
     <header className="h-[72px] border-b border-white/[0.04] bg-ink-950/70 backdrop-blur-xl sticky top-0 z-10">
@@ -36,22 +36,22 @@ export function TopBar() {
           />
         </div>
 
-        <MobileStatus change={change} />
+        <MobileStatus spot={spot} />
 
         <div className="flex items-center gap-2">
           <Pill>
             <Eyebrow>BTC</Eyebrow>
             <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">
-              {fmtUsd(TODAY.price)}
+              {fmtUsd(spot.price)}
             </span>
-            {change && (
+            {spot.pct != null && (
               <span
-                className={`font-mono text-[11px] ${change.pct >= 0 ? "text-signal-green" : "text-signal-red"} tabular-nums`}
+                className={`font-mono text-[11px] ${spot.pct >= 0 ? "text-signal-green" : "text-signal-red"} tabular-nums`}
               >
-                {fmtPct(change.pct, 1)}
+                {fmtPct(spot.pct, 1)}
               </span>
             )}
-            {change && <span className="text-[10px] text-ink-400">{change.days}d</span>}
+            {spot.pct != null && <span className="text-[10px] text-ink-400">{spot.label}</span>}
           </Pill>
 
           <Pill>
@@ -109,22 +109,22 @@ function sourceBadge() {
 
 // Compact price + data badge for the mobile top bar, where the full pills are
 // hidden. Mirrors the BTC and Data pills in a space that fits a phone.
-function MobileStatus({ change }: { change: { pct: number; days: number } | null }) {
+function MobileStatus({ spot }: { spot: { price: number; pct: number | null; label: string } }) {
   const { isLive, label, dot, title } = sourceBadge();
   return (
     <div className="flex md:hidden items-center gap-2.5 shrink-0" title={title}>
       <div className="flex items-baseline gap-1.5">
         <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">
-          {fmtUsd(TODAY.price)}
+          {fmtUsd(spot.price)}
         </span>
-        {change && (
+        {spot.pct != null && (
           <span
-            className={`font-mono text-[10.5px] ${change.pct >= 0 ? "text-signal-green" : "text-signal-red"} tabular-nums`}
+            className={`font-mono text-[10.5px] ${spot.pct >= 0 ? "text-signal-green" : "text-signal-red"} tabular-nums`}
           >
-            {fmtPct(change.pct, 1)}
+            {fmtPct(spot.pct, 1)}
           </span>
         )}
-        {change && <span className="text-[9.5px] text-ink-400">{change.days}d</span>}
+        {spot.pct != null && <span className="text-[9.5px] text-ink-400">{spot.label}</span>}
       </div>
       <div className="flex items-center gap-1.5 pl-2.5 border-l border-white/[0.06]">
         <span className={`relative w-1.5 h-1.5 rounded-full ${dot} ${isLive ? "live-dot" : ""}`} />
