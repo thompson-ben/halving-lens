@@ -1,35 +1,43 @@
-// ETF flow data layer. The user-facing product never shows fabricated ETF
-// numbers — until a live source is connected, `ETF.connected` is false and the
-// ETF page renders an honest "connecting live data" state.
+// ETF flow accessor. Reads live US spot BTC ETF flows from the snapshot (fed by
+// SoSoValue during sync once SOSOVALUE_API_KEY is set). Until then `connected`
+// is false and the ETF page shows its honest "connecting" state — never
+// fabricated numbers.
 //
-// FOLLOW-UP TASK (wiring live data):
-//   1. Register a free SoSoValue API key and add it as a secret/env var
-//      (e.g. SOSOVALUE_API_KEY) in GitHub Actions + Vercel.
-//   2. In scripts/sync.ts, fetch the US spot BTC ETF historical inflow series
-//      (header `x-soso-api-key`, group `us-btc-spot`) and write it onto the
-//      snapshot as `etf: { points, ... }`.
-//   3. Populate ETF below from the snapshot and set connected = true.
-// Fallback source: Dune Analytics API (cached results of a maintained public
-// BTC-ETF query). Do NOT scrape Farside (datacenter-blocked + ToS).
+// WIRING (sync side): scripts/sync.ts fetches SoSoValue's ETF historical
+// inflow endpoint with header `x-soso-api-key` for asset `us-btc-spot`,
+// normalises each day to { date, netFlow, cumulative } (USD) and writes it onto
+// the snapshot as `etf`.
 
-export interface EtfFlowPoint {
-  /** ISO date */
-  date: string;
-  /** Net flow in USD for the day (inflows minus outflows). */
-  netFlow: number;
-  /** Cumulative net flow in USD since spot ETF launch. */
-  cumulative: number;
-}
+import { ETF_FLOWS } from "./btcData";
+import type { EtfFlowPoint } from "./data/types";
 
-export interface EtfData {
-  connected: boolean;
-  /** Planned source provider, surfaced for transparency. */
-  plannedSource: string;
-  points: EtfFlowPoint[];
-}
+export type { EtfFlowPoint };
 
-export const ETF: EtfData = {
-  connected: false,
-  plannedSource: "SoSoValue (US spot BTC ETF flows)",
-  points: [],
+export const ETF = {
+  connected: !!ETF_FLOWS && ETF_FLOWS.points.length > 0,
+  plannedSource: "SoSoValue · US spot BTC ETF flows",
+  source: ETF_FLOWS?.source ?? null,
+  fetchedAt: ETF_FLOWS?.fetchedAt ?? null,
+  points: (ETF_FLOWS?.points ?? []) as EtfFlowPoint[],
 };
+
+export interface EtfStats {
+  latest: EtfFlowPoint | null;
+  cumulative: number;
+  biggestInflow: EtfFlowPoint | null;
+  biggestOutflow: EtfFlowPoint | null;
+  /** Net flow summed over the last 7 data points. */
+  trailingWeek: number;
+}
+
+export function etfStats(): EtfStats {
+  const pts = ETF.points;
+  if (!pts.length) {
+    return { latest: null, cumulative: 0, biggestInflow: null, biggestOutflow: null, trailingWeek: 0 };
+  }
+  const latest = pts[pts.length - 1];
+  const biggestInflow = pts.reduce((a, b) => (b.netFlow > a.netFlow ? b : a));
+  const biggestOutflow = pts.reduce((a, b) => (b.netFlow < a.netFlow ? b : a));
+  const trailingWeek = pts.slice(-7).reduce((sum, p) => sum + p.netFlow, 0);
+  return { latest, cumulative: latest.cumulative, biggestInflow, biggestOutflow, trailingWeek };
+}

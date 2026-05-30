@@ -122,6 +122,7 @@ export interface Snapshot {
   chain?: ChainTip | null; // live block height; absent until synced
   spot?: SpotPrice | null; // freshest daily price + changes; absent until synced
   priceHistory?: PriceHistoryPoint[] | null; // recent daily closes; absent until synced
+  etf?: EtfData | null; // US spot BTC ETF flows; absent until a SoSoValue key is wired
 }
 
 // Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.
@@ -159,4 +160,18 @@ export interface SpotPrice {
 export interface PriceHistoryPoint {
   ts: number; // unix ms (UTC midnight)
   price: number;
+}
+
+// US spot Bitcoin ETF daily flows (SoSoValue). netFlow is the day's net
+// inflow/outflow in USD; cumulative is the running total since launch.
+export interface EtfFlowPoint {
+  date: string; // ISO date
+  netFlow: number; // USD, +inflow / -outflow
+  cumulative: number; // USD running total
+}
+
+export interface EtfData {
+  source: string;
+  fetchedAt: string; // ISO
+  points: EtfFlowPoint[]; // ascending by date
 }
