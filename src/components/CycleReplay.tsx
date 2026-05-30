@@ -2,11 +2,12 @@
 
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { CYCLES, type Cycle, type CycleSample } from "@/lib/btcData";
+import { CYCLES, TODAY_DAY_IN_CYCLE, type Cycle, type CycleSample } from "@/lib/btcData";
 import { METRICS, zoneFor } from "@/lib/metrics";
 import { metricStatus } from "@/lib/cycleIntel";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { MetricGauge } from "./MetricGauge";
+import { ReplayChart } from "./ReplayChart";
 
 // Only metrics we can stand behind as real — never replay synthetic series.
 const LIVE_METRICS = METRICS.filter(
@@ -23,7 +24,7 @@ function sampleAtDay(cycle: Cycle, day: number): CycleSample {
 }
 
 export function CycleReplay() {
-  const [day, setDay] = useState(770);
+  const [day, setDay] = useState(Math.min(TODAY_DAY_IN_CYCLE, MAX_DAY));
   const [playing, setPlaying] = useState(false);
 
   // Animate the slider when playing.
@@ -118,6 +119,15 @@ export function CycleReplay() {
             <span>YEAR 3</span>
             <span>NEXT HALVING</span>
           </div>
+        </div>
+
+        {/* Price overlay with a playhead that tracks the scrub */}
+        <div className="mt-7 pt-6 border-t border-white/[0.05]">
+          <div className="text-[11.5px] text-ink-400 mb-3">
+            Every cycle&apos;s price as a multiple of its halving price — the dot marks where each
+            cycle sat at day {day}.
+          </div>
+          <ReplayChart day={day} height={300} />
         </div>
         <div className="watermark">halving.lens · replay</div>
       </div>

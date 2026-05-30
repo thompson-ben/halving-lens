@@ -2,6 +2,7 @@ import {
   Activity,
   BookOpen,
   Gauge,
+  Hourglass,
   Layers,
   LineChart,
   Pickaxe,
@@ -29,6 +30,8 @@ export const PRIMARY: readonly NavLink[] = [
 ];
 
 export const SECONDARY: readonly NavLink[] = [
+  { href: "/price", label: "Bitcoin price", icon: LineChart },
+  { href: "/halving", label: "Next halving", icon: Hourglass },
   { href: "/etf", label: "ETF flow", icon: Wallet },
   { href: "/hodl-waves", label: "HODL waves", icon: Waves },
   { href: "/onchain", label: "On-chain", icon: LineChart },

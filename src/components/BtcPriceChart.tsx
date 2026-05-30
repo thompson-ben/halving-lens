@@ -15,17 +15,11 @@ import { PRICE_RANGES, priceSeries, type PricePoint, type PriceRangeKey } from "
 import { fmtUsd } from "@/lib/format";
 import { SegmentedControl } from "./SegmentedControl";
 
-interface LiveState {
-  data: PricePoint[] | null;
-  loading: boolean;
-  error: boolean;
-}
-
-// Live intraday (hourly) series for the 1D view — keyless CryptoCompare, so the
-// last 24h is genuinely current rather than a day-stale snapshot.
-async function fetchIntraday(): Promise<PricePoint[]> {
+// Live intraday (hourly) series for the 1D/1W views — keyless CryptoCompare, so
+// the recent window is genuinely current rather than a day-stale snapshot.
+async function fetchIntraday(hours: number): Promise<PricePoint[]> {
   const res = await fetch(
-    "https://min-api.cryptocompare.com/data/v2/histohour?fsym=BTC&tsym=USD&limit=24",
+    `https://min-api.cryptocompare.com/data/v2/histohour?fsym=BTC&tsym=USD&limit=${hours}`,
   );
   const json = (await res.json()) as { Data?: { Data?: Array<{ time: number; close: number }> } };
   return (json.Data?.Data ?? [])
@@ -33,33 +27,51 @@ async function fetchIntraday(): Promise<PricePoint[]> {
     .map((d) => ({ ts: d.time * 1000, price: d.close }));
 }
 
+const INTRADAY_RANGES: Record<string, number> = { "1D": 24, "1W": 168 };
+
 export function BtcPriceChart({ height = 380 }: { height?: number }) {
   const [range, setRange] = useState<PriceRangeKey>("1Y");
-  const [live, setLive] = useState<LiveState>({ data: null, loading: false, error: false });
+  const [cache, setCache] = useState<Record<string, PricePoint[]>>({});
+  const [status, setStatus] = useState<{ loadingKey: string | null; errorKey: string | null }>({
+    loadingKey: null,
+    errorKey: null,
+  });
+
+  const intradayHours = INTRADAY_RANGES[range];
 
   useEffect(() => {
-    if (range !== "1D" || live.data || live.loading) return;
+    if (!intradayHours || cache[range] || status.loadingKey === range) return;
     let cancelled = false;
-    setLive((s) => ({ ...s, loading: true, error: false }));
-    fetchIntraday()
+    setStatus({ loadingKey: range, errorKey: null });
+    fetchIntraday(intradayHours)
       .then((pts) => {
         if (cancelled) return;
-        if (pts.length) setLive({ data: pts, loading: false, error: false });
-        else setLive({ data: null, loading: false, error: true });
+        if (pts.length) {
+          setCache((c) => ({ ...c, [range]: pts }));
+          setStatus({ loadingKey: null, errorKey: null });
+        } else {
+          setStatus({ loadingKey: null, errorKey: range });
+        }
       })
       .catch(() => {
-        if (!cancelled) setLive({ data: null, loading: false, error: true });
+        if (!cancelled) setStatus({ loadingKey: null, errorKey: range });
       });
     return () => {
       cancelled = true;
     };
-  }, [range, live.data, live.loading]);
+  }, [range, intradayHours, cache, status.loadingKey]);
+
+  const liveData = cache[range];
+  // 1D needs the live fetch; 1W falls back to the daily snapshot until hourly loads.
+  const data = useMemo(() => {
+    if (range === "1D") return liveData ?? [];
+    if (range === "1W") return liveData ?? priceSeries("1W");
+    return priceSeries(range);
+  }, [range, liveData]);
 
   const isIntraday = range === "1D";
-  const data = useMemo(
-    () => (isIntraday ? (live.data ?? []) : priceSeries(range)),
-    [range, isIntraday, live.data],
-  );
+  const loading = range === "1D" && status.loadingKey === "1D" && !liveData;
+  const error = range === "1D" && status.errorKey === "1D";
 
   const first = data[0]?.price ?? 0;
   const last = data[data.length - 1]?.price ?? 0;
@@ -82,7 +94,7 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
                 {changePct.toFixed(1)}%
               </span>{" "}
               over {rangeWord}
-              {isIntraday && <span className="text-ink-500"> · live</span>}
+              {liveData && <span className="text-ink-500"> · live</span>}
             </>
           ) : (
             <span className="text-ink-500">&nbsp;</span>
@@ -97,13 +109,13 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
       </div>
 
       <div className="fade-up relative" style={{ width: "100%", height }}>
-        {/* 1D states */}
-        {isIntraday && live.loading && (
+        {/* 1D live states (1W has a daily fallback, so it never blocks) */}
+        {loading && (
           <div className="absolute inset-0 flex items-center justify-center text-[12px] text-ink-400">
             Loading live 24h data…
           </div>
         )}
-        {isIntraday && live.error && (
+        {error && (
           <div className="absolute inset-0 flex items-center justify-center text-center px-6">
             <span className="text-[12.5px] text-ink-400 max-w-xs leading-relaxed">
               Couldn&apos;t load live 24-hour data right now. Try another range, or check back
@@ -112,7 +124,7 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
           </div>
         )}
 
-        {(!isIntraday || (live.data && data.length > 1)) && (
+        {data.length > 1 && (
           <ResponsiveContainer>
             <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 8, left: 6 }}>
               <defs>
