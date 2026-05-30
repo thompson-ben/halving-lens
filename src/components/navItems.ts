@@ -33,13 +33,13 @@ export const PRIMARY: readonly NavLink[] = [
 // Real, data-backed extra pages.
 export const EXPLORE: readonly NavLink[] = [
   { href: "/price", label: "Bitcoin price", icon: LineChart },
+  { href: "/etf", label: "ETF flow", icon: Wallet },
   { href: "/halving", label: "Next halving", icon: Hourglass },
   { href: "/miners", label: "Miners", icon: Pickaxe },
 ];
 
 // Honest placeholders — switch on once a live source is connected.
 export const SOON: readonly NavLink[] = [
-  { href: "/etf", label: "ETF flow", icon: Wallet },
   { href: "/onchain", label: "On-chain", icon: Boxes },
   { href: "/hodl-waves", label: "HODL waves", icon: Waves },
 ];
