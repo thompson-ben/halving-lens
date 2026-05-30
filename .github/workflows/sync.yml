@@ -35,6 +35,9 @@ jobs:
 
       - name: Sync live data
         run: npm run sync
+        env:
+          # Optional — enables US spot BTC ETF flows (SoSoValue) when set.
+          SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
 
       - name: Commit snapshot if changed
         run: |
