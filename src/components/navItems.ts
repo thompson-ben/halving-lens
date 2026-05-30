@@ -1,5 +1,6 @@
 import {
   Activity,
+  BookOpen,
   Gauge,
   Layers,
   LineChart,
@@ -24,6 +25,7 @@ export const PRIMARY: readonly NavLink[] = [
   { href: "/sentiment", label: "Sentiment", icon: Activity },
   { href: "/replay", label: "Cycle replay", icon: Play },
   { href: "/metrics", label: "Metric library", icon: Sparkles },
+  { href: "/learn", label: "Learn", icon: BookOpen },
 ];
 
 export const SECONDARY: readonly NavLink[] = [
