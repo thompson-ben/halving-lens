@@ -1,13 +1,13 @@
 import {
   Activity,
   BookOpen,
+  Boxes,
   Gauge,
   Hourglass,
   Layers,
   LineChart,
   Pickaxe,
   Play,
-  Repeat,
   Sparkles,
   Wallet,
   Waves,
@@ -20,6 +20,7 @@ export interface NavLink {
   icon: LucideIcon;
 }
 
+// Core cycle journeys.
 export const PRIMARY: readonly NavLink[] = [
   { href: "/", label: "Cycle dashboard", icon: Gauge },
   { href: "/cycles", label: "Cycle comparison", icon: Layers },
@@ -29,12 +30,16 @@ export const PRIMARY: readonly NavLink[] = [
   { href: "/learn", label: "Learn", icon: BookOpen },
 ];
 
-export const SECONDARY: readonly NavLink[] = [
+// Real, data-backed extra pages.
+export const EXPLORE: readonly NavLink[] = [
   { href: "/price", label: "Bitcoin price", icon: LineChart },
   { href: "/halving", label: "Next halving", icon: Hourglass },
-  { href: "/etf", label: "ETF flow", icon: Wallet },
-  { href: "/hodl-waves", label: "HODL waves", icon: Waves },
-  { href: "/onchain", label: "On-chain", icon: LineChart },
   { href: "/miners", label: "Miners", icon: Pickaxe },
-  { href: "/derivatives", label: "Derivatives", icon: Repeat },
+];
+
+// Honest placeholders — switch on once a live source is connected.
+export const SOON: readonly NavLink[] = [
+  { href: "/etf", label: "ETF flow", icon: Wallet },
+  { href: "/onchain", label: "On-chain", icon: Boxes },
+  { href: "/hodl-waves", label: "HODL waves", icon: Waves },
 ];

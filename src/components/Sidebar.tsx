@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { type LucideIcon } from "lucide-react";
 import { Logo } from "./Logo";
-import { PRIMARY, SECONDARY } from "./navItems";
+import { PRIMARY, EXPLORE, SOON } from "./navItems";
+import { TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
+import { halvingStats } from "@/lib/halvingStats";
 
 export function Sidebar() {
+  const stats = halvingStats();
   return (
     <aside className="hidden md:flex md:w-60 lg:w-[252px] shrink-0 flex-col border-r border-white/[0.04] bg-ink-925/70 backdrop-blur-xl sticky top-0 h-screen">
       <Link
@@ -27,8 +30,13 @@ export function Sidebar() {
           <NavItem key={item.href} {...item} />
         ))}
 
+        <SectionLabel className="mt-7">Explore</SectionLabel>
+        {EXPLORE.map((item) => (
+          <NavItem key={item.href} {...item} />
+        ))}
+
         <SectionLabel className="mt-7">Coming soon</SectionLabel>
-        {SECONDARY.map((item) => (
+        {SOON.map((item) => (
           <NavItem key={item.href} {...item} muted />
         ))}
       </nav>
@@ -36,10 +44,13 @@ export function Sidebar() {
       <div className="m-3 px-4 py-3.5 rounded-xl border border-white/[0.04] bg-white/[0.015]">
         <div className="flex items-center gap-2 text-[11px] text-accent">
           <span className="relative inline-block w-1.5 h-1.5 rounded-full bg-accent live-dot" />
-          <span className="font-mono tracking-wider">BLOCK 906,412</span>
+          <span className="font-mono tracking-wider">
+            BLOCK {stats.blockHeight.toLocaleString()}
+          </span>
         </div>
         <div className="mt-2 text-[11px] text-ink-350 leading-relaxed">
-          <span className="text-ink-200 font-mono">770</span> days since the 2024 halving
+          <span className="text-ink-200 font-mono">{TODAY_DAY_IN_CYCLE}</span> days since the 2024
+          halving
         </div>
       </div>
     </aside>

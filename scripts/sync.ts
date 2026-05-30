@@ -220,10 +220,14 @@ async function fetchEtfFlows(): Promise<EtfData | null> {
     console.log("  ETF: SOSOVALUE_API_KEY not set — skipping (page stays 'coming soon')");
     return null;
   }
+  // Confirmed base is https://openapi.sosovalue.com/api/v1/ — the exact path is
+  // guessed; the per-candidate logs below reveal which one the key accepts.
+  const body = '{"type":"us-btc-spot"}';
   const candidates: Array<{ url: string; body: string }> = [
-    { url: "https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart", body: '{"type":"us-btc-spot"}' },
-    { url: "https://openapi.sosovalue.com/openapi/v1/etf/historicalInflowChart", body: '{"type":"us-btc-spot"}' },
-    { url: "https://openapi.sosovalue.com/api/v1/etf/historicalInflowChart", body: '{"type":"us-btc-spot"}' },
+    { url: "https://openapi.sosovalue.com/api/v1/etf/historicalInflowChart", body },
+    { url: "https://openapi.sosovalue.com/openapi/v1/etf/historicalInflowChart", body },
+    { url: "https://openapi.sosovalue.com/api/v1/etf/us-btc-spot/historicalInflowChart", body },
+    { url: "https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart", body },
   ];
   for (const c of candidates) {
     try {
@@ -238,7 +242,8 @@ async function fetchEtfFlows(): Promise<EtfData | null> {
         body: c.body,
       });
       if (!res.ok) {
-        console.warn(`  ETF ${c.url} → ${res.status} ${res.statusText}`);
+        const errBody = await res.text().catch(() => "");
+        console.warn(`  [ETF] ${c.url} → ${res.status} ${res.statusText} ${errBody.slice(0, 160)}`);
         continue;
       }
       const json: unknown = await res.json();
@@ -247,7 +252,7 @@ async function fetchEtfFlows(): Promise<EtfData | null> {
         console.warn(`  ETF ${c.url} → response had no recognisable rows`);
         continue;
       }
-      console.log(`  ETF sample row: ${JSON.stringify(rows[0]).slice(0, 240)}`);
+      console.log(`  [ETF] sample row from ${c.url}: ${JSON.stringify(rows[0]).slice(0, 280)}`);
       const norm = rows
         .map((r) => ({ date: etfDate(r), netFlow: etfNetFlow(r) }))
         .filter((p): p is { date: string; netFlow: number } => p.date != null && p.netFlow != null)
@@ -267,7 +272,7 @@ async function fetchEtfFlows(): Promise<EtfData | null> {
       console.log(`  ETF: ${points.length} days, cumulative ≈ $${(finalCum / 1e9).toFixed(1)}B`);
       return { source: "SoSoValue · US spot BTC ETF flows", fetchedAt: new Date().toISOString(), points };
     } catch (e) {
-      console.warn(`  ETF ${c.url} failed: ${(e as Error).message}`);
+      console.warn(`  [ETF] ${c.url} failed: ${(e as Error).message}`);
     }
   }
   return null;
