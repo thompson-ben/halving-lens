@@ -11,6 +11,10 @@
   --hairline-strong: rgba(255, 255, 255, 0.09);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   background-color: var(--shell-bg);
@@ -22,6 +26,36 @@ body {
 
 * {
   border-color: var(--hairline);
+}
+
+/* Branded text selection */
+::selection {
+  background: rgba(94, 234, 212, 0.22);
+  color: #f3f6fa;
+}
+
+/* Consistent keyboard-focus affordance on interactive elements */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(94, 234, 212, 0.5);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Editorial display headings — Fraunces with tight tracking. */
@@ -104,6 +138,20 @@ body {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.04) inset,
     0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Premium hover-lift for clickable cards */
+.card-interactive {
+  transition:
+    transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 16px 44px rgba(0, 0, 0, 0.5);
 }
 
 /* Subtle row hover for tables */

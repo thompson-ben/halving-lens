@@ -13,6 +13,7 @@ import {
 import { format } from "date-fns";
 import { bandFor } from "@/lib/sentiment";
 import type { PricedSentimentPoint } from "@/lib/sentiment";
+import { SegmentedControl } from "./SegmentedControl";
 
 const MS_DAY = 86_400_000;
 
@@ -100,21 +101,12 @@ export function PriceSentimentChart({
   return (
     <div>
       <div className="flex justify-end mb-3">
-        <div className="inline-flex rounded-lg border border-white/[0.07] bg-white/[0.02] p-0.5">
-          {RANGES.map((r) => (
-            <button
-              key={r.key}
-              onClick={() => setRange(r.key)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium tracking-wide transition-colors ${
-                range === r.key
-                  ? "bg-accent/15 text-accent"
-                  : "text-ink-400 hover:text-ink-200"
-              }`}
-            >
-              {r.key}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          aria-label="Chart time range"
+          options={RANGES.map((r) => ({ key: r.key, label: r.key }))}
+          value={range}
+          onChange={setRange}
+        />
       </div>
 
       <div className="fade-up" style={{ width: "100%", height }}>

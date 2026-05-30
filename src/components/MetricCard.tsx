@@ -31,7 +31,7 @@ export function MetricCard({ metric }: { metric: MetricDef }) {
   return (
     <Link
       href={`/metrics/${metric.slug}`}
-      className="card p-6 block group hover:border-accent/25 transition-colors duration-300"
+      className="card card-interactive p-6 block group hover:border-accent/25"
     >
       <div className="flex items-start justify-between gap-3">
         <div>

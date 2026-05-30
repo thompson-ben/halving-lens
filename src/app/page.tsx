@@ -45,7 +45,7 @@ export default function CycleDashboardPage() {
       <section>
         <Link
           href="/replay"
-          className="card-glow p-7 lg:p-10 block hover:border-accent/30 transition-colors duration-300 group relative overflow-hidden"
+          className="card-glow card-interactive p-7 lg:p-10 block hover:border-accent/30 group relative overflow-hidden"
         >
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div className="max-w-2xl">

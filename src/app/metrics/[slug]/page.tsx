@@ -97,31 +97,12 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
         <div className="card p-7 lg:p-8 relative">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="font-display text-[18px] font-medium tracking-tight-2 text-ink-100">
-                Cycle 5 · with zones
-              </h2>
-              <div className="text-[11.5px] text-ink-400 mt-1">
-                Current cycle, full history since the 2024 halving.
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-[11px] text-ink-350">
-              {["7d", "1m", "3m", "1y", "Cycle", "All"].map((p) => (
-                <button
-                  key={p}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    p === "Cycle"
-                      ? "bg-white/[0.06] text-ink-100"
-                      : "hover:text-ink-200 hover:bg-white/[0.02]"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-          <MetricChart metricSlug={metric.slug} height={360} />
+          <MetricChart
+            metricSlug={metric.slug}
+            height={360}
+            title="Cycle 5 · with zones"
+            subtitle="Current cycle since the 2024 halving — use the range buttons to zoom in."
+          />
           <div className="watermark">halving.lens · {metric.short.toLowerCase()}</div>
         </div>
 
