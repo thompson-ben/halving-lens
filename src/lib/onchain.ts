@@ -12,6 +12,16 @@ const MS_DAY = 86_400_000;
 
 export const ONCHAIN_SOURCE = ONCHAIN?.source ?? null;
 export const ONCHAIN_UPDATED = ONCHAIN?.fetchedAt ?? null;
+export const ONCHAIN_ANY = !!ONCHAIN && Object.keys(ONCHAIN?.series ?? {}).length > 0;
+
+export function series(key: string): OnchainPoint[] {
+  return ONCHAIN?.series?.[key] ?? [];
+}
+
+export function currentValue(key: string): number | null {
+  const s = series(key);
+  return s.length ? s[s.length - 1].value : null;
+}
 
 export function lthSeries(): OnchainPoint[] {
   return ONCHAIN?.series?.lthSupply ?? [];
@@ -147,4 +157,75 @@ export function lthRead(): LthRead | null {
     `Historically this cohort has accumulated through bear-market lows and distributed into cycle tops, selling to new buyers as price runs hot. ` +
     `It's a behavioural pattern from a few cycles, not a forecast.`;
   return { current, pct90, trend, summary };
+}
+
+// ── Adoption (address growth) ───────────────────────────────────────────────
+
+export function addressSeries(): OnchainPoint[] {
+  return ONCHAIN?.series?.addresses ?? [];
+}
+
+export const ADOPTION_AVAILABLE = addressSeries().length > 0;
+
+function nearestValue(pts: OnchainPoint[], ts: number): number | null {
+  if (!pts.length) return null;
+  let best = pts[0];
+  let bestDiff = Math.abs(new Date(best.date).getTime() - ts);
+  for (const p of pts) {
+    const diff = Math.abs(new Date(p.date).getTime() - ts);
+    if (diff < bestDiff) {
+      best = p;
+      bestDiff = diff;
+    }
+  }
+  return best.value;
+}
+
+export interface AdoptionPoint {
+  ts: number;
+  addr: number;
+  price: number;
+}
+
+export function adoptionVsPrice(): AdoptionPoint[] {
+  const out: AdoptionPoint[] = [];
+  for (const p of addressSeries()) {
+    const ts = new Date(p.date).getTime();
+    const price = priceAt(ts);
+    if (price != null && price > 0 && Number.isFinite(p.value)) out.push({ ts, addr: p.value, price });
+  }
+  return out;
+}
+
+export interface AdoptionRead {
+  current: number;
+  yoyPct: number | null;
+  cagr: number | null; // annualised growth over the full available window
+  projOneYear: number | null; // naive projection at the current annual pace
+  summary: string;
+}
+
+export function adoptionRead(): AdoptionRead | null {
+  const s = addressSeries();
+  if (s.length < 30) return null;
+  const last = s[s.length - 1];
+  const current = last.value;
+  const endTs = new Date(last.date).getTime();
+
+  const yearAgo = nearestValue(s, endTs - 365 * MS_DAY);
+  const yoyPct = yearAgo && yearAgo > 0 ? (current / yearAgo - 1) * 100 : null;
+
+  const first = s[0];
+  const years = (endTs - new Date(first.date).getTime()) / (365 * MS_DAY);
+  const cagr = first.value > 0 && years > 0.5 ? (Math.pow(current / first.value, 1 / years) - 1) * 100 : null;
+
+  const projOneYear = yoyPct != null ? current * (1 + yoyPct / 100) : null;
+
+  const growthPhrase =
+    yoyPct != null ? ` Over the past year it's ${yoyPct >= 0 ? "grown" : "contracted"} ${Math.abs(yoyPct).toFixed(1)}%.` : "";
+  const summary =
+    `Bitcoin's address base has expanded across every cycle — adoption has historically kept growing through both bull and bear markets, largely decoupled from short-term price.${growthPhrase} ` +
+    `Projections assume the recent pace holds, which it may not — they're a trend line, not a forecast.`;
+
+  return { current, yoyPct, cagr, projOneYear, summary };
 }
