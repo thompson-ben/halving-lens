@@ -43,9 +43,13 @@ import {
   type CycleSample,
   type SentimentData,
   type EtfData,
+  type OnchainData,
   type Snapshot,
 } from "../src/lib/data/types";
 import { syntheticSnapshot } from "../src/lib/data/synthetic";
+// Previously-committed snapshot — used to carry over rate-limited optional data
+// (on-chain, ETF) on builds that don't re-fetch them.
+import { SNAPSHOT as PREVIOUS_SNAPSHOT } from "../src/lib/data/snapshot";
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(__filename), "..");
@@ -276,6 +280,103 @@ async function fetchEtfFlows(): Promise<EtfData | null> {
     }
   }
   return null;
+}
+
+// On-chain series — BGeometrics / bitcoin-data.com (BITCOIN_DATA_API_KEY).
+// Fetched only in the daily full sync (FULL_SYNC=1) to respect the free tier's
+// ~15 req/day limit; other builds carry over the committed values. Each metric
+// returns a dated value series; date + value fields are detected flexibly.
+const ONCHAIN_METRICS: Array<{ key: string; slugs: string[]; sane: [number, number] }> = [
+  { key: "lthSupply", slugs: ["lth-supply", "long-term-holder-supply"], sane: [5e6, 2.05e7] },
+  { key: "mvrvZscore", slugs: ["mvrv-zscore", "mvrv-z-score"], sane: [-3, 15] },
+  { key: "nupl", slugs: ["nupl"], sane: [-0.8, 0.95] },
+  { key: "sopr", slugs: ["sopr"], sane: [0.7, 1.6] },
+  { key: "realizedPrice", slugs: ["realized-price"], sane: [1, 1e7] },
+  { key: "reserveRisk", slugs: ["reserve-risk"], sane: [0, 0.2] },
+];
+
+const ONCHAIN_DATE_KEYS = ["d", "date", "theDay", "day", "unixTs", "timestamp", "time", "t"];
+
+function onchainDate(r: Record<string, unknown>): string | null {
+  for (const k of ONCHAIN_DATE_KEYS) {
+    if (!(k in r)) continue;
+    const v = r[k];
+    if (typeof v === "number") return new Date(v < 1e12 ? v * 1000 : v).toISOString().slice(0, 10);
+    if (typeof v === "string") {
+      const d = new Date(/^\d+$/.test(v) ? Number(v) * (v.length <= 10 ? 1000 : 1) : v);
+      if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
+  }
+  return null;
+}
+
+function onchainValue(r: Record<string, unknown>): number | null {
+  for (const [k, v] of Object.entries(r)) {
+    if (ONCHAIN_DATE_KEYS.includes(k)) continue;
+    const n = ETF_NUM(v);
+    if (n != null) return n;
+  }
+  return null;
+}
+
+async function fetchOnchainMetric(
+  slug: string,
+  key: string | undefined,
+): Promise<{ date: string; value: number }[] | null> {
+  const headers: Record<string, string> = { Accept: "application/json", "User-Agent": UA };
+  if (key) headers.Authorization = `Bearer ${key}`;
+  const res = await fetch(`https://bitcoin-data.com/v1/${slug}`, { headers });
+  if (!res.ok) {
+    console.warn(`  [ONCHAIN] ${slug} → ${res.status} ${res.statusText}`);
+    return null;
+  }
+  const json: unknown = await res.json();
+  const rows: Record<string, unknown>[] = Array.isArray(json)
+    ? (json as Record<string, unknown>[])
+    : Array.isArray((json as { data?: unknown })?.data)
+      ? (json as { data: Record<string, unknown>[] }).data
+      : [];
+  if (!rows.length) {
+    console.warn(`  [ONCHAIN] ${slug} → no rows`);
+    return null;
+  }
+  console.log(`  [ONCHAIN] ${slug} sample: ${JSON.stringify(rows[rows.length - 1]).slice(0, 160)}`);
+  const out = rows
+    .map((r) => ({ date: onchainDate(r), value: onchainValue(r) }))
+    .filter((p): p is { date: string; value: number } => p.date != null && p.value != null)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  return out.length ? out : null;
+}
+
+async function fetchOnchain(): Promise<OnchainData | null> {
+  if (process.env.FULL_SYNC !== "1") {
+    console.log("  [ONCHAIN] skipped (FULL_SYNC!=1) — carried over from committed snapshot");
+    return null;
+  }
+  const key = process.env.BITCOIN_DATA_API_KEY;
+  const series: Record<string, { date: string; value: number }[]> = {};
+  for (const m of ONCHAIN_METRICS) {
+    let got: { date: string; value: number }[] | null = null;
+    for (const slug of m.slugs) {
+      try {
+        got = await fetchOnchainMetric(slug, key);
+      } catch (e) {
+        console.warn(`  [ONCHAIN] ${slug} failed: ${(e as Error).message}`);
+        got = null;
+      }
+      if (got && got.length) break;
+    }
+    if (!got || !got.length) continue;
+    const latest = got[got.length - 1].value;
+    if (latest < m.sane[0] || latest > m.sane[1]) {
+      console.warn(`  [ONCHAIN] ${m.key} latest ${latest} outside sane range [${m.sane}]; skipping`);
+      continue;
+    }
+    series[m.key] = got;
+    console.log(`  [ONCHAIN] ${m.key}: ${got.length} points, latest ${latest}`);
+  }
+  if (!Object.keys(series).length) return null;
+  return { source: "BGeometrics · bitcoin-data.com", fetchedAt: new Date().toISOString(), series };
 }
 
 // CoinMetrics community — daily price, market cap, realised cap and circulating
@@ -535,6 +636,14 @@ async function build(): Promise<Snapshot> {
     console.warn(`  ETF unavailable — flows will be omitted. (${(e as Error).message})`);
   }
 
+  console.log("→ Fetching on-chain series (BGeometrics)…");
+  let onchain: Snapshot["onchain"] = null;
+  try {
+    onchain = await fetchOnchain();
+  } catch (e) {
+    console.warn(`  On-chain unavailable — will carry over. (${(e as Error).message})`);
+  }
+
   // On-chain data from CoinMetrics. Supply is free; realised cap may be absent
   // on the free tier. Key on supply so the join works even without realised cap.
   const chainByTs = new Map(
@@ -684,7 +793,9 @@ async function build(): Promise<Snapshot> {
     priceHistory: daily.length
       ? daily.slice(-730).filter((d) => d.price > 0).map((d) => ({ ts: d.ts, price: d.price }))
       : null,
-    etf,
+    // Carry over the last good values when a rate-limited source isn't re-fetched.
+    etf: etf ?? PREVIOUS_SNAPSHOT.etf ?? null,
+    onchain: onchain ?? PREVIOUS_SNAPSHOT.onchain ?? null,
   };
 }
 

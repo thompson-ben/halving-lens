@@ -36,8 +36,13 @@ jobs:
       - name: Sync live data
         run: npm run sync
         env:
+          # Full sync fetches the rate-limited on-chain source (once per day here,
+          # not on every Vercel deploy).
+          FULL_SYNC: "1"
           # Optional — enables US spot BTC ETF flows (SoSoValue) when set.
           SOSOVALUE_API_KEY: ${{ secrets.SOSOVALUE_API_KEY }}
+          # Optional — enables on-chain metrics (BGeometrics / bitcoin-data.com).
+          BITCOIN_DATA_API_KEY: ${{ secrets.BITCOIN_DATA_API_KEY }}
 
       - name: Commit snapshot if changed
         run: |

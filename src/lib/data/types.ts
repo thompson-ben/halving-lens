@@ -123,6 +123,7 @@ export interface Snapshot {
   spot?: SpotPrice | null; // freshest daily price + changes; absent until synced
   priceHistory?: PriceHistoryPoint[] | null; // recent daily closes; absent until synced
   etf?: EtfData | null; // US spot BTC ETF flows; absent until a SoSoValue key is wired
+  onchain?: OnchainData | null; // BGeometrics on-chain series; absent until a key is wired
 }
 
 // Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.
@@ -174,4 +175,17 @@ export interface EtfData {
   source: string;
   fetchedAt: string; // ISO
   points: EtfFlowPoint[]; // ascending by date
+}
+
+// On-chain metric series from BGeometrics / bitcoin-data.com. Each series is a
+// dated value series; keyed by metric (e.g. "lthSupply", "mvrvZscore").
+export interface OnchainPoint {
+  date: string; // ISO date
+  value: number;
+}
+
+export interface OnchainData {
+  source: string;
+  fetchedAt: string; // ISO
+  series: Record<string, OnchainPoint[]>;
 }
