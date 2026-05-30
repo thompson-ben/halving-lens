@@ -117,16 +117,28 @@ export interface LthExtremes {
   lowsCount: number;
 }
 
-// Average LTH-supply change over the `window` days leading into each prior
-// cycle high and low — the heart of the "do strong hands sell tops / buy
-// bottoms" question.
+// Average LTH-supply change over the `window` days leading into each cycle high
+// and low — but only for extremes the (~4-year) data window actually covers, so
+// we never average against clamped/missing history.
 export function lthAroundExtremes(window = 90): LthExtremes {
-  const priors = cyclePeakTroughs().filter((c) => c.id !== 5);
-  const highs = priors
+  const s = lthSeries();
+  if (s.length < window) {
+    return { window, beforeHighsAvg: null, beforeLowsAvg: null, highsCount: 0, lowsCount: 0 };
+  }
+  const lo = new Date(s[0].date).getTime();
+  const hi = new Date(s[s.length - 1].date).getTime();
+  const covered = (iso: string) => {
+    const t = new Date(iso).getTime();
+    return t - window * MS_DAY >= lo && t <= hi;
+  };
+  const all = cyclePeakTroughs();
+  const highs = all
+    .filter((c) => covered(c.peakDate))
     .map((c) => lthPctChangeBefore(c.peakDate, window))
     .filter((x): x is number => x != null);
-  const lows = priors
-    .map((c) => (c.bottomDate ? lthPctChangeBefore(c.bottomDate, window) : null))
+  const lows = all
+    .filter((c) => c.bottomDate != null && covered(c.bottomDate))
+    .map((c) => lthPctChangeBefore(c.bottomDate as string, window))
     .filter((x): x is number => x != null);
   const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
   return {

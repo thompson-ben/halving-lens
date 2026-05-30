@@ -174,14 +174,20 @@ function LthSection({ read }: { read: NonNullable<ReturnType<typeof lthRead>> })
             <div className={`mt-2 font-display text-[30px] font-medium tracking-tight-2 tabular-nums ${tone(ex.beforeHighsAvg)}`}>
               {ex.beforeHighsAvg != null ? sign(ex.beforeHighsAvg) : "—"}
             </div>
-            <p className="mt-2 text-[12px] text-ink-400">Avg change over the {ex.window}d before past tops — holders distributing.</p>
+            <p className="mt-2 text-[12px] text-ink-400">
+              Change over the {ex.window}d before {ex.highsCount} cycle high{ex.highsCount === 1 ? "" : "s"} in the data
+              window — holders typically distributing.
+            </p>
           </div>
           <div className="card p-6">
             <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400">LTH supply into cycle lows</div>
             <div className={`mt-2 font-display text-[30px] font-medium tracking-tight-2 tabular-nums ${tone(ex.beforeLowsAvg)}`}>
               {ex.beforeLowsAvg != null ? sign(ex.beforeLowsAvg) : "—"}
             </div>
-            <p className="mt-2 text-[12px] text-ink-400">Avg change over the {ex.window}d before past bottoms — holders accumulating.</p>
+            <p className="mt-2 text-[12px] text-ink-400">
+              Change over the {ex.window}d before {ex.lowsCount} cycle low{ex.lowsCount === 1 ? "" : "s"} in the data
+              window — holders typically accumulating.
+            </p>
           </div>
         </div>
       )}

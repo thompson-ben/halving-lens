@@ -286,16 +286,15 @@ async function fetchEtfFlows(): Promise<EtfData | null> {
 // Fetched only in the daily full sync (FULL_SYNC=1) to respect the free tier's
 // ~15 req/day limit; other builds carry over the committed values. Each metric
 // returns a dated value series; date + value fields are detected flexibly.
-// Slugs confirmed from a sync run (response shape: {d, unixTs, <metricKey>}).
-// Kept to <=8/run for the free tier's 8-req/hour limit. lthSupply + the exact
-// addresses slug are added once confirmed from the BGeometrics endpoint list.
+// Slugs confirmed from the BGeometrics endpoint list + a sync run (response
+// shape: {d, unixTs, <metricKey>}). Kept to <=8/run for the 8-req/hour limit.
 const ONCHAIN_METRICS: Array<{ key: string; slugs: string[]; sane: [number, number] }> = [
   { key: "mvrvZscore", slugs: ["mvrv-zscore"], sane: [-3, 15] },
   { key: "nupl", slugs: ["nupl"], sane: [-0.8, 0.95] },
   { key: "sopr", slugs: ["sopr"], sane: [0.7, 1.6] },
   { key: "realizedPrice", slugs: ["realized-price"], sane: [1, 1e7] },
   { key: "reserveRisk", slugs: ["reserve-risk"], sane: [0, 0.2] },
-  { key: "addresses", slugs: ["addresses-count", "active-addresses"], sane: [1e4, 1e10] },
+  { key: "lthSupply", slugs: ["long-term-hodler-supply-btc"], sane: [5e6, 2.05e7] },
 ];
 
 const ONCHAIN_DATE_KEYS = ["d", "date", "theDay", "day", "unixTs", "timestamp", "time", "t"];
