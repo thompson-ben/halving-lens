@@ -744,6 +744,43 @@ async function build(): Promise<Snapshot> {
 
   const todayDayInCycle = daysBetween(HALVINGS[5], Date.now());
 
+  // Light up the on-chain metrics for the current cycle by joining real
+  // BGeometrics values onto cycle 5's weekly samples (the free tier covers only
+  // ~4 years, so we overwrite the current cycle and mark those metrics live;
+  // their pages drop the cross-cycle overlay).
+  const effectiveOnchain = onchain ?? PREVIOUS_SNAPSHOT.onchain ?? null;
+  const onchainLive = { mvrv: false, nupl: false, sopr: false, realizedPrice: false, reserveRisk: false };
+  if (effectiveOnchain) {
+    const cycle5 = cycles.find((c) => c.id === 5);
+    if (cycle5) {
+      const base = Date.parse(cycle5.halvingDate);
+      const join = (seriesKey: string, sampleKey: keyof CycleSample): boolean => {
+        const ser = effectiveOnchain.series[seriesKey];
+        if (!ser || !ser.length) return false;
+        const map = new Map(ser.map((p) => [p.date, p.value]));
+        let hit = 0;
+        for (const s of cycle5.samples) {
+          const iso = new Date(base + s.day * MS_PER_DAY).toISOString().slice(0, 10);
+          const v = map.get(iso);
+          if (v != null && Number.isFinite(v)) {
+            (s as unknown as Record<string, number>)[sampleKey as string] = v;
+            hit++;
+          }
+        }
+        return hit > 0;
+      };
+      onchainLive.mvrv = join("mvrvZscore", "mvrvZ");
+      onchainLive.nupl = join("nupl", "nupl");
+      onchainLive.sopr = join("sopr", "sopr");
+      onchainLive.realizedPrice = join("realizedPrice", "realizedPrice");
+      onchainLive.reserveRisk = join("reserveRisk", "reserveRisk");
+      console.log(
+        `  [ONCHAIN] joined to cycle 5: ${Object.entries(onchainLive).filter(([, v]) => v).map(([k]) => k).join(", ") || "none"}`,
+      );
+    }
+  }
+  const BG = "BGeometrics · bitcoin-data.com (current cycle)";
+
   // Freshest spot price + true 24h/7d change from the daily close series (the
   // per-cycle samples are weekly and can lag a few days).
   const spot = (() => {
@@ -775,15 +812,15 @@ async function build(): Promise<Snapshot> {
         price: priceSource,
         realizedCap: realisedCapAvailable ? "CoinMetrics community CapRealUSD" : "synthetic fallback",
         supply: supplyAvailable ? "CoinMetrics community SplyCur" : "synthetic fallback",
-        mvrv: realisedCapAvailable ? "derived: marketCap / realisedCap" : "synthetic",
-        nupl: realisedCapAvailable ? "derived: (marketCap - realisedCap) / marketCap" : "synthetic",
-        realizedPrice: realisedCapAvailable ? "derived: realisedCap / supply" : "synthetic",
+        mvrv: onchainLive.mvrv ? BG : realisedCapAvailable ? "derived: marketCap / realisedCap" : "synthetic",
+        nupl: onchainLive.nupl ? BG : realisedCapAvailable ? "derived: (marketCap - realisedCap) / marketCap" : "synthetic",
+        realizedPrice: onchainLive.realizedPrice ? BG : realisedCapAvailable ? "derived: realisedCap / supply" : "synthetic",
         mayer: "derived: price / 200d SMA",
         puell: "derived: (reward × 144 × price) / 365d SMA",
         rainbow: "derived: per-cycle band of price vs cycle peak",
-        sopr: "modelled — no free public source",
+        sopr: onchainLive.sopr ? BG : "modelled — no free public source",
         rhodl: "modelled — no free public source",
-        reserveRisk: "modelled — no free public source",
+        reserveRisk: onchainLive.reserveRisk ? BG : "modelled — no free public source",
       },
     },
     cycles,
@@ -798,7 +835,7 @@ async function build(): Promise<Snapshot> {
       : null,
     // Carry over the last good values when a rate-limited source isn't re-fetched.
     etf: etf ?? PREVIOUS_SNAPSHOT.etf ?? null,
-    onchain: onchain ?? PREVIOUS_SNAPSHOT.onchain ?? null,
+    onchain: effectiveOnchain,
   };
 }
 

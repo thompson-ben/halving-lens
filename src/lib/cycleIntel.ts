@@ -54,6 +54,12 @@ export function metricSource(slug: string): string {
   return (key ? SOURCE.sources[key] : undefined) ?? "Not yet wired to a source";
 }
 
+// True for on-chain metrics fed by the ~4-year BGeometrics window: their data
+// is real for the current cycle only, so their pages drop the cross-cycle view.
+export function metricCurrentCycleOnly(slug: string): boolean {
+  return metricSource(slug).includes("current cycle");
+}
+
 // Why a coming-soon metric isn't live yet — plain English.
 export function comingSoonReason(slug: string): string {
   const src = metricSource(slug).toLowerCase();

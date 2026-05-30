@@ -8,7 +8,7 @@ import { DataBadge } from "@/components/DataBadge";
 import { LastUpdated } from "@/components/LastUpdated";
 import { METRICS, metricBySlug, metricTodayRead, valueAtDay, zoneFor } from "@/lib/metrics";
 import { CYCLES, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
-import { comingSoonReason, metricSource, metricStatus } from "@/lib/cycleIntel";
+import { comingSoonReason, metricCurrentCycleOnly, metricSource, metricStatus } from "@/lib/cycleIntel";
 import { fmtUsd } from "@/lib/format";
 
 export function generateStaticParams() {
@@ -65,6 +65,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
   }
 
   const status = metricStatus(metric.slug);
+  const currentCycleOnly = metricCurrentCycleOnly(metric.slug);
   const current = metric.pick(TODAY);
   const { zone, label } = zoneFor(metric, current);
   const display =
@@ -188,6 +189,20 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
         </div>
       </div>
 
+      {currentCycleOnly ? (
+        <section className="card p-6 lg:p-7">
+          <h3 className="text-[12.5px] font-medium text-ink-100 mb-2 uppercase tracking-[0.16em]">
+            Cross-cycle view coming
+          </h3>
+          <p className="text-[13px] text-ink-300 leading-relaxed max-w-2xl">
+            This is a live on-chain metric, but our current free data source only reaches back about
+            four years — so we show it for the current cycle only rather than drawing a 4-cycle
+            comparison from data we don&apos;t have. Price-based metrics (Mayer, Puell, Rainbow) keep
+            the full multi-cycle overlay.
+          </p>
+        </section>
+      ) : (
+        <>
       <section>
         <div className="mb-6">
           <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-2">
@@ -263,6 +278,8 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
           )}
         </div>
       </section>
+        </>
+      )}
     </div>
   );
 }

@@ -154,13 +154,14 @@ export const METRICS: MetricDef[] = [
     description:
       "Balances long-term holder confidence (HODL conviction) against the cost of acquiring Bitcoin today. Low = asymmetric reward.",
     why:
-      "Sub-0.002 is rare — only seen at the absolute lows of 2015, 2018, 2022. >0.02 marks tops.",
+      "Low reserve risk means strong-hand conviction is high relative to price — historically an attractive, asymmetric entry. It climbs as price runs hot and long-term holders are tempted to sell.",
+    // Banded to the BGeometrics reserve-risk scale (~0.0004 lows → ~0.002+ highs).
     bands: [
-      { min: -Infinity, max: 0.002, zone: "bottom", label: "Generational buy" },
-      { min: 0.002, max: 0.005, zone: "accumulation", label: "Asymmetric" },
-      { min: 0.005, max: 0.01, zone: "neutral", label: "Fair" },
-      { min: 0.01, max: 0.02, zone: "bullish", label: "Stretched" },
-      { min: 0.02, max: Infinity, zone: "top", label: "Top zone" },
+      { min: -Infinity, max: 0.0006, zone: "bottom", label: "Generational buy" },
+      { min: 0.0006, max: 0.0009, zone: "accumulation", label: "Asymmetric" },
+      { min: 0.0009, max: 0.0013, zone: "neutral", label: "Fair" },
+      { min: 0.0013, max: 0.0018, zone: "bullish", label: "Stretched" },
+      { min: 0.0018, max: Infinity, zone: "top", label: "Top zone" },
     ],
     pick: (s) => s.reserveRisk,
     yMin: 0.001,
