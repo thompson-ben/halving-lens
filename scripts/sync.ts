@@ -42,6 +42,7 @@ import {
   type CycleId,
   type CycleSample,
   type SentimentData,
+  type EtfData,
   type Snapshot,
 } from "../src/lib/data/types";
 import { syntheticSnapshot } from "../src/lib/data/synthetic";
@@ -165,6 +166,111 @@ async function fetchFearGreed(): Promise<SentimentData> {
     fetchedAt: new Date().toISOString(),
     points,
   };
+}
+
+// US spot BTC ETF flows — SoSoValue Open API (needs SOSOVALUE_API_KEY). Their
+// docs block automated reading, so this tries the likely endpoints and parses
+// the response flexibly: it identifies the date + daily net-inflow fields,
+// computes the cumulative itself, and refuses to return anything unless the
+// totals land in a sane USD range — a wrong guess stays "coming soon" rather
+// than showing wrong numbers. Verify the figures against SoSoValue's dashboard.
+const ETF_NUM = (v: unknown): number | null => {
+  const n = typeof v === "string" ? parseFloat(v.replace(/[, ]/g, "")) : typeof v === "number" ? v : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+
+function etfRows(json: unknown): Record<string, unknown>[] {
+  const asArr = (x: unknown) => (Array.isArray(x) ? (x as Record<string, unknown>[]) : null);
+  if (asArr(json)) return asArr(json)!;
+  const d = (json as { data?: unknown })?.data;
+  if (asArr(d)) return asArr(d)!;
+  const o = d as Record<string, unknown> | undefined;
+  for (const k of ["list", "records", "rows", "history", "items", "chart"]) {
+    if (o && asArr(o[k])) return asArr(o[k])!;
+  }
+  return [];
+}
+
+function etfDate(r: Record<string, unknown>): string | null {
+  for (const k of ["date", "day", "tradeDate", "statisticsDay", "timestamp", "time"]) {
+    if (!(k in r)) continue;
+    const v = r[k];
+    if (typeof v === "number") return new Date(v < 1e12 ? v * 1000 : v).toISOString().slice(0, 10);
+    if (typeof v === "string") {
+      const d = new Date(/^\d+$/.test(v) ? Number(v) : v);
+      if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
+  }
+  return null;
+}
+
+function etfNetFlow(r: Record<string, unknown>): number | null {
+  for (const k of ["totalNetInflow", "netInflow", "dailyNetInflow", "netFlow", "inflow", "value"]) {
+    if (k in r) {
+      const n = ETF_NUM(r[k]);
+      if (n != null) return n;
+    }
+  }
+  return null;
+}
+
+async function fetchEtfFlows(): Promise<EtfData | null> {
+  const key = process.env.SOSOVALUE_API_KEY;
+  if (!key) {
+    console.log("  ETF: SOSOVALUE_API_KEY not set — skipping (page stays 'coming soon')");
+    return null;
+  }
+  const candidates: Array<{ url: string; body: string }> = [
+    { url: "https://api.sosovalue.xyz/openapi/v2/etf/historicalInflowChart", body: '{"type":"us-btc-spot"}' },
+    { url: "https://openapi.sosovalue.com/openapi/v1/etf/historicalInflowChart", body: '{"type":"us-btc-spot"}' },
+    { url: "https://openapi.sosovalue.com/api/v1/etf/historicalInflowChart", body: '{"type":"us-btc-spot"}' },
+  ];
+  for (const c of candidates) {
+    try {
+      const res = await fetch(c.url, {
+        method: "POST",
+        headers: {
+          "x-soso-api-key": key,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "User-Agent": UA,
+        },
+        body: c.body,
+      });
+      if (!res.ok) {
+        console.warn(`  ETF ${c.url} → ${res.status} ${res.statusText}`);
+        continue;
+      }
+      const json: unknown = await res.json();
+      const rows = etfRows(json);
+      if (!rows.length) {
+        console.warn(`  ETF ${c.url} → response had no recognisable rows`);
+        continue;
+      }
+      console.log(`  ETF sample row: ${JSON.stringify(rows[0]).slice(0, 240)}`);
+      const norm = rows
+        .map((r) => ({ date: etfDate(r), netFlow: etfNetFlow(r) }))
+        .filter((p): p is { date: string; netFlow: number } => p.date != null && p.netFlow != null)
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (norm.length < 30) {
+        console.warn(`  ETF ${c.url} → only ${norm.length} parseable rows; skipping`);
+        continue;
+      }
+      let cum = 0;
+      const points = norm.map((p) => ({ date: p.date, netFlow: p.netFlow, cumulative: (cum += p.netFlow) }));
+      const finalCum = Math.abs(points[points.length - 1].cumulative);
+      // Sanity gate: cumulative US BTC-ETF net inflow is tens of billions USD.
+      if (finalCum < 1e9 || finalCum > 5e12) {
+        console.warn(`  ETF ${c.url} → cumulative ${finalCum.toExponential(2)} outside sane USD range; skipping to avoid wrong units`);
+        continue;
+      }
+      console.log(`  ETF: ${points.length} days, cumulative ≈ $${(finalCum / 1e9).toFixed(1)}B`);
+      return { source: "SoSoValue · US spot BTC ETF flows", fetchedAt: new Date().toISOString(), points };
+    } catch (e) {
+      console.warn(`  ETF ${c.url} failed: ${(e as Error).message}`);
+    }
+  }
+  return null;
 }
 
 // CoinMetrics community — daily price, market cap, realised cap and circulating
@@ -416,6 +522,14 @@ async function build(): Promise<Snapshot> {
     console.warn(`  Fear & Greed unavailable — sentiment will be omitted. (${(e as Error).message})`);
   }
 
+  console.log("→ Fetching US spot BTC ETF flows (SoSoValue)…");
+  let etf: Snapshot["etf"] = null;
+  try {
+    etf = await fetchEtfFlows();
+  } catch (e) {
+    console.warn(`  ETF unavailable — flows will be omitted. (${(e as Error).message})`);
+  }
+
   // On-chain data from CoinMetrics. Supply is free; realised cap may be absent
   // on the free tier. Key on supply so the join works even without realised cap.
   const chainByTs = new Map(
@@ -565,6 +679,7 @@ async function build(): Promise<Snapshot> {
     priceHistory: daily.length
       ? daily.slice(-730).filter((d) => d.price > 0).map((d) => ({ ts: d.ts, price: d.price }))
       : null,
+    etf,
   };
 }
 
