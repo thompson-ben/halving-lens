@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { SOURCE, TODAY, TODAY_DAY_IN_CYCLE, DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
 import { cyclePhase, recentChange } from "@/lib/cycleIntel";
 import { fmtPct, fmtUsd } from "@/lib/format";
+import { lastUpdatedShort } from "./LastUpdated";
 import { MobileNav } from "./MobileNav";
 
 const PHASE_DOT: Record<string, string> = {
@@ -135,6 +136,7 @@ function MobileStatus({ change }: { change: { pct: number; days: number } | null
 
 function SourcePill() {
   const { isLive, label, dot, title } = sourceBadge();
+  const updated = lastUpdatedShort();
   return (
     <div
       title={title}
@@ -143,6 +145,7 @@ function SourcePill() {
       <span className={`relative w-1.5 h-1.5 rounded-full ${dot} ${isLive ? "text-signal-green live-dot" : ""}`} />
       <span className="text-[10.5px] uppercase tracking-[0.16em] text-ink-400">Data</span>
       <span className="text-[11.5px] text-ink-200">{label}</span>
+      {updated && <span className="text-[10.5px] text-ink-400">· {updated} UTC</span>}
     </div>
   );
 }

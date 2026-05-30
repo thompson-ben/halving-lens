@@ -5,6 +5,7 @@ import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { MetricChart } from "@/components/MetricChart";
 import { MetricGauge } from "@/components/MetricGauge";
 import { DataBadge } from "@/components/DataBadge";
+import { LastUpdated } from "@/components/LastUpdated";
 import { METRICS, metricBySlug, metricTodayRead, valueAtDay, zoneFor } from "@/lib/metrics";
 import { CYCLES, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { comingSoonReason, metricSource, metricStatus } from "@/lib/cycleIntel";
@@ -125,6 +126,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
                 <MetricGauge metric={metric} value={current} />
               </div>
             )}
+            <LastUpdated className="mt-5" />
           </div>
 
           <div className="card p-6">

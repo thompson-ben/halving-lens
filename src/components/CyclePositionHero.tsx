@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { CycleClock } from "./CycleClock";
+import { LastUpdated } from "./LastUpdated";
 import {
   CYCLE_PROGRESS_PCT,
   DAYS_TO_NEXT_HALVING,
@@ -76,6 +77,8 @@ export function CyclePositionHero() {
               hint={nextHalving}
             />
           </dl>
+
+          <LastUpdated prefix="Prices as of" className="mt-3" />
         </div>
 
         {/* Right: the clock visual */}

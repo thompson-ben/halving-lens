@@ -1,15 +1,19 @@
 import { format } from "date-fns";
 import { CycleOverlayPanel } from "@/components/CycleOverlayPanel";
+import { CycleTimingChart } from "@/components/CycleTimingChart";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { CYCLES, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { cycleDivergence, cycleTrackingHeadline } from "@/lib/cycleIntel";
+import { cycleTiming } from "@/lib/cycleTiming";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 const fmtMult = (m: number) => (m >= 10 ? `${m.toFixed(0)}×` : `${m.toFixed(1)}×`);
+const fmtWin = (iso: string) => format(new Date(iso), "MMM yyyy");
 
 export default function CyclesPage() {
   const headline = cycleTrackingHeadline();
   const divergence = cycleDivergence();
+  const timing = cycleTiming();
 
   // Real peak multiples per completed cycle, for the diminishing-returns read.
   const completed = CYCLES.filter((c) => c.id !== 5);
@@ -56,6 +60,64 @@ export default function CyclesPage() {
 
       {/* Same day from halving comparison cards */}
       <TodayVsPriorCycles />
+
+      {/* Cycle timing — when do highs and lows land relative to the halving */}
+      <section>
+        <div className="mb-6 max-w-3xl">
+          <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-2">
+            Cycle timing
+          </div>
+          <h2 className="font-display text-[24px] lg:text-[30px] font-medium tracking-tight-2 text-ink-100 leading-snug">
+            When do cycles top and bottom?
+          </h2>
+          <p className="mt-3 text-[14px] text-ink-300 leading-relaxed">
+            Highs and lows from the three completed cycles, measured in days after the halving. They
+            cluster — and that clustering is where the next high and low could land.
+          </p>
+        </div>
+
+        <div className="card p-5 sm:p-8 relative">
+          <CycleTimingChart />
+          <div className="watermark">halving.lens · cycle timing</div>
+        </div>
+
+        {/* Projected windows + plain-English read */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
+          <WindowCard
+            tone="green"
+            title="Historical peak window"
+            range={`Day ${timing.peakWindow.minDay}–${timing.peakWindow.maxDay} after halving`}
+            dates={`${fmtWin(timing.peakWindow.startDate)} – ${fmtWin(timing.peakWindow.endDate)}`}
+            note={
+              timing.currentPeakInWindow
+                ? `Cycle 5's high so far (${fmtUsd(timing.currentPeak.price, { compact: true })}) landed at day ${timing.currentPeak.day} — inside this window.`
+                : `Cycle 5's high so far came at day ${timing.currentPeak.day}.`
+            }
+          />
+          <WindowCard
+            tone="blue"
+            title="Historical low window"
+            range={`Day ${timing.bottomWindow.minDay}–${timing.bottomWindow.maxDay} after halving`}
+            dates={`${fmtWin(timing.bottomWindow.startDate)} – ${fmtWin(timing.bottomWindow.endDate)}`}
+            note={
+              timing.todayVsBottom === "before"
+                ? timing.daysToBottomOpen <= 30
+                  ? "Opening now — today sits right at its start."
+                  : `Opens in about ${timing.daysToBottomOpen} days.`
+                : timing.todayVsBottom === "within"
+                  ? "Today is inside this window."
+                  : "This window has already passed."
+            }
+            highlight
+          />
+          <div className="card-glow p-6 relative flex flex-col justify-center">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-accent mb-2">
+              Where we are
+            </div>
+            <p className="text-[13px] text-ink-200 leading-relaxed">{timing.summary}</p>
+          </div>
+        </div>
+      </section>
 
       {/* Cycle-by-cycle stats — table on desktop, cards on mobile */}
       <section>
@@ -188,6 +250,40 @@ export default function CyclesPage() {
           </p>
         </div>
       </section>
+    </div>
+  );
+}
+
+function WindowCard({
+  tone,
+  title,
+  range,
+  dates,
+  note,
+  highlight,
+}: {
+  tone: "green" | "blue";
+  title: string;
+  range: string;
+  dates: string;
+  note: string;
+  highlight?: boolean;
+}) {
+  const accent = tone === "green" ? "text-signal-green" : "text-signal-blue";
+  const dot = tone === "green" ? "bg-signal-green" : "bg-signal-blue";
+  return (
+    <div
+      className={`card p-6 ${highlight ? "border-signal-blue/25" : ""}`}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+        <span className="text-[10px] uppercase tracking-[0.16em] text-ink-400">{title}</span>
+      </div>
+      <div className={`font-display text-[20px] font-medium tracking-tight-2 ${accent}`}>{dates}</div>
+      <div className="text-[11.5px] text-ink-400 font-mono mt-1">{range}</div>
+      <p className="mt-3.5 pt-3.5 border-t border-white/[0.05] text-[12.5px] text-ink-300 leading-relaxed">
+        {note}
+      </p>
     </div>
   );
 }
