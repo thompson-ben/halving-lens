@@ -68,11 +68,13 @@ export default function CyclesPage() {
             Cycle timing
           </div>
           <h2 className="font-display text-[24px] lg:text-[30px] font-medium tracking-tight-2 text-ink-100 leading-snug">
-            When do cycles top and bottom?
+            When could the current cycle top and bottom?
           </h2>
           <p className="mt-3 text-[14px] text-ink-300 leading-relaxed">
             Highs and lows from the three completed cycles, measured in days after the halving. They
-            cluster — and that clustering is where the next high and low could land.
+            cluster — and the cards below project those windows onto the{" "}
+            <span className="text-ink-100">current cycle (cycle 5)</span>, which began at the April
+            2024 halving.
           </p>
         </div>
 
@@ -85,8 +87,8 @@ export default function CyclesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
           <WindowCard
             tone="green"
-            title="Historical peak window"
-            range={`Day ${timing.peakWindow.minDay}–${timing.peakWindow.maxDay} after halving`}
+            title="Cycle 5 · peak window"
+            range={`Day ${timing.peakWindow.minDay}–${timing.peakWindow.maxDay} after halving · where prior cycles topped`}
             dates={`${fmtWin(timing.peakWindow.startDate)} – ${fmtWin(timing.peakWindow.endDate)}`}
             note={
               timing.currentPeakInWindow
@@ -96,8 +98,8 @@ export default function CyclesPage() {
           />
           <WindowCard
             tone="red"
-            title="Historical low window"
-            range={`Day ${timing.bottomWindow.minDay}–${timing.bottomWindow.maxDay} after halving`}
+            title="Cycle 5 · low window"
+            range={`Day ${timing.bottomWindow.minDay}–${timing.bottomWindow.maxDay} after halving · where prior cycles bottomed`}
             dates={`${fmtWin(timing.bottomWindow.startDate)} – ${fmtWin(timing.bottomWindow.endDate)}`}
             note={
               timing.todayVsBottom === "before"

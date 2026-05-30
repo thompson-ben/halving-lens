@@ -119,6 +119,7 @@ export interface Snapshot {
   cycles: Cycle[];
   todayDayInCycle: number; // today - cycle 5 halving, in days
   sentiment?: SentimentData | null; // Fear & Greed index; absent until synced
+  chain?: ChainTip | null; // live block height; absent until synced
 }
 
 // Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.
@@ -132,4 +133,11 @@ export interface SentimentData {
   source: string;
   fetchedAt: string; // ISO
   points: SentimentPoint[]; // ascending by ts
+}
+
+// Live chain tip from mempool.space — enables block-accurate halving maths.
+export interface ChainTip {
+  blockHeight: number;
+  hashrate?: number; // H/s
+  fetchedAt: string; // ISO
 }

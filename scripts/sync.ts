@@ -541,6 +541,9 @@ async function build(): Promise<Snapshot> {
     cycles,
     todayDayInCycle,
     sentiment,
+    chain: tip
+      ? { blockHeight: tip.height, hashrate: tip.hashrate, fetchedAt: new Date().toISOString() }
+      : null,
   };
 }
 

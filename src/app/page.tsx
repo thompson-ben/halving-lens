@@ -5,6 +5,7 @@ import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
 import { CycleEvidence } from "@/components/CycleEvidence";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
+import { HalvingCountdown } from "@/components/HalvingCountdown";
 
 export default function CycleDashboardPage() {
   return (
@@ -17,6 +18,9 @@ export default function CycleDashboardPage() {
 
       {/* 3. What happened next historically */}
       <WhatHappenedNext />
+
+      {/* 3b. Countdown to the next halving + issuance facts */}
+      <HalvingCountdown />
 
       {/* 4. Cycle overlay preview — the visual moat */}
       <section>
