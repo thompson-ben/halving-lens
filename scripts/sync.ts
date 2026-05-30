@@ -562,6 +562,9 @@ async function build(): Promise<Snapshot> {
       ? { blockHeight: tip.height, hashrate: tip.hashrate, fetchedAt: new Date().toISOString() }
       : null,
     spot,
+    priceHistory: daily.length
+      ? daily.slice(-730).filter((d) => d.price > 0).map((d) => ({ ts: d.ts, price: d.price }))
+      : null,
   };
 }
 

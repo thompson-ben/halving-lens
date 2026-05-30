@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { SOURCE, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { cyclePhase, headlineSpot } from "@/lib/cycleIntel";
@@ -39,7 +40,11 @@ export function TopBar() {
         <MobileStatus spot={spot} />
 
         <div className="flex items-center gap-2">
-          <Pill>
+          <Link
+            href="/price"
+            title="Open the Bitcoin price chart"
+            className="hidden md:flex items-center gap-2.5 h-9 px-3.5 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-accent/30 hover:bg-white/[0.035] transition-colors"
+          >
             <Eyebrow>BTC</Eyebrow>
             <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">
               {fmtUsd(spot.price)}
@@ -52,7 +57,7 @@ export function TopBar() {
               </span>
             )}
             {spot.pct != null && <span className="text-[10px] text-ink-400">{spot.label}</span>}
-          </Pill>
+          </Link>
 
           <Pill>
             <Eyebrow>Cycle 5</Eyebrow>
@@ -113,7 +118,7 @@ function MobileStatus({ spot }: { spot: { price: number; pct: number | null; lab
   const { isLive, label, dot, title } = sourceBadge();
   return (
     <div className="flex md:hidden items-center gap-2.5 shrink-0" title={title}>
-      <div className="flex items-baseline gap-1.5">
+      <Link href="/price" className="flex items-baseline gap-1.5" title="Open the Bitcoin price chart">
         <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">
           {fmtUsd(spot.price)}
         </span>
@@ -125,7 +130,7 @@ function MobileStatus({ spot }: { spot: { price: number; pct: number | null; lab
           </span>
         )}
         {spot.pct != null && <span className="text-[9.5px] text-ink-400">{spot.label}</span>}
-      </div>
+      </Link>
       <div className="flex items-center gap-1.5 pl-2.5 border-l border-white/[0.06]">
         <span className={`relative w-1.5 h-1.5 rounded-full ${dot} ${isLive ? "live-dot" : ""}`} />
         <span className="text-[10.5px] text-ink-300">{label}</span>

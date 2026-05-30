@@ -121,6 +121,7 @@ export interface Snapshot {
   sentiment?: SentimentData | null; // Fear & Greed index; absent until synced
   chain?: ChainTip | null; // live block height; absent until synced
   spot?: SpotPrice | null; // freshest daily price + changes; absent until synced
+  priceHistory?: PriceHistoryPoint[] | null; // recent daily closes; absent until synced
 }
 
 // Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.
@@ -151,4 +152,11 @@ export interface SpotPrice {
   ts: number; // unix ms of the latest daily close
   change24h: number; // %
   change7d?: number; // %
+}
+
+// Recent daily close history (for the price page's short-duration views; the
+// per-cycle samples are only weekly).
+export interface PriceHistoryPoint {
+  ts: number; // unix ms (UTC midnight)
+  price: number;
 }

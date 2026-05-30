@@ -21,6 +21,7 @@ export const SOURCE: SnapshotSource = SNAPSHOT.source;
 export const SENTIMENT = SNAPSHOT.sentiment ?? null;
 export const CHAIN = SNAPSHOT.chain ?? null;
 export const SPOT = SNAPSHOT.spot ?? null;
+export const PRICE_HISTORY = SNAPSHOT.priceHistory ?? [];
 export const CYCLES: Cycle[] = SNAPSHOT.cycles;
 export const TODAY_DAY_IN_CYCLE: number = SNAPSHOT.todayDayInCycle;
 export const CURRENT_CYCLE = CYCLES[CYCLES.length - 1];
