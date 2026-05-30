@@ -24,6 +24,7 @@ function datedCyclePrices(): PricePoint[] {
 }
 
 export const PRICE_RANGES = [
+  { key: "1D", label: "1D", days: 1 },
   { key: "1W", label: "1W", days: 7 },
   { key: "1M", label: "1M", days: 30 },
   { key: "3M", label: "3M", days: 90 },
@@ -35,6 +36,8 @@ export type PriceRangeKey = (typeof PRICE_RANGES)[number]["key"];
 
 export function priceSeries(key: PriceRangeKey): PricePoint[] {
   if (key === "All") return datedCyclePrices();
+  // 1D is served by a live intraday fetch on the client, not the daily snapshot.
+  if (key === "1D") return [];
   const cfg = PRICE_RANGES.find((r) => r.key === key)!;
   const src = PRICE_HISTORY.length ? PRICE_HISTORY : datedCyclePrices();
   if (!src.length) return [];

@@ -47,8 +47,9 @@ export default function PricePage() {
       </section>
 
       <p className="text-[11.5px] text-ink-500 leading-relaxed max-w-2xl">
-        Prices are daily closes from the data sync, not a live tick. Short ranges use recent daily
-        data; the full-history view uses the weekly cycle series back to 2012.
+        The 1D view pulls live hourly data on demand. 1W–1Y use daily closes from the data sync,
+        and the full-history view uses the weekly cycle series back to 2012. The headline price and
+        24h/7d figures are daily closes as of the last sync.
       </p>
     </div>
   );
