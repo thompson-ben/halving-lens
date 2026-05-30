@@ -1,4 +1,5 @@
 import { TrendingUp, Layers, CalendarClock, LineChart } from "lucide-react";
+import { DataBadge } from "@/components/DataBadge";
 import { ETF } from "@/lib/etf";
 
 const PLANNED = [
@@ -30,9 +31,7 @@ export default function EtfPage() {
       <header className="pt-2">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">ETF flow</span>
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-signal-amber/25 bg-signal-amber/[0.07] text-signal-amber text-[10px] font-medium tracking-wide uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-signal-amber" /> Connecting live data
-          </span>
+          <DataBadge status={ETF.connected ? "live" : "coming-soon"} />
         </div>
         <h1 className="font-display text-[34px] sm:text-[40px] lg:text-[52px] font-medium tracking-tightest text-ink-50 leading-[1.05] max-w-3xl">
           The demand that didn&apos;t exist last cycle.

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { MetricGauge } from "./MetricGauge";
+import { DataBadge } from "./DataBadge";
 import { cn } from "@/lib/cn";
 import type { MetricDef } from "@/lib/metrics";
 import { zoneFor } from "@/lib/metrics";
-import { comingSoonReason, metricStatus, STATUS_LABEL, type DataStatus } from "@/lib/cycleIntel";
+import { comingSoonReason, metricStatus } from "@/lib/cycleIntel";
 import { TODAY } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
 
@@ -15,12 +16,6 @@ const ZONE_TONE: Record<string, string> = {
   bullish: "text-signal-green border-signal-green/25 bg-signal-green/10",
   euphoria: "text-signal-amber border-signal-amber/30 bg-signal-amber/10",
   top: "text-signal-red border-signal-red/30 bg-signal-red/10",
-};
-
-const STATUS_TONE: Record<DataStatus, string> = {
-  live: "text-signal-green border-signal-green/25 bg-signal-green/10",
-  "live-derived": "text-signal-green border-signal-green/25 bg-signal-green/10",
-  "coming-soon": "text-ink-400 border-white/10 bg-white/[0.03]",
 };
 
 export function MetricCard({ metric }: { metric: MetricDef }) {
@@ -40,16 +35,7 @@ export function MetricCard({ metric }: { metric: MetricDef }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "px-1.5 py-0.5 rounded-full border text-[9px] font-medium tracking-wide uppercase",
-                STATUS_TONE[status],
-              )}
-            >
-              {STATUS_LABEL[status]}
-            </span>
-          </div>
+          <DataBadge status={status} size="sm" />
           <h3 className="mt-2 font-display text-[18px] font-medium tracking-tight-2 text-ink-100 group-hover:text-accent transition-colors duration-200">
             {metric.name}
           </h3>
@@ -88,9 +74,7 @@ function ComingSoonCard({ metric }: { metric: MetricDef }) {
     <div className="card p-6 block opacity-80">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <span className="px-1.5 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-400 text-[9px] font-medium tracking-wide uppercase">
-            Coming soon
-          </span>
+          <DataBadge status="coming-soon" size="sm" />
           <h3 className="mt-2 font-display text-[18px] font-medium tracking-tight-2 text-ink-300">
             {metric.name}
           </h3>

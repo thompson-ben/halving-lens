@@ -1,12 +1,14 @@
 import { HodlWavesChart } from "@/components/HodlWavesChart";
+import { DataBadge } from "@/components/DataBadge";
 import { HODL_BANDS } from "@/lib/hodlWaves";
 
 export default function HodlWavesPage() {
   return (
     <div className="space-y-12">
       <header className="pt-2">
-        <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-4">
-          HODL Waves
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">HODL Waves</span>
+          <DataBadge status="coming-soon" />
         </div>
         <h1 className="font-display text-[40px] lg:text-[52px] font-medium tracking-tightest text-ink-50 leading-[1.05] max-w-3xl">
           Where every coin sits, by how long it's been held.

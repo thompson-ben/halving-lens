@@ -1,4 +1,5 @@
 import { CURRENT_CYCLE, TODAY, type Cycle, type CycleSample } from "./btcData";
+import { fmtUsd } from "./format";
 
 // "Zone" classification for top/mid/bottom oscillators.
 export type Zone = "bottom" | "accumulation" | "neutral" | "bullish" | "euphoria" | "top";
@@ -263,6 +264,29 @@ export function zoneFor(metric: MetricDef, value: number): { zone: Zone; label: 
   }
   const last = metric.bands[metric.bands.length - 1];
   return { zone: last.zone, label: last.label };
+}
+
+// Plain-English, beginner-facing read of what a metric's current value means.
+// Zone-based, so it's truthful — it describes the band the value falls in, not
+// a fabricated precision.
+const ZONE_TODAY: Record<Zone, string> = {
+  bottom: "Historically a deeply discounted, late-bear range.",
+  accumulation: "Historically an accumulation range, where longer-term value has tended to build.",
+  neutral: "A middle-of-the-road range — neither cheap nor stretched.",
+  bullish: "An expansion range: above long-term averages, but not yet euphoric.",
+  euphoria: "Running hot — historically a late-cycle, elevated-risk range.",
+  top: "Stretched into territory historically associated with cycle tops.",
+};
+
+export function metricTodayRead(metric: MetricDef, value: number): string {
+  const { zone, label } = zoneFor(metric, value);
+  const num =
+    metric.unit === "$"
+      ? fmtUsd(value, { compact: true })
+      : metric.unit === "%"
+        ? `${value.toFixed(metric.decimals)}%`
+        : `${value.toFixed(metric.decimals)}${metric.unit === "x" ? "×" : ""}`;
+  return `${metric.short} currently reads ${num} — ${label}. ${ZONE_TODAY[zone]}`;
 }
 
 // Composite cycle index 0–100 — rolls the major metrics into a single read.

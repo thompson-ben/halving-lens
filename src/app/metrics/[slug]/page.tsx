@@ -4,9 +4,10 @@ import { ArrowLeft } from "lucide-react";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { MetricChart } from "@/components/MetricChart";
 import { MetricGauge } from "@/components/MetricGauge";
-import { METRICS, metricBySlug, valueAtDay, zoneFor } from "@/lib/metrics";
+import { DataBadge } from "@/components/DataBadge";
+import { METRICS, metricBySlug, metricTodayRead, valueAtDay, zoneFor } from "@/lib/metrics";
 import { CYCLES, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
-import { comingSoonReason, metricSource, metricStatus, STATUS_LABEL } from "@/lib/cycleIntel";
+import { comingSoonReason, metricSource, metricStatus } from "@/lib/cycleIntel";
 import { fmtUsd } from "@/lib/format";
 
 export function generateStaticParams() {
@@ -32,9 +33,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
         </div>
 
         <header className="space-y-4">
-          <span className="inline-block px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-400 text-[10px] font-medium tracking-wide uppercase">
-            Coming soon
-          </span>
+          <DataBadge status="coming-soon" source={metricSource(metric.slug)} />
           <h1 className="font-display text-[40px] lg:text-[56px] font-medium tracking-tightest text-ink-50 leading-[1.05]">
             {metric.name}
           </h1>
@@ -87,12 +86,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
       </div>
 
       <header className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="px-2 py-0.5 rounded-full border border-signal-green/25 bg-signal-green/10 text-signal-green text-[10px] font-medium tracking-wide uppercase">
-            {STATUS_LABEL[status]}
-          </span>
-          <span className="text-[11px] text-ink-400">{metricSource(metric.slug)}</span>
-        </div>
+        <DataBadge status={status} source={metricSource(metric.slug)} />
         <h1 className="font-display text-[44px] lg:text-[58px] font-medium tracking-tightest text-ink-50 leading-[1.05]">
           {metric.name}
         </h1>
@@ -150,6 +144,15 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
                 <MetricGauge metric={metric} value={current} />
               </div>
             )}
+          </div>
+
+          <div className="card p-6">
+            <h3 className="text-[12.5px] font-medium text-ink-100 mb-2 uppercase tracking-[0.16em]">
+              What it&apos;s telling us today
+            </h3>
+            <p className="text-[13px] text-ink-300 leading-relaxed">
+              {metricTodayRead(metric, current)}
+            </p>
           </div>
 
           <div className="card p-6">
