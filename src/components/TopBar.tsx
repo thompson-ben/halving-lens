@@ -1,7 +1,8 @@
 import { Search } from "lucide-react";
-import { SOURCE, TODAY, TODAY_DAY_IN_CYCLE, DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
+import { SOURCE, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { cyclePhase, recentChange } from "@/lib/cycleIntel";
 import { fmtPct, fmtUsd } from "@/lib/format";
+import { HalvingCountdownMini } from "./HalvingCountdownMini";
 import { lastUpdatedShort } from "./LastUpdated";
 import { MobileNav } from "./MobileNav";
 
@@ -58,9 +59,8 @@ export function TopBar() {
             <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">
               Day {TODAY_DAY_IN_CYCLE}
             </span>
-            <span className="text-[11px] text-ink-350">
-              {DAYS_TO_NEXT_HALVING}d to halving
-            </span>
+            <span className="w-px h-3.5 bg-white/[0.08]" />
+            <HalvingCountdownMini />
           </Pill>
 
           <Pill>
