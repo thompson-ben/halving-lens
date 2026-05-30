@@ -18,10 +18,13 @@ export interface CyclePeakTrough {
   short: string;
   label: string;
   color: string;
+  halvingDate: string;
   peakDay: number;
   peakPrice: number;
+  peakDate: string; // ISO calendar date of the high
   bottomDay: number | null;
   bottomPrice: number | null;
+  bottomDate: string | null;
 }
 
 function bullPeak(c: Cycle) {
@@ -39,15 +42,20 @@ export function cyclePeakTroughs(): CyclePeakTrough[] {
   return CYCLES.map((c) => {
     const p = bullPeak(c);
     const b = bearBottom(c, p.day);
+    const base = new Date(c.halvingDate).getTime();
+    const dateOf = (day: number) => new Date(base + day * MS_DAY).toISOString();
     return {
       id: c.id,
       short: c.short,
       label: c.label,
       color: c.color,
+      halvingDate: c.halvingDate,
       peakDay: p.day,
       peakPrice: p.price,
+      peakDate: dateOf(p.day),
       bottomDay: b?.day ?? null,
       bottomPrice: b?.price ?? null,
+      bottomDate: b ? dateOf(b.day) : null,
     };
   });
 }

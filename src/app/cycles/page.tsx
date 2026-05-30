@@ -95,7 +95,7 @@ export default function CyclesPage() {
             }
           />
           <WindowCard
-            tone="blue"
+            tone="red"
             title="Historical low window"
             range={`Day ${timing.bottomWindow.minDay}–${timing.bottomWindow.maxDay} after halving`}
             dates={`${fmtWin(timing.bottomWindow.startDate)} – ${fmtWin(timing.bottomWindow.endDate)}`}
@@ -262,18 +262,18 @@ function WindowCard({
   note,
   highlight,
 }: {
-  tone: "green" | "blue";
+  tone: "green" | "red";
   title: string;
   range: string;
   dates: string;
   note: string;
   highlight?: boolean;
 }) {
-  const accent = tone === "green" ? "text-signal-green" : "text-signal-blue";
-  const dot = tone === "green" ? "bg-signal-green" : "bg-signal-blue";
+  const accent = tone === "green" ? "text-signal-green" : "text-signal-red";
+  const dot = tone === "green" ? "bg-signal-green" : "bg-signal-red";
   return (
     <div
-      className={`card p-6 ${highlight ? "border-signal-blue/25" : ""}`}
+      className={`card p-6 ${highlight ? "border-signal-red/25" : ""}`}
     >
       <div className="flex items-center gap-2 mb-3">
         <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
