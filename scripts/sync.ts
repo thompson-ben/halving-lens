@@ -358,7 +358,13 @@ async function fetchOnchain(): Promise<OnchainData | null> {
   }
   const key = process.env.BITCOIN_DATA_API_KEY;
   const series: Record<string, { date: string; value: number }[]> = {};
-  for (const m of ONCHAIN_METRICS) {
+  // Fetch series we don't already have first, so the free-tier rate limit can't
+  // permanently starve the later metrics (they accumulate across runs via merge).
+  const have = new Set(Object.keys(PREVIOUS_SNAPSHOT.onchain?.series ?? {}));
+  const ordered = [...ONCHAIN_METRICS].sort(
+    (a, b) => (have.has(a.key) ? 1 : 0) - (have.has(b.key) ? 1 : 0),
+  );
+  for (const m of ordered) {
     let got: { date: string; value: number }[] | null = null;
     for (const slug of m.slugs) {
       try {
@@ -748,7 +754,19 @@ async function build(): Promise<Snapshot> {
   // BGeometrics values onto cycle 5's weekly samples (the free tier covers only
   // ~4 years, so we overwrite the current cycle and mark those metrics live;
   // their pages drop the cross-cycle overlay).
-  const effectiveOnchain = onchain ?? PREVIOUS_SNAPSHOT.onchain ?? null;
+  // Merge per-series: keep previously-fetched series and overlay freshly fetched
+  // ones, so a rate-limited partial fetch never drops data we already had.
+  const mergedSeries = {
+    ...(PREVIOUS_SNAPSHOT.onchain?.series ?? {}),
+    ...(onchain?.series ?? {}),
+  };
+  const effectiveOnchain: Snapshot["onchain"] = Object.keys(mergedSeries).length
+    ? {
+        source: onchain?.source ?? PREVIOUS_SNAPSHOT.onchain?.source ?? "BGeometrics · bitcoin-data.com",
+        fetchedAt: onchain?.fetchedAt ?? PREVIOUS_SNAPSHOT.onchain?.fetchedAt ?? new Date().toISOString(),
+        series: mergedSeries,
+      }
+    : null;
   const onchainLive = { mvrv: false, nupl: false, sopr: false, realizedPrice: false, reserveRisk: false };
   if (effectiveOnchain) {
     const cycle5 = cycles.find((c) => c.id === 5);
