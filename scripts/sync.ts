@@ -294,6 +294,7 @@ const ONCHAIN_METRICS: Array<{ key: string; slugs: string[]; sane: [number, numb
   { key: "sopr", slugs: ["sopr"], sane: [0.7, 1.6] },
   { key: "realizedPrice", slugs: ["realized-price"], sane: [1, 1e7] },
   { key: "reserveRisk", slugs: ["reserve-risk"], sane: [0, 0.2] },
+  { key: "rhodl", slugs: ["rhodl-ratio", "rhodl"], sane: [10, 5e6] },
   { key: "lthSupply", slugs: ["long-term-hodler-supply-btc"], sane: [5e6, 2.05e7] },
   { key: "addresses", slugs: ["active-addresses"], sane: [1e4, 1e8] },
 ];
@@ -777,7 +778,7 @@ async function build(): Promise<Snapshot> {
         series: mergedSeries,
       }
     : null;
-  const onchainLive = { mvrv: false, nupl: false, sopr: false, realizedPrice: false, reserveRisk: false };
+  const onchainLive = { mvrv: false, nupl: false, sopr: false, realizedPrice: false, reserveRisk: false, rhodl: false };
   if (effectiveOnchain) {
     const cycle5 = cycles.find((c) => c.id === 5);
     if (cycle5) {
@@ -802,6 +803,7 @@ async function build(): Promise<Snapshot> {
       onchainLive.sopr = join("sopr", "sopr");
       onchainLive.realizedPrice = join("realizedPrice", "realizedPrice");
       onchainLive.reserveRisk = join("reserveRisk", "reserveRisk");
+      onchainLive.rhodl = join("rhodl", "rhodl");
       console.log(
         `  [ONCHAIN] joined to cycle 5: ${Object.entries(onchainLive).filter(([, v]) => v).map(([k]) => k).join(", ") || "none"}`,
       );
@@ -847,7 +849,7 @@ async function build(): Promise<Snapshot> {
         puell: "derived: (reward × 144 × price) / 365d SMA",
         rainbow: "derived: per-cycle band of price vs cycle peak",
         sopr: onchainLive.sopr ? BG : "modelled — no free public source",
-        rhodl: "modelled — no free public source",
+        rhodl: onchainLive.rhodl ? BG : "modelled — no free public source",
         reserveRisk: onchainLive.reserveRisk ? BG : "modelled — no free public source",
       },
     },

@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { CycleClock } from "./CycleClock";
 import { LastUpdated } from "./LastUpdated";
+import { ShareCardButton } from "./ShareCardButton";
 import {
   CYCLE_PROGRESS_PCT,
   DAYS_TO_NEXT_HALVING,
@@ -82,7 +83,10 @@ export function CyclePositionHero() {
             />
           </dl>
 
-          <LastUpdated prefix="Prices as of" className="mt-3" />
+          <div className="mt-3 flex items-center gap-3 flex-wrap">
+            <LastUpdated prefix="Prices as of" />
+            <ShareCardButton />
+          </div>
         </div>
 
         {/* Right: the clock visual */}
