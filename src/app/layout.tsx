@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { PageTracker } from "@/components/PageTracker";
+import { SITE_URL, SITE_NAME } from "@/lib/site";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const fraunces = Fraunces({
@@ -19,11 +20,18 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://halvinglens.com"),
-  title: "Halving.lens — the clearest view of the Bitcoin cycle",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Halving.lens — the clearest view of the Bitcoin cycle",
+    template: "%s · Halving.lens",
+  },
   description:
     "Every Bitcoin cycle metric, aligned to halving day zero, across all four cycles. Free.",
+  alternates: { canonical: "/" },
+  applicationName: SITE_NAME,
   openGraph: {
+    siteName: SITE_NAME,
+    url: SITE_URL,
     title: "Halving.lens — the clearest view of the Bitcoin cycle",
     description:
       "Every Bitcoin cycle metric, aligned to halving day zero, across all four cycles. Free.",

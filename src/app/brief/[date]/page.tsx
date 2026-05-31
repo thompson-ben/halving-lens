@@ -29,7 +29,13 @@ export function generateMetadata({ params }: { params: { date: string } }): Meta
   return {
     title: `Bitcoin Cycle Brief — ${label} · halving.lens`,
     description: desc,
-    openGraph: { title: `Bitcoin Cycle Brief — ${label}`, description: desc, type: "article" },
+    alternates: { canonical: `/brief/${params.date}` },
+    openGraph: {
+      title: `Bitcoin Cycle Brief — ${label}`,
+      description: desc,
+      url: `/brief/${params.date}`,
+      type: "article",
+    },
   };
 }
 

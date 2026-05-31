@@ -3,6 +3,7 @@
 // figure traces to the live snapshot.
 
 import { format } from "date-fns";
+import { SITE_HOST } from "./site";
 import { cycleSummary } from "./cycleSummary";
 import { SOURCE, TODAY_DAY_IN_CYCLE } from "./btcData";
 import { fmtPct, fmtUsd } from "./format";
@@ -59,7 +60,7 @@ export function shortPost(changed?: { area: string; summary: string }[]): string
     "Cycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.",
     "",
     "Historical context, not financial advice.",
-    "halving.lens",
+    SITE_HOST,
   );
   return lines.join("\n");
 }
@@ -81,7 +82,7 @@ export function threadPost(): string[] {
   t.push(`4/ What makes this cycle different: ${s.whatsDifferent}`);
   t.push(`5/ What to watch: ${s.whatToWatch}`);
   t.push(
-    `Historical cycle behaviour is not a forecast — educational analysis, not financial advice.\n\nFull read: halving.lens`,
+    `Historical cycle behaviour is not a forecast — educational analysis, not financial advice.\n\nFull read: ${SITE_HOST}`,
   );
   return t;
 }
@@ -107,7 +108,7 @@ export function linkedinPost(): string {
     "",
     "Historical cycle behaviour is not a forecast. This is educational analysis, not financial advice.",
     "",
-    "More: halving.lens",
+    `More: ${SITE_HOST}`,
   ].join("\n");
 }
 
