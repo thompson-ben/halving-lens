@@ -19,42 +19,12 @@ export default function CycleDashboardPage() {
       {/* 1. The answer first — visual hero with the cycle thermometer */}
       <CycleSummaryHero />
 
-      {/* 2. Why check today — compact daily-habit reminder */}
-      <WhyCheckToday />
-
-      {/* 3. The moat, surfaced high — current cycle vs prior cycles */}
-      <TodayVsPriorCycles />
-
-      {/* 4. What changed since yesterday */}
-      <WhatChanged />
-
-      {/* 5. What to watch next */}
-      <WhatToWatch />
-
-      {/* 6. Cycle scorecard — the environment at a glance */}
-      <CycleScorecard />
-
-      {/* 7. Was this historically stretched? */}
-      <StretchPanel />
-
-      {/* 8. What happened next historically */}
-      <WhatHappenedNext />
-
-      {/* 5. What makes this cycle different */}
-      <WhatsDifferent />
-
-      {/* 6. The evidence behind the read */}
-      <EvidenceDashboard />
-
-      {/* Daily brief capture */}
-      <BriefSignup />
-
-      {/* 7. Deeper links — overlay moat + replay */}
+      {/* 2. The moat visual — every cycle lined up from day zero */}
       <section>
         <SectionHeader
-          eyebrow="Go deeper"
+          eyebrow="The signature view"
           title="Every halving cycle, lined up from day zero"
-          subtitle="All four cycles drawn on the same axis, aligned to halving day. The evidence behind the read."
+          subtitle="All four cycles on the same axis, aligned to halving day — the comparison that doesn't exist anywhere else free."
           link={{ href: "/cycles", label: "Open full overlay" }}
         />
         <div className="card p-4 sm:p-7 relative">
@@ -68,6 +38,36 @@ export default function CycleDashboardPage() {
           Open full overlay <ArrowUpRight size={14} />
         </Link>
       </section>
+
+      {/* 3. Why check today — compact daily-habit reminder */}
+      <WhyCheckToday />
+
+      {/* 4. The moat in numbers — current cycle vs prior cycles */}
+      <TodayVsPriorCycles />
+
+      {/* 5. What changed since yesterday */}
+      <WhatChanged />
+
+      {/* 6. What to watch next */}
+      <WhatToWatch />
+
+      {/* 7. Cycle scorecard — the environment at a glance */}
+      <CycleScorecard />
+
+      {/* 8. Was this historically stretched? */}
+      <StretchPanel />
+
+      {/* 9. What happened next historically */}
+      <WhatHappenedNext />
+
+      {/* 10. What makes this cycle different */}
+      <WhatsDifferent />
+
+      {/* 11. The evidence behind the read */}
+      <EvidenceDashboard />
+
+      {/* Daily brief capture */}
+      <BriefSignup />
 
       <section>
         <Link
