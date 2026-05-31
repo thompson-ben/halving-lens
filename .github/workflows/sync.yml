@@ -44,14 +44,17 @@ jobs:
           # Optional — enables on-chain metrics (BGeometrics / bitcoin-data.com).
           BITCOIN_DATA_API_KEY: ${{ secrets.BITCOIN_DATA_API_KEY }}
 
-      - name: Commit snapshot if changed
+      - name: Persist today's brief into the archive
+        run: npm run persist-brief
+
+      - name: Commit snapshot + brief archive if changed
         run: |
-          if git diff --quiet src/lib/data/snapshot.ts; then
+          if git diff --quiet src/lib/data/snapshot.ts src/lib/data/briefs.ts; then
             echo "No changes — snapshot is already up to date."
             exit 0
           fi
           git config user.name "halving-lens-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add src/lib/data/snapshot.ts
-          git commit -m "chore(data): refresh snapshot ($(date -u +%Y-%m-%d))"
+          git add src/lib/data/snapshot.ts src/lib/data/briefs.ts
+          git commit -m "chore(data): refresh snapshot + brief ($(date -u +%Y-%m-%d))"
           git push

@@ -404,19 +404,22 @@ async function fetchOnchain(): Promise<OnchainData | null> {
 // committed data is >6 days old (or absent). Band slugs are best-effort; the
 // [HODL] logs reveal which the API accepts so they can be pinned. Fail-safe:
 // returns null (carry over) unless a healthy full set is parsed.
+// Band slugs are best-effort (the BGeometrics docs aren't machine-readable to
+// us). Each id lists several plausible spellings; the first that returns data
+// wins, and the [HODL] logs reveal hits/misses so they can be pinned exactly.
 const HODL_BANDS_SLUGS: Array<{ id: string; slugs: string[] }> = [
-  { id: "1d", slugs: ["hodl-waves-1d", "hodl-wave-24h"] },
-  { id: "1w", slugs: ["hodl-waves-1d-1w", "hodl-wave-1d-1w"] },
-  { id: "1m", slugs: ["hodl-waves-1w-1m"] },
-  { id: "3m", slugs: ["hodl-waves-1m-3m"] },
-  { id: "6m", slugs: ["hodl-waves-3m-6m"] },
-  { id: "1y", slugs: ["hodl-waves-6m-12m", "hodl-waves-6m-1y"] },
-  { id: "2y", slugs: ["hodl-waves-1y-2y"] },
-  { id: "3y", slugs: ["hodl-waves-2y-3y"] },
-  { id: "5y", slugs: ["hodl-waves-3y-5y"] },
-  { id: "7y", slugs: ["hodl-waves-5y-7y"] },
-  { id: "10y", slugs: ["hodl-waves-7y-10y"] },
-  { id: "10y+", slugs: ["hodl-waves-10y"] },
+  { id: "1d", slugs: ["hodl-waves-1d", "hodl-wave-1d", "hodl-waves-24h", "rcap-hodl-waves-1d"] },
+  { id: "1w", slugs: ["hodl-waves-1d-1w", "hodl-wave-1d-1w", "hodl-waves-1w"] },
+  { id: "1m", slugs: ["hodl-waves-1w-1m", "hodl-wave-1w-1m", "hodl-waves-1m"] },
+  { id: "3m", slugs: ["hodl-waves-1m-3m", "hodl-wave-1m-3m", "hodl-waves-3m"] },
+  { id: "6m", slugs: ["hodl-waves-3m-6m", "hodl-wave-3m-6m", "hodl-waves-6m"] },
+  { id: "1y", slugs: ["hodl-waves-6m-12m", "hodl-waves-6m-1y", "hodl-wave-6m-12m", "hodl-waves-12m"] },
+  { id: "2y", slugs: ["hodl-waves-1y-2y", "hodl-wave-1y-2y", "hodl-waves-2y"] },
+  { id: "3y", slugs: ["hodl-waves-2y-3y", "hodl-wave-2y-3y", "hodl-waves-3y"] },
+  { id: "5y", slugs: ["hodl-waves-3y-5y", "hodl-wave-3y-5y", "hodl-waves-5y"] },
+  { id: "7y", slugs: ["hodl-waves-5y-7y", "hodl-wave-5y-7y", "hodl-waves-7y"] },
+  { id: "10y", slugs: ["hodl-waves-7y-10y", "hodl-wave-7y-10y", "hodl-waves-10y"] },
+  { id: "10y+", slugs: ["hodl-waves-10y-plus", "hodl-waves-more-10y", "hodl-wave-10y"] },
 ];
 
 async function fetchHodlWaves(): Promise<import("../src/lib/data/types").HodlWavesData | null> {

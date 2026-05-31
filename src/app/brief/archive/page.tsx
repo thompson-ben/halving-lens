@@ -26,7 +26,7 @@ export default function BriefArchivePage() {
       </header>
 
       {months.map((m) => (
-        <section key={m.label}>
+        <section key={m.key}>
           <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100 mb-5">
             {m.label}
           </h2>

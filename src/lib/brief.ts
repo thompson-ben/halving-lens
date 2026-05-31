@@ -82,6 +82,71 @@ export function briefDayLabel(): string {
   return `Day ${TODAY_DAY_IN_CYCLE} from the 2024 halving`;
 }
 
+// ── Persisted archive ───────────────────────────────────────────────────────
+// A fully self-contained snapshot of a day's brief, written by the daily sync
+// so past dates render real history (not today's live data).
+
+export interface StoredBrief {
+  slug: string; // YYYY-MM-DD
+  dateLabel: string;
+  generatedAt: string | null;
+  headline: string;
+  phaseLabel: string;
+  heat: string;
+  price: number;
+  changePct: number | null;
+  changeLabel: string;
+  cycleDay: number;
+  progressPct: number;
+  gainFromHalving: number;
+  drawdownFromAth: number;
+  summary: string;
+  support: string;
+  whatsDifferent: string;
+  whatToWatch: string;
+  conclusion: string;
+  insights: { title: string; body: string }[];
+  watchSignals: { signal: string; status: string; level: string; confidence: string }[];
+  shortPost: string;
+}
+
+export function serializeBrief(): StoredBrief {
+  const b = buildBrief();
+  const s = cycleSummary();
+  const day = SOURCE.fetchedAt ? new Date(SOURCE.fetchedAt) : new Date();
+  return {
+    slug: format(day, "yyyy-MM-dd"),
+    dateLabel: b.date,
+    generatedAt: SOURCE.fetchedAt,
+    headline: b.headline,
+    phaseLabel: s.phaseLabel,
+    heat: s.heat,
+    price: s.price,
+    changePct: s.change24h,
+    changeLabel: s.changeLabel,
+    cycleDay: s.cycleDay,
+    progressPct: s.progressPct,
+    gainFromHalving: s.gainFromHalving,
+    drawdownFromAth: s.drawdownFromAth,
+    summary: s.summary,
+    support: s.support,
+    whatsDifferent: s.whatsDifferent,
+    whatToWatch: s.whatToWatch,
+    conclusion: b.conclusion,
+    insights: [cycleInsight(), etfInsight(), sentimentInsight()].map((i) => ({
+      title: i.title,
+      body: i.body,
+    })),
+    watchSignals: s.watchSignals.map((w) => ({
+      signal: w.signal,
+      status: w.status,
+      level: w.level,
+      confidence: w.confidence,
+    })),
+    shortPost: shortPost(),
+  };
+}
+
 // ── Insight-of-the-day blocks ───────────────────────────────────────────────
 
 export interface Insight {
