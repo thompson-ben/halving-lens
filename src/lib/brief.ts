@@ -37,23 +37,31 @@ export function buildBrief(): Brief {
   };
 }
 
-// Short, copy-paste X post.
-export function shortPost(): string {
+// Short, copy-paste X post. When a prior brief exists, includes a compact
+// "what changed today" block (Phase 4 format).
+export function shortPost(changed?: { area: string; summary: string }[]): string {
   const s = cycleSummary();
-  const chg =
-    s.change24h != null ? ` (${fmtPct(s.change24h, 1)} ${s.changeLabel})` : "";
-  return [
-    "Bitcoin Cycle Brief:",
+  const b = buildBrief();
+  const chg = s.change24h != null ? ` (${fmtPct(s.change24h, 1)} ${s.changeLabel})` : "";
+  const lines = [
+    `Bitcoin Cycle Brief — ${b.date}`,
     "",
-    `BTC ${fmtUsd(s.price)}${chg} · day ${s.cycleDay} of the halving cycle (${s.progressPct}% through).`,
+    `BTC ${fmtUsd(s.price)}${chg} · day ${s.cycleDay} (${s.progressPct}% through the cycle).`,
     "",
     s.summary,
+  ];
+  if (changed && changed.length) {
+    lines.push("", "What changed today:");
+    for (const c of changed.slice(0, 3)) lines.push(`- ${c.summary}`);
+  }
+  lines.push(
     "",
-    "At this point, prior cycles had usually already peaked. This cycle is different: slower, flatter, and ETF-supported.",
+    "Cycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.",
     "",
     "Historical context, not financial advice.",
     "halving.lens",
-  ].join("\n");
+  );
+  return lines.join("\n");
 }
 
 // Longer thread version (array of tweets).
@@ -82,6 +90,27 @@ export function briefDayLabel(): string {
   return `Day ${TODAY_DAY_IN_CYCLE} from the 2024 halving`;
 }
 
+// LinkedIn-style summary — slightly longer, professional framing.
+export function linkedinPost(): string {
+  const s = cycleSummary();
+  const b = buildBrief();
+  return [
+    `Bitcoin Cycle Brief — ${b.date}`,
+    "",
+    s.summary,
+    "",
+    `Where we are: day ${s.cycleDay} of the halving cycle (${s.progressPct}% through), ${s.phaseLabel.toLowerCase()}. BTC ${fmtUsd(s.price)}.`,
+    "",
+    `What makes this cycle different: ${s.whatsDifferent}`,
+    "",
+    `What to watch next: ${s.whatToWatch}`,
+    "",
+    "Historical cycle behaviour is not a forecast. This is educational analysis, not financial advice.",
+    "",
+    "More: halving.lens",
+  ].join("\n");
+}
+
 // ── Persisted archive ───────────────────────────────────────────────────────
 // A fully self-contained snapshot of a day's brief, written by the daily sync
 // so past dates render real history (not today's live data).
@@ -100,6 +129,11 @@ export interface StoredBrief {
   progressPct: number;
   gainFromHalving: number;
   drawdownFromAth: number;
+  // Raw comparison metrics (for "what changed since yesterday")
+  heatPercentile: number | null;
+  sentimentValue: number | null;
+  etfCumulative: number | null;
+  etfTrailingWeek: number | null;
   summary: string;
   support: string;
   whatsDifferent: string;
@@ -114,6 +148,8 @@ export function serializeBrief(): StoredBrief {
   const b = buildBrief();
   const s = cycleSummary();
   const day = SOURCE.fetchedAt ? new Date(SOURCE.fetchedAt) : new Date();
+  const sr = SENTIMENT_AVAILABLE ? sentimentRead() : null;
+  const etf = ETF.connected ? etfStats() : null;
   return {
     slug: format(day, "yyyy-MM-dd"),
     dateLabel: b.date,
@@ -128,6 +164,10 @@ export function serializeBrief(): StoredBrief {
     progressPct: s.progressPct,
     gainFromHalving: s.gainFromHalving,
     drawdownFromAth: s.drawdownFromAth,
+    heatPercentile: s.heatPercentile,
+    sentimentValue: sr?.value ?? null,
+    etfCumulative: etf?.cumulative ?? null,
+    etfTrailingWeek: etf?.trailingWeek ?? null,
     summary: s.summary,
     support: s.support,
     whatsDifferent: s.whatsDifferent,

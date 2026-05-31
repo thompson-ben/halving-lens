@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowUpRight, Play } from "lucide-react";
 import { CycleSummaryHero } from "@/components/CycleSummaryHero";
 import { WhatToWatch } from "@/components/WhatToWatch";
+import { WhatChanged } from "@/components/WhatChanged";
+import { CycleScorecard } from "@/components/CycleScorecard";
 import { StretchPanel } from "@/components/StretchPanel";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
@@ -18,6 +20,12 @@ export default function CycleDashboardPage() {
 
       {/* 1b. What to watch next — forward-looking signals */}
       <WhatToWatch />
+
+      {/* 1c. What changed since yesterday — the daily habit hook */}
+      <WhatChanged />
+
+      {/* 1d. Cycle scorecard — the environment at a glance */}
+      <CycleScorecard />
 
       {/* 2. Was this historically stretched? */}
       <StretchPanel />

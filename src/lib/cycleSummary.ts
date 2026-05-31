@@ -21,6 +21,8 @@ import { etfStats, ETF } from "./etf";
 import { sentimentRead, sentimentChange, currentSentiment, SENTIMENT_AVAILABLE } from "./sentiment";
 import { metricBySlug, zoneFor } from "./metrics";
 import { halvingStats } from "./halvingStats";
+import { fmtUsd } from "./format";
+import type { StoredBrief } from "./brief";
 
 export type HeatLevel = "cool" | "neutral" | "heating" | "elevated" | "euphoria";
 export type Confidence = "low" | "medium" | "high";
@@ -365,6 +367,249 @@ export function cycleSummary(): CycleSummary {
     watchSignals: buildWatchSignals(div, heat),
     evidence,
   };
+}
+
+// ── What changed since yesterday ────────────────────────────────────────────
+// Compares today's live read against the most recent persisted brief. Never
+// fabricates a prior value — returns available=false until a prior brief exists.
+
+export type ChangeDir = "up" | "down" | "flat";
+
+export interface ChangeItem {
+  area: string;
+  direction: ChangeDir;
+  summary: string; // plain-English change
+  why: string; // why it matters
+  level: WatchLevel;
+}
+
+export interface WhatChanged {
+  available: boolean;
+  sinceDate: string | null; // label of the prior brief
+  items: ChangeItem[];
+}
+
+function dirOf(delta: number, eps: number): ChangeDir {
+  return delta > eps ? "up" : delta < -eps ? "down" : "flat";
+}
+
+export function whatChanged(prior: StoredBrief | null): WhatChanged {
+  if (!prior) return { available: false, sinceDate: null, items: [] };
+  const s = cycleSummary();
+  const items: ChangeItem[] = [];
+
+  // 1. BTC price
+  if (prior.price > 0) {
+    const pct = (s.price / prior.price - 1) * 100;
+    const dir = dirOf(pct, 0.3);
+    items.push({
+      area: "BTC price",
+      direction: dir,
+      summary:
+        dir === "flat"
+          ? `Broadly flat at ${fmtUsd(s.price)}.`
+          : `${dir === "up" ? "Up" : "Down"} ${Math.abs(pct).toFixed(1)}% to ${fmtUsd(s.price)} (from ${fmtUsd(prior.price)}).`,
+      why: "The headline read on momentum since the last daily snapshot.",
+      level: Math.abs(pct) > 6 ? "watch" : "calm",
+    });
+  }
+
+  // 2. ETF flows
+  if (prior.etfCumulative != null && s.evidence.some((e) => e.label === "ETF flows")) {
+    const cur = etfStats();
+    const delta = cur.cumulative - prior.etfCumulative;
+    const dir = dirOf(delta, 5e7);
+    items.push({
+      area: "ETF flows",
+      direction: dir,
+      summary:
+        dir === "flat"
+          ? "Net flows little changed day-over-day."
+          : `Cumulative net flow ${dir === "up" ? "rose" : "fell"} by ${compactUsd(Math.abs(delta))}.`,
+      why:
+        cur.trailingWeek < 0
+          ? "ETFs have been in net outflow recently — a read on softer institutional demand."
+          : "Sustained ETF inflows are a candidate explanation for this cycle's cooler price path.",
+      level: cur.trailingWeek < -1e9 ? "watch" : "calm",
+    });
+  }
+
+  // 3. Sentiment
+  if (prior.sentimentValue != null && s.evidence.some((e) => e.label === "Sentiment")) {
+    const cur = currentSentiment();
+    if (cur) {
+      const delta = cur.value - prior.sentimentValue;
+      const dir = dirOf(delta, 1.5);
+      items.push({
+        area: "Sentiment",
+        direction: dir,
+        summary:
+          dir === "flat"
+            ? `Fear & Greed steady at ${cur.value}.`
+            : `Fear & Greed moved from ${prior.sentimentValue} to ${cur.value}.`,
+        why:
+          cur.value < 45
+            ? "Sentiment remains fearful — historically a calmer, contrarian zone."
+            : cur.value >= 70
+              ? "Sentiment is approaching greedy territory — worth watching as a contrarian signal."
+              : "Sentiment is in neutral territory.",
+        level: cur.value >= 75 ? "watch" : "calm",
+      });
+    }
+  }
+
+  // 4. Cycle summary / phase
+  {
+    const changed = prior.phaseLabel !== s.phaseLabel || prior.summary !== s.summary;
+    items.push({
+      area: "Cycle summary",
+      direction: "flat",
+      summary: changed ? `Phase read updated to "${s.phaseLabel}".` : "No major change.",
+      why: s.keyInsight,
+      level: "calm",
+    });
+  }
+
+  // 5. Heat / risk level
+  if (prior.heat) {
+    const order = ["cool", "neutral", "heating", "elevated", "euphoria"];
+    const delta = order.indexOf(s.heat) - order.indexOf(prior.heat);
+    const dir: ChangeDir = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+    items.push({
+      area: "Heat / risk level",
+      direction: dir,
+      summary:
+        dir === "flat"
+          ? `Unchanged — ${HEAT_LABEL[s.heat].toLowerCase()}.`
+          : `${dir === "up" ? "Rose" : "Eased"} to ${HEAT_LABEL[s.heat].toLowerCase()} (from ${HEAT_LABEL[prior.heat as HeatLevel]?.toLowerCase() ?? prior.heat}).`,
+      why: "How stretched price is versus its long-term average — the single risk gauge.",
+      level: s.heat === "euphoria" || s.heat === "elevated" ? "watch" : "calm",
+    });
+  }
+
+  return {
+    available: true,
+    sinceDate: prior.dateLabel,
+    items,
+  };
+}
+
+// ── Cycle Scorecard ─────────────────────────────────────────────────────────
+// A digestible, multi-factor read of the cycle environment. Each factor scores
+// 0–100 as a "condition" reading — explicitly NOT a buy/sell signal. The
+// overall is a simple average of available factors.
+
+export interface ScorecardFactor {
+  factor: string;
+  status: string; // short label
+  score: number; // 0-100 condition reading
+  explanation: string;
+  confidence: Confidence;
+}
+
+export interface Scorecard {
+  factors: ScorecardFactor[];
+  overall: number; // 0-100 "cycle environment score"
+}
+
+export function cycleScorecard(): Scorecard {
+  const div = cycleDivergence();
+  const s = cycleSummary();
+  const factors: ScorecardFactor[] = [];
+
+  // Cycle timing — how far through, modulated by divergence
+  factors.push({
+    factor: "Cycle timing",
+    status: div.later ? "Later-running" : "On schedule",
+    score: Math.round(s.progressPct),
+    explanation: div.later
+      ? "Previous cycles had usually peaked by this point, but this cycle remains cooler by price behaviour."
+      : "Broadly tracking the timing of previous cycles after the halving.",
+    confidence: "high",
+  });
+
+  // Price structure — heat percentile (lower = cooler/earlier)
+  if (s.heatPercentile != null) {
+    factors.push({
+      factor: "Price structure",
+      status: HEAT_LABEL[s.heat],
+      score: s.heatPercentile,
+      explanation: `Price sits around the ${s.heatPercentile}th percentile of its historical range versus its long-term average.`,
+      confidence: "high",
+    });
+  }
+
+  // ETF demand
+  if (ETF.connected) {
+    const e = etfStats();
+    const wk = e.trailingWeek;
+    const score = wk > 1e9 ? 80 : wk > 0 ? 62 : wk > -1e9 ? 45 : 30;
+    factors.push({
+      factor: "ETF demand",
+      status: wk > 0 ? "Inflows" : wk < -1e9 ? "Watch" : "Softening",
+      score,
+      explanation:
+        wk > 0
+          ? "Recent ETF flows are positive; cumulative demand remains structurally important."
+          : "Recent ETF flows have weakened, but cumulative demand remains structurally important.",
+      confidence: "high",
+    });
+  }
+
+  // Sentiment (mid is calm; extremes lower the "calm" score)
+  if (SENTIMENT_AVAILABLE) {
+    const cur = currentSentiment();
+    if (cur) {
+      const v = cur.value;
+      // calmness: peaks at ~50, falls toward extremes
+      const score = Math.round(100 - Math.abs(v - 50) * 1.4);
+      factors.push({
+        factor: "Sentiment",
+        status: v >= 75 ? "Greed" : v <= 25 ? "Fear" : "Calm",
+        score: Math.max(10, Math.min(100, score)),
+        explanation:
+          v >= 75
+            ? "Sentiment is elevated — worth watching as a contrarian signal."
+            : v <= 25
+              ? "Sentiment is fearful — historically a calmer, contrarian zone."
+              : "Fear & Greed remains below euphoric levels.",
+        confidence: "high",
+      });
+    }
+  }
+
+  // Miner health (Puell suppressed = not overheated = healthy condition)
+  const puell = metricBySlug("puell-multiple");
+  if (puell) {
+    const p = TODAY.puell;
+    const score = p < 0.6 ? 55 : p < 1 ? 70 : p < 2 ? 60 : p < 4 ? 40 : 22;
+    factors.push({
+      factor: "Miner health",
+      status: p < 1 ? "Stable" : p >= 4 ? "Overheated" : "Normal",
+      score,
+      explanation:
+        p < 1
+          ? "Puell remains suppressed, suggesting miner revenue is not overheated."
+          : "Miner revenue is elevated versus its yearly average.",
+      confidence: "medium",
+    });
+  }
+
+  // Historical risk (inverse of heat percentile — cooler = lower risk)
+  if (s.heatPercentile != null) {
+    factors.push({
+      factor: "Historical risk",
+      status: s.heat === "euphoria" ? "Elevated" : s.heat === "elevated" ? "Raised" : "Contained",
+      score: Math.round(100 - s.heatPercentile),
+      explanation: `Versus past cycles, today sits ${s.heatPercentile < 50 ? "below" : "above"} the midpoint of historical stretch.`,
+      confidence: "medium",
+    });
+  }
+
+  const overall = factors.length
+    ? Math.round(factors.reduce((a, f) => a + f.score, 0) / factors.length)
+    : 0;
+  return { factors, overall };
 }
 
 // "Was this historically stretched?" — the beginner buy-context read, framed

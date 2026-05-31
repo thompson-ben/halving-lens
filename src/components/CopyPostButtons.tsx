@@ -3,12 +3,21 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 
-// Copy buttons for the X post + thread generated from the daily brief.
-export function CopyPostButtons({ post, thread }: { post: string; thread: string[] }) {
+// Copy buttons for the X post + thread + LinkedIn summary from the daily brief.
+export function CopyPostButtons({
+  post,
+  thread,
+  linkedin,
+}: {
+  post: string;
+  thread: string[];
+  linkedin?: string;
+}) {
   return (
     <div className="flex flex-wrap gap-2">
       <CopyButton label="Copy post" text={post} />
       <CopyButton label="Copy thread" text={thread.join("\n\n———\n\n")} />
+      {linkedin && <CopyButton label="Copy LinkedIn summary" text={linkedin} />}
       <a
         href="/og"
         download="halving-lens.png"

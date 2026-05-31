@@ -4,15 +4,18 @@ import {
   buildBrief,
   shortPost,
   threadPost,
+  linkedinPost,
   etfInsight,
   sentimentInsight,
   cycleInsight,
   type Insight,
 } from "@/lib/brief";
-import { cycleSummary } from "@/lib/cycleSummary";
+import { cycleSummary, whatChanged } from "@/lib/cycleSummary";
+import { priorBrief } from "@/lib/briefArchive";
 import { CopyPostButtons } from "@/components/CopyPostButtons";
 import { BriefSignup } from "@/components/BriefSignup";
 import { WhatToWatch } from "@/components/WhatToWatch";
+import { WhatChanged } from "@/components/WhatChanged";
 import { DataBadge } from "@/components/DataBadge";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
@@ -25,8 +28,10 @@ import { fmtPct, fmtUsd } from "@/lib/format";
 export function BriefBody({ dateLabel }: { dateLabel?: string }) {
   const b = buildBrief();
   const s = cycleSummary();
-  const post = shortPost();
+  const changed = whatChanged(priorBrief());
+  const post = shortPost(changed.available ? changed.items.map((i) => ({ area: i.area, summary: i.summary })) : undefined);
   const thread = threadPost();
+  const linkedin = linkedinPost();
 
   return (
     <div className="space-y-12">
@@ -93,6 +98,8 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
         </div>
       </section>
 
+      <WhatChanged />
+
       <WhatToWatch />
 
       <section>
@@ -100,14 +107,14 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
           Share this brief
         </h2>
         <p className="text-[12.5px] text-ink-400 mb-4 max-w-xl">
-          Copy-ready for X — historical context, not advice.
+          Copy-ready for X and LinkedIn — historical context, not advice.
         </p>
         <div className="card p-5 mb-4">
           <pre className="whitespace-pre-wrap break-words font-sans text-[13px] text-ink-200 leading-relaxed">
             {post}
           </pre>
         </div>
-        <CopyPostButtons post={post} thread={thread} />
+        <CopyPostButtons post={post} thread={thread} linkedin={linkedin} />
       </section>
 
       <TodayVsPriorCycles />

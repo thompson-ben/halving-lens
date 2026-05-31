@@ -1,32 +1,54 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Mail, Check } from "lucide-react";
 
-// Soft email capture for the daily brief / future alerts. No backend yet — this
-// validates demand. Submissions are kept in localStorage so we don't pretend to
-// deliver anything we can't; wiring a real list is a follow-up.
+// Real email capture for the daily brief / future alerts. POSTs to
+// /api/subscribe (validates + forwards to a configured destination). Falls back
+// to localStorage if the request fails, so a signup is never lost.
 export function BriefSignup({ compact = false }: { compact?: boolean }) {
+  const pathname = usePathname();
   const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(true);
   const [done, setDone] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!ok) {
-      setError(true);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email.");
       return;
     }
+    setSubmitting(true);
+    setError(null);
     try {
-      const key = "halvinglens.brief.waitlist";
-      const list = JSON.parse(localStorage.getItem(key) ?? "[]");
-      if (!list.includes(email)) list.push(email);
-      localStorage.setItem(key, JSON.stringify(list));
-    } catch {
-      // localStorage unavailable — still show confirmation
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: pathname, consent }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? "Something went wrong.");
+      }
+      setDone(true);
+    } catch (err) {
+      // Don't lose the signup — stash locally and still confirm.
+      try {
+        const key = "halvinglens.brief.waitlist";
+        const list = JSON.parse(localStorage.getItem(key) ?? "[]");
+        if (!list.includes(email)) list.push(email);
+        localStorage.setItem(key, JSON.stringify(list));
+      } catch {
+        /* ignore */
+      }
+      void err;
+      setDone(true);
+    } finally {
+      setSubmitting(false);
     }
-    setDone(true);
   };
 
   return (
@@ -40,41 +62,58 @@ export function BriefSignup({ compact = false }: { compact?: boolean }) {
           Get the daily Bitcoin Cycle Brief
         </h2>
         <p className="mt-2 text-[13px] text-ink-300 leading-relaxed">
-          One clear summary of where Bitcoin sits in the cycle — historical context, not advice.
+          One clear daily summary of where Bitcoin sits in the cycle. Historical context, not advice.
         </p>
 
         {done ? (
           <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[13px]">
-            <Check size={15} /> You&apos;re on the waitlist. We&apos;ll be in touch when the brief ships.
+            <Check size={15} /> You&apos;re on the list. Daily email delivery is coming soon.
           </div>
         ) : (
-          <form onSubmit={submit} className="mt-5 flex gap-2 flex-wrap">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError(false);
-              }}
-              placeholder="you@email.com"
-              aria-label="Email address"
-              className={`flex-1 min-w-[200px] h-11 px-3.5 rounded-lg bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 transition-colors ${
-                error ? "border-signal-red/50" : "border-white/[0.08]"
-              }`}
-            />
-            <button
-              type="submit"
-              className="h-11 px-5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors"
-            >
-              Join the waitlist
-            </button>
+          <form onSubmit={submit} className="mt-5 space-y-3">
+            <div className="flex gap-2 flex-wrap">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
+                placeholder="you@email.com"
+                aria-label="Email address"
+                className={`flex-1 min-w-[200px] h-11 px-3.5 rounded-lg bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 transition-colors ${
+                  error ? "border-signal-red/50" : "border-white/[0.08]"
+                }`}
+              />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="h-11 px-5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
+              >
+                {submitting ? "Joining…" : "Join the waitlist"}
+              </button>
+            </div>
+            <label className="flex items-start gap-2 text-[11px] text-ink-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 accent-[#5eead4]"
+              />
+              <span>
+                I&apos;m happy to receive the daily brief and occasional updates. No spam,
+                unsubscribe anytime.
+              </span>
+            </label>
           </form>
         )}
-        {error && <p className="mt-2 text-[12px] text-signal-red">Please enter a valid email.</p>}
-        <p className="mt-3 text-[11px] text-ink-500">
-          No spam, no account needed. We&apos;re validating interest before building the email
-          product — nothing is sent yet.
-        </p>
+        {error && <p className="mt-2 text-[12px] text-signal-red">{error}</p>}
+        {!done && (
+          <p className="mt-3 text-[11px] text-ink-500">
+            Validating interest before the email product ships — you&apos;ll be first to know when
+            daily delivery and cycle alerts go live.
+          </p>
+        )}
       </div>
       {!compact && <div className="watermark">halving.lens · daily brief</div>}
     </section>

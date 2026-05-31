@@ -31,6 +31,14 @@ export function storedBrief(slug: string): StoredBrief | null {
   return STORED_BRIEFS.find((b) => b.slug === slug) ?? null;
 }
 
+// The most recent stored brief from BEFORE today — the "yesterday" comparison
+// point. Null until at least one prior day has been persisted.
+export function priorBrief(): StoredBrief | null {
+  const tSlug = todaySlug();
+  const past = STORED_BRIEFS.filter((b) => b.slug < tSlug).sort((a, b) => (a.slug < b.slug ? 1 : -1));
+  return past[0] ?? null;
+}
+
 export function allBriefSlugs(): string[] {
   const set = new Set(STORED_BRIEFS.map((b) => b.slug));
   set.add(todaySlug());
