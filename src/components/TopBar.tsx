@@ -132,8 +132,12 @@ function MobileStatus({ spot }: { spot: { price: number; pct: number | null; lab
         {spot.pct != null && <span className="text-[9.5px] text-ink-400">{spot.label}</span>}
       </Link>
       <div className="flex items-center gap-1.5 pl-2.5 border-l border-white/[0.06]">
+        <span className="text-[10.5px] text-ink-300 font-mono whitespace-nowrap">
+          Day {TODAY_DAY_IN_CYCLE}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 pl-2.5 border-l border-white/[0.06]">
         <span className={`relative w-1.5 h-1.5 rounded-full ${dot} ${isLive ? "live-dot" : ""}`} />
-        <span className="text-[10.5px] text-ink-300">{label}</span>
       </div>
     </div>
   );

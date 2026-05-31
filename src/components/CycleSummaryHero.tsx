@@ -60,7 +60,7 @@ export function CycleSummaryHero() {
         </div>
 
         {/* Live numbers */}
-        <dl className="mt-7 grid grid-cols-2 sm:grid-cols-4 rounded-xl border border-white/[0.06] bg-white/[0.015] overflow-hidden divide-x divide-y sm:divide-y-0 divide-white/[0.06] max-w-2xl">
+        <dl className="mt-7 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden max-w-2xl">
           <Stat label="BTC price" value={fmtUsd(s.price)} />
           {s.change24h != null ? (
             <Stat label={`${s.changeLabel} change`} value={fmtPct(s.change24h, 1)} tone={s.change24h} />
@@ -98,7 +98,7 @@ function Chip({ label, value, tone }: { label: string; value: string; tone: stri
 function Stat({ label, value, tone }: { label: string; value: string; tone?: number }) {
   const color = tone == null ? "text-ink-50" : tone >= 0 ? "text-signal-green" : "text-signal-red";
   return (
-    <div className="px-4 py-3.5">
+    <div className="bg-[#0b0f15] px-4 py-3.5">
       <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
       <div className={`mt-1 font-mono text-[17px] tabular-nums ${color}`}>{value}</div>
     </div>

@@ -73,7 +73,9 @@ export default function BriefPage() {
           Copy-ready for X — historical context, not advice.
         </p>
         <div className="card p-5 mb-4">
-          <pre className="whitespace-pre-wrap font-sans text-[13px] text-ink-200 leading-relaxed">{post}</pre>
+          <pre className="whitespace-pre-wrap break-words font-sans text-[13px] text-ink-200 leading-relaxed">
+            {post}
+          </pre>
         </div>
         <CopyPostButtons post={post} thread={thread} />
       </section>
