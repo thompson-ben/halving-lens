@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://halving-lens.vercel.app"),
+  metadataBase: new URL("https://halvinglens.com"),
   title: "Halving.lens — the clearest view of the Bitcoin cycle",
   description:
     "Every Bitcoin cycle metric, aligned to halving day zero, across all four cycles. Free.",
