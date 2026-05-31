@@ -358,13 +358,23 @@ async function fetchOnchain(): Promise<OnchainData | null> {
   }
   const key = process.env.BITCOIN_DATA_API_KEY;
   const series: Record<string, { date: string; value: number }[]> = {};
-  // Fetch series we don't already have first, so the free-tier rate limit can't
-  // permanently starve the later metrics (they accumulate across runs via merge).
-  const have = new Set(Object.keys(PREVIOUS_SNAPSHOT.onchain?.series ?? {}));
-  const ordered = [...ONCHAIN_METRICS].sort(
-    (a, b) => (have.has(a.key) ? 1 : 0) - (have.has(b.key) ? 1 : 0),
-  );
-  for (const m of ordered) {
+  // Quota-aware selection (free tier ~15/day): always fetch series we're
+  // missing; only re-fetch already-present ones when the snapshot is >20h old
+  // (a genuine daily refresh). Missing series go first so the rate limit can't
+  // starve them. Combined with per-series merge, this fills gaps across runs and
+  // makes repeat manual triggers cheap.
+  const prev = PREVIOUS_SNAPSHOT.onchain;
+  const prevAgeH = prev?.fetchedAt ? (Date.now() - Date.parse(prev.fetchedAt)) / 3_600_000 : Infinity;
+  const stale = prevAgeH > 20;
+  const missing = ONCHAIN_METRICS.filter((m) => !prev?.series?.[m.key]?.length);
+  const present = ONCHAIN_METRICS.filter((m) => prev?.series?.[m.key]?.length);
+  const toFetch = stale ? [...missing, ...present] : missing;
+  if (!toFetch.length) {
+    console.log("  [ONCHAIN] all series present and fresh — skipping (saves quota)");
+    return null;
+  }
+  console.log(`  [ONCHAIN] fetching ${toFetch.map((m) => m.key).join(", ")}`);
+  for (const m of toFetch) {
     let got: { date: string; value: number }[] | null = null;
     for (const slug of m.slugs) {
       try {
