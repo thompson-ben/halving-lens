@@ -22,8 +22,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Halving.lens — the clearest view of the Bitcoin cycle",
-    template: "%s · Halving.lens",
+    default: "halvinglens.com — the clearest view of the Bitcoin cycle",
+    template: "%s · halvinglens.com",
   },
   description:
     "Every Bitcoin cycle metric, aligned to halving day zero, across all four cycles. Free.",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: SITE_NAME,
     url: SITE_URL,
-    title: "Halving.lens — the clearest view of the Bitcoin cycle",
+    title: "halvinglens.com — the clearest view of the Bitcoin cycle",
     description:
       "Every Bitcoin cycle metric, aligned to halving day zero, across all four cycles. Free.",
     images: [{ url: "/og", width: 1200, height: 630 }],
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Halving.lens — the clearest view of the Bitcoin cycle",
+    title: "halvinglens.com — the clearest view of the Bitcoin cycle",
     description: "Bitcoin cycle intelligence, free. Every metric aligned to halving day zero.",
     images: ["/og"],
   },
