@@ -35,9 +35,10 @@ export default function HodlWavesPage() {
           <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-signal-amber shrink-0" />
           <p className="text-[13px] text-ink-200 leading-relaxed">
             <span className="font-medium text-signal-amber">Illustrative — not live data.</span> HODL
-            Waves require on-chain UTXO-age data. The shape below shows the canonical pattern for
-            learning purposes; it switches to live data (refreshed weekly) once the on-chain source
-            is connected.
+            Waves require per-age-band UTXO data, which isn&apos;t available from our current free
+            on-chain source. The shape below shows the canonical pattern for learning purposes — long-term
+            holders distributing into tops, short-term cohorts swelling near peaks. It will switch to
+            live data only if a free band-level source is connected.
           </p>
         </div>
       )}

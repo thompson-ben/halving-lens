@@ -404,60 +404,64 @@ async function fetchOnchain(): Promise<OnchainData | null> {
 // committed data is >6 days old (or absent). Band slugs are best-effort; the
 // [HODL] logs reveal which the API accepts so they can be pinned. Fail-safe:
 // returns null (carry over) unless a healthy full set is parsed.
-// Band slugs are best-effort (the BGeometrics docs aren't machine-readable to
-// us). Each id lists several plausible spellings; the first that returns data
-// wins, and the [HODL] logs reveal hits/misses so they can be pinned exactly.
-const HODL_BANDS_SLUGS: Array<{ id: string; slugs: string[] }> = [
-  { id: "1d", slugs: ["hodl-waves-1d", "hodl-wave-1d", "hodl-waves-24h", "rcap-hodl-waves-1d"] },
-  { id: "1w", slugs: ["hodl-waves-1d-1w", "hodl-wave-1d-1w", "hodl-waves-1w"] },
-  { id: "1m", slugs: ["hodl-waves-1w-1m", "hodl-wave-1w-1m", "hodl-waves-1m"] },
-  { id: "3m", slugs: ["hodl-waves-1m-3m", "hodl-wave-1m-3m", "hodl-waves-3m"] },
-  { id: "6m", slugs: ["hodl-waves-3m-6m", "hodl-wave-3m-6m", "hodl-waves-6m"] },
-  { id: "1y", slugs: ["hodl-waves-6m-12m", "hodl-waves-6m-1y", "hodl-wave-6m-12m", "hodl-waves-12m"] },
-  { id: "2y", slugs: ["hodl-waves-1y-2y", "hodl-wave-1y-2y", "hodl-waves-2y"] },
-  { id: "3y", slugs: ["hodl-waves-2y-3y", "hodl-wave-2y-3y", "hodl-waves-3y"] },
-  { id: "5y", slugs: ["hodl-waves-3y-5y", "hodl-wave-3y-5y", "hodl-waves-5y"] },
-  { id: "7y", slugs: ["hodl-waves-5y-7y", "hodl-wave-5y-7y", "hodl-waves-7y"] },
-  { id: "10y", slugs: ["hodl-waves-7y-10y", "hodl-wave-7y-10y", "hodl-waves-10y"] },
-  { id: "10y+", slugs: ["hodl-waves-10y-plus", "hodl-waves-more-10y", "hodl-wave-10y"] },
-];
+// HODL Waves bands. BGeometrics' free API does NOT appear to expose per-age-band
+// HODL-wave endpoints, so this is DISABLED by default — guessing slugs would
+// fire ~40 404 requests per run and exhaust the daily quota for the on-chain
+// metrics that do work. To enable once real endpoints are confirmed, set the
+// HODL_WAVES_SLUGS env var to a JSON map of band id -> endpoint slug, e.g.
+//   HODL_WAVES_SLUGS='{"1d":"...","1w":"...", ... ,"10y+":"..."}'
+// Until then the page stays honestly illustrative.
+function hodlBandSlugs(): Array<{ id: string; slug: string }> | null {
+  const raw = process.env.HODL_WAVES_SLUGS;
+  if (!raw) return null;
+  try {
+    const map = JSON.parse(raw) as Record<string, string>;
+    const ids = ["1d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "5y", "7y", "10y", "10y+"];
+    const out = ids.filter((id) => map[id]).map((id) => ({ id, slug: map[id] }));
+    return out.length ? out : null;
+  } catch {
+    console.warn("  [HODL] HODL_WAVES_SLUGS is not valid JSON — skipping");
+    return null;
+  }
+}
 
 async function fetchHodlWaves(): Promise<import("../src/lib/data/types").HodlWavesData | null> {
   if (process.env.FULL_SYNC !== "1") return null;
+  const slugs = hodlBandSlugs();
+  if (!slugs) {
+    console.log("  [HODL] no confirmed endpoints (HODL_WAVES_SLUGS unset) — skipping, page stays illustrative");
+    return null;
+  }
   const prev = PREVIOUS_SNAPSHOT.hodlWaves;
   const ageDays = prev?.fetchedAt ? (Date.now() - Date.parse(prev.fetchedAt)) / 86_400_000 : Infinity;
-  const complete = prev && Object.keys(prev.bands).length >= HODL_BANDS_SLUGS.length;
+  const complete = prev && Object.keys(prev.bands).length >= slugs.length;
   if (complete && ageDays < 6) {
     console.log("  [HODL] fresh (weekly) — skipping");
     return null;
   }
   const key = process.env.BITCOIN_DATA_API_KEY;
   const bands: Record<string, { date: string; value: number }[]> = {};
-  for (const b of HODL_BANDS_SLUGS) {
-    // Don't re-fetch bands we already have unless doing the weekly refresh.
+  for (const b of slugs) {
     if (prev?.bands?.[b.id]?.length && ageDays < 6) {
       bands[b.id] = prev.bands[b.id];
       continue;
     }
     let got: { date: string; value: number }[] | null = null;
-    for (const slug of b.slugs) {
-      try {
-        got = await fetchOnchainMetric(slug, key);
-      } catch {
-        got = null;
-      }
-      if (got && got.length) break;
+    try {
+      got = await fetchOnchainMetric(b.slug, key);
+    } catch {
+      got = null;
     }
     if (got && got.length) {
       bands[b.id] = got;
       console.log(`  [HODL] ${b.id}: ${got.length} points`);
     } else {
-      console.warn(`  [HODL] ${b.id}: not found (tried ${b.slugs.join(", ")})`);
+      console.warn(`  [HODL] ${b.id}: ${b.slug} returned no data`);
     }
   }
   const merged = { ...(prev?.bands ?? {}), ...bands };
-  if (Object.keys(merged).length < HODL_BANDS_SLUGS.length) {
-    console.warn(`  [HODL] only ${Object.keys(merged).length}/${HODL_BANDS_SLUGS.length} bands — keeping previous (illustrative stays)`);
+  if (Object.keys(merged).length < slugs.length) {
+    console.warn(`  [HODL] only ${Object.keys(merged).length}/${slugs.length} bands — keeping previous (illustrative stays)`);
     return prev ?? null;
   }
   return { source: "BGeometrics · bitcoin-data.com", fetchedAt: new Date().toISOString(), bands: merged };
