@@ -510,6 +510,37 @@ export interface ScorecardFactor {
 export interface Scorecard {
   factors: ScorecardFactor[];
   overall: number; // 0-100 "cycle environment score"
+  overallLabel: string; // Cool / Neutral / Warm / Elevated / Euphoric
+  interpretation: string; // plain-English historical reading of the number
+}
+
+// Maps the 0-100 environment score to a label + historical interpretation, so
+// the number is never left for the user to decode alone.
+export function scoreBand(score: number): { label: string; interpretation: string } {
+  if (score >= 75)
+    return {
+      label: "Cool",
+      interpretation: "Conditions sit toward the calmer, earlier-cycle end of the historical range.",
+    };
+  if (score >= 55)
+    return {
+      label: "Neutral",
+      interpretation: "Historically neither overheated nor deeply undervalued — a middle-of-the-range environment.",
+    };
+  if (score >= 40)
+    return {
+      label: "Warm",
+      interpretation: "Conditions are warming relative to history, but not yet at the extremes seen near past tops.",
+    };
+  if (score >= 25)
+    return {
+      label: "Elevated",
+      interpretation: "Conditions are elevated versus history — the kind of range seen in later, higher-risk cycle phases.",
+    };
+  return {
+    label: "Euphoric",
+    interpretation: "Conditions sit in the stretched end of the historical range, associated with late-cycle periods.",
+  };
 }
 
 export function cycleScorecard(): Scorecard {
@@ -609,7 +640,8 @@ export function cycleScorecard(): Scorecard {
   const overall = factors.length
     ? Math.round(factors.reduce((a, f) => a + f.score, 0) / factors.length)
     : 0;
-  return { factors, overall };
+  const band = scoreBand(overall);
+  return { factors, overall, overallLabel: band.label, interpretation: band.interpretation };
 }
 
 // "Was this historically stretched?" — the beginner buy-context read, framed

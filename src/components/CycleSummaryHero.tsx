@@ -1,8 +1,8 @@
 import { cycleSummary, HEAT_LABEL, HEAT_TONE } from "@/lib/cycleSummary";
-import { DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { LastUpdated } from "./LastUpdated";
 import { ShareCardButton } from "./ShareCardButton";
+import { CyclePositionBar } from "./CyclePositionBar";
 
 const TONE_TEXT: Record<string, string> = {
   blue: "text-signal-blue",
@@ -11,61 +11,61 @@ const TONE_TEXT: Record<string, string> = {
   amber: "text-signal-amber",
   red: "text-signal-red",
 };
-const TONE_RING: Record<string, string> = {
-  blue: "border-signal-blue/30 bg-signal-blue/[0.07]",
-  green: "border-signal-green/25 bg-signal-green/[0.07]",
-  teal: "border-accent/30 bg-accent/[0.06]",
-  amber: "border-signal-amber/30 bg-signal-amber/[0.07]",
-  red: "border-signal-red/30 bg-signal-red/[0.07]",
-};
-const CONF_LABEL = { low: "Low", medium: "Medium", high: "High" };
+const CONF_LABEL: Record<string, string> = { low: "Low", medium: "Medium", high: "High" };
 
+// Visual-first hero: the answer (phase, progress, risk, confidence, history)
+// lands in ~3 seconds via large type + the cycle thermometer, BEFORE any
+// explanatory prose.
 export function CycleSummaryHero() {
   const s = cycleSummary();
   const tone = HEAT_TONE[s.heat];
+  const historyLabel = s.summary.includes("cooler")
+    ? "Cooler than previous cycles"
+    : s.summary.includes("hotter")
+      ? "Hotter than previous cycles"
+      : "Broadly tracking previous cycles";
 
   return (
     <section className="card-glow p-6 sm:p-8 lg:p-10 relative overflow-hidden">
       <div className="relative z-10">
-        <div className="flex items-center gap-3 flex-wrap mb-5">
-          <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
-            Bitcoin Cycle Summary
-          </span>
-          <span className="text-[11px] text-ink-400 font-mono">
-            Day {s.cycleDay} · {s.progressPct}% through cycle 5
-          </span>
+        <div className="text-[10.5px] uppercase tracking-[0.24em] text-accent mb-5">
+          Bitcoin cycle read
         </div>
 
-        {/* Phase + the simple answer */}
-        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${TONE_RING[tone]} mb-5`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${TONE_TEXT[tone].replace("text-", "bg-")}`} />
-          <span className={`text-[12.5px] font-medium ${TONE_TEXT[tone]}`}>{s.phaseLabel}</span>
+        {/* The big answer — progress + phase */}
+        <div className="flex items-end gap-3 flex-wrap">
+          <span className="font-display text-[56px] sm:text-[72px] lg:text-[84px] font-medium tracking-tightest text-ink-50 leading-[0.9] tabular-nums">
+            {s.progressPct}%
+          </span>
+          <span className="text-[15px] text-ink-300 mb-2.5">through Cycle 5 · day {s.cycleDay}</span>
         </div>
-
-        <h1 className="font-display text-[28px] sm:text-[36px] lg:text-[44px] font-medium tracking-tightest text-ink-50 leading-[1.1] max-w-3xl">
-          {s.summary}
+        <h1 className="mt-3 font-display text-[26px] sm:text-[32px] lg:text-[38px] font-medium tracking-tight-2 text-ink-50 leading-[1.08] max-w-3xl">
+          {s.phaseLabel}
         </h1>
 
-        <p className="mt-5 text-[15px] sm:text-[15.5px] text-ink-300 max-w-2xl leading-relaxed">
-          {s.support}
-        </p>
-
-        {/* Read chips: heat + confidence */}
-        <div className="mt-6 flex items-center gap-3 flex-wrap">
-          <Chip label="Risk / heat" value={HEAT_LABEL[s.heat]} tone={tone} />
-          <Chip label="Confidence" value={CONF_LABEL[s.confidence]} tone="teal" />
-          {s.heatPercentile != null && (
-            <Chip label="Vs history" value={`${s.heatPercentile}th pctile`} tone="teal" />
-          )}
+        {/* The cycle thermometer — the signature visual */}
+        <div className="mt-7 max-w-xl">
+          <CyclePositionBar heat={s.heat} percentile={s.heatPercentile} />
         </div>
 
-        {/* Live numbers */}
+        {/* The three read-outs, big and scannable */}
+        <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden max-w-3xl">
+          <ReadOut label="Risk level" value={HEAT_LABEL[s.heat]} valueClass={TONE_TEXT[tone]} />
+          <ReadOut label="Confidence" value={CONF_LABEL[s.confidence]} valueClass="text-accent" />
+          <ReadOut label="Compared with history" value={historyLabel} valueClass="text-ink-50" small />
+        </div>
+
+        {/* Only now: the explanation */}
+        <p className="mt-7 text-[15px] sm:text-[15.5px] text-ink-200 max-w-2xl leading-relaxed">
+          {s.summary}
+        </p>
+        <p className="mt-3 text-[13.5px] text-ink-400 max-w-2xl leading-relaxed">{s.support}</p>
+
+        {/* Live numbers strip */}
         <dl className="mt-7 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden max-w-2xl">
           <Stat label="BTC price" value={fmtUsd(s.price)} />
-          {s.change24h != null ? (
+          {s.change24h != null && (
             <Stat label={`${s.changeLabel} change`} value={fmtPct(s.change24h, 1)} tone={s.change24h} />
-          ) : (
-            <Stat label="Days to halving" value={`${DAYS_TO_NEXT_HALVING}`} />
           )}
           <Stat label="Since halving" value={fmtPct(s.gainFromHalving, 0)} tone={s.gainFromHalving} />
           <Stat label="From ATH" value={fmtPct(s.drawdownFromAth, 0)} tone={s.drawdownFromAth} />
@@ -84,16 +84,28 @@ export function CycleSummaryHero() {
           a forecast.
         </p>
       </div>
-      <div className="watermark">halving.lens · cycle summary</div>
+      <div className="watermark">halving.lens · cycle read</div>
     </section>
   );
 }
 
-function Chip({ label, value, tone }: { label: string; value: string; tone: string }) {
+function ReadOut({
+  label,
+  value,
+  valueClass,
+  small,
+}: {
+  label: string;
+  value: string;
+  valueClass: string;
+  small?: boolean;
+}) {
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${TONE_RING[tone]}`}>
-      <span className="text-[9.5px] uppercase tracking-[0.16em] text-ink-400">{label}</span>
-      <span className={`text-[12.5px] font-medium ${TONE_TEXT[tone]}`}>{value}</span>
+    <div className="bg-[#0b0f15] px-4 py-4">
+      <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
+      <div className={`mt-1.5 font-display font-medium tracking-tight-2 leading-tight ${small ? "text-[17px]" : "text-[22px]"} ${valueClass}`}>
+        {value}
+      </div>
     </div>
   );
 }

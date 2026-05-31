@@ -33,24 +33,41 @@ export function CycleScorecard() {
 
       <div className="card-glow p-6 lg:p-8 relative overflow-hidden">
         <div className="relative z-10">
-          {/* Overall */}
-          <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
+          {/* Overall — number + big label + interpretation, never left alone */}
+          <div className="flex items-center gap-5 flex-wrap mb-5">
+            <div className="flex items-baseline gap-2">
+              <span className={`font-display text-[48px] lg:text-[60px] font-medium tracking-tightest tabular-nums leading-none ${overallTone.text}`}>
+                {sc.overall}
+              </span>
+              <span className="text-[16px] text-ink-400">/ 100</span>
+            </div>
             <div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-ink-400 mb-1">
-                Cycle environment score
+              <div className="text-[10px] uppercase tracking-[0.18em] text-ink-400 mb-0.5">
+                Cycle environment
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className={`font-display text-[48px] lg:text-[56px] font-medium tracking-tightest tabular-nums leading-none ${overallTone.text}`}>
-                  {sc.overall}
-                </span>
-                <span className="text-[16px] text-ink-400">/ 100</span>
+              <div className={`font-display text-[26px] lg:text-[30px] font-medium tracking-tight-2 leading-none ${overallTone.text}`}>
+                {sc.overallLabel}
               </div>
             </div>
-            <p className="text-[12px] text-ink-500 max-w-xs leading-relaxed">
-              A condition reading across the factors below — higher means calmer / earlier-cycle
-              historically, not a recommendation.
-            </p>
           </div>
+
+          {/* Colour-zoned scale with the score marked */}
+          <div className="mb-3 max-w-2xl">
+            <div className="relative h-2.5 rounded-full overflow-hidden flex">
+              <div className="flex-1 bg-signal-red/70" />
+              <div className="flex-1 bg-signal-amber/70" />
+              <div className="flex-1 bg-accent/70" />
+              <div className="flex-1 bg-signal-green/70" />
+              <div className="absolute -top-1 -translate-x-1/2" style={{ left: `${sc.overall}%` }}>
+                <div className="w-4 h-4 rounded-full bg-ink-50 ring-2 ring-ink-950" style={{ boxShadow: "0 0 12px rgba(255,255,255,0.5)" }} />
+              </div>
+            </div>
+            <div className="mt-2 flex justify-between text-[10px] font-mono text-ink-500">
+              <span>Euphoric</span><span>Elevated</span><span>Warm</span><span>Neutral</span><span>Cool</span>
+            </div>
+          </div>
+
+          <p className="text-[13.5px] text-ink-200 max-w-2xl leading-relaxed mb-6">{sc.interpretation}</p>
 
           {/* Factors */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">

@@ -62,8 +62,25 @@ export function BriefSignup({ compact = false }: { compact?: boolean }) {
           Get the daily Bitcoin Cycle Brief
         </h2>
         <p className="mt-2 text-[13px] text-ink-300 leading-relaxed">
-          One clear daily summary of where Bitcoin sits in the cycle. Historical context, not advice.
+          One clear daily summary of where Bitcoin sits in the cycle.
         </p>
+
+        {!done && (
+          <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+            {[
+              "30-second read",
+              "What changed today",
+              "Historical context",
+              "What to watch next",
+              "No hype, no predictions",
+            ].map((b) => (
+              <li key={b} className="flex items-center gap-2 text-[12.5px] text-ink-300">
+                <Check size={13} className="text-accent shrink-0" strokeWidth={2.4} />
+                {b}
+              </li>
+            ))}
+          </ul>
+        )}
 
         {done ? (
           <div className="mt-5 inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[13px]">
@@ -109,10 +126,19 @@ export function BriefSignup({ compact = false }: { compact?: boolean }) {
         )}
         {error && <p className="mt-2 text-[12px] text-signal-red">{error}</p>}
         {!done && (
-          <p className="mt-3 text-[11px] text-ink-500">
-            Validating interest before the email product ships — you&apos;ll be first to know when
-            daily delivery and cycle alerts go live.
-          </p>
+          <>
+            <div className="mt-3 flex items-center gap-3 flex-wrap text-[11px] text-ink-400">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-signal-green live-dot relative inline-block" /> Live data
+              </span>
+              <span>· Free</span>
+              <span>· Unsubscribe anytime</span>
+            </div>
+            <p className="mt-2 text-[11px] text-ink-500">
+              Validating interest before the email product ships — you&apos;ll be first to know when
+              daily delivery and cycle alerts go live.
+            </p>
+          </>
         )}
       </div>
       {!compact && <div className="watermark">halving.lens · daily brief</div>}

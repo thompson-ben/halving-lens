@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ArrowUpRight, Play } from "lucide-react";
 import { CycleSummaryHero } from "@/components/CycleSummaryHero";
-import { WhatToWatch } from "@/components/WhatToWatch";
+import { WhyCheckToday } from "@/components/WhyCheckToday";
+import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatChanged } from "@/components/WhatChanged";
+import { WhatToWatch } from "@/components/WhatToWatch";
 import { CycleScorecard } from "@/components/CycleScorecard";
 import { StretchPanel } from "@/components/StretchPanel";
-import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
 import { WhatsDifferent } from "@/components/WhatsDifferent";
 import { EvidenceDashboard } from "@/components/EvidenceDashboard";
@@ -15,25 +16,28 @@ import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 export default function CycleDashboardPage() {
   return (
     <div className="space-y-14 lg:space-y-20">
-      {/* 1. The answer first — Bitcoin Cycle Summary */}
+      {/* 1. The answer first — visual hero with the cycle thermometer */}
       <CycleSummaryHero />
 
-      {/* 1b. What to watch next — forward-looking signals */}
-      <WhatToWatch />
+      {/* 2. Why check today — compact daily-habit reminder */}
+      <WhyCheckToday />
 
-      {/* 1c. What changed since yesterday — the daily habit hook */}
-      <WhatChanged />
-
-      {/* 1d. Cycle scorecard — the environment at a glance */}
-      <CycleScorecard />
-
-      {/* 2. Was this historically stretched? */}
-      <StretchPanel />
-
-      {/* 3. Today vs prior cycles */}
+      {/* 3. The moat, surfaced high — current cycle vs prior cycles */}
       <TodayVsPriorCycles />
 
-      {/* 4. What happened next historically */}
+      {/* 4. What changed since yesterday */}
+      <WhatChanged />
+
+      {/* 5. What to watch next */}
+      <WhatToWatch />
+
+      {/* 6. Cycle scorecard — the environment at a glance */}
+      <CycleScorecard />
+
+      {/* 7. Was this historically stretched? */}
+      <StretchPanel />
+
+      {/* 8. What happened next historically */}
       <WhatHappenedNext />
 
       {/* 5. What makes this cycle different */}
