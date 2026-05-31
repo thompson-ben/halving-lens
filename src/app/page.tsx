@@ -1,33 +1,44 @@
 import Link from "next/link";
 import { ArrowUpRight, Play } from "lucide-react";
-import { CyclePositionHero } from "@/components/CyclePositionHero";
+import { CycleSummaryHero } from "@/components/CycleSummaryHero";
+import { StretchPanel } from "@/components/StretchPanel";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
-import { CycleEvidence } from "@/components/CycleEvidence";
+import { WhatsDifferent } from "@/components/WhatsDifferent";
+import { EvidenceDashboard } from "@/components/EvidenceDashboard";
+import { BriefSignup } from "@/components/BriefSignup";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
-import { HalvingCountdown } from "@/components/HalvingCountdown";
 
 export default function CycleDashboardPage() {
   return (
     <div className="space-y-14 lg:space-y-20">
-      {/* 1. Where Bitcoin is in the cycle, in plain English */}
-      <CyclePositionHero />
+      {/* 1. The answer first — Bitcoin Cycle Summary */}
+      <CycleSummaryHero />
 
-      {/* 2. Today vs prior cycles — the core comparison */}
+      {/* 2. Was this historically stretched? */}
+      <StretchPanel />
+
+      {/* 3. Today vs prior cycles */}
       <TodayVsPriorCycles />
 
-      {/* 3. What happened next historically */}
+      {/* 4. What happened next historically */}
       <WhatHappenedNext />
 
-      {/* 3b. Countdown to the next halving + issuance facts */}
-      <HalvingCountdown />
+      {/* 5. What makes this cycle different */}
+      <WhatsDifferent />
 
-      {/* 4. Cycle overlay preview — the visual moat */}
+      {/* 6. The evidence behind the read */}
+      <EvidenceDashboard />
+
+      {/* Daily brief capture */}
+      <BriefSignup />
+
+      {/* 7. Deeper links — overlay moat + replay */}
       <section>
         <SectionHeader
-          eyebrow="Cycle comparison"
+          eyebrow="Go deeper"
           title="Every halving cycle, lined up from day zero"
-          subtitle="All four cycles drawn on the same axis, aligned to halving day. The view that doesn't exist anywhere else free."
+          subtitle="All four cycles drawn on the same axis, aligned to halving day. The evidence behind the read."
           link={{ href: "/cycles", label: "Open full overlay" }}
         />
         <div className="card p-4 sm:p-7 relative">
@@ -42,10 +53,6 @@ export default function CycleDashboardPage() {
         </Link>
       </section>
 
-      {/* 5. Why we think this — live signals only */}
-      <CycleEvidence />
-
-      {/* Cycle Replay teaser */}
       <section>
         <Link
           href="/replay"

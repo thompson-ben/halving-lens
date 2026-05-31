@@ -6,6 +6,7 @@ import {
   Hourglass,
   Layers,
   LineChart,
+  Newspaper,
   Pickaxe,
   Play,
   Sparkles,
@@ -24,6 +25,7 @@ export interface NavLink {
 export const PRIMARY: readonly NavLink[] = [
   { href: "/", label: "Cycle dashboard", icon: Gauge },
   { href: "/cycles", label: "Cycle comparison", icon: Layers },
+  { href: "/brief", label: "Daily brief", icon: Newspaper },
   { href: "/sentiment", label: "Sentiment", icon: Activity },
   { href: "/replay", label: "Cycle replay", icon: Play },
   { href: "/metrics", label: "Metric library", icon: Sparkles },

@@ -17,8 +17,8 @@ export function WhatHappenedNext() {
         </h2>
         <p className="mt-2.5 text-[14px] text-ink-300 max-w-2xl leading-relaxed">
           From the same day after the halving ({TODAY_DAY_IN_CYCLE} days), here is how Bitcoin&apos;s
-          price moved over the following months in each completed cycle. This is history, not a
-          forecast — past cycles don&apos;t guarantee future returns.
+          price moved over the following months in each completed cycle. History is not a forecast,
+          but it helps show how unusual or normal today&apos;s setup is.
         </p>
       </div>
 
