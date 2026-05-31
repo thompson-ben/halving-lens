@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Mail, Check } from "lucide-react";
+import { track } from "@/lib/track";
 
 // Real email capture for the daily brief / future alerts. POSTs to
 // /api/subscribe (validates + forwards to a configured destination). Falls back
@@ -33,6 +34,7 @@ export function BriefSignup({ compact = false }: { compact?: boolean }) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error ?? "Something went wrong.");
       }
+      track("signup", { source: pathname });
       setDone(true);
     } catch (err) {
       // Don't lose the signup — stash locally and still confirm.

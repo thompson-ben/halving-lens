@@ -12,6 +12,9 @@ import { WhatsDifferent } from "@/components/WhatsDifferent";
 import { EvidenceDashboard } from "@/components/EvidenceDashboard";
 import { BriefSignup } from "@/components/BriefSignup";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
+import { TrackedSection } from "@/components/TrackedSection";
+import { FeatureVote } from "@/components/FeatureVote";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 export default function CycleDashboardPage() {
   return (
@@ -43,28 +46,28 @@ export default function CycleDashboardPage() {
       <WhyCheckToday />
 
       {/* 4. The moat in numbers — current cycle vs prior cycles */}
-      <TodayVsPriorCycles />
+      <TrackedSection id="today-vs-prior"><TodayVsPriorCycles /></TrackedSection>
 
       {/* 5. What changed since yesterday */}
-      <WhatChanged />
+      <TrackedSection id="what-changed"><WhatChanged /></TrackedSection>
 
       {/* 6. What to watch next */}
-      <WhatToWatch />
+      <TrackedSection id="what-to-watch"><WhatToWatch /></TrackedSection>
 
       {/* 7. Cycle scorecard — the environment at a glance */}
-      <CycleScorecard />
+      <TrackedSection id="scorecard"><CycleScorecard /></TrackedSection>
 
       {/* 8. Was this historically stretched? */}
-      <StretchPanel />
+      <TrackedSection id="stretch"><StretchPanel /></TrackedSection>
 
       {/* 9. What happened next historically */}
-      <WhatHappenedNext />
+      <TrackedSection id="what-happened-next"><WhatHappenedNext /></TrackedSection>
 
       {/* 10. What makes this cycle different */}
-      <WhatsDifferent />
+      <TrackedSection id="whats-different"><WhatsDifferent /></TrackedSection>
 
       {/* 11. The evidence behind the read */}
-      <EvidenceDashboard />
+      <TrackedSection id="evidence"><EvidenceDashboard /></TrackedSection>
 
       {/* Daily brief capture */}
       <BriefSignup />
@@ -98,6 +101,10 @@ export default function CycleDashboardPage() {
           <div className="watermark">halving.lens · replay</div>
         </Link>
       </section>
+
+      {/* Validation: vote on what's next + page feedback */}
+      <FeatureVote />
+      <FeedbackWidget />
     </div>
   );
 }
