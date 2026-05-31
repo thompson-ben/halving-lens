@@ -8,7 +8,7 @@ export const STORED_BRIEFS: StoredBrief[] = [
   {
     "slug": "2026-05-31",
     "dateLabel": "31 May 2026",
-    "generatedAt": "2026-05-31T06:46:51.085Z",
+    "generatedAt": "2026-05-31T12:51:52.293Z",
     "headline": "Later by time, cooler by price: Bitcoin continues to diverge from prior cycles.",
     "phaseLabel": "Later-running mid-cycle expansion",
     "heat": "neutral",
@@ -75,11 +75,11 @@ export const STORED_BRIEFS: StoredBrief[] = [
       },
       {
         "signal": "Miner stress",
-        "status": "Miner revenue suppressed, hashrate 1007 EH/s",
+        "status": "Miner revenue suppressed, hashrate 1022 EH/s",
         "level": "calm",
         "confidence": "medium"
       }
     ],
-    "shortPost": "Bitcoin Cycle Brief:\n\nBTC $73,731.48 (+0.6% 24h) · day 772 of the halving cycle (53% through).\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nAt this point, prior cycles had usually already peaked. This cycle is different: slower, flatter, and ETF-supported.\n\nHistorical context, not financial advice.\nhalving.lens"
+    "shortPost": "Bitcoin Cycle Brief — 31 May 2026\n\nBTC $73,731.48 (+0.6% 24h) · day 772 (53% through the cycle).\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nCycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.\n\nHistorical context, not financial advice.\nhalving.lens"
   }
 ];
