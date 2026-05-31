@@ -227,6 +227,9 @@ export interface StoredBrief {
   insights: { title: string; body: string }[];
   watchSignals: { signal: string; status: string; level: string; confidence: string }[];
   shortPost: string;
+  // Cross-channel content pack, generated once and stored with the brief.
+  // Optional: entries persisted before the content engine won't have it.
+  content?: ContentPack;
 }
 
 export function serializeBrief(): StoredBrief {

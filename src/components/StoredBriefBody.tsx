@@ -3,6 +3,7 @@ import { ArrowRight, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import type { StoredBrief } from "@/lib/brief";
 import { CopyPostButtons } from "@/components/CopyPostButtons";
+import { ContentPack } from "@/components/ContentPack";
 import { DataBadge } from "@/components/DataBadge";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
@@ -115,17 +116,21 @@ export function StoredBriefBody({ brief }: { brief: StoredBrief }) {
         </section>
       )}
 
-      <section>
-        <h2 className="font-display text-[20px] font-medium tracking-tight-2 text-ink-100 mb-4">
-          The post from that day
-        </h2>
-        <div className="card p-5 mb-4">
-          <pre className="whitespace-pre-wrap break-words font-sans text-[13px] text-ink-200 leading-relaxed">
-            {b.shortPost}
-          </pre>
-        </div>
-        <CopyPostButtons post={b.shortPost} thread={[b.shortPost]} />
-      </section>
+      {b.content ? (
+        <ContentPack pack={b.content} />
+      ) : (
+        <section>
+          <h2 className="font-display text-[20px] font-medium tracking-tight-2 text-ink-100 mb-4">
+            The post from that day
+          </h2>
+          <div className="card p-5 mb-4">
+            <pre className="whitespace-pre-wrap break-words font-sans text-[13px] text-ink-200 leading-relaxed">
+              {b.shortPost}
+            </pre>
+          </div>
+          <CopyPostButtons post={b.shortPost} thread={[b.shortPost]} />
+        </section>
+      )}
 
       <section className="flex items-center gap-5 flex-wrap">
         <Link href="/brief" className="inline-flex items-center gap-1.5 text-[13px] text-accent hover:text-accent-soft">
