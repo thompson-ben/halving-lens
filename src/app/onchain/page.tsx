@@ -21,7 +21,7 @@ import {
 } from "@/lib/onchain";
 
 export const metadata = {
-  title: "On-chain — halving.lens",
+  title: "On-chain — halvinglens.com",
 };
 
 const ZONE_TEXT: Record<string, string> = {
@@ -164,7 +164,7 @@ function LthSection({ read }: { read: NonNullable<ReturnType<typeof lthRead>> })
             <p className="mt-3 text-[14px] text-ink-300 leading-relaxed">{read.summary}</p>
           </div>
         </div>
-        <div className="watermark">halving.lens · on-chain</div>
+        <div className="watermark">halvinglens.com · on-chain</div>
       </div>
 
       {(ex.beforeHighsAvg != null || ex.beforeLowsAvg != null) && (
@@ -197,7 +197,7 @@ function LthSection({ read }: { read: NonNullable<ReturnType<typeof lthRead>> })
           Long-term holder supply vs price
         </h3>
         <OnchainLthChart data={data} markers={markers} height={380} />
-        <div className="watermark">halving.lens · LTH supply</div>
+        <div className="watermark">halvinglens.com · LTH supply</div>
       </div>
     </section>
   );
@@ -231,7 +231,7 @@ function AdoptionSection({ adoption }: { adoption: NonNullable<ReturnType<typeof
       </div>
       <div className="card p-4 sm:p-7 relative">
         <AdoptionChart data={data} height={340} />
-        <div className="watermark">halving.lens · adoption</div>
+        <div className="watermark">halvinglens.com · adoption</div>
       </div>
       <p className="text-[12.5px] text-ink-300 leading-relaxed max-w-2xl">{adoption.summary}</p>
     </section>
@@ -269,7 +269,7 @@ function ComingSoonOnchain() {
             panels below switch on with real data — no estimated figures in the meantime.
           </p>
         </div>
-        <div className="watermark">halving.lens · on-chain</div>
+        <div className="watermark">halvinglens.com · on-chain</div>
       </section>
       <section className="card p-6 lg:p-7">
         <h3 className="text-[12.5px] font-medium text-ink-100 mb-4 uppercase tracking-[0.16em]">What&apos;s coming</h3>

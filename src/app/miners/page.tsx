@@ -9,7 +9,7 @@ import { SPOT, TODAY } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
 
 export const metadata = {
-  title: "Miners — halving.lens",
+  title: "Miners — halvinglens.com",
 };
 
 export default function MinersPage() {
@@ -98,7 +98,7 @@ export default function MinersPage() {
             title="Puell Multiple · cycle 5"
             subtitle="Current cycle since the 2024 halving — use the range buttons to zoom in."
           />
-          <div className="watermark">halving.lens · puell multiple</div>
+          <div className="watermark">halvinglens.com · puell multiple</div>
         </div>
         <Link
           href="/metrics/puell-multiple"

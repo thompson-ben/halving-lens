@@ -8,7 +8,7 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 // Rendered on demand — @vercel/og can't be prerendered offline at build.
 export const dynamic = "force-dynamic";
-export const alt = "Bitcoin Cycle Brief — halving.lens";
+export const alt = "Bitcoin Cycle Brief — halvinglens.com";
 
 const HEAT_LABEL: Record<string, string> = {
   cool: "Cool",
@@ -56,7 +56,7 @@ export default async function Image({ params }: { params: { date: string } }) {
   } else {
     dateLabel = isValidSlug(slug) ? formatSlugDate(slug) : "Archive";
     headline = "Bitcoin Cycle Brief";
-    phaseLabel = "halving.lens";
+    phaseLabel = "halvinglens.com";
   }
 
   return new ImageResponse(
@@ -77,7 +77,7 @@ export default async function Image({ params }: { params: { date: string } }) {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 18, height: 18, borderRadius: 9, background: "#5eead4" }} />
             <div style={{ display: "flex", fontSize: 28, color: "#e4e9f0", fontWeight: 600 }}>
-              halving.lens
+              halvinglens.com
             </div>
           </div>
           <div style={{ display: "flex", fontSize: 22, color: "#9aa6b4" }}>

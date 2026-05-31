@@ -66,7 +66,7 @@ export function MobileNav() {
                 <Logo size={26} />
                 <div className="leading-tight">
                   <div className="font-display text-[18px] font-medium tracking-tight-2 text-ink-100">
-                    Halving<span className="text-accent">.lens</span>
+                    Halvinglens<span className="text-accent">.com</span>
                   </div>
                   <div className="text-[10px] uppercase tracking-[0.20em] text-ink-400 mt-0.5">
                     Bitcoin cycles

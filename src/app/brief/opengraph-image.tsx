@@ -7,7 +7,7 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 // Rendered on demand — @vercel/og can't be prerendered offline at build.
 export const dynamic = "force-dynamic";
-export const alt = "Bitcoin Cycle Brief — halving.lens";
+export const alt = "Bitcoin Cycle Brief — halvinglens.com";
 
 // Brief-specific share card: the dated headline + key numbers.
 export default async function Image() {
@@ -33,7 +33,7 @@ export default async function Image() {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 18, height: 18, borderRadius: 9, background: "#5eead4" }} />
             <div style={{ display: "flex", fontSize: 28, color: "#e4e9f0", fontWeight: 600 }}>
-              halving.lens
+              halvinglens.com
             </div>
           </div>
           <div style={{ display: "flex", fontSize: 22, color: "#9aa6b4" }}>Bitcoin Cycle Brief · {b.date}</div>

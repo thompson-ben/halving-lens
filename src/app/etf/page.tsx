@@ -85,7 +85,7 @@ function LiveEtf() {
           <p className="text-[12px] text-ink-400 mt-1">All US spot Bitcoin ETFs.</p>
         </div>
         <EtfFlowChart points={ETF.points} height={380} />
-        <div className="watermark">halving.lens · etf flow</div>
+        <div className="watermark">halvinglens.com · etf flow</div>
       </section>
 
       <p className="text-[11.5px] text-ink-500 leading-relaxed max-w-2xl">
@@ -111,7 +111,7 @@ function ComingSoonEtf() {
             four-year pattern — though it&apos;s still early, and this is context, not a forecast.
           </p>
         </div>
-        <div className="watermark">halving.lens · etf flow</div>
+        <div className="watermark">halvinglens.com · etf flow</div>
       </section>
 
       <section>

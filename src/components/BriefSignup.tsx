@@ -143,7 +143,7 @@ export function BriefSignup({ compact = false }: { compact?: boolean }) {
           </>
         )}
       </div>
-      {!compact && <div className="watermark">halving.lens · daily brief</div>}
+      {!compact && <div className="watermark">halvinglens.com · daily brief</div>}
     </section>
   );
 }

@@ -1,7 +1,7 @@
 import { BriefBody } from "@/components/BriefBody";
 
 export const metadata = {
-  title: "Daily Bitcoin Cycle Brief — halving.lens",
+  title: "Daily Bitcoin Cycle Brief — halvinglens.com",
   description: "A daily, plain-English summary of where Bitcoin sits in the halving cycle.",
 };
 

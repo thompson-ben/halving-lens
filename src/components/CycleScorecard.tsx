@@ -96,7 +96,7 @@ export function CycleScorecard() {
             prediction of price.
           </p>
         </div>
-        <div className="watermark">halving.lens · cycle scorecard</div>
+        <div className="watermark">halvinglens.com · cycle scorecard</div>
       </div>
     </section>
   );

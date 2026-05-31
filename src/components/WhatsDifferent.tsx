@@ -66,7 +66,7 @@ export function WhatsDifferent() {
           <div className="text-[10px] uppercase tracking-[0.18em] text-accent mb-2">What to watch next</div>
           <p className="text-[14px] text-ink-200 leading-relaxed">{s.whatToWatch}</p>
         </div>
-        <div className="watermark">halving.lens · what to watch</div>
+        <div className="watermark">halvinglens.com · what to watch</div>
       </div>
     </section>
   );

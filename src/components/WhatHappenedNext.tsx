@@ -36,7 +36,7 @@ export function WhatHappenedNext() {
             {divergence.summary}
           </p>
         </div>
-        <div className="watermark">halving.lens · cycle divergence</div>
+        <div className="watermark">halvinglens.com · cycle divergence</div>
       </div>
 
       <div className="card divide-y divide-white/[0.04]">

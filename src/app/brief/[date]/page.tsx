@@ -20,14 +20,14 @@ export function generateStaticParams() {
 }
 
 export function generateMetadata({ params }: { params: { date: string } }): Metadata {
-  if (!isValidSlug(params.date)) return { title: "Brief — halving.lens" };
+  if (!isValidSlug(params.date)) return { title: "Brief — halvinglens.com" };
   const label = formatSlugDate(params.date);
   const stored = storedBrief(params.date);
   const desc = stored
     ? `${stored.headline} — Bitcoin cycle brief for ${label}.`
     : `Bitcoin cycle summary for ${label}: where Bitcoin sits in the halving cycle, in plain English.`;
   return {
-    title: `Bitcoin Cycle Brief — ${label} · halving.lens`,
+    title: `Bitcoin Cycle Brief — ${label} · halvinglens.com`,
     description: desc,
     alternates: { canonical: `/brief/${params.date}` },
     openGraph: {

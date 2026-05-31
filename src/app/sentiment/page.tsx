@@ -84,7 +84,7 @@ export default function SentimentPage() {
                 <p className="mt-3.5 text-[14px] text-ink-300 leading-relaxed">{read.summary}</p>
               </div>
             </div>
-            <div className="watermark">halving.lens · sentiment</div>
+            <div className="watermark">halvinglens.com · sentiment</div>
           </section>
 
           {/* Fear & Greed vs price — does sentiment line up with tops/bottoms? */}
@@ -101,7 +101,7 @@ export default function SentimentPage() {
             </div>
             <div className="card p-4 sm:p-7 relative">
               <PriceSentimentChart data={overlay} height={360} />
-              <div className="watermark">halving.lens · fear &amp; greed</div>
+              <div className="watermark">halvinglens.com · fear &amp; greed</div>
             </div>
           </section>
 

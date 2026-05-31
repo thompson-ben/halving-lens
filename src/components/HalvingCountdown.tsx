@@ -129,7 +129,7 @@ export function HalvingCountdown() {
           ~10-minute blocks and {stats.blocksToHalving.toLocaleString()} blocks remaining.
         </p>
       </div>
-      <div className="watermark">halving.lens · countdown</div>
+      <div className="watermark">halvinglens.com · countdown</div>
     </section>
   );
 }

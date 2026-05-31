@@ -62,7 +62,7 @@ export function FeatureVote() {
           </div>
         )}
       </div>
-      <div className="watermark">halving.lens · roadmap</div>
+      <div className="watermark">halvinglens.com · roadmap</div>
     </section>
   );
 }

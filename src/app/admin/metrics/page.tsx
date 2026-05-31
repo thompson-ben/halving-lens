@@ -1,7 +1,7 @@
 import { analyticsSummary } from "@/lib/analytics";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Internal metrics — halving.lens", robots: { index: false } };
+export const metadata = { title: "Internal metrics — halvinglens.com", robots: { index: false } };
 
 // Lightweight internal PM dashboard. Gated by a shared secret in the URL
 // (?key=...), matched against ANALYTICS_DASHBOARD_KEY. Not linked anywhere and

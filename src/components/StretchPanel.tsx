@@ -77,7 +77,7 @@ export function StretchPanel() {
             history — it does not suggest what price will do next.
           </p>
         </div>
-        <div className="watermark">halving.lens · historical position</div>
+        <div className="watermark">halvinglens.com · historical position</div>
       </div>
     </section>
   );

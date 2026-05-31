@@ -94,7 +94,7 @@ export function CyclePositionHero() {
           <CycleClock size={252} />
         </div>
       </div>
-      <div className="watermark">halving.lens</div>
+      <div className="watermark">halvinglens.com</div>
     </section>
   );
 }

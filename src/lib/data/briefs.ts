@@ -80,6 +80,6 @@ export const STORED_BRIEFS: StoredBrief[] = [
         "confidence": "medium"
       }
     ],
-    "shortPost": "Bitcoin Cycle Brief — 31 May 2026\n\nBTC $73,731.48 (+0.6% 24h) · day 772 (53% through the cycle).\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nCycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.\n\nHistorical context, not financial advice.\nhalving.lens"
+    "shortPost": "Bitcoin Cycle Brief — 31 May 2026\n\nBTC $73,731.48 (+0.6% 24h) · day 772 (53% through the cycle).\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nCycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.\n\nHistorical context, not financial advice.\nhalvinglens.com"
   }
 ];

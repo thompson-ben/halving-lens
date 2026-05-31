@@ -5,7 +5,7 @@ import { METRICS } from "@/lib/metrics";
 import { metricStatus, type DataStatus } from "@/lib/cycleIntel";
 
 export const metadata = {
-  title: "Learn — halving.lens",
+  title: "Learn — halvinglens.com",
 };
 
 const CYCLE_BASICS: { term: string; def: string }[] = [
@@ -81,7 +81,7 @@ export default function LearnPage() {
       {/* How to read the site — data status legend */}
       <section>
         <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100 mb-2">
-          How to read halving.lens
+          How to read halvinglens.com
         </h2>
         <p className="text-[13px] text-ink-300 max-w-2xl leading-relaxed mb-6">
           We only show numbers we can stand behind, and we label exactly how fresh each one is.
@@ -143,7 +143,7 @@ export default function LearnPage() {
             clearly about the present.
           </p>
         </div>
-        <div className="watermark">halving.lens · learn</div>
+        <div className="watermark">halvinglens.com · learn</div>
       </section>
     </div>
   );

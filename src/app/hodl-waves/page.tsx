@@ -75,7 +75,7 @@ export default function HodlWavesPage() {
             ))}
           </div>
         </div>
-        <div className="watermark">halving.lens · HODL waves</div>
+        <div className="watermark">halvinglens.com · HODL waves</div>
       </div>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">

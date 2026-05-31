@@ -84,7 +84,7 @@ export function CycleSummaryHero() {
           a forecast.
         </p>
       </div>
-      <div className="watermark">halving.lens · cycle read</div>
+      <div className="watermark">halvinglens.com · cycle read</div>
     </section>
   );
 }

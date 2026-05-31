@@ -52,7 +52,7 @@ export function CycleOverlayPanel({ height = 460 }: { height?: number }) {
         </div>
       </div>
       <CycleOverlayChart mode={mode} height={height} />
-      <div className="watermark">halving.lens · {mode === "price" ? "price" : "normalised"}</div>
+      <div className="watermark">halvinglens.com · {mode === "price" ? "price" : "normalised"}</div>
     </div>
   );
 }

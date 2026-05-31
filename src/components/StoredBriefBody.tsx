@@ -72,7 +72,7 @@ export function StoredBriefBody({ brief }: { brief: StoredBrief }) {
           <Block title="What to watch next">{b.whatToWatch}</Block>
           <Block title="Conclusion">{b.conclusion}</Block>
         </div>
-        <div className="watermark">halving.lens · daily brief</div>
+        <div className="watermark">halvinglens.com · daily brief</div>
       </section>
 
       {b.insights.length > 0 && (

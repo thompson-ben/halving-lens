@@ -70,7 +70,7 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
           <Block title="What to watch next">{s.whatToWatch}</Block>
           <Block title="Conclusion">{b.conclusion}</Block>
         </div>
-        <div className="watermark">halving.lens · daily brief</div>
+        <div className="watermark">halvinglens.com · daily brief</div>
       </section>
 
       <section>
@@ -83,7 +83,7 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
         </p>
         <div className="card p-4 sm:p-7 relative">
           <CycleOverlayChart mode="normalized" height={320} />
-          <div className="watermark">halving.lens · cycle overlay</div>
+          <div className="watermark">halvinglens.com · cycle overlay</div>
         </div>
       </section>
 

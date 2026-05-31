@@ -129,7 +129,7 @@ export function CycleReplay() {
           </div>
           <ReplayChart day={day} height={300} />
         </div>
-        <div className="watermark">halving.lens · replay</div>
+        <div className="watermark">halvinglens.com · replay</div>
       </div>
 
       {/* Per-cycle snapshot at this day */}

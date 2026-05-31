@@ -5,7 +5,7 @@ import { priceStats } from "@/lib/btcPrice";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 export const metadata = {
-  title: "Bitcoin price — halving.lens",
+  title: "Bitcoin price — halvinglens.com",
 };
 
 export default function PricePage() {
@@ -36,7 +36,7 @@ export default function PricePage() {
 
       <section className="card p-4 sm:p-7 relative">
         <BtcPriceChart height={400} />
-        <div className="watermark">halving.lens · btc price</div>
+        <div className="watermark">halvinglens.com · btc price</div>
       </section>
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">

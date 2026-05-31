@@ -105,7 +105,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
             title="Cycle 5 · with zones"
             subtitle="Current cycle since the 2024 halving — use the range buttons to zoom in."
           />
-          <div className="watermark">halving.lens · {metric.short.toLowerCase()}</div>
+          <div className="watermark">halvinglens.com · {metric.short.toLowerCase()}</div>
         </div>
 
         <div className="space-y-5">
@@ -218,7 +218,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
         </div>
         <div className="card p-7 lg:p-8 relative">
           <CycleOverlayChart metricSlug={metric.slug} mode="metric" height={420} />
-          <div className="watermark">halving.lens · {metric.short.toLowerCase()} · overlay</div>
+          <div className="watermark">halvinglens.com · {metric.short.toLowerCase()} · overlay</div>
         </div>
       </section>
 

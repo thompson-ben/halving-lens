@@ -52,7 +52,7 @@ export default function CyclesPage() {
             {divergence.summary}
           </p>
         </div>
-        <div className="watermark">halving.lens · cycle comparison</div>
+        <div className="watermark">halvinglens.com · cycle comparison</div>
       </section>
 
       {/* The signature chart */}
@@ -80,7 +80,7 @@ export default function CyclesPage() {
 
         <div className="card p-5 sm:p-8 relative">
           <CycleTimingChart />
-          <div className="watermark">halving.lens · cycle timing</div>
+          <div className="watermark">halvinglens.com · cycle timing</div>
         </div>
 
         {/* Projected windows + plain-English read */}

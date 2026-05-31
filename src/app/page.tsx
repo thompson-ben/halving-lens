@@ -32,7 +32,7 @@ export default function CycleDashboardPage() {
         />
         <div className="card p-4 sm:p-7 relative">
           <CycleOverlayChart mode="normalized" height={340} />
-          <div className="watermark">halving.lens · price · normalised</div>
+          <div className="watermark">halvinglens.com · price · normalised</div>
         </div>
         <Link
           href="/cycles"
@@ -98,7 +98,7 @@ export default function CycleDashboardPage() {
               <ArrowUpRight size={15} />
             </div>
           </div>
-          <div className="watermark">halving.lens · replay</div>
+          <div className="watermark">halvinglens.com · replay</div>
         </Link>
       </section>
 

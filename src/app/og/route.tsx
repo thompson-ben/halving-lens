@@ -3,7 +3,7 @@ import { cycleSummary, HEAT_LABEL } from "@/lib/cycleSummary";
 import { fmtUsd } from "@/lib/format";
 
 // "Today's Bitcoin Cycle Read" — the signature share card and visual identity
-// of halving.lens. Rendered on demand (force-dynamic) so @vercel/og isn't
+// of halvinglens.com. Rendered on demand (force-dynamic) so @vercel/og isn't
 // prerendered offline at build.
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,7 @@ export async function GET() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 18, height: 18, borderRadius: 9, background: "#5eead4" }} />
-            <div style={{ display: "flex", fontSize: 26, color: "#e4e9f0", fontWeight: 600 }}>halving.lens</div>
+            <div style={{ display: "flex", fontSize: 26, color: "#e4e9f0", fontWeight: 600 }}>halvinglens.com</div>
           </div>
           <div style={{ display: "flex", fontSize: 22, color: "#6f7c8e", letterSpacing: 3 }}>
             TODAY&apos;S BITCOIN CYCLE READ
