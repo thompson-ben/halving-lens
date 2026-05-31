@@ -272,6 +272,7 @@ export function serializeBrief(): StoredBrief {
       confidence: w.confidence,
     })),
     shortPost: shortPost(),
+    content: contentPack(),
   };
 }
 
