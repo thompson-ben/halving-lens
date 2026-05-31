@@ -87,6 +87,90 @@ export function threadPost(): string[] {
   return t;
 }
 
+// Instagram caption — punchy first line, scannable, emoji + hashtags. IG isn't
+// link-friendly, so it points to the bio.
+export function instagramCaption(): string {
+  const s = cycleSummary();
+  const b = buildBrief();
+  const heatEmoji =
+    s.heat === "cool" ? "🟦" : s.heat === "neutral" ? "🟢" : s.heat === "heating" ? "🟡" : s.heat === "elevated" ? "🟠" : "🔴";
+  return [
+    `Bitcoin Cycle Read — ${b.date}`,
+    "",
+    `₿ ${fmtUsd(s.price)} · Day ${s.cycleDay} (${s.progressPct}% through the cycle)`,
+    `${heatEmoji} Risk: ${s.heat === "cool" ? "Historically cool" : s.heat === "neutral" ? "Neutral" : s.heat === "heating" ? "Heating up" : s.heat === "elevated" ? "Elevated" : "Euphoric"}`,
+    "",
+    s.summary,
+    "",
+    "At this point, previous cycles had usually already peaked. This one's behaving differently — slower, flatter, and ETF-supported.",
+    "",
+    "📊 Full cycle read + daily brief at the link in bio.",
+    "",
+    "Historical context, not financial advice.",
+    "",
+    "#Bitcoin #BTC #crypto #bitcoinhalving #cryptocycle #halvinglens #onchain #bitcoinanalysis",
+  ].join("\n");
+}
+
+// Email newsletter version — a complete, readable issue with subject + body.
+export function emailNewsletter(): { subject: string; body: string } {
+  const s = cycleSummary();
+  const b = buildBrief();
+  const subject = `Bitcoin Cycle Brief — ${b.date}: ${s.phaseLabel}`;
+  const body = [
+    `Bitcoin Cycle Brief`,
+    `${b.date}`,
+    "",
+    "—",
+    "",
+    `Where we are`,
+    s.summary,
+    "",
+    `The numbers: BTC ${fmtUsd(s.price)}${s.change24h != null ? ` (${fmtPct(s.change24h, 1)} ${s.changeLabel})` : ""} · day ${s.cycleDay} of the cycle (${s.progressPct}% through) · risk level: ${s.heat}.`,
+    "",
+    `Historical context`,
+    s.support,
+    "",
+    `What makes this cycle different`,
+    s.whatsDifferent,
+    "",
+    `What to watch next`,
+    s.whatToWatch,
+    "",
+    "—",
+    "",
+    `Read the full daily brief, with charts: https://${SITE_HOST}/brief`,
+    "",
+    "Historical cycle behaviour is not a forecast. This is educational analysis, not financial advice.",
+    `You're receiving this because you joined the ${SITE_HOST} daily brief waitlist.`,
+  ].join("\n");
+  return { subject, body };
+}
+
+// The full cross-channel content pack from one brief — the content engine.
+export interface ContentPack {
+  xPost: string;
+  xThread: string[];
+  instagram: string;
+  linkedin: string;
+  emailSubject: string;
+  emailBody: string;
+}
+
+export function contentPack(
+  changed?: { area: string; summary: string }[],
+): ContentPack {
+  const email = emailNewsletter();
+  return {
+    xPost: shortPost(changed),
+    xThread: threadPost(),
+    instagram: instagramCaption(),
+    linkedin: linkedinPost(),
+    emailSubject: email.subject,
+    emailBody: email.body,
+  };
+}
+
 export function briefDayLabel(): string {
   return `Day ${TODAY_DAY_IN_CYCLE} from the 2024 halving`;
 }

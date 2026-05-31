@@ -2,17 +2,16 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import {
   buildBrief,
-  shortPost,
-  threadPost,
-  linkedinPost,
+  contentPack,
   etfInsight,
   sentimentInsight,
   cycleInsight,
-  type Insight,
 } from "@/lib/brief";
+
+type Insight = { title: string; body: string; available: boolean; href: string };
 import { cycleSummary, whatChanged } from "@/lib/cycleSummary";
 import { priorBrief } from "@/lib/briefArchive";
-import { CopyPostButtons } from "@/components/CopyPostButtons";
+import { ContentPack } from "@/components/ContentPack";
 import { BriefSignup } from "@/components/BriefSignup";
 import { WhatToWatch } from "@/components/WhatToWatch";
 import { WhatChanged } from "@/components/WhatChanged";
@@ -29,9 +28,9 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
   const b = buildBrief();
   const s = cycleSummary();
   const changed = whatChanged(priorBrief());
-  const post = shortPost(changed.available ? changed.items.map((i) => ({ area: i.area, summary: i.summary })) : undefined);
-  const thread = threadPost();
-  const linkedin = linkedinPost();
+  const pack = contentPack(
+    changed.available ? changed.items.map((i) => ({ area: i.area, summary: i.summary })) : undefined,
+  );
 
   return (
     <div className="space-y-12">
@@ -102,20 +101,7 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
 
       <WhatToWatch />
 
-      <section>
-        <h2 className="font-display text-[20px] font-medium tracking-tight-2 text-ink-100 mb-2">
-          Share this brief
-        </h2>
-        <p className="text-[12.5px] text-ink-400 mb-4 max-w-xl">
-          Copy-ready for X and LinkedIn — historical context, not advice.
-        </p>
-        <div className="card p-5 mb-4">
-          <pre className="whitespace-pre-wrap break-words font-sans text-[13px] text-ink-200 leading-relaxed">
-            {post}
-          </pre>
-        </div>
-        <CopyPostButtons post={post} thread={thread} linkedin={linkedin} />
-      </section>
+      <ContentPack pack={pack} />
 
       <TodayVsPriorCycles />
       <WhatHappenedNext />
