@@ -15,10 +15,12 @@ import {
   currentGainFromHalving,
   headlineSpot,
   priorCyclesAtSameDay,
+  recentChange,
 } from "./cycleIntel";
 import { etfStats, ETF } from "./etf";
-import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
+import { sentimentRead, sentimentChange, currentSentiment, SENTIMENT_AVAILABLE } from "./sentiment";
 import { metricBySlug, zoneFor } from "./metrics";
+import { halvingStats } from "./halvingStats";
 
 export type HeatLevel = "cool" | "neutral" | "heating" | "elevated" | "euphoria";
 export type Confidence = "low" | "medium" | "high";
@@ -47,6 +49,20 @@ export interface EvidenceItem {
   status: "live" | "live-derived";
 }
 
+// "What to watch next" — forward-looking signals derived from the same live
+// data. Each is historical context, never advice. `level` drives the colour:
+// calm (informational), watch (developing), elevated (notable).
+export type WatchLevel = "calm" | "watch" | "elevated";
+
+export interface WatchSignal {
+  signal: string; // what to watch
+  why: string; // why it matters
+  status: string; // current reading, plain English
+  level: WatchLevel;
+  confidence: Confidence;
+  href?: string;
+}
+
 export interface CycleSummary {
   // Position
   cycleDay: number;
@@ -69,6 +85,7 @@ export interface CycleSummary {
   support: string;
   whatsDifferent: string;
   whatToWatch: string;
+  watchSignals: WatchSignal[];
   // Evidence
   evidence: EvidenceItem[];
 }
@@ -92,6 +109,127 @@ function heatFromPercentile(p: number): HeatLevel {
   if (p < 75) return "heating";
   if (p < 92) return "elevated";
   return "euphoria";
+}
+
+// Build the "what to watch next" signals from live data. Ordered by salience
+// (elevated → watch → calm). Each only appears when its data is available.
+function buildWatchSignals(div: ReturnType<typeof cycleDivergence>, heat: HeatLevel): WatchSignal[] {
+  const out: WatchSignal[] = [];
+
+  // 1. Cycle divergence vs historical timing
+  out.push({
+    signal: "Divergence from historical cycle timing",
+    why: "By this day after the halving, prior cycles had usually already peaked. Watching whether this cycle converges or keeps diverging frames the whole read.",
+    status: div.later && div.cooler
+      ? "Diverging — later by time, cooler by price than prior cycles"
+      : div.cooler
+        ? "Running cooler than prior cycles at this point"
+        : "Broadly tracking prior cycles",
+    level: div.later && div.cooler ? "watch" : "calm",
+    confidence: "high",
+    href: "/cycles",
+  });
+
+  // 2. Price acceleration vs prior cycles
+  const rc = recentChange();
+  if (rc) {
+    const accel = rc.pct > 6;
+    out.push({
+      signal: "Price acceleration vs previous cycles",
+      why: "A sustained acceleration would be the clearest sign this cycle is starting to follow the classic post-halving expansion.",
+      status: accel
+        ? `Picking up — ${fmtSignedPct(rc.pct)} over the last ${rc.days}d`
+        : rc.pct < -6
+          ? `Cooling — ${fmtSignedPct(rc.pct)} over the last ${rc.days}d`
+          : `Steady — ${fmtSignedPct(rc.pct)} over the last ${rc.days}d`,
+      level: accel ? "watch" : "calm",
+      confidence: "medium",
+      href: "/price",
+    });
+  }
+
+  // 3. ETF flows
+  if (ETF.connected) {
+    const s = etfStats();
+    const wk = s.trailingWeek;
+    const accelerating = wk > 1e9;
+    out.push({
+      signal: "ETF inflows accelerating",
+      why: "Spot ETF demand is the structural variable unique to this cycle. Sustained inflows are a candidate explanation for the cooler, flatter price path.",
+      status: wk > 0
+        ? `Net inflows of ~${compactUsd(wk)} over the last 7 days`
+        : wk < 0
+          ? `Net outflows of ~${compactUsd(Math.abs(wk))} over the last 7 days`
+          : "Roughly flat over the last 7 days",
+      level: accelerating ? "elevated" : wk < -1e9 ? "watch" : "calm",
+      confidence: "high",
+      href: "/etf",
+    });
+  }
+
+  // 4. Sentiment approaching euphoria / fear
+  if (SENTIMENT_AVAILABLE) {
+    const cur = currentSentiment();
+    const ch = sentimentChange(30);
+    if (cur) {
+      const v = cur.value;
+      const approachingEuphoria = v >= 70;
+      const deepFear = v <= 25;
+      out.push({
+        signal: "Sentiment approaching euphoric territory",
+        why: "Extremes are the signal: euphoria has often appeared near cycle tops, deep fear near lows. It's a contrarian read, not a timing tool.",
+        status: approachingEuphoria
+          ? `Greed building — Fear & Greed at ${v}${ch ? `, ${ch.direction} over 30d` : ""}`
+          : deepFear
+            ? `Deep fear — Fear & Greed at ${v}`
+            : `Measured — Fear & Greed at ${v}${ch ? `, ${ch.direction} over 30d` : ""}`,
+        level: approachingEuphoria ? "elevated" : deepFear ? "watch" : "calm",
+        confidence: "high",
+        href: "/sentiment",
+      });
+    }
+  }
+
+  // 5. Overall risk / heat level rising
+  out.push({
+    signal: "Rising risk / heat level",
+    why: "As price stretches above its long-term average, historical risk rises. This is the single 'how hot is it' gauge.",
+    status: `Currently ${HEAT_LABEL[heat].toLowerCase()}`,
+    level: heat === "euphoria" ? "elevated" : heat === "elevated" || heat === "heating" ? "watch" : "calm",
+    confidence: "medium",
+    href: "/cycles",
+  });
+
+  // 6. Miner stress (live-derived from Puell + hashrate)
+  const puell = metricBySlug("puell-multiple");
+  const hs = halvingStats();
+  if (puell) {
+    const z = zoneFor(puell, TODAY.puell);
+    const stressed = TODAY.puell < 0.6;
+    out.push({
+      signal: "Miner stress",
+      why: "When miner revenue is squeezed, capitulation can follow — historically that has clustered near cycle lows.",
+      status: stressed
+        ? `Revenue suppressed — Puell ${z.label.toLowerCase()}${hs.hashrateEHs != null ? `, hashrate ${hs.hashrateEHs.toFixed(0)} EH/s` : ""}`
+        : `Miner revenue ${z.label.toLowerCase()}${hs.hashrateEHs != null ? `, hashrate ${hs.hashrateEHs.toFixed(0)} EH/s` : ""}`,
+      level: stressed ? "watch" : "calm",
+      confidence: "medium",
+      href: "/miners",
+    });
+  }
+
+  const rank: Record<WatchLevel, number> = { elevated: 0, watch: 1, calm: 2 };
+  return out.sort((a, b) => rank[a.level] - rank[b.level]);
+}
+
+function fmtSignedPct(n: number): string {
+  return `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
+}
+function compactUsd(n: number): string {
+  const a = Math.abs(n);
+  if (a >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `$${(n / 1e6).toFixed(0)}M`;
+  return `$${Math.round(n).toLocaleString()}`;
 }
 
 export function cycleSummary(): CycleSummary {
@@ -224,6 +362,7 @@ export function cycleSummary(): CycleSummary {
     support,
     whatsDifferent,
     whatToWatch,
+    watchSignals: buildWatchSignals(div, heat),
     evidence,
   };
 }

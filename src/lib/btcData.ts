@@ -24,6 +24,7 @@ export const SPOT = SNAPSHOT.spot ?? null;
 export const PRICE_HISTORY = SNAPSHOT.priceHistory ?? [];
 export const ETF_FLOWS = SNAPSHOT.etf ?? null;
 export const ONCHAIN = SNAPSHOT.onchain ?? null;
+export const HODL_WAVES = SNAPSHOT.hodlWaves ?? null;
 export const CYCLES: Cycle[] = SNAPSHOT.cycles;
 export const TODAY_DAY_IN_CYCLE: number = SNAPSHOT.todayDayInCycle;
 export const CURRENT_CYCLE = CYCLES[CYCLES.length - 1];

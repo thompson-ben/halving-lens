@@ -76,7 +76,10 @@ export function CycleSummaryHero() {
           <ShareCardButton />
         </div>
 
-        <p className="mt-5 text-[11.5px] text-ink-500 max-w-2xl leading-relaxed">
+        <p className="mt-5 text-[12px] text-ink-400 max-w-2xl leading-relaxed">
+          Updated daily using live Bitcoin price, ETF flow, sentiment and cycle data.
+        </p>
+        <p className="mt-1.5 text-[11.5px] text-ink-500 max-w-2xl leading-relaxed">
           This is historical cycle analysis, not financial advice. Historical cycle behaviour is not
           a forecast.
         </p>

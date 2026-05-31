@@ -1,6 +1,7 @@
+import { format } from "date-fns";
 import { HodlWavesChart } from "@/components/HodlWavesChart";
 import { DataBadge } from "@/components/DataBadge";
-import { HODL_BANDS } from "@/lib/hodlWaves";
+import { HODL_BANDS, HODL_LIVE, HODL_SOURCE, HODL_UPDATED } from "@/lib/hodlWaves";
 
 export default function HodlWavesPage() {
   return (
@@ -8,7 +9,7 @@ export default function HodlWavesPage() {
       <header className="pt-2">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">HODL Waves</span>
-          <DataBadge status="coming-soon" />
+          <DataBadge status={HODL_LIVE ? "live-derived" : "coming-soon"} source={HODL_LIVE ? HODL_SOURCE ?? undefined : undefined} />
         </div>
         <h1 className="font-display text-[40px] lg:text-[52px] font-medium tracking-tightest text-ink-50 leading-[1.05] max-w-3xl">
           Where every coin sits, by how long it's been held.
@@ -20,15 +21,26 @@ export default function HodlWavesPage() {
         </p>
       </header>
 
-      <div className="rounded-xl border border-signal-amber/25 bg-signal-amber/[0.06] px-5 py-4 flex items-start gap-3">
-        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-signal-amber shrink-0" />
-        <p className="text-[13px] text-ink-200 leading-relaxed">
-          <span className="font-medium text-signal-amber">Illustrative — not live data.</span> HODL
-          Waves require on-chain UTXO-age data, which isn&apos;t available from a free source yet.
-          The shape below shows the canonical pattern for learning purposes; it will switch to live
-          data once an on-chain source is connected.
-        </p>
-      </div>
+      {HODL_LIVE ? (
+        <div className="rounded-xl border border-signal-green/25 bg-signal-green/[0.06] px-5 py-4 flex items-start gap-3">
+          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-signal-green shrink-0" />
+          <p className="text-[13px] text-ink-200 leading-relaxed">
+            <span className="font-medium text-signal-green">Live data.</span> Supply share by coin
+            age from {HODL_SOURCE}
+            {HODL_UPDATED ? `, refreshed weekly (updated ${format(new Date(HODL_UPDATED), "d MMM yyyy")})` : ""}.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-signal-amber/25 bg-signal-amber/[0.06] px-5 py-4 flex items-start gap-3">
+          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-signal-amber shrink-0" />
+          <p className="text-[13px] text-ink-200 leading-relaxed">
+            <span className="font-medium text-signal-amber">Illustrative — not live data.</span> HODL
+            Waves require on-chain UTXO-age data. The shape below shows the canonical pattern for
+            learning purposes; it switches to live data (refreshed weekly) once the on-chain source
+            is connected.
+          </p>
+        </div>
+      )}
 
       <div className="card p-7 lg:p-8 relative">
         <div className="flex items-center justify-between mb-5">

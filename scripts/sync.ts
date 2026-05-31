@@ -399,6 +399,67 @@ async function fetchOnchain(): Promise<OnchainData | null> {
   return { source: "BGeometrics · bitcoin-data.com", fetchedAt: new Date().toISOString(), series };
 }
 
+// HODL Waves — supply share by coin-age band, from BGeometrics. 12 bands would
+// exceed the daily free-tier budget, so this runs WEEKLY: only when the
+// committed data is >6 days old (or absent). Band slugs are best-effort; the
+// [HODL] logs reveal which the API accepts so they can be pinned. Fail-safe:
+// returns null (carry over) unless a healthy full set is parsed.
+const HODL_BANDS_SLUGS: Array<{ id: string; slugs: string[] }> = [
+  { id: "1d", slugs: ["hodl-waves-1d", "hodl-wave-24h"] },
+  { id: "1w", slugs: ["hodl-waves-1d-1w", "hodl-wave-1d-1w"] },
+  { id: "1m", slugs: ["hodl-waves-1w-1m"] },
+  { id: "3m", slugs: ["hodl-waves-1m-3m"] },
+  { id: "6m", slugs: ["hodl-waves-3m-6m"] },
+  { id: "1y", slugs: ["hodl-waves-6m-12m", "hodl-waves-6m-1y"] },
+  { id: "2y", slugs: ["hodl-waves-1y-2y"] },
+  { id: "3y", slugs: ["hodl-waves-2y-3y"] },
+  { id: "5y", slugs: ["hodl-waves-3y-5y"] },
+  { id: "7y", slugs: ["hodl-waves-5y-7y"] },
+  { id: "10y", slugs: ["hodl-waves-7y-10y"] },
+  { id: "10y+", slugs: ["hodl-waves-10y"] },
+];
+
+async function fetchHodlWaves(): Promise<import("../src/lib/data/types").HodlWavesData | null> {
+  if (process.env.FULL_SYNC !== "1") return null;
+  const prev = PREVIOUS_SNAPSHOT.hodlWaves;
+  const ageDays = prev?.fetchedAt ? (Date.now() - Date.parse(prev.fetchedAt)) / 86_400_000 : Infinity;
+  const complete = prev && Object.keys(prev.bands).length >= HODL_BANDS_SLUGS.length;
+  if (complete && ageDays < 6) {
+    console.log("  [HODL] fresh (weekly) — skipping");
+    return null;
+  }
+  const key = process.env.BITCOIN_DATA_API_KEY;
+  const bands: Record<string, { date: string; value: number }[]> = {};
+  for (const b of HODL_BANDS_SLUGS) {
+    // Don't re-fetch bands we already have unless doing the weekly refresh.
+    if (prev?.bands?.[b.id]?.length && ageDays < 6) {
+      bands[b.id] = prev.bands[b.id];
+      continue;
+    }
+    let got: { date: string; value: number }[] | null = null;
+    for (const slug of b.slugs) {
+      try {
+        got = await fetchOnchainMetric(slug, key);
+      } catch {
+        got = null;
+      }
+      if (got && got.length) break;
+    }
+    if (got && got.length) {
+      bands[b.id] = got;
+      console.log(`  [HODL] ${b.id}: ${got.length} points`);
+    } else {
+      console.warn(`  [HODL] ${b.id}: not found (tried ${b.slugs.join(", ")})`);
+    }
+  }
+  const merged = { ...(prev?.bands ?? {}), ...bands };
+  if (Object.keys(merged).length < HODL_BANDS_SLUGS.length) {
+    console.warn(`  [HODL] only ${Object.keys(merged).length}/${HODL_BANDS_SLUGS.length} bands — keeping previous (illustrative stays)`);
+    return prev ?? null;
+  }
+  return { source: "BGeometrics · bitcoin-data.com", fetchedAt: new Date().toISOString(), bands: merged };
+}
+
 // CoinMetrics community — daily price, market cap, realised cap and circulating
 // supply for BTC. Keyless, full history. Some metrics (notably CapRealUSD,
 // realised cap) require a Pro key — requesting one paid metric 403s the whole
@@ -664,6 +725,14 @@ async function build(): Promise<Snapshot> {
     console.warn(`  On-chain unavailable — will carry over. (${(e as Error).message})`);
   }
 
+  console.log("→ Fetching HODL waves (BGeometrics, weekly)…");
+  let hodlWaves: Snapshot["hodlWaves"] = null;
+  try {
+    hodlWaves = await fetchHodlWaves();
+  } catch (e) {
+    console.warn(`  HODL waves unavailable — will carry over. (${(e as Error).message})`);
+  }
+
   // On-chain data from CoinMetrics. Supply is free; realised cap may be absent
   // on the free tier. Key on supply so the join works even without realised cap.
   const chainByTs = new Map(
@@ -866,6 +935,7 @@ async function build(): Promise<Snapshot> {
     // Carry over the last good values when a rate-limited source isn't re-fetched.
     etf: etf ?? PREVIOUS_SNAPSHOT.etf ?? null,
     onchain: effectiveOnchain,
+    hodlWaves: hodlWaves ?? PREVIOUS_SNAPSHOT.hodlWaves ?? null,
   };
 }
 

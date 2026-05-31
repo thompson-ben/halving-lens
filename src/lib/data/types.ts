@@ -124,6 +124,7 @@ export interface Snapshot {
   priceHistory?: PriceHistoryPoint[] | null; // recent daily closes; absent until synced
   etf?: EtfData | null; // US spot BTC ETF flows; absent until a SoSoValue key is wired
   onchain?: OnchainData | null; // BGeometrics on-chain series; absent until a key is wired
+  hodlWaves?: HodlWavesData | null; // BGeometrics HODL waves; weekly refresh
 }
 
 // Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.
@@ -188,4 +189,12 @@ export interface OnchainData {
   source: string;
   fetchedAt: string; // ISO
   series: Record<string, OnchainPoint[]>;
+}
+
+// HODL Waves — supply share by coin-age band. Refreshed weekly (12 endpoints
+// would exceed the daily free-tier budget). Each band is a dated % series.
+export interface HodlWavesData {
+  source: string;
+  fetchedAt: string; // ISO
+  bands: Record<string, OnchainPoint[]>; // band id -> dated percentage series
 }

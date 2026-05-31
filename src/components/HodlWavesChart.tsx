@@ -1,10 +1,10 @@
 "use client";
 
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { HODL_BANDS, hodlSeries } from "@/lib/hodlWaves";
+import { HODL_BANDS, hodlSeriesLive } from "@/lib/hodlWaves";
 
 export function HodlWavesChart({ height = 460 }: { height?: number }) {
-  const series = hodlSeries();
+  const series = hodlSeriesLive();
   const data = series.map((p) => ({ day: p.day, ...p.bands }));
 
   return (

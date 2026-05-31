@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Play } from "lucide-react";
 import { CycleSummaryHero } from "@/components/CycleSummaryHero";
+import { WhatToWatch } from "@/components/WhatToWatch";
 import { StretchPanel } from "@/components/StretchPanel";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
@@ -14,6 +15,9 @@ export default function CycleDashboardPage() {
     <div className="space-y-14 lg:space-y-20">
       {/* 1. The answer first — Bitcoin Cycle Summary */}
       <CycleSummaryHero />
+
+      {/* 1b. What to watch next — forward-looking signals */}
+      <WhatToWatch />
 
       {/* 2. Was this historically stretched? */}
       <StretchPanel />

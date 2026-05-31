@@ -3,7 +3,7 @@
 // canonical one (long-term holders distribute into cycle tops, accumulate at
 // bottoms; short-term cohorts swell during euphoria).
 
-import { CURRENT_CYCLE, type CycleSample } from "./btcData";
+import { CURRENT_CYCLE, HODL_WAVES, type CycleSample } from "./btcData";
 
 export interface HodlBand {
   id: string;
@@ -86,4 +86,37 @@ export function hodlSeries(): HodlPoint[] {
     day: s.day,
     bands: distributionAt(s, cyclePeak),
   }));
+}
+
+// True once a full set of live HODL-wave bands is in the snapshot.
+export const HODL_LIVE =
+  !!HODL_WAVES && Object.keys(HODL_WAVES.bands).length >= HODL_BANDS.length;
+
+export const HODL_SOURCE = HODL_WAVES?.source ?? null;
+export const HODL_UPDATED = HODL_WAVES?.fetchedAt ?? null;
+
+// Live HODL series (current cycle), aligned to day-from-halving, normalised to
+// 100% per sample. Falls back to the illustrative series when not live.
+export function hodlSeriesLive(): HodlPoint[] {
+  if (!HODL_LIVE || !HODL_WAVES) return hodlSeries();
+  const base = new Date(CURRENT_CYCLE.halvingDate).getTime();
+  const MS_DAY = 86_400_000;
+  return CURRENT_CYCLE.samples.map((s) => {
+    const iso = new Date(base + s.day * MS_DAY).toISOString().slice(0, 10);
+    const bands: Record<string, number> = {};
+    let total = 0;
+    for (const b of HODL_BANDS) {
+      const ser = HODL_WAVES!.bands[b.id] ?? [];
+      // nearest point at/before this date
+      let v = 0;
+      for (const p of ser) {
+        if (p.date <= iso) v = p.value;
+        else break;
+      }
+      bands[b.id] = v;
+      total += v;
+    }
+    if (total > 0) for (const b of HODL_BANDS) bands[b.id] = (bands[b.id] / total) * 100;
+    return { day: s.day, bands };
+  });
 }

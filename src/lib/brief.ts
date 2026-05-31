@@ -6,6 +6,9 @@ import { format } from "date-fns";
 import { cycleSummary } from "./cycleSummary";
 import { SOURCE, TODAY_DAY_IN_CYCLE } from "./btcData";
 import { fmtPct, fmtUsd } from "./format";
+import { etfStats, ETF } from "./etf";
+import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
+import { cycleDivergence } from "./cycleIntel";
 
 export interface Brief {
   date: string; // display date
@@ -77,4 +80,71 @@ export function threadPost(): string[] {
 
 export function briefDayLabel(): string {
   return `Day ${TODAY_DAY_IN_CYCLE} from the 2024 halving`;
+}
+
+// ── Insight-of-the-day blocks ───────────────────────────────────────────────
+
+export interface Insight {
+  title: string;
+  body: string;
+  available: boolean;
+  href: string;
+}
+
+export function etfInsight(): Insight {
+  if (!ETF.connected) {
+    return {
+      title: "ETF insight",
+      body: "Spot ETF flow data isn't connected yet — it will appear here once live.",
+      available: false,
+      href: "/etf",
+    };
+  }
+  const s = etfStats();
+  const wk = s.trailingWeek;
+  const dir = wk > 0 ? "net inflows" : wk < 0 ? "net outflows" : "broadly flat flows";
+  const big = s.biggestInflow;
+  return {
+    title: "ETF insight of the day",
+    body:
+      `US spot Bitcoin ETFs have seen ${dir} over the past week` +
+      (Math.abs(wk) >= 1e6 ? ` (~${fmtUsd(Math.abs(wk), { compact: true })})` : "") +
+      `. Cumulative net flow since launch stands at ${fmtUsd(s.cumulative, { compact: true })}` +
+      (big ? `, with the largest single inflow day at ${fmtUsd(big.netFlow, { compact: true })}.` : ".") +
+      " ETF demand is the structural variable unique to this cycle.",
+    available: true,
+    href: "/etf",
+  };
+}
+
+export function sentimentInsight(): Insight {
+  if (!SENTIMENT_AVAILABLE) {
+    return {
+      title: "Sentiment insight",
+      body: "Sentiment data isn't connected yet — it will appear here once live.",
+      available: false,
+      href: "/sentiment",
+    };
+  }
+  const r = sentimentRead();
+  if (!r) return { title: "Sentiment insight", body: "Sentiment unavailable.", available: false, href: "/sentiment" };
+  return {
+    title: "Sentiment insight of the day",
+    body:
+      `Market mood reads ${r.band.label.toLowerCase()} (Fear & Greed ${r.value}/100)` +
+      (r.change ? `, ${r.change.direction} over the past month` : "") +
+      ". Extremes matter most: euphoria has often appeared near cycle tops, deep fear near lows — a contrarian read, not a timing tool.",
+    available: true,
+    href: "/sentiment",
+  };
+}
+
+export function cycleInsight(): Insight {
+  const div = cycleDivergence();
+  return {
+    title: "Cycle insight of the day",
+    body: div.summary,
+    available: true,
+    href: "/cycles",
+  };
 }
