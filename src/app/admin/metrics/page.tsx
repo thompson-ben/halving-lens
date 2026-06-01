@@ -63,8 +63,14 @@ export default async function AdminMetricsPage({
 
   return (
     <Shell>
-      <div className="-mt-2">
+      <div className="-mt-2 flex items-center gap-3 flex-wrap">
         <ExcludeToggle />
+        <a
+          href="/admin/content"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-accent/25 bg-accent/[0.06] text-accent text-[12.5px] hover:bg-accent/[0.1] transition-colors"
+        >
+          Content Pack Generator →
+        </a>
       </div>
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
         <Stat label="Page views" value={a.totals.pageViews} />
