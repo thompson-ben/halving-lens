@@ -21,7 +21,10 @@ export default function CycleDashboardPage() {
   return (
     <div className="space-y-14 lg:space-y-20">
       {/* 1. The answer first — visual hero with the cycle thermometer */}
-      <CycleSummaryHero />
+      <div>
+        <CycleSummaryHero />
+        <FeedbackWidget variant="inline" section="cycle_summary" contentType="homepage_section" />
+      </div>
 
       {/* 2. The moat visual — every cycle lined up from day zero */}
       <section>
@@ -47,16 +50,16 @@ export default function CycleDashboardPage() {
       <WhyCheckToday />
 
       {/* 4. The moat in numbers — current cycle vs prior cycles */}
-      <TrackedSection id="today-vs-prior"><TodayVsPriorCycles /></TrackedSection>
+      <TrackedSection id="today-vs-prior" feedback="today_vs_prior_cycles"><TodayVsPriorCycles /></TrackedSection>
 
       {/* 5. What changed since yesterday */}
-      <TrackedSection id="what-changed"><WhatChanged /></TrackedSection>
+      <TrackedSection id="what-changed" feedback="what_changed"><WhatChanged /></TrackedSection>
 
       {/* 6. What to watch next */}
-      <TrackedSection id="what-to-watch"><WhatToWatch /></TrackedSection>
+      <TrackedSection id="what-to-watch" feedback="what_to_watch"><WhatToWatch /></TrackedSection>
 
       {/* 7. Cycle scorecard — the environment at a glance */}
-      <TrackedSection id="scorecard"><CycleScorecard /></TrackedSection>
+      <TrackedSection id="scorecard" feedback="cycle_scorecard"><CycleScorecard /></TrackedSection>
 
       {/* 8. Was this historically stretched? */}
       <TrackedSection id="stretch"><StretchPanel /></TrackedSection>
@@ -65,7 +68,7 @@ export default function CycleDashboardPage() {
       <TrackedSection id="what-happened-next"><WhatHappenedNext /></TrackedSection>
 
       {/* 9b. Downside risk context — if it corrected like prior cycles */}
-      <TrackedSection id="downside"><DownsidePreview /></TrackedSection>
+      <TrackedSection id="downside" feedback="downside_preview"><DownsidePreview /></TrackedSection>
 
       {/* 10. What makes this cycle different */}
       <TrackedSection id="whats-different"><WhatsDifferent /></TrackedSection>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sbInsert } from "@/lib/supabase";
+import { isBot } from "@/lib/botCheck";
 
 // First-party, privacy-friendly event collection. No cookies, no PII — just an
 // anonymous per-session id (random, client-generated). Fails open: if Supabase
@@ -25,22 +26,8 @@ const ALLOWED = new Set([
   "feedback",
 ]);
 
-// Known bots, crawlers, link-preview scrapers, headless browsers and uptime
-// monitors. On a new site these can dwarf real human traffic, so we drop their
-// events server-side to keep the stats honest. The User-Agent is a request
-// header used only for this check — it is never stored (no PII).
-const BOT_UA =
-  /bot|crawl|spider|slurp|mediapartners|adsbot|bingpreview|facebookexternalhit|facebot|embedly|quora|pinterest|redditbot|vkshare|whatsapp|telegram|discord|slack|twitter|linkedin|skype|google|yandex|baidu|duckduck|petalbot|applebot|headless|phantom|puppeteer|playwright|selenium|lighthouse|pagespeed|gtmetrix|pingdom|uptimerobot|statuscake|monitor|prerender|scrapy|curl|wget|python-requests|python-urllib|httpclient|axios|go-http|node-fetch|okhttp|java\/|libwww|dataprovider|semrush|ahrefs|mj12bot|dotbot/i;
-
 // Internal / non-content paths that should never count as a viewer page view.
 const SKIP_PATH = /^\/(admin|api|og)(\/|$)/;
-
-// Real browsers always send a UA. An empty/missing UA on a beacon is almost
-// always an automated client, so we drop it too.
-function isBot(ua: string | null): boolean {
-  if (!ua) return true;
-  return BOT_UA.test(ua);
-}
 
 interface Body {
   name?: string;

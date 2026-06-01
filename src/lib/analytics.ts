@@ -18,7 +18,24 @@ export interface AnalyticsSummary {
   topPages: { path: string; views: number }[];
   topSections: { section: string; views: number }[];
   featureVotes: { feature: string; votes: number }[];
+  sectionFeedback: SectionFeedback[];
+  recentComments: FeedbackComment[];
   subscribers: number | null;
+}
+
+export interface SectionFeedback {
+  key: string; // section name (or path for page-level feedback)
+  helpful: number;
+  notHelpful: number;
+  total: number;
+  pct: number; // helpful %
+}
+
+export interface FeedbackComment {
+  key: string; // section or path
+  helpful: boolean;
+  message: string;
+  when: string; // ISO timestamp
 }
 
 const SHARE_EVENTS = ["copy_post", "copy_thread", "copy_linkedin", "share_image"];
@@ -60,6 +77,8 @@ export async function analyticsSummary(): Promise<AnalyticsSummary> {
       topPages: [],
       topSections: [],
       featureVotes: [],
+      sectionFeedback: [],
+      recentComments: [],
       subscribers: null,
     };
   }
@@ -91,6 +110,38 @@ export async function analyticsSummary(): Promise<AnalyticsSummary> {
   );
   const voteRows = await sbSelect<{ feature: string }[]>("feature_votes?select=feature&limit=10000");
 
+  // Section-level feedback: helpful / not-helpful / % per piece of content.
+  const fbRows = await sbSelect<
+    {
+      section: string | null;
+      path: string | null;
+      helpful: boolean | null;
+      message: string | null;
+      created_at: string;
+    }[]
+  >("feedback?select=section,path,helpful,message,created_at&limit=10000");
+
+  const groups = new Map<string, { helpful: number; notHelpful: number }>();
+  for (const r of fbRows ?? []) {
+    const key = r.section || r.path || "unknown";
+    const g = groups.get(key) ?? { helpful: 0, notHelpful: 0 };
+    if (r.helpful === true) g.helpful += 1;
+    else if (r.helpful === false) g.notHelpful += 1;
+    groups.set(key, g);
+  }
+  const sectionFeedback: SectionFeedback[] = [...groups.entries()]
+    .map(([key, g]) => {
+      const total = g.helpful + g.notHelpful;
+      return { key, helpful: g.helpful, notHelpful: g.notHelpful, total, pct: total ? Math.round((g.helpful / total) * 100) : 0 };
+    })
+    .sort((a, b) => b.total - a.total);
+
+  const recentComments: FeedbackComment[] = (fbRows ?? [])
+    .filter((r) => r.message && r.message.trim())
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .slice(0, 15)
+    .map((r) => ({ key: r.section || r.path || "—", helpful: !!r.helpful, message: r.message as string, when: r.created_at }));
+
   return {
     configured: true,
     totals: {
@@ -105,6 +156,8 @@ export async function analyticsSummary(): Promise<AnalyticsSummary> {
     topPages: tally<string>(pageRows, "path").slice(0, 12).map((x) => ({ path: x.name, views: x.n })),
     topSections: tally<string>(sectionRows, "section").slice(0, 12).map((x) => ({ section: x.name, views: x.n })),
     featureVotes: tally<string>(voteRows, "feature").map((x) => ({ feature: x.name, votes: x.n })),
+    sectionFeedback,
+    recentComments,
     subscribers,
   };
 }

@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { PriceSentimentChart } from "@/components/PriceSentimentChart";
 import { DataBadge } from "@/components/DataBadge";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SENTIMENT } from "@/lib/btcData";
 import {
   FORWARD_HORIZON_DAYS,
@@ -180,6 +181,8 @@ export default function SentimentPage() {
           </p>
         </section>
       )}
+
+      <FeedbackWidget section="sentiment" contentType="page" label="Was the sentiment page useful?" />
     </div>
   );
 }

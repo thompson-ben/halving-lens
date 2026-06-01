@@ -16,15 +16,26 @@ create table if not exists public.events (
 create index if not exists events_name_idx on public.events (name);
 create index if not exists events_created_idx on public.events (created_at);
 
--- 2) Page feedback: 👍 / 👎 + optional text.
+-- 2) Section-level feedback: 👍 / 👎 + optional text, tagged by page + section.
 create table if not exists public.feedback (
-  id          bigint generated always as identity primary key,
-  path        text,
-  helpful     boolean,
-  message     text,
-  session_id  text,
-  created_at  timestamptz not null default now()
+  id           bigint generated always as identity primary key,
+  path         text,
+  section      text,                      -- e.g. 'mvrv_explanation', 'cycle_summary'
+  content_type text,                      -- e.g. 'metric', 'homepage_section', 'page'
+  helpful      boolean,
+  message      text,
+  session_id   text,
+  visitor_id   text,                      -- stable anonymous per-device id
+  device_type  text,                      -- 'mobile' | 'tablet' | 'desktop'
+  created_at   timestamptz not null default now()
 );
+-- Add the section-level columns to an existing feedback table (safe to re-run).
+alter table public.feedback add column if not exists section      text;
+alter table public.feedback add column if not exists content_type text;
+alter table public.feedback add column if not exists visitor_id   text;
+alter table public.feedback add column if not exists device_type  text;
+create index if not exists feedback_section_idx on public.feedback (section);
+create index if not exists feedback_created_idx on public.feedback (created_at);
 
 -- 3) Feature votes: "what should we build next?"
 create table if not exists public.feature_votes (
