@@ -8,7 +8,7 @@ export const STORED_BRIEFS: StoredBrief[] = [
   {
     "slug": "2026-06-01",
     "dateLabel": "1 June 2026",
-    "generatedAt": "2026-06-01T07:24:01.460Z",
+    "generatedAt": "2026-06-01T17:04:30.826Z",
     "headline": "Later by time, cooler by price: Bitcoin continues to diverge from prior cycles.",
     "phaseLabel": "Later-running mid-cycle expansion",
     "heat": "neutral",
@@ -75,7 +75,7 @@ export const STORED_BRIEFS: StoredBrief[] = [
       },
       {
         "signal": "Miner stress",
-        "status": "Miner revenue suppressed, hashrate 1002 EH/s",
+        "status": "Miner revenue suppressed, hashrate 995 EH/s",
         "level": "calm",
         "confidence": "medium"
       }
