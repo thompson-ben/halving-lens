@@ -1,11 +1,13 @@
+import { cookies } from "next/headers";
 import { analyticsSummary } from "@/lib/analytics";
+import { AdminLogin } from "@/components/AdminLogin";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Internal metrics — halvinglens.com", robots: { index: false } };
 
-// Lightweight internal PM dashboard. Gated by a shared secret in the URL
-// (?key=...), matched against ANALYTICS_DASHBOARD_KEY. Not linked anywhere and
-// noindex. Reads first-party Supabase analytics.
+// Lightweight internal PM dashboard. Auth via a session cookie (set by a
+// password box) OR a ?key= match against ANALYTICS_DASHBOARD_KEY. Noindex,
+// unlinked. Reads first-party Supabase analytics.
 export default async function AdminMetricsPage({
   searchParams,
 }: {
@@ -17,18 +19,19 @@ export default async function AdminMetricsPage({
     return (
       <Shell>
         <p className="text-[14px] text-ink-300 max-w-xl leading-relaxed">
-          Set <code className="text-accent">ANALYTICS_DASHBOARD_KEY</code> in the environment, then
-          open this page with <code className="text-accent">?key=YOUR_KEY</code>.
+          Set <code className="text-accent">ANALYTICS_DASHBOARD_KEY</code> in the environment to
+          enable the dashboard.
         </p>
       </Shell>
     );
   }
-  if (searchParams.key !== expected) {
+
+  const cookieKey = cookies().get("hl_admin")?.value;
+  const authed = cookieKey === expected || searchParams.key === expected;
+  if (!authed) {
     return (
       <Shell>
-        <p className="text-[14px] text-ink-300">
-          Add <code className="text-accent">?key=…</code> to view internal metrics.
-        </p>
+        <AdminLogin />
       </Shell>
     );
   }
