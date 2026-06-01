@@ -78,7 +78,7 @@ export function DownsideChart({ height = 420 }: { height?: number }) {
 
       <div className="fade-up relative" style={{ width: "100%", height }}>
         <ResponsiveContainer>
-          <AreaChart data={data} margin={{ top: 10, right: 78, bottom: 8, left: 6 }}>
+          <AreaChart data={data} margin={{ top: 10, right: 16, bottom: 8, left: 6 }}>
             <defs>
               <linearGradient id="downside-price-fill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#9aa6b4" stopOpacity={0.22} />
@@ -116,43 +116,7 @@ export function DownsideChart({ height = 420 }: { height?: number }) {
               formatter={(value: number) => [fmtUsd(value as number), "BTC price"]}
             />
 
-            {/* Scenario levels */}
-            {d.levels.map((l) => {
-              const color = colorFor(l);
-              return (
-                <ReferenceLine
-                  key={l.key}
-                  y={l.price}
-                  stroke={color}
-                  strokeOpacity={l.category === "support" ? 0.65 : 0.5}
-                  strokeDasharray="4 4"
-                  strokeWidth={1}
-                  label={{
-                    value: `${SHORT[l.key] ?? l.label} ${fmtUsd(l.price, { compact: true })}`,
-                    position: "right",
-                    fill: color,
-                    fontSize: 10,
-                    fontFamily: "var(--font-mono)",
-                  }}
-                />
-              );
-            })}
-
-            {/* Current price marker */}
-            <ReferenceLine
-              y={d.currentPrice}
-              stroke="#e7edf4"
-              strokeOpacity={0.55}
-              strokeWidth={1}
-              label={{
-                value: `Now ${fmtUsd(d.currentPrice, { compact: true })}`,
-                position: "right",
-                fill: "#e7edf4",
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-              }}
-            />
-
+            {/* Price area first, so the reference lines + labels sit on top */}
             <Area
               type="monotone"
               dataKey="price"
@@ -162,6 +126,44 @@ export function DownsideChart({ height = 420 }: { height?: number }) {
               dot={false}
               isAnimationActive
               animationDuration={650}
+            />
+
+            {/* Scenario levels — labels anchored inside the plot so they never clip */}
+            {d.levels.map((l) => {
+              const color = colorFor(l);
+              return (
+                <ReferenceLine
+                  key={l.key}
+                  y={l.price}
+                  stroke={color}
+                  strokeOpacity={l.category === "support" ? 0.7 : 0.55}
+                  strokeDasharray="4 4"
+                  strokeWidth={1}
+                  label={{
+                    value: `${SHORT[l.key] ?? l.label} ${fmtUsd(l.price, { compact: true })}`,
+                    position: "insideTopRight",
+                    fill: color,
+                    fontSize: 11,
+                    fontFamily: "var(--font-mono)",
+                  }}
+                />
+              );
+            })}
+
+            {/* Current price marker — label on the LEFT so it doesn't collide
+                with the prior-cycle-high label (the two levels sit close) */}
+            <ReferenceLine
+              y={d.currentPrice}
+              stroke="#e7edf4"
+              strokeOpacity={0.6}
+              strokeWidth={1}
+              label={{
+                value: `Now ${fmtUsd(d.currentPrice, { compact: true })}`,
+                position: "insideTopLeft",
+                fill: "#e7edf4",
+                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+              }}
             />
           </AreaChart>
         </ResponsiveContainer>
