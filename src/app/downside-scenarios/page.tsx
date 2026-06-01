@@ -119,11 +119,17 @@ export default function DownsideScenariosPage() {
                 : "The previous cycle's high has historically acted as a psychological reference level."
             }
           />
+          <MethodCard
+            title="Long-term trend regression"
+            quality="live-derived"
+            body={
+              d.trendSupport != null
+                ? `A least-squares log-log regression of price against time across ${d.trendSamples} weekly closes. Fair-value today sits near ${fmtUsd(d.trendCentral!, { compact: true })}; the lower band (${fmtUsd(d.trendSupport, { compact: true })}) marks the trend-based support prior cycle lows have approached.`
+                : "A long-term logarithmic regression of price against time; its lower band marks trend-based support."
+            }
+          />
         </div>
-        <p className="mt-4 text-[11px] text-ink-500">
-          Methodology version {d.methodologyVersion}. A long-term regression / trend band may be
-          added later.
-        </p>
+        <p className="mt-4 text-[11px] text-ink-500">Methodology version {d.methodologyVersion}.</p>
       </section>
 
       {/* Cross-links */}

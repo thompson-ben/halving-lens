@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { cookies } from "next/headers";
 import { buildCard, CARD_ORDER, type CardId } from "@/lib/contentCards";
 import { renderCard, CARD_W, CARD_H } from "@/lib/cardTemplates";
+import { brandFonts } from "@/lib/ogFonts";
 
 // Server-rendered branded carousel card (1080×1350 PNG). Admin-only — gated by
 // the same session cookie as the metrics dashboard (or a ?key= match). Rendered
@@ -23,5 +24,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return new Response("Unknown card", { status: 404 });
   }
 
-  return new ImageResponse(renderCard(buildCard(id)), { width: CARD_W, height: CARD_H });
+  return new ImageResponse(renderCard(buildCard(id)), {
+    width: CARD_W,
+    height: CARD_H,
+    fonts: await brandFonts(),
+  });
 }
