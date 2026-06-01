@@ -21,6 +21,7 @@ import { WhatHappenedNext } from "@/components/WhatHappenedNext";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { LastUpdated } from "@/components/LastUpdated";
 import { DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
+import { downsideScenarios } from "@/lib/downside";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 // The full daily brief, shared by /brief (today) and /brief/[date] (permalink).
@@ -101,6 +102,8 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
 
       <WhatToWatch />
 
+      <DownsideBriefLine />
+
       <ContentPack pack={pack} />
 
       <TodayVsPriorCycles />
@@ -119,6 +122,44 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
 
       <p className="text-[11.5px] text-ink-500 leading-relaxed max-w-2xl">{b.disclaimer}</p>
     </div>
+  );
+}
+
+// Calm, factual downside-context line for the brief. Names the nearest support
+// and the average historical-drawdown scenario, with a link to the full map.
+// Historical context, never alarmist — no prediction, no target.
+function DownsideBriefLine() {
+  const d = downsideScenarios();
+  const support = d.levels.find((l) => l.category === "support");
+  const avg = d.levels.find((l) => l.key === "average");
+  if (!support && !avg) return null;
+  return (
+    <Link
+      href="/downside-scenarios"
+      className="card card-interactive p-5 flex items-start justify-between gap-4 group hover:border-accent/25"
+    >
+      <div className="max-w-2xl">
+        <h3 className="text-[11px] font-medium text-accent uppercase tracking-[0.16em] mb-1.5">
+          Downside context
+        </h3>
+        <p className="text-[13px] text-ink-200 leading-relaxed">
+          {support && (
+            <>
+              Nearest historical support sits around {fmtUsd(support.price, { compact: true })} (
+              {support.label.toLowerCase()}).{" "}
+            </>
+          )}
+          {avg && (
+            <>
+              A drawdown matching the average prior cyclical bear market would imply roughly{" "}
+              {fmtUsd(avg.price, { compact: true })} ({fmtPct(avg.dropPctFromCurrent, 0)} from here).{" "}
+            </>
+          )}
+          <span className="text-ink-400">Historical context, not a forecast.</span>
+        </p>
+      </div>
+      <ArrowUpRight size={15} className="text-accent shrink-0 mt-0.5" />
+    </Link>
   );
 }
 

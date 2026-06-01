@@ -130,6 +130,24 @@ create table if not exists public.etf_history (
 create index if not exists etf_history_date_idx on public.etf_history (date);
 create index if not exists etf_history_issuer_idx on public.etf_history (issuer);
 
+-- ── Downside scenarios — daily cycle-low scenario map (one row per day) ──────
+-- Tracks how the historical downside scenario ranges shift over time.
+create table if not exists public.downside_scenarios (
+  id                       bigint generated always as identity primary key,
+  date                     date not null unique,
+  current_price            double precision,
+  cycle_high               double precision,
+  mild_drawdown_price      double precision,
+  average_drawdown_price   double precision,
+  severe_drawdown_price    double precision,
+  realized_price_support   double precision,
+  moving_average_support   double precision,
+  prior_cycle_high_support double precision,
+  methodology_version      text,
+  created_at               timestamptz not null default now()
+);
+create index if not exists downside_scenarios_date_idx on public.downside_scenarios (date);
+
 -- ── Phase 11 — User sentiment polls (future schema; no writer yet) ───────────
 create table if not exists public.sentiment_polls (
   id          bigint generated always as identity primary key,
@@ -163,6 +181,7 @@ alter table public.daily_metrics          enable row level security;
 alter table public.daily_intelligence     enable row level security;
 alter table public.state_changes          enable row level security;
 alter table public.cycle_score_components enable row level security;
+alter table public.downside_scenarios     enable row level security;
 alter table public.etf_history            enable row level security;
 alter table public.sentiment_polls        enable row level security;
 alter table public.news_archive           enable row level security;

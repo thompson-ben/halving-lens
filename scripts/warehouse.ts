@@ -49,6 +49,10 @@ async function main() {
     ]);
   if (rec.etfHistory.length)
     results.push(["etf_history", await sbUpsert("etf_history", rec.etfHistory, "date,issuer")]);
+  results.push([
+    "downside_scenarios",
+    await sbUpsert("downside_scenarios", rec.downsideScenarios, "date"),
+  ]);
 
   // State changes are a pure event log — insert only, never overwrite.
   for (const change of rec.stateChanges) {

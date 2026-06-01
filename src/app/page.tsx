@@ -8,6 +8,7 @@ import { WhatToWatch } from "@/components/WhatToWatch";
 import { CycleScorecard } from "@/components/CycleScorecard";
 import { StretchPanel } from "@/components/StretchPanel";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
+import { DownsidePreview } from "@/components/DownsidePreview";
 import { WhatsDifferent } from "@/components/WhatsDifferent";
 import { EvidenceDashboard } from "@/components/EvidenceDashboard";
 import { BriefSignup } from "@/components/BriefSignup";
@@ -62,6 +63,9 @@ export default function CycleDashboardPage() {
 
       {/* 9. What happened next historically */}
       <TrackedSection id="what-happened-next"><WhatHappenedNext /></TrackedSection>
+
+      {/* 9b. Downside risk context — if it corrected like prior cycles */}
+      <TrackedSection id="downside"><DownsidePreview /></TrackedSection>
 
       {/* 10. What makes this cycle different */}
       <TrackedSection id="whats-different"><WhatsDifferent /></TrackedSection>

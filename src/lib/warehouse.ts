@@ -17,6 +17,7 @@ import { buildBrief, contentPack, cycleInsight, etfInsight, sentimentInsight } f
 import { etfStats, ETF } from "./etf";
 import { currentSentiment, sentimentRead, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
 import { STORED_BRIEFS } from "./data/briefs";
+import { downsideWarehouseRow } from "./downside";
 import type { StoredBrief } from "./brief";
 
 export interface WarehouseRecord {
@@ -27,6 +28,7 @@ export interface WarehouseRecord {
   scoreComponents: Record<string, unknown>[];
   etfHistory: Record<string, unknown>[];
   stateChanges: Record<string, unknown>[];
+  downsideScenarios: Record<string, unknown>;
 }
 
 // Source string for a given engine metric, used to decide live vs modelled.
@@ -244,5 +246,6 @@ export function buildWarehouseRecord(): WarehouseRecord {
     scoreComponents,
     etfHistory,
     stateChanges,
+    downsideScenarios: downsideWarehouseRow(date),
   };
 }

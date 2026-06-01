@@ -7,6 +7,7 @@ import { STORED_BRIEFS } from "@/lib/data/briefs";
 const STATIC_PATHS = [
   "/",
   "/cycles",
+  "/downside-scenarios",
   "/brief",
   "/brief/archive",
   "/sentiment",
