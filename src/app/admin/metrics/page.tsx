@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { analyticsSummary } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
+import { ExcludeToggle } from "@/components/ExcludeToggle";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Internal metrics — halvinglens.com", robots: { index: false } };
@@ -62,6 +63,9 @@ export default async function AdminMetricsPage({
 
   return (
     <Shell>
+      <div className="-mt-2">
+        <ExcludeToggle />
+      </div>
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
         <Stat label="Page views" value={a.totals.pageViews} />
         <Stat label="Sessions" value={a.totals.sessions} />

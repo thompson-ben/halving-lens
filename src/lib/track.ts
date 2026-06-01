@@ -33,12 +33,39 @@ function isNewVisitor(): boolean {
   }
 }
 
+const OPTOUT_KEY = "hl.notrack"; // localStorage: exclude this browser from analytics
+
+// True if this browser has opted out (e.g. you, while testing). Honours a
+// ?notrack=1 / ?notrack=0 query param to toggle, so you can set it from a link.
+export function isOptedOut(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const q = new URLSearchParams(window.location.search).get("notrack");
+    if (q === "1") localStorage.setItem(OPTOUT_KEY, "1");
+    if (q === "0") localStorage.removeItem(OPTOUT_KEY);
+    return localStorage.getItem(OPTOUT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setOptOut(on: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (on) localStorage.setItem(OPTOUT_KEY, "1");
+    else localStorage.removeItem(OPTOUT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function track(
   name: string,
   props: Record<string, unknown> = {},
   opts: { isNew?: boolean } = {},
 ): void {
   if (typeof window === "undefined") return;
+  if (isOptedOut()) return; // don't count opted-out browsers (e.g. your own testing)
   const payload = JSON.stringify({
     name,
     path: window.location.pathname,
@@ -59,5 +86,6 @@ export function track(
 
 // Page view — also reports whether this is the visitor's first-ever session.
 export function trackPageView(): void {
+  if (isOptedOut()) return; // skip before touching the new-visitor flag
   track("page_view", {}, { isNew: isNewVisitor() });
 }
