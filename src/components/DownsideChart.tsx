@@ -32,6 +32,7 @@ const RANGES: { key: PriceRangeKey; label: string }[] = [
 const SHORT: Record<string, string> = {
   "prior-cycle-high": "Prior high",
   "ma-200w": "200W MA",
+  trend: "Trend",
   "realized-price": "Realized",
   mild: "Mild bear",
   average: "Avg bear",
@@ -41,6 +42,34 @@ function colorFor(level: DownsideLevel): string {
   if (level.category === "support") return "#5eead4"; // teal/accent
   if (level.key === "severe") return "#ff5d5d";
   return "#f5b942"; // amber for mild/average
+}
+
+// Right-anchored label for a reference line, nudged above or below the line so
+// two close levels (e.g. 200W MA and the trend band) don't overlap.
+function LineLabel(props: {
+  viewBox?: { x: number; y: number; width: number; height: number };
+  text: string;
+  color: string;
+  side: "left" | "right";
+  place: "above" | "below";
+}) {
+  const { viewBox, text, color, side, place } = props;
+  if (!viewBox) return null;
+  const pad = 6;
+  const x = side === "right" ? viewBox.x + viewBox.width - pad : viewBox.x + pad;
+  const y = viewBox.y + (place === "above" ? -6 : 14);
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor={side === "right" ? "end" : "start"}
+      fill={color}
+      fontSize={11}
+      fontFamily="var(--font-mono)"
+    >
+      {text}
+    </text>
+  );
 }
 
 export function DownsideChart({ height = 420 }: { height?: number }) {
@@ -128,9 +157,13 @@ export function DownsideChart({ height = 420 }: { height?: number }) {
               animationDuration={650}
             />
 
-            {/* Scenario levels — labels anchored inside the plot so they never clip */}
-            {d.levels.map((l) => {
+            {/* Scenario levels — labels anchored inside the plot (never clip) and
+                nudged below their line when the level just above is within ~6%,
+                so close pairs (e.g. 200W MA + trend band) don't overlap. */}
+            {d.levels.map((l, i) => {
               const color = colorFor(l);
+              const prev = d.levels[i - 1];
+              const place = prev && prev.price / l.price - 1 < 0.06 ? "below" : "above";
               return (
                 <ReferenceLine
                   key={l.key}
@@ -139,13 +172,14 @@ export function DownsideChart({ height = 420 }: { height?: number }) {
                   strokeOpacity={l.category === "support" ? 0.7 : 0.55}
                   strokeDasharray="4 4"
                   strokeWidth={1}
-                  label={{
-                    value: `${SHORT[l.key] ?? l.label} ${fmtUsd(l.price, { compact: true })}`,
-                    position: "insideTopRight",
-                    fill: color,
-                    fontSize: 11,
-                    fontFamily: "var(--font-mono)",
-                  }}
+                  label={
+                    <LineLabel
+                      text={`${SHORT[l.key] ?? l.label} ${fmtUsd(l.price, { compact: true })}`}
+                      color={color}
+                      side="right"
+                      place={place}
+                    />
+                  }
                 />
               );
             })}
@@ -157,13 +191,14 @@ export function DownsideChart({ height = 420 }: { height?: number }) {
               stroke="#e7edf4"
               strokeOpacity={0.6}
               strokeWidth={1}
-              label={{
-                value: `Now ${fmtUsd(d.currentPrice, { compact: true })}`,
-                position: "insideTopLeft",
-                fill: "#e7edf4",
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-              }}
+              label={
+                <LineLabel
+                  text={`Now ${fmtUsd(d.currentPrice, { compact: true })}`}
+                  color="#e7edf4"
+                  side="left"
+                  place="above"
+                />
+              }
             />
           </AreaChart>
         </ResponsiveContainer>

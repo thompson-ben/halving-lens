@@ -18,7 +18,7 @@ import { CYCLES, CURRENT_CYCLE, SPOT, TODAY } from "./btcData";
 import { metricStatus, type DataStatus } from "./cycleIntel";
 
 const MS_DAY = 86_400_000;
-export const METHODOLOGY_VERSION = "v1";
+export const METHODOLOGY_VERSION = "v2"; // v2 adds the long-term regression trend band
 
 // Drawdown episodes below this depth are treated as cyclical bear markets rather
 // than intra-bull corrections. Bitcoin's three completed cyclical bears have all
@@ -61,6 +61,9 @@ export interface DownsideScenarios {
   realizedQuality: DataQuality;
   movingAverage200w: number | null;
   ma200wSamples: number;
+  trendCentral: number | null; // long-term log-log regression, fair-value line
+  trendSupport: number | null; // lower band of that regression
+  trendSamples: number;
   historicalBears: HistoricalBear[];
   // Drawdown depths used for the three tiers (negative %), derived or fallback.
   mildPct: number | null;
@@ -115,6 +118,43 @@ function pct(level: number, current: number): number {
   return current > 0 ? (level / current - 1) * 100 : 0;
 }
 
+// Long-term logarithmic regression of price vs time (the Bitcoin "power-law"
+// trend): fit ln(price) against ln(days since genesis) by least squares over the
+// full weekly history. Returns the fair-value line today plus its lower band
+// (one residual sigma below), where deep-value, late-bear conditions have
+// historically sat. Defensible long-term trend support, not a forecast.
+const GENESIS = Date.parse("2009-01-03");
+
+function logRegression(
+  series: { ts: number; price: number }[],
+): { central: number; lower: number; n: number } | null {
+  const pts = series
+    .filter((p) => p.ts > GENESIS && p.price > 0)
+    .map((p) => ({ x: Math.log((p.ts - GENESIS) / MS_DAY), y: Math.log(p.price) }));
+  const n = pts.length;
+  if (n < 50) return null;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (const p of pts) {
+    sx += p.x;
+    sy += p.y;
+    sxx += p.x * p.x;
+    sxy += p.x * p.y;
+  }
+  const denom = n * sxx - sx * sx;
+  if (denom === 0) return null;
+  const b = (n * sxy - sx * sy) / denom;
+  const a = (sy - b * sx) / n;
+  let ss = 0;
+  for (const p of pts) {
+    const r = p.y - (a + b * p.x);
+    ss += r * r;
+  }
+  const sigma = Math.sqrt(ss / Math.max(1, n - 2));
+  const todayDays = (series[series.length - 1].ts - GENESIS) / MS_DAY;
+  const predLn = a + b * Math.log(todayDays);
+  return { central: Math.exp(predLn), lower: Math.exp(predLn - sigma), n };
+}
+
 export function downsideScenarios(): DownsideScenarios {
   const series = continuousWeekly();
   const currentPrice = SPOT?.price ?? CURRENT_CYCLE.samples[CURRENT_CYCLE.samples.length - 1].price;
@@ -132,6 +172,9 @@ export function downsideScenarios(): DownsideScenarios {
   const movingAverage200w = trailing.length
     ? trailing.reduce((a, s) => a + s.price, 0) / trailing.length
     : null;
+
+  // Long-term log-log regression trend + lower band.
+  const reg = logRegression(series);
 
   // Realized price (aggregate cost basis) — only used when it's a live metric.
   const realizedQuality = metricStatus("realized-price");
@@ -210,6 +253,19 @@ export function downsideScenarios(): DownsideScenarios {
           dataQuality: realizedQuality,
         }
       : null,
+    reg
+      ? {
+          key: "trend",
+          label: "Long-term trend support",
+          category: "support",
+          price: reg.lower,
+          dropPctFromCurrent: pct(reg.lower, currentPrice),
+          methodology: "Lower band of the long-term log-log price regression",
+          explanation:
+            "Across cycles, Bitcoin's price has tracked a long-term logarithmic trend. The lower band of that regression marks the kind of level prior cycle lows have approached — a trend-based reference, not a floor.",
+          dataQuality: "live-derived",
+        }
+      : null,
     drawdownLevel(
       "mild",
       "Mild historical drawdown",
@@ -246,6 +302,9 @@ export function downsideScenarios(): DownsideScenarios {
     realizedQuality,
     movingAverage200w,
     ma200wSamples,
+    trendCentral: reg?.central ?? null,
+    trendSupport: reg?.lower ?? null,
+    trendSamples: reg?.n ?? 0,
     historicalBears: bears,
     mildPct,
     averagePct,

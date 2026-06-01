@@ -27,7 +27,9 @@ const ACCENT = "#5eead4";
 const HAIRLINE = "rgba(255,255,255,0.08)";
 const DIR_COLOR = { up: "#3ddc97", down: "#ff5d5d", flat: "#9aa6b4" } as const;
 
-const SANS = "sans-serif";
+// Brand families registered on the ImageResponse (see lib/ogFonts.ts).
+const SANS = "Inter";
+const DISPLAY = "Fraunces"; // serif display — for editorial headlines
 
 // ── Shared frame ─────────────────────────────────────────────────────────────
 function Frame({ card, children }: { card: Card; children: React.ReactNode }) {
@@ -106,7 +108,7 @@ function Hero({ c }: { c: HeroCard }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
       <div style={{ display: "flex", fontSize: 26, color: INK_DIM, marginBottom: 6 }}>{c.dateLabel}</div>
-      <div style={{ display: "flex", fontSize: 72, fontWeight: 700, letterSpacing: -1, marginBottom: 6 }}>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 76, fontWeight: 700, letterSpacing: -1, marginBottom: 6 }}>
         Bitcoin Cycle Brief
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 18, marginBottom: 54 }}>
@@ -235,7 +237,7 @@ function Takeaway({ c }: { c: TakeawayCard }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
       <Kicker>Key takeaway</Kicker>
-      <div style={{ display: "flex", fontSize: 52, fontWeight: 600, lineHeight: 1.32, marginTop: 30, maxWidth: 900 }}>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 54, fontWeight: 600, lineHeight: 1.3, marginTop: 30, maxWidth: 900 }}>
         {c.text}
       </div>
     </div>
@@ -246,7 +248,7 @@ function Takeaway({ c }: { c: TakeawayCard }) {
 function Cta({ c }: { c: CtaCard }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-      <div style={{ display: "flex", flexDirection: "column", fontSize: 76, fontWeight: 700, letterSpacing: -1, lineHeight: 1.08 }}>
+      <div style={{ display: "flex", flexDirection: "column", fontFamily: DISPLAY, fontSize: 78, fontWeight: 700, letterSpacing: -1, lineHeight: 1.06 }}>
         <div style={{ display: "flex" }}>The clearest view</div>
         <div style={{ display: "flex", color: ACCENT }}>of the Bitcoin cycle.</div>
       </div>
