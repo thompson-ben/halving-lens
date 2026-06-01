@@ -4,7 +4,7 @@
 
 import { format } from "date-fns";
 import { SITE_HOST } from "./site";
-import { cycleSummary } from "./cycleSummary";
+import { cycleSummary, cycleScorecard } from "./cycleSummary";
 import { SOURCE, TODAY_DAY_IN_CYCLE } from "./btcData";
 import { fmtPct, fmtUsd } from "./format";
 import { etfStats, ETF } from "./etf";
@@ -215,6 +215,7 @@ export interface StoredBrief {
   gainFromHalving: number;
   drawdownFromAth: number;
   // Raw comparison metrics (for "what changed since yesterday")
+  cycleScore?: number;
   heatPercentile: number | null;
   sentimentValue: number | null;
   etfCumulative: number | null;
@@ -252,6 +253,7 @@ export function serializeBrief(): StoredBrief {
     progressPct: s.progressPct,
     gainFromHalving: s.gainFromHalving,
     drawdownFromAth: s.drawdownFromAth,
+    cycleScore: cycleScorecard().overall,
     heatPercentile: s.heatPercentile,
     sentimentValue: sr?.value ?? null,
     etfCumulative: etf?.cumulative ?? null,
