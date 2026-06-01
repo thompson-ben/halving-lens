@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, ShieldAlert } from "lucide-react";
 import { DownsideLadder } from "@/components/DownsideLadder";
+import { DownsideChart } from "@/components/DownsideChart";
 import { DataBadge } from "@/components/DataBadge";
 import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
@@ -43,6 +44,21 @@ export default function DownsideScenariosPage() {
 
       {/* The scenario map */}
       <DownsideLadder />
+
+      {/* Chart — recent price with the levels overlaid */}
+      <section>
+        <h2 className="text-[11px] uppercase tracking-[0.2em] text-accent mb-1.5">
+          Levels vs recent price
+        </h2>
+        <p className="text-[12.5px] text-ink-400 mb-4 max-w-2xl">
+          Recent Bitcoin price with each scenario level drawn in. The dashed lines mark where prior
+          history would imply support — context, not targets.
+        </p>
+        <div className="card p-4 sm:p-7 relative">
+          <DownsideChart height={440} />
+          <div className="watermark">halvinglens.com · downside scenarios</div>
+        </div>
+      </section>
 
       {/* How to read it */}
       <section className="rounded-xl border border-accent/15 bg-accent/[0.04] p-5 sm:p-6">
