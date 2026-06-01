@@ -6,6 +6,7 @@ import { MetricChart } from "@/components/MetricChart";
 import { MetricGauge } from "@/components/MetricGauge";
 import { DataBadge } from "@/components/DataBadge";
 import { LastUpdated } from "@/components/LastUpdated";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { METRICS, metricBySlug, metricTodayRead, valueAtDay, zoneFor } from "@/lib/metrics";
 import { CYCLES, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { comingSoonReason, metricCurrentCycleOnly, metricSource, metricStatus } from "@/lib/cycleIntel";
@@ -60,6 +61,12 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
           We won&apos;t show estimated or modelled numbers for this metric as if they were real. It
           will switch on automatically here once a live data source is connected.
         </p>
+
+        <FeedbackWidget
+          section={`${metric.slug}_explanation`}
+          contentType="metric"
+          label={`Was the ${metric.name} explainer useful?`}
+        />
       </div>
     );
   }
@@ -280,6 +287,12 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
       </section>
         </>
       )}
+
+      <FeedbackWidget
+        section={`${metric.slug}_explanation`}
+        contentType="metric"
+        label={`Was the ${metric.name} explainer useful?`}
+      />
     </div>
   );
 }

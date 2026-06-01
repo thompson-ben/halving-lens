@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { DataBadge, STATUS_EXPLAIN } from "@/components/DataBadge";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { METRICS } from "@/lib/metrics";
 import { metricStatus, type DataStatus } from "@/lib/cycleIntel";
 
@@ -145,6 +146,8 @@ export default function LearnPage() {
         </div>
         <div className="watermark">halvinglens.com · learn</div>
       </section>
+
+      <FeedbackWidget section="learn" contentType="education" label="Was this useful?" />
     </div>
   );
 }

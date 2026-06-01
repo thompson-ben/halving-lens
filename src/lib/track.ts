@@ -21,6 +21,39 @@ export function sessionId(): string {
   }
 }
 
+const VISITOR_ID_KEY = "hl.vid"; // localStorage: stable anonymous visitor id
+
+// A stable, anonymous per-device id (random — not a user id, no PII). Persists
+// across sessions so feedback can be grouped per visitor. Empty if unavailable.
+export function visitorId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    let id = localStorage.getItem(VISITOR_ID_KEY);
+    if (!id) {
+      id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(VISITOR_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+// Coarse device class from UA + viewport — for segmenting feedback, not tracking.
+export function deviceType(): "mobile" | "tablet" | "desktop" {
+  if (typeof window === "undefined") return "desktop";
+  try {
+    const ua = navigator.userAgent;
+    const w = window.innerWidth;
+    if (/iPad|Tablet/i.test(ua)) return "tablet";
+    if (/Mobi|Android|iPhone|iPod/i.test(ua) || w < 640) return "mobile";
+    if (w < 1024) return "tablet";
+    return "desktop";
+  } catch {
+    return "desktop";
+  }
+}
+
 // True only for a visitor's very first session (returning-visitor signal).
 function isNewVisitor(): boolean {
   if (typeof window === "undefined") return false;

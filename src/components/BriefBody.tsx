@@ -20,6 +20,7 @@ import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { LastUpdated } from "@/components/LastUpdated";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
 import { downsideScenarios } from "@/lib/downside";
 import { fmtPct, fmtUsd } from "@/lib/format";
@@ -119,6 +120,8 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
           Full cycle dashboard <ArrowUpRight size={14} />
         </Link>
       </section>
+
+      <FeedbackWidget section="daily_brief" contentType="brief" label="Was this brief useful?" />
 
       <p className="text-[11.5px] text-ink-500 leading-relaxed max-w-2xl">{b.disclaimer}</p>
     </div>

@@ -2,6 +2,7 @@ import { TrendingUp, Layers, CalendarClock, LineChart } from "lucide-react";
 import { format } from "date-fns";
 import { DataBadge } from "@/components/DataBadge";
 import { EtfFlowChart } from "@/components/EtfFlowChart";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { ETF, etfStats } from "@/lib/etf";
 import { fmtUsd } from "@/lib/format";
 
@@ -47,6 +48,8 @@ export default function EtfPage() {
       </header>
 
       {ETF.connected ? <LiveEtf /> : <ComingSoonEtf />}
+
+      <FeedbackWidget section="etf_flows" contentType="page" label="Was the ETF flow page useful?" />
     </div>
   );
 }
