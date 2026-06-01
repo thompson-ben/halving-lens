@@ -31,6 +31,28 @@ export async function sbInsert(table: string, row: Record<string, unknown>): Pro
   }
 }
 
+// Upsert one or more rows, de-duplicating on `onConflict` columns (comma-
+// separated). Used by the historical warehouse so a same-day re-run updates that
+// day's row instead of creating a duplicate — append-only across days, idempotent
+// within a day. Returns true on success.
+export async function sbUpsert(
+  table: string,
+  rows: Record<string, unknown> | Record<string, unknown>[],
+  onConflict: string,
+): Promise<boolean> {
+  if (!supabaseConfigured) return false;
+  try {
+    const res = await fetch(`${URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
+      method: "POST",
+      headers: headers({ Prefer: "return=minimal,resolution=merge-duplicates" }),
+      body: JSON.stringify(rows),
+    });
+    return res.ok || res.status === 409;
+  } catch {
+    return false;
+  }
+}
+
 // Run a GET against PostgREST (select/aggregate). Returns parsed JSON or null.
 export async function sbSelect<T = unknown>(query: string): Promise<T | null> {
   if (!supabaseConfigured) return null;
