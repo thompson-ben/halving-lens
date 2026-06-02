@@ -9,12 +9,26 @@
 import type {
   Card,
   ChangedCard,
+  ChartLine,
   CtaCard,
+  CycleTimingCard,
+  FearGreedCard,
+  FgVsPriceCard,
   HeroCard,
   HistoryCard,
+  OverlayCard,
+  PeakLowCard,
   TakeawayCard,
   WatchCard,
 } from "./contentCards";
+
+const SENT_TONE: Record<string, string> = {
+  red: "#ff5d5d",
+  amber: "#f5b942",
+  muted: "#9aa6b4",
+  green: "#3ddc97",
+  teal: "#5eead4",
+};
 
 export const CARD_W = 1080;
 export const CARD_H = 1350;
@@ -268,6 +282,196 @@ function Cta({ c }: { c: CtaCard }) {
   );
 }
 
+// ── Shared SVG line chart ────────────────────────────────────────────────────
+function Chart({
+  lines,
+  yTicks,
+  width = 900,
+  height = 520,
+}: {
+  lines: ChartLine[];
+  yTicks?: { label: string; frac: number }[];
+  width?: number;
+  height?: number;
+}) {
+  const toPts = (pts: [number, number][]) =>
+    pts.map(([x, y]) => `${(x * width).toFixed(1)},${((1 - y) * height).toFixed(1)}`).join(" ");
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <rect x={0} y={0} width={width} height={height} fill="#0a0e14" rx={12} />
+      {/* Gridlines only — Satori SVG can't render <text>, so axis labels live in
+          the card subtitle / legend instead. */}
+      {(yTicks ?? []).map((t, i) => (
+        <line
+          key={`t${i}`}
+          x1={0}
+          y1={(1 - t.frac) * height}
+          x2={width}
+          y2={(1 - t.frac) * height}
+          stroke="rgba(255,255,255,0.09)"
+          strokeWidth={1}
+        />
+      ))}
+      {lines.map((l, i) => (
+        <polyline key={`l${i}`} points={toPts(l.points)} fill="none" stroke={l.color} strokeWidth={3.5} />
+      ))}
+    </svg>
+  );
+}
+
+function Legend({ items }: { items: { label: string; color: string }[] }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 22, marginTop: 22 }}>
+      {items.map((it) => (
+        <div key={it.label} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <div style={{ display: "flex", width: 22, height: 5, borderRadius: 3, background: it.color }} />
+          <div style={{ display: "flex", fontSize: 24, color: INK_DIM }}>{it.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Every halving cycle, lined up from day zero ──────────────────────────────
+function Overlay({ c }: { c: OverlayCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Every cycle from day zero</Kicker>
+      <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: INK, marginTop: 14, fontFamily: DISPLAY }}>
+        Every halving cycle, lined up
+      </div>
+      <div style={{ display: "flex", fontSize: 26, color: INK_DIM, marginTop: 8, marginBottom: 22 }}>
+        Price as a multiple of the halving price · log scale
+        {c.yTicks.length ? ` · gridlines ${c.yTicks.map((t) => t.label).join(", ")}` : ""} · days since halving →
+      </div>
+      <Chart lines={c.lines} yTicks={c.yTicks} />
+      <Legend items={c.lines.map((l) => ({ label: l.label, color: l.color }))} />
+    </div>
+  );
+}
+
+// ── When could the current cycle top & bottom? ───────────────────────────────
+function CycleTimingTpl({ c }: { c: CycleTimingCard }) {
+  const Window = ({ label, range, days, color }: { label: string; range: string; days: string; color: string }) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 30, borderRadius: 16, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", marginBottom: 22 }}>
+      <div style={{ display: "flex", fontSize: 22, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ display: "flex", fontSize: 48, fontWeight: 700, color }}>{range}</div>
+      <div style={{ display: "flex", fontSize: 24, color: INK_DIM }}>{days}</div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Cycle top &amp; bottom</Kicker>
+      <div style={{ display: "flex", fontSize: 46, fontWeight: 700, color: INK, marginTop: 14, marginBottom: 26, fontFamily: DISPLAY, lineHeight: 1.1 }}>
+        When could this cycle top &amp; bottom?
+      </div>
+      <Window label="Historical bull-top window" range={c.peakRange} days={c.peakDays} color={ACCENT} />
+      <Window label="Historical bear-low window" range={c.bottomRange} days={c.bottomDays} color="#f5b942" />
+      <div style={{ display: "flex", fontSize: 26, color: INK, marginTop: 8 }}>{c.position}</div>
+      <div style={{ display: "flex", fontSize: 21, color: INK_FAINT, marginTop: 14 }}>{c.note}</div>
+    </div>
+  );
+}
+
+// ── Peak & low windows ───────────────────────────────────────────────────────
+function PeakLow({ c }: { c: PeakLowCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Peak &amp; low windows</Kicker>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, marginTop: 14, marginBottom: 8 }}>
+        When prior cycles made their bull high and bear low
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", marginTop: 14 }}>
+        <div style={{ display: "flex", fontSize: 20, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase", paddingBottom: 12 }}>
+          <div style={{ display: "flex", width: "40%" }}>Cycle</div>
+          <div style={{ display: "flex", width: "30%" }}>Bull high</div>
+          <div style={{ display: "flex", width: "30%" }}>Bear low</div>
+        </div>
+        {c.rows.map((r) => (
+          <div key={r.label} style={{ display: "flex", alignItems: "center", padding: "22px 0", borderTop: `1px solid ${HAIRLINE}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, width: "40%" }}>
+              <div style={{ display: "flex", width: 14, height: 14, borderRadius: 7, background: r.color }} />
+              <div style={{ display: "flex", fontSize: 28, color: INK }}>{r.label}</div>
+            </div>
+            <div style={{ display: "flex", fontSize: 24, color: INK_DIM, width: "30%" }}>{r.peak}</div>
+            <div style={{ display: "flex", fontSize: 24, color: INK_DIM, width: "30%" }}>{r.low}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 40, marginTop: 34 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", fontSize: 20, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>Top window</div>
+          <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: ACCENT }}>{c.peakWindow}</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", fontSize: 20, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>Low window</div>
+          <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: "#f5b942" }}>{c.bottomWindow}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Fear & Greed — what it's telling us ──────────────────────────────────────
+function FearGreed({ c }: { c: FearGreedCard }) {
+  const color = SENT_TONE[c.tone] ?? ACCENT;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Fear &amp; Greed</Kicker>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 20, marginTop: 24 }}>
+        <div style={{ display: "flex", fontSize: 150, fontWeight: 700, color, lineHeight: 1, fontFamily: DISPLAY }}>{c.value}</div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", fontSize: 30, color: INK_DIM }}>/ 100</div>
+          <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color }}>{c.label}</div>
+        </div>
+      </div>
+      {/* gauge */}
+      <div style={{ display: "flex", width: "100%", height: 16, borderRadius: 8, marginTop: 40, background: "linear-gradient(90deg,#ff5d5d,#f5b942,#9aa6b4,#3ddc97,#5eead4)" }}>
+        <div style={{ display: "flex", marginLeft: `${Math.max(0, Math.min(98, c.value))}%`, width: 6, height: 16, background: "#ffffff", borderRadius: 3 }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 18, color: INK_FAINT }}>
+        <div style={{ display: "flex" }}>Extreme fear</div>
+        <div style={{ display: "flex" }}>Extreme greed</div>
+      </div>
+      <div style={{ display: "flex", fontSize: 28, color: INK, marginTop: 44, lineHeight: 1.4 }}>{c.summary}</div>
+    </div>
+  );
+}
+
+// ── Fear & Greed vs Bitcoin price ────────────────────────────────────────────
+function FgVsPrice({ c }: { c: FgVsPriceCard }) {
+  const lines: ChartLine[] = [
+    { label: "BTC price", color: "#cfd8e3", points: c.price },
+    { label: "Fear & Greed", color: "#f5b942", points: c.fg },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Fear &amp; Greed vs price</Kicker>
+      <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: INK, marginTop: 14, fontFamily: DISPLAY }}>
+        Fear &amp; Greed vs Bitcoin price
+      </div>
+      <div style={{ display: "flex", fontSize: 26, color: INK_DIM, marginTop: 8, marginBottom: 22 }}>
+        Sentiment (0–100) against price (log) · {c.priceRange}
+      </div>
+      <Chart lines={lines} />
+      <Legend items={lines.map((l) => ({ label: l.label, color: l.color }))} />
+      <div style={{ display: "flex", fontSize: 21, color: INK_FAINT, marginTop: 18 }}>
+        Extremes matter most — euphoria has clustered near tops, deep fear near lows.
+      </div>
+    </div>
+  );
+}
+
+function Unavailable({ what }: { what: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color: INK_DIM, maxWidth: 820, lineHeight: 1.3 }}>
+        {what} isn&apos;t available yet — it will appear here once the data is connected.
+      </div>
+    </div>
+  );
+}
+
 export function renderCard(card: Card): React.ReactElement {
   const body = (() => {
     switch (card.body.kind) {
@@ -277,6 +481,16 @@ export function renderCard(card: Card): React.ReactElement {
         return <Changed c={card.body} />;
       case "history":
         return <History c={card.body} />;
+      case "cycle_overlay":
+        return card.body.available ? <Overlay c={card.body} /> : <Unavailable what="The cycle overlay" />;
+      case "cycle_timing":
+        return card.body.available ? <CycleTimingTpl c={card.body} /> : <Unavailable what="Cycle timing" />;
+      case "peak_low_windows":
+        return card.body.available ? <PeakLow c={card.body} /> : <Unavailable what="Peak & low windows" />;
+      case "fear_greed":
+        return card.body.available ? <FearGreed c={card.body} /> : <Unavailable what="Fear & Greed" />;
+      case "fear_greed_vs_price":
+        return card.body.available ? <FgVsPrice c={card.body} /> : <Unavailable what="Fear & Greed vs price" />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":

@@ -12,20 +12,51 @@
 import { format } from "date-fns";
 import { cycleSummary, cycleScorecard, HEAT_LABEL } from "./cycleSummary";
 import { priorCyclesAtSameDay, currentGainFromHalving } from "./cycleIntel";
+import { cycleTiming, cyclePeakTroughs } from "./cycleTiming";
 import { priorBrief, briefDate, todaySlug } from "./briefArchive";
 import { etfStats, ETF } from "./etf";
-import { sentimentRead, currentSentiment, SENTIMENT_AVAILABLE } from "./sentiment";
+import { sentimentRead, pricedSentimentSeries, SENTIMENT_AVAILABLE } from "./sentiment";
+import { currentSentiment } from "./sentiment";
+import { CYCLES } from "./btcData";
 import { fmtUsd, fmtPct } from "./format";
 import { TODAY_DAY_IN_CYCLE } from "./btcData";
 
-export type CardId = "hero" | "changed" | "history" | "watch" | "takeaway" | "cta";
+export type CardId =
+  | "hero"
+  | "changed"
+  | "history"
+  | "cycle_overlay"
+  | "cycle_timing"
+  | "peak_low_windows"
+  | "fear_greed"
+  | "fear_greed_vs_price"
+  | "watch"
+  | "takeaway"
+  | "cta";
 
-export const CARD_ORDER: CardId[] = ["hero", "changed", "history", "watch", "takeaway", "cta"];
+export const CARD_ORDER: CardId[] = [
+  "hero",
+  "changed",
+  "history",
+  "cycle_overlay",
+  "cycle_timing",
+  "peak_low_windows",
+  "fear_greed",
+  "fear_greed_vs_price",
+  "watch",
+  "takeaway",
+  "cta",
+];
 
 export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   hero: { kicker: "Daily Bitcoin Cycle Brief", name: "Hero summary" },
   changed: { kicker: "What changed today", name: "What changed" },
   history: { kicker: "Today vs history", name: "Today vs history" },
+  cycle_overlay: { kicker: "Every cycle from day zero", name: "Cycle overlay" },
+  cycle_timing: { kicker: "Cycle top & bottom", name: "Top & bottom outlook" },
+  peak_low_windows: { kicker: "Peak & low windows", name: "Peak & low windows" },
+  fear_greed: { kicker: "Fear & Greed", name: "Fear & Greed" },
+  fear_greed_vs_price: { kicker: "Fear & Greed vs price", name: "F&G vs price" },
   watch: { kicker: "What to watch next", name: "What to watch" },
   takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
   cta: { kicker: "halvinglens.com", name: "Brand / CTA" },
@@ -91,10 +122,62 @@ export interface CtaCard {
   features: string[];
 }
 
+// A polyline for an SVG chart card: points are normalised to 0..1 (x left→right,
+// y bottom→top) so the template just scales them to pixels.
+export interface ChartLine {
+  label: string;
+  color: string;
+  points: [number, number][];
+}
+export interface OverlayCard {
+  kind: "cycle_overlay";
+  available: boolean;
+  lines: ChartLine[];
+  yTicks: { label: string; frac: number }[]; // log multiple gridlines
+}
+export interface CycleTimingCard {
+  kind: "cycle_timing";
+  available: boolean;
+  peakRange: string;
+  bottomRange: string;
+  peakDays: string;
+  bottomDays: string;
+  todayDay: number;
+  position: string;
+  note: string;
+}
+export interface PeakLowCard {
+  kind: "peak_low_windows";
+  available: boolean;
+  rows: { label: string; color: string; peak: string; low: string }[];
+  peakWindow: string;
+  bottomWindow: string;
+}
+export interface FearGreedCard {
+  kind: "fear_greed";
+  available: boolean;
+  value: number;
+  label: string;
+  tone: string;
+  summary: string;
+}
+export interface FgVsPriceCard {
+  kind: "fear_greed_vs_price";
+  available: boolean;
+  price: [number, number][];
+  fg: [number, number][];
+  priceRange: string;
+}
+
 export type CardBody =
   | HeroCard
   | ChangedCard
   | HistoryCard
+  | OverlayCard
+  | CycleTimingCard
+  | PeakLowCard
+  | FearGreedCard
+  | FgVsPriceCard
   | WatchCard
   | TakeawayCard
   | CtaCard;
@@ -251,10 +334,144 @@ function ctaCard(): CtaCard {
   };
 }
 
+// Evenly downsample an array to at most `max` points (keeps first + last).
+function downsample<T>(arr: T[], max: number): T[] {
+  if (arr.length <= max) return arr;
+  const step = (arr.length - 1) / (max - 1);
+  const out: T[] = [];
+  for (let i = 0; i < max; i++) out.push(arr[Math.round(i * step)]);
+  return out;
+}
+
+// ── Every halving cycle, lined up from day zero (log-multiple overlay) ────────
+function overlayCard(): OverlayCard {
+  const MS = 86_400_000;
+  const series = CYCLES.map((c) => {
+    const base = c.samples[0]?.price || 1;
+    return {
+      label: c.halvingDate.slice(0, 4),
+      color: c.color,
+      pts: c.samples.filter((s) => s.price > 0).map((s) => ({ day: s.day, mult: s.price / base })),
+    };
+  }).filter((s) => s.pts.length > 2);
+
+  if (!series.length) return { kind: "cycle_overlay", available: false, lines: [], yTicks: [] };
+
+  const maxDay = Math.max(...series.flatMap((s) => s.pts.map((p) => p.day)), 1);
+  const allMult = series.flatMap((s) => s.pts.map((p) => p.mult));
+  const loMult = Math.max(0.2, Math.min(...allMult));
+  const hiMult = Math.max(...allMult);
+  const lLo = Math.log10(loMult);
+  const lHi = Math.log10(hiMult);
+  const yFrac = (m: number) => (Math.log10(m) - lLo) / (lHi - lLo || 1);
+
+  const lines: ChartLine[] = series.map((s) => ({
+    label: s.label,
+    color: s.color,
+    points: downsample(s.pts, 60).map((p) => [p.day / maxDay, yFrac(p.mult)] as [number, number]),
+  }));
+
+  // Log gridlines at powers of 10 within range (e.g. 1×, 10×, 100×).
+  const yTicks: { label: string; frac: number }[] = [];
+  for (let e = Math.ceil(lLo); e <= Math.floor(lHi); e++) {
+    const m = 10 ** e;
+    yTicks.push({ label: `${m}×`, frac: (e - lLo) / (lHi - lLo || 1) });
+  }
+  void MS;
+  return { kind: "cycle_overlay", available: true, lines, yTicks };
+}
+
+// ── When could the current cycle top & bottom? ───────────────────────────────
+function cycleTimingCard(): CycleTimingCard {
+  const t = cycleTiming();
+  const mon = (iso: string) => format(new Date(iso), "MMM yyyy");
+  const position =
+    t.todayVsBottom === "before"
+      ? `Today is day ${t.todayDay} — the historical low window opens ${mon(t.bottomWindow.startDate)}.`
+      : t.todayVsBottom === "within"
+        ? `Today (day ${t.todayDay}) sits inside the historical low window.`
+        : `Today (day ${t.todayDay}) is past the historical low window.`;
+  return {
+    kind: "cycle_timing",
+    available: true,
+    peakRange: `${mon(t.peakWindow.startDate)} – ${mon(t.peakWindow.endDate)}`,
+    bottomRange: `${mon(t.bottomWindow.startDate)} – ${mon(t.bottomWindow.endDate)}`,
+    peakDays: `${t.peakWindow.minDay}–${t.peakWindow.maxDay} days after halving`,
+    bottomDays: `${t.bottomWindow.minDay}–${t.bottomWindow.maxDay} days after halving`,
+    todayDay: t.todayDay,
+    position,
+    note: "The rhythm of three completed cycles — context, not a forecast. The ETF era may break it.",
+  };
+}
+
+// ── Peak & low windows (per prior cycle) ─────────────────────────────────────
+function peakLowCard(): PeakLowCard {
+  const t = cycleTiming();
+  const priors = cyclePeakTroughs().filter((r) => r.id !== 5);
+  const rows = priors.map((r) => ({
+    label: `${r.halvingDate.slice(0, 4)} cycle`,
+    color: r.color,
+    peak: r.peakDate ? `${format(new Date(r.peakDate), "MMM yyyy")} · d${r.peakDay}` : `d${r.peakDay}`,
+    low: r.bottomDate ? `${format(new Date(r.bottomDate), "MMM yyyy")} · d${r.bottomDay}` : "—",
+  }));
+  return {
+    kind: "peak_low_windows",
+    available: rows.length > 0,
+    rows,
+    peakWindow: `${t.peakWindow.minDay}–${t.peakWindow.maxDay} days`,
+    bottomWindow: `${t.bottomWindow.minDay}–${t.bottomWindow.maxDay} days`,
+  };
+}
+
+// ── Fear & Greed — what it's telling us ──────────────────────────────────────
+function fearGreedCard(): FearGreedCard {
+  const r = SENTIMENT_AVAILABLE ? sentimentRead() : null;
+  if (!r) {
+    return { kind: "fear_greed", available: false, value: 0, label: "—", tone: "muted", summary: "" };
+  }
+  return {
+    kind: "fear_greed",
+    available: true,
+    value: r.value,
+    label: r.band.label,
+    tone: r.band.tone,
+    summary: r.summary,
+  };
+}
+
+// ── Fear & Greed vs Bitcoin price (overlay) ──────────────────────────────────
+function fgVsPriceCard(): FgVsPriceCard {
+  const raw = SENTIMENT_AVAILABLE ? pricedSentimentSeries() : [];
+  if (raw.length < 5) {
+    return { kind: "fear_greed_vs_price", available: false, price: [], fg: [], priceRange: "" };
+  }
+  const pts = downsample(raw, 90);
+  const t0 = pts[0].ts;
+  const t1 = pts[pts.length - 1].ts;
+  const prices = pts.map((p) => p.price);
+  const pLo = Math.log10(Math.min(...prices));
+  const pHi = Math.log10(Math.max(...prices));
+  const xFrac = (ts: number) => (ts - t0) / (t1 - t0 || 1);
+  const price = pts.map((p) => [xFrac(p.ts), (Math.log10(p.price) - pLo) / (pHi - pLo || 1)] as [number, number]);
+  const fg = pts.map((p) => [xFrac(p.ts), p.value / 100] as [number, number]);
+  return {
+    kind: "fear_greed_vs_price",
+    available: true,
+    price,
+    fg,
+    priceRange: `${fmtUsd(Math.min(...prices), { compact: true })} – ${fmtUsd(Math.max(...prices), { compact: true })}`,
+  };
+}
+
 const BUILDERS: Record<CardId, () => CardBody> = {
   hero: heroCard,
   changed: changedCard,
   history: historyCard,
+  cycle_overlay: overlayCard,
+  cycle_timing: cycleTimingCard,
+  peak_low_windows: peakLowCard,
+  fear_greed: fearGreedCard,
+  fear_greed_vs_price: fgVsPriceCard,
   watch: watchCard,
   takeaway: takeawayCard,
   cta: ctaCard,
