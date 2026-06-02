@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Download, RefreshCw, Copy, Check, Package, Image as ImageIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Download, RefreshCw, Copy, Check, Package, Image as ImageIcon, Share2 } from "lucide-react";
 import { makeZip, type ZipEntry } from "@/lib/zip";
 import { track } from "@/lib/track";
 
@@ -28,6 +28,18 @@ function saveBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+// Can this device share image files? (iPhone Safari / Android Chrome → the share
+// sheet offers "Save Image" → Photos. Desktop browsers generally can't.)
+function canShareImages(): boolean {
+  try {
+    if (typeof navigator === "undefined" || !navigator.canShare || !navigator.share) return false;
+    const probe = new File([new Blob(["x"])], "probe.png", { type: "image/png" });
+    return navigator.canShare({ files: [probe] });
+  } catch {
+    return false;
+  }
+}
+
 export function ContentPackStudio({
   slug,
   dateLabel,
@@ -41,11 +53,53 @@ export function ContentPackStudio({
 }) {
   const [version, setVersion] = useState(() => Date.now());
   const [busy, setBusy] = useState<string | null>(null);
+  const [shareable, setShareable] = useState(false);
+  // Pre-fetched File objects, so a "Save to Photos" tap can call navigator.share
+  // synchronously within the user gesture (iOS rejects it otherwise).
+  const filesRef = useRef<Record<string, File>>({});
+  const [filesReady, setFilesReady] = useState(false);
 
-  const cardUrl = useCallback(
-    (id: string) => `/admin/content/card/${id}?v=${version}`,
-    [version],
-  );
+  const cardUrl = useCallback((id: string) => `/admin/content/card/${id}?v=${version}`, [version]);
+
+  useEffect(() => setShareable(canShareImages()), []);
+
+  // Prefetch the card images as Files whenever the version changes (share only).
+  useEffect(() => {
+    if (!shareable) return;
+    let cancelled = false;
+    setFilesReady(false);
+    filesRef.current = {};
+    (async () => {
+      await Promise.all(
+        cards.map(async (c) => {
+          try {
+            const res = await fetch(cardUrl(c.id));
+            if (!res.ok) return;
+            const blob = await res.blob();
+            filesRef.current[c.id] = new File([blob], `halvinglens-${slug}-${c.index}-${c.id}.png`, {
+              type: "image/png",
+            });
+          } catch {
+            /* ignore — share button stays best-effort */
+          }
+        }),
+      );
+      if (!cancelled) setFilesReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [shareable, version, cards, slug, cardUrl]);
+
+  const shareFiles = async (files: File[], title: string, event: string, props?: Record<string, unknown>) => {
+    if (!files.length) return;
+    try {
+      await navigator.share({ files, title });
+      track(event, props ?? {});
+    } catch {
+      /* user cancelled or share unavailable — no-op */
+    }
+  };
 
   const downloadOne = useCallback(
     async (card: StudioCard) => {
@@ -81,17 +135,33 @@ export function ContentPackStudio({
 
   const regenerate = useCallback(() => setVersion(Date.now()), []);
 
+  const allFiles = () => cards.map((c) => filesRef.current[c.id]).filter(Boolean) as File[];
+
   return (
     <div className="space-y-8">
       {/* Actions */}
       <div className="flex items-center gap-3 flex-wrap">
+        {shareable && (
+          <button
+            onClick={() => shareFiles(allFiles(), `halvinglens.com — content pack ${dateLabel}`, "content_share_all", { slug })}
+            disabled={!filesReady}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
+          >
+            {filesReady ? <Share2 size={15} /> : <RefreshCw size={15} className="animate-spin" />}
+            Save all to Photos
+          </button>
+        )}
         <button
           onClick={downloadZip}
           disabled={busy != null}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-60 ${
+            shareable
+              ? "border border-white/[0.1] text-ink-200 hover:border-white/25 hover:text-ink-50"
+              : "bg-accent text-ink-950 hover:bg-accent-soft"
+          }`}
         >
           {busy === "zip" ? <RefreshCw size={15} className="animate-spin" /> : <Package size={15} />}
-          Download full pack (.zip)
+          Download .zip
         </button>
         <button
           onClick={regenerate}
@@ -105,33 +175,53 @@ export function ContentPackStudio({
         </span>
       </div>
 
+      {shareable && (
+        <p className="-mt-4 text-[11.5px] text-ink-500">
+          On iPhone, &ldquo;Save to Photos&rdquo; opens the share sheet — choose <span className="text-ink-300">Save {cards.length} Images</span> to add them straight to your photo library.
+        </p>
+      )}
+
       {/* Card previews */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
         {cards.map((card) => (
           <div key={card.id} className="card p-3">
             <div className="relative rounded-lg overflow-hidden bg-[#0a0e14] border border-white/[0.05]" style={{ aspectRatio: "4 / 5" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={cardUrl(card.id)}
-                alt={card.name}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+              <img src={cardUrl(card.id)} alt={card.name} className="w-full h-full object-cover" loading="lazy" />
             </div>
             <div className="flex items-center justify-between gap-2 mt-3 px-1">
               <span className="text-[12px] text-ink-300">
                 <span className="text-ink-500 font-mono mr-1.5">{card.index}</span>
                 {card.name}
               </span>
-              <button
-                onClick={() => downloadOne(card)}
-                disabled={busy != null}
-                title="Download PNG"
-                className="inline-flex items-center gap-1.5 text-[11.5px] text-accent hover:text-accent-soft disabled:opacity-50"
-              >
-                {busy === card.id ? <RefreshCw size={13} className="animate-spin" /> : <Download size={13} />}
-                PNG
-              </button>
+              <div className="flex items-center gap-3">
+                {shareable && (
+                  <button
+                    onClick={() =>
+                      shareFiles(
+                        [filesRef.current[card.id]].filter(Boolean) as File[],
+                        `halvinglens.com — ${card.name}`,
+                        "content_share_card",
+                        { card: card.id },
+                      )
+                    }
+                    disabled={!filesReady}
+                    title="Save to Photos"
+                    className="inline-flex items-center gap-1.5 text-[11.5px] text-accent hover:text-accent-soft disabled:opacity-50"
+                  >
+                    <Share2 size={13} /> Save
+                  </button>
+                )}
+                <button
+                  onClick={() => downloadOne(card)}
+                  disabled={busy != null}
+                  title="Download PNG to files"
+                  className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-400 hover:text-ink-100 disabled:opacity-50"
+                >
+                  {busy === card.id ? <RefreshCw size={13} className="animate-spin" /> : <Download size={13} />}
+                  PNG
+                </button>
+              </div>
             </div>
           </div>
         ))}

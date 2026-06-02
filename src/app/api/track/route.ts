@@ -22,6 +22,8 @@ const ALLOWED = new Set([
   "share_image",
   "content_download_card",
   "content_download_zip",
+  "content_share_card",
+  "content_share_all",
   "feature_vote",
   "feedback",
 ]);
