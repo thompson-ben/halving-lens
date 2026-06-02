@@ -24,9 +24,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return new Response("Unknown card", { status: 404 });
   }
 
+  const fonts = brandFonts();
   return new ImageResponse(renderCard(buildCard(id)), {
     width: CARD_W,
     height: CARD_H,
-    fonts: await brandFonts(),
+    ...(fonts.length ? { fonts } : {}),
   });
 }

@@ -1,42 +1,42 @@
-// Brand fonts for server-rendered images (next/og / Satori). Loads the TTF
-// binaries via import.meta.url — the Vercel-supported pattern that gets the
-// files traced into the deployment. Memoised so the fonts are read once per
-// server instance, not per render.
+// Brand fonts for server-rendered images (next/og / Satori). Reads the bundled
+// TTF binaries with fs (the files are traced into the deployment via the
+// import.meta.url reference below). We do NOT use fetch(file://…) — Node's fetch
+// rejects file URLs, which previously broke every card.
 //
-// Inter (sans) for body/metrics; Fraunces (serif display) for headlines — the
-// "financial publication" pairing used across the content pack cards.
-// next/og doesn't export its options type, so describe the font shape we need.
+// Fail-safe: if a font can't be read for any reason, returns [] so the card
+// still renders (system font) instead of 500-ing. Success is memoised; failures
+// are never cached (so a transient issue can't poison every later render).
+//
+// Inter (sans) for body/metrics; Fraunces (serif display) for headlines.
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 type FontList = Array<{
   name: string;
-  data: ArrayBuffer;
+  data: Buffer;
   weight?: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
   style?: "normal" | "italic";
 }>;
 
-async function buf(file: string): Promise<ArrayBuffer> {
-  return fetch(new URL(`./fonts/${file}`, import.meta.url)).then((r) => r.arrayBuffer());
+function read(file: string): Buffer {
+  return readFileSync(fileURLToPath(new URL(`./fonts/${file}`, import.meta.url)));
 }
 
-let cache: Promise<FontList> | null = null;
+let cache: FontList | null = null;
 
-export function brandFonts(): Promise<FontList> {
-  if (!cache) {
-    cache = (async () => {
-      const [i400, i600, i700, f600, f700] = await Promise.all([
-        buf("inter-400.ttf"),
-        buf("inter-600.ttf"),
-        buf("inter-700.ttf"),
-        buf("fraunces-600.ttf"),
-        buf("fraunces-700.ttf"),
-      ]);
-      return [
-        { name: "Inter", data: i400, weight: 400, style: "normal" },
-        { name: "Inter", data: i600, weight: 600, style: "normal" },
-        { name: "Inter", data: i700, weight: 700, style: "normal" },
-        { name: "Fraunces", data: f600, weight: 600, style: "normal" },
-        { name: "Fraunces", data: f700, weight: 700, style: "normal" },
-      ] as FontList;
-    })();
+export function brandFonts(): FontList {
+  if (cache) return cache;
+  try {
+    const fonts: FontList = [
+      { name: "Inter", data: read("inter-400.ttf"), weight: 400, style: "normal" },
+      { name: "Inter", data: read("inter-600.ttf"), weight: 600, style: "normal" },
+      { name: "Inter", data: read("inter-700.ttf"), weight: 700, style: "normal" },
+      { name: "Fraunces", data: read("fraunces-600.ttf"), weight: 600, style: "normal" },
+      { name: "Fraunces", data: read("fraunces-700.ttf"), weight: 700, style: "normal" },
+    ];
+    cache = fonts; // memoise only on success
+    return fonts;
+  } catch {
+    return []; // render with system fonts rather than fail
   }
-  return cache;
 }
