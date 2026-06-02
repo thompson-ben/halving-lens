@@ -15,8 +15,17 @@ import { priorCyclesAtSameDay, currentGainFromHalving } from "./cycleIntel";
 import { cycleTiming, cyclePeakTroughs } from "./cycleTiming";
 import { priorBrief, briefDate, todaySlug } from "./briefArchive";
 import { etfStats, ETF } from "./etf";
-import { sentimentRead, pricedSentimentSeries, SENTIMENT_AVAILABLE } from "./sentiment";
+import { sentimentRead, pricedSentimentSeries, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
 import { currentSentiment } from "./sentiment";
+
+// Fear & Greed band → hex, matching the standard palette.
+const TONE_HEX: Record<string, string> = {
+  red: "#ff5d5d",
+  amber: "#f5b942",
+  muted: "#9aa6b4",
+  green: "#3ddc97",
+  teal: "#5eead4",
+};
 import { CYCLES } from "./btcData";
 import { fmtUsd, fmtPct } from "./format";
 import { TODAY_DAY_IN_CYCLE } from "./btcData";
@@ -161,11 +170,15 @@ export interface FearGreedCard {
   tone: string;
   summary: string;
 }
+export interface FgVsPricePoint {
+  x: number; // 0..1 time
+  y: number; // 0..1 log price
+  color: string; // that day's Fear & Greed band colour
+}
 export interface FgVsPriceCard {
   kind: "fear_greed_vs_price";
   available: boolean;
-  price: [number, number][];
-  fg: [number, number][];
+  points: FgVsPricePoint[];
   priceRange: string;
 }
 
@@ -443,22 +456,23 @@ function fearGreedCard(): FearGreedCard {
 function fgVsPriceCard(): FgVsPriceCard {
   const raw = SENTIMENT_AVAILABLE ? pricedSentimentSeries() : [];
   if (raw.length < 5) {
-    return { kind: "fear_greed_vs_price", available: false, price: [], fg: [], priceRange: "" };
+    return { kind: "fear_greed_vs_price", available: false, points: [], priceRange: "" };
   }
-  const pts = downsample(raw, 90);
+  const pts = downsample(raw, 120); // denser so the colour transitions read cleanly
   const t0 = pts[0].ts;
   const t1 = pts[pts.length - 1].ts;
   const prices = pts.map((p) => p.price);
   const pLo = Math.log10(Math.min(...prices));
   const pHi = Math.log10(Math.max(...prices));
-  const xFrac = (ts: number) => (ts - t0) / (t1 - t0 || 1);
-  const price = pts.map((p) => [xFrac(p.ts), (Math.log10(p.price) - pLo) / (pHi - pLo || 1)] as [number, number]);
-  const fg = pts.map((p) => [xFrac(p.ts), p.value / 100] as [number, number]);
+  const points: FgVsPricePoint[] = pts.map((p) => ({
+    x: (p.ts - t0) / (t1 - t0 || 1),
+    y: (Math.log10(p.price) - pLo) / (pHi - pLo || 1),
+    color: TONE_HEX[bandFor(p.value).tone] ?? "#9aa6b4",
+  }));
   return {
     kind: "fear_greed_vs_price",
     available: true,
-    price,
-    fg,
+    points,
     priceRange: `${fmtUsd(Math.min(...prices), { compact: true })} – ${fmtUsd(Math.max(...prices), { compact: true })}`,
   };
 }

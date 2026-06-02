@@ -438,11 +438,18 @@ function FearGreed({ c }: { c: FearGreedCard }) {
   );
 }
 
-// ── Fear & Greed vs Bitcoin price ────────────────────────────────────────────
+// ── Fear & Greed vs Bitcoin price — one price line, coloured by that day's F&G ─
 function FgVsPrice({ c }: { c: FgVsPriceCard }) {
-  const lines: ChartLine[] = [
-    { label: "BTC price", color: "#cfd8e3", points: c.price },
-    { label: "Fear & Greed", color: "#f5b942", points: c.fg },
+  const W = 900;
+  const H = 520;
+  const px = (x: number) => (x * W).toFixed(1);
+  const py = (y: number) => ((1 - y) * H).toFixed(1);
+  const bands = [
+    { label: "Extreme fear", color: "#ff5d5d" },
+    { label: "Fear", color: "#f5b942" },
+    { label: "Neutral", color: "#9aa6b4" },
+    { label: "Greed", color: "#3ddc97" },
+    { label: "Extreme greed", color: "#5eead4" },
   ];
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -451,10 +458,27 @@ function FgVsPrice({ c }: { c: FgVsPriceCard }) {
         Fear &amp; Greed vs Bitcoin price
       </div>
       <div style={{ display: "flex", fontSize: 26, color: INK_DIM, marginTop: 8, marginBottom: 22 }}>
-        Sentiment (0–100) against price (log) · {c.priceRange}
+        Bitcoin price (log), coloured by that day&apos;s Fear &amp; Greed · {c.priceRange}
       </div>
-      <Chart lines={lines} />
-      <Legend items={lines.map((l) => ({ label: l.label, color: l.color }))} />
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect x={0} y={0} width={W} height={H} fill="#0a0e14" rx={12} />
+        {c.points.slice(0, -1).map((p, i) => {
+          const n = c.points[i + 1];
+          return (
+            <line
+              key={i}
+              x1={px(p.x)}
+              y1={py(p.y)}
+              x2={px(n.x)}
+              y2={py(n.y)}
+              stroke={p.color}
+              strokeWidth={5}
+              strokeLinecap="round"
+            />
+          );
+        })}
+      </svg>
+      <Legend items={bands} />
       <div style={{ display: "flex", fontSize: 21, color: INK_FAINT, marginTop: 18 }}>
         Extremes matter most — euphoria has clustered near tops, deep fear near lows.
       </div>
