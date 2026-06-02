@@ -5,6 +5,7 @@
 import { format } from "date-fns";
 import { SITE_HOST } from "./site";
 import { cycleSummary, cycleScorecard } from "./cycleSummary";
+import { briefHeadline } from "./dailyChange";
 import { SOURCE, TODAY_DAY_IN_CYCLE } from "./btcData";
 import { fmtPct, fmtUsd } from "./format";
 import { etfStats, ETF } from "./etf";
@@ -28,10 +29,8 @@ export function buildBrief(): Brief {
   return {
     date: format(today, "d MMMM yyyy"),
     title: `Bitcoin Cycle Brief — ${format(today, "d MMM yyyy")}`,
-    headline:
-      s.summary.includes("later") && s.summary.includes("cooler")
-        ? "Later by time, cooler by price: Bitcoin continues to diverge from prior cycles."
-        : s.summary,
+    // Dynamic, change-driven headline (falls back to a stable read with no history).
+    headline: briefHeadline(),
     conclusion: s.support,
     disclaimer: DISCLAIMER,
     updated: SOURCE.fetchedAt ? `${format(today, "d MMM yyyy, HH:mm")} UTC` : null,
