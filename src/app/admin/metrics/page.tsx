@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { analyticsSummary, type SectionFeedback } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ExcludeToggle } from "@/components/ExcludeToggle";
+import { ResetStatsButton } from "@/components/ResetStatsButton";
 import { timeAgo } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -116,9 +117,14 @@ export default async function AdminMetricsPage({
 
       <FeedbackReport feedback={a.sectionFeedback} comments={a.recentComments} />
 
-      <p className="mt-8 text-[11px] text-ink-500">
-        First-party, privacy-friendly analytics (no cookies, no PII). Counts are all-time.
-      </p>
+      <div className="mt-10 pt-6 border-t border-white/[0.06] flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-[11px] text-ink-500 max-w-md">
+          First-party, privacy-friendly analytics (no cookies, no PII). Counts are all-time. The
+          &ldquo;exclude my visits&rdquo; toggle applies to new visits only — use Reset for a clean
+          baseline.
+        </p>
+        <ResetStatsButton />
+      </div>
     </Shell>
   );
 }

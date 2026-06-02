@@ -80,3 +80,19 @@ export async function sbCount(table: string, filter = ""): Promise<number | null
     return null;
   }
 }
+
+// Delete rows matching a PostgREST filter (required — PostgREST refuses an
+// unfiltered delete). Use "id=gte.0" to clear an identity-keyed table. Returns
+// true on success. Server-only (service-role key).
+export async function sbDelete(table: string, filter: string): Promise<boolean> {
+  if (!supabaseConfigured) return false;
+  try {
+    const res = await fetch(`${URL}/rest/v1/${table}?${filter}`, {
+      method: "DELETE",
+      headers: headers({ Prefer: "return=minimal" }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
