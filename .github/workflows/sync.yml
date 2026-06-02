@@ -1,14 +1,14 @@
 name: Daily sync
 
-# Refreshes the live Bitcoin data snapshot once a day at 02:15 UTC and
-# commits the change. Vercel auto-deploys on push, so the production site
-# stays current without manual intervention.
+# Refreshes the live Bitcoin data snapshot once a day at 08:00 UTC and
+# commits the change. Vercel auto-deploys on push, so the production site —
+# the daily brief, content-pack cards and warehouse — refreshes each morning.
 #
 # Can also be triggered manually from the Actions tab.
 
 on:
   schedule:
-    - cron: "15 2 * * *"
+    - cron: "0 8 * * *" # 08:00 UTC daily (London morning)
   workflow_dispatch:
 
 concurrency:
