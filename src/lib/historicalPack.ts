@@ -14,7 +14,7 @@ import { drawdownAnalysis } from "./drawdowns";
 import { cycleTiming } from "./cycleTiming";
 import { whatHappenedNext } from "./cycleIntel";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
-import { similarMoments } from "./similarity";
+import { similarMoments, currentMoment } from "./similarity";
 import { selectHistoricalNarrative, historicalTakeawayText } from "./contentCards";
 import type { ContentPack } from "./brief";
 
@@ -154,6 +154,120 @@ export function historicalContentPack(): ContentPack {
     xThread: historicalThread(),
     instagram: historicalInstagram(),
     linkedin: historicalLinkedin(),
+    emailSubject: email.subject,
+    emailBody: email.body,
+  };
+}
+
+// ── Similar Moments Pack — its own cross-channel copy ────────────────────────
+// A third content pillar focused entirely on historical analogues. Honest by
+// construction: it relays whatever the top matches actually are, bullish or
+// bearish. No predictions, no targets.
+function similarBlocks() {
+  const moments = similarMoments(3);
+  const cur = currentMoment();
+  const s = cycleSummary();
+  const top = moments[0];
+  const list = moments.map((m, i) => `${i + 1}. ${m.dateLabel} (${m.year} cycle) — ${m.similarity}% similar`);
+  const nextLine = top
+    ? `After ${top.dateLabel}, the ${top.year} cycle moved ${signed(top.next.d30)} / ${signed(top.next.d60)} / ${signed(top.next.d90)} over the next 30 / 60 / 90 days.`
+    : "";
+  return { moments, cur, s, top, list, nextLine, takeaway: historicalTakeawayText("similar") };
+}
+
+export function similarInstagram(): string {
+  const b = similarBlocks();
+  if (!b.top) return "Not enough historical data to compare conditions right now.";
+  return [
+    "Bitcoin — Have we seen this before?",
+    "",
+    `₿ ${fmtUsd(b.s.price)} · Day ${b.s.cycleDay} · ${Math.round(b.cur.drawdown)}% from the high`,
+    "",
+    "Today's conditions most closely resemble:",
+    ...b.list,
+    "",
+    b.nextLine,
+    "Historical context only.",
+    "",
+    b.takeaway,
+    "",
+    "📊 Explore every similar moment — link in bio.",
+    "",
+    "Historical context, not financial advice. Past performance does not predict future results.",
+    "",
+    HASHTAGS,
+  ].join("\n");
+}
+
+export function similarThread(): string[] {
+  const b = similarBlocks();
+  if (!b.top) return ["Not enough historical data to compare conditions right now."];
+  return [
+    `Have we seen this before? 🧵\n\nBitcoin cycle context — day ${b.s.cycleDay}. History rhymes more than it repeats; this is context, not a forecast.`,
+    `1/ Today's market conditions most closely resemble ${b.top.dateLabel} (${b.top.year} cycle) — a ${b.top.similarity}% match on cycle position, drawdown and price heat (not sentiment).`,
+    `2/ The closest three analogues:\n${b.list.join("\n")}`,
+    `3/ ${b.nextLine} Historical context only — past performance does not predict future results.`,
+    `4/ ${b.takeaway}`,
+    `Not a forecast — educational analysis, not financial advice.\n\nExplore the full set: ${SITE_HOST}/similar-moments`,
+  ];
+}
+
+export function similarLinkedin(): string {
+  const b = similarBlocks();
+  if (!b.top) return "Not enough historical data to compare conditions right now.";
+  return [
+    "Bitcoin — Have we seen this before?",
+    "",
+    `Bitcoin is trading at ${fmtUsd(b.s.price)}, day ${b.s.cycleDay} of the halving cycle and ${Math.round(b.cur.drawdown)}% below its cycle high.`,
+    "",
+    "By cycle position, drawdown and price heat, today's conditions most closely resemble:",
+    ...b.list,
+    "",
+    b.nextLine,
+    "",
+    b.takeaway,
+    "",
+    "Historical cycle behaviour is not a forecast. This is educational analysis, not financial advice. Past performance does not predict future results.",
+    "",
+    `More: ${SITE_HOST}/similar-moments`,
+  ].join("\n");
+}
+
+export function similarEmail(): { subject: string; body: string } {
+  const b = similarBlocks();
+  const subject = b.top ? `Bitcoin in context — this moment rhymes with ${b.top.dateLabel}` : "Bitcoin — similar moments";
+  const body = [
+    "Bitcoin Cycle — Similar Moments",
+    "Have we seen this before?",
+    "",
+    "—",
+    "",
+    `The numbers: BTC ${fmtUsd(b.s.price)} · day ${b.s.cycleDay} of the cycle · ${Math.round(b.cur.drawdown)}% from the high.`,
+    "",
+    "Most similar historical moments",
+    ...b.list,
+    "",
+    b.nextLine,
+    "",
+    "Key takeaway",
+    b.takeaway,
+    "",
+    "—",
+    "",
+    `Explore every similar moment, with charts: https://${SITE_HOST}/similar-moments`,
+    "",
+    "Historical context only. Past performance does not predict future results. Not financial advice.",
+  ].join("\n");
+  return { subject, body };
+}
+
+export function similarContentPack(): ContentPack {
+  const email = similarEmail();
+  return {
+    xPost: similarThread()[1] ?? similarInstagram(),
+    xThread: similarThread(),
+    instagram: similarInstagram(),
+    linkedin: similarLinkedin(),
     emailSubject: email.subject,
     emailBody: email.body,
   };
