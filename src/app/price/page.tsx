@@ -1,4 +1,5 @@
 import { BtcPriceChart } from "@/components/BtcPriceChart";
+import { CycleChartExperience } from "@/components/CycleChartExperience";
 import { DataBadge } from "@/components/DataBadge";
 import { LastUpdated } from "@/components/LastUpdated";
 import { priceStats } from "@/lib/btcPrice";
@@ -34,23 +35,37 @@ export default function PricePage() {
         </div>
       </header>
 
-      <section className="card p-4 sm:p-7 relative">
-        <BtcPriceChart height={400} />
-        <div className="watermark">halvinglens.com · btc price</div>
-      </section>
+      {/* Signature experience — answer-first cycle context, not a generic price chart */}
+      <CycleChartExperience />
 
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-        <Stat label="24h change" value={s.change24h != null ? fmtPct(s.change24h, 1) : "—"} tone={s.change24h} />
-        <Stat label="7d change" value={s.change7d != null ? fmtPct(s.change7d, 1) : "—"} tone={s.change7d} />
-        <Stat label="All-time high" value={fmtUsd(s.ath, { compact: true })} />
-        <Stat label="From ATH" value={fmtPct(s.fromAthPct, 1)} tone={s.fromAthPct} />
-      </section>
+      {/* Price history — the conventional price/range chart, demoted below */}
+      <section>
+        <div className="mb-4">
+          <h2 className="font-display text-[20px] sm:text-[24px] font-medium tracking-tight-2 text-ink-100">
+            Price history
+          </h2>
+          <p className="text-[12px] text-ink-400 mt-1">
+            The conventional view, for reference — pan across ranges from 24 hours to all time.
+          </p>
+        </div>
+        <div className="card p-4 sm:p-7 relative">
+          <BtcPriceChart height={360} />
+          <div className="watermark">halvinglens.com · btc price</div>
+        </div>
 
-      <p className="text-[11.5px] text-ink-500 leading-relaxed max-w-2xl">
-        The 1D view pulls live hourly data on demand. 1W–1Y use daily closes from the data sync,
-        and the full-history view uses the weekly cycle series back to 2012. The headline price and
-        24h/7d figures are daily closes as of the last sync.
-      </p>
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+          <Stat label="24h change" value={s.change24h != null ? fmtPct(s.change24h, 1) : "—"} tone={s.change24h} />
+          <Stat label="7d change" value={s.change7d != null ? fmtPct(s.change7d, 1) : "—"} tone={s.change7d} />
+          <Stat label="All-time high" value={fmtUsd(s.ath, { compact: true })} />
+          <Stat label="From ATH" value={fmtPct(s.fromAthPct, 1)} tone={s.fromAthPct} />
+        </div>
+
+        <p className="mt-4 text-[11.5px] text-ink-500 leading-relaxed max-w-2xl">
+          The 1D view pulls live hourly data on demand. 1W–1Y use daily closes from the data sync,
+          and the full-history view uses the weekly cycle series back to 2012. The headline price and
+          24h/7d figures are daily closes as of the last sync.
+        </p>
+      </section>
     </div>
   );
 }
