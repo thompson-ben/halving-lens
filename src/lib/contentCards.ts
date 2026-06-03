@@ -26,9 +26,8 @@ const TONE_HEX: Record<string, string> = {
   green: "#3ddc97",
   teal: "#5eead4",
 };
-import { CYCLES } from "./btcData";
+import { CYCLES, SOURCE, TODAY_DAY_IN_CYCLE } from "./btcData";
 import { fmtUsd, fmtPct } from "./format";
-import { TODAY_DAY_IN_CYCLE } from "./btcData";
 
 export type CardId =
   | "hero"
@@ -503,9 +502,23 @@ export function buildCard(id: CardId): Card {
 }
 
 export function buildDeck(): Deck {
+  // Human label for the studio meta line — includes the refresh time (UTC) so
+  // it's clear how fresh the pack is, not just which day.
+  const day = briefDate();
+  const dateLabel = SOURCE.fetchedAt
+    ? `${new Intl.DateTimeFormat("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "UTC",
+      }).format(day)} UTC`
+    : format(day, "d MMMM yyyy");
   return {
     slug: todaySlug(),
-    dateLabel: format(briefDate(), "d MMMM yyyy"),
+    dateLabel,
     cards: CARD_ORDER.map(buildCard),
   };
 }

@@ -76,9 +76,9 @@ function Shell({ children }: { children: React.ReactNode }) {
           Content Pack Generator
         </h1>
         <p className="mt-3 text-[13.5px] text-ink-300 max-w-2xl leading-relaxed">
-          One-click branded carousel from today&apos;s Daily Brief — six Instagram-ready cards plus
-          captions for X, LinkedIn and email. Generated server-side from the live data; no manual
-          design.
+          One-click branded carousel from today&apos;s Daily Brief — a full set of Instagram-ready
+          cards plus captions for X, LinkedIn and email. Generated server-side from the live data;
+          no manual design.
         </p>
       </header>
       {children}
