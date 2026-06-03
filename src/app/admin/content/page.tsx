@@ -5,7 +5,7 @@ import { AdminLogin } from "@/components/AdminLogin";
 import { ContentPackStudio, type StudioPack } from "@/components/ContentPackStudio";
 import { buildPack, CARD_LABELS, type Deck, type PackId } from "@/lib/contentCards";
 import { contentPack } from "@/lib/brief";
-import { historicalContentPack } from "@/lib/historicalPack";
+import { historicalContentPack, similarContentPack } from "@/lib/historicalPack";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -62,6 +62,7 @@ export default function ContentPackPage({ searchParams }: { searchParams: { key?
   const packs: StudioPack[] = [
     toStudioPack("daily", "Generate Daily Brief Pack", buildPack("daily"), contentPack()),
     toStudioPack("historical", "Generate Historical Context Pack", buildPack("historical"), historicalContentPack()),
+    toStudioPack("similar", "Generate Similar Moments Pack", buildPack("similar"), similarContentPack()),
   ];
 
   return (

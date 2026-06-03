@@ -22,6 +22,8 @@ import type {
   PeakLowCard,
   SimilarMomentsCard,
   SimilarOutcomesCard,
+  SimilarTop3Card,
+  SimilarContextCard,
   TakeawayCard,
   WatchCard,
   WhatNextCard,
@@ -729,6 +731,67 @@ function SimilarOutcomes({ c }: { c: SimilarOutcomesCard }) {
   );
 }
 
+// ── Top 3 similar moments (Slide 2) ──────────────────────────────────────────
+function SimilarTop3({ c }: { c: SimilarTop3Card }) {
+  const max = Math.max(1, ...c.rows.map((r) => r.similarity));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Similar moments</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 50, fontWeight: 700, color: INK, marginTop: 12, marginBottom: 36, letterSpacing: -1 }}>
+        Top 3 similar historical moments
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+        {c.rows.map((r) => (
+          <div key={r.rank} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+                <div style={{ display: "flex", fontSize: 38, fontWeight: 700, color: INK_FAINT, width: 40 }}>{r.rank}</div>
+                <div style={{ display: "flex", width: 16, height: 16, borderRadius: 8, background: r.color }} />
+                <div style={{ display: "flex", fontSize: 44, fontWeight: 600, color: INK }}>{r.label}</div>
+                <div style={{ display: "flex", fontSize: 26, color: INK_DIM, marginLeft: 4 }}>{r.year} cycle</div>
+              </div>
+              <div style={{ display: "flex", fontSize: 46, fontWeight: 700, color: ACCENT }}>{r.similarity}%</div>
+            </div>
+            <div style={{ display: "flex", height: 14, borderRadius: 7, background: "rgba(255,255,255,0.05)" }}>
+              <div style={{ display: "flex", width: `${(r.similarity / max) * 100}%`, height: 14, borderRadius: 7, background: ACCENT }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", fontSize: 22, color: INK_FAINT, marginTop: 40 }}>
+        Matched on cycle day, drawdown, price heat &amp; gain since halving · not sentiment.
+      </div>
+    </div>
+  );
+}
+
+// ── Historical context (Slide 3) ─────────────────────────────────────────────
+function SimilarContext({ c }: { c: SimilarContextCard }) {
+  const Stat = ({ label, value }: { label: string; value: string }) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "50%", marginBottom: 32 }}>
+      <div style={{ display: "flex", fontSize: 20, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color: INK }}>{value}</div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Historical context</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 50, fontWeight: 700, color: INK, marginTop: 12, marginBottom: 8, letterSpacing: -1 }}>
+        {c.matchLabel}
+      </div>
+      <div style={{ display: "flex", fontSize: 28, color: INK_DIM, marginBottom: 30, maxWidth: 880, lineHeight: 1.4 }}>
+        {c.context}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap" }}>
+        <Stat label="Price then" value={c.price} />
+        <Stat label="Drawdown" value={`${Math.round(c.drawdown)}%`} />
+        <Stat label="Mayer multiple" value={c.mayer.toFixed(2)} />
+        <Stat label="Fear & Greed" value={c.fearGreed != null ? String(c.fearGreed) : "n/a (pre-2018)"} />
+      </div>
+    </div>
+  );
+}
+
 function Unavailable({ what }: { what: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -768,6 +831,10 @@ export function renderCard(card: Card): React.ReactElement {
         return card.body.available ? <SimilarMoments c={card.body} /> : <Unavailable what="Similar moments" />;
       case "similar_outcomes":
         return card.body.available ? <SimilarOutcomes c={card.body} /> : <Unavailable what="Historical outcomes" />;
+      case "similar_top3":
+        return card.body.available ? <SimilarTop3 c={card.body} /> : <Unavailable what="Similar moments" />;
+      case "similar_context":
+        return card.body.available ? <SimilarContext c={card.body} /> : <Unavailable what="Historical context" />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":

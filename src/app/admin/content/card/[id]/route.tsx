@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return new Response("Unknown card", { status: 404 });
   }
   const packParam = new URL(req.url).searchParams.get("pack");
-  const pack: PackId = packParam === "historical" ? "historical" : "daily";
+  const pack: PackId = packParam === "historical" ? "historical" : packParam === "similar" ? "similar" : "daily";
 
   const fonts = brandFonts();
   return new ImageResponse(renderCard(buildCard(id as CardId, pack)), {

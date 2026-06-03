@@ -48,7 +48,10 @@ export type CardId =
   | "cycle_position"
   | "what_next"
   | "similar_moments"
+  | "similar_top3"
+  | "similar_context"
   | "similar_outcomes"
+  | "similar_takeaway"
   | "hist_takeaway";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
@@ -82,7 +85,10 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   cycle_position: { kicker: "Current position in cycle", name: "Current position" },
   what_next: { kicker: "What happened next?", name: "What happened next?" },
   similar_moments: { kicker: "Similar moments", name: "Similar moment" },
+  similar_top3: { kicker: "Similar moments", name: "Top 3 similar moments" },
+  similar_context: { kicker: "Historical context", name: "Historical context" },
   similar_outcomes: { kicker: "What happened next?", name: "Similar · what happened next" },
+  similar_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
   hist_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
 };
 
@@ -266,6 +272,30 @@ export interface SimilarOutcomesCard {
   d60: number | null;
   d90: number | null;
 }
+export interface SimilarTop3Row {
+  rank: number;
+  label: string;
+  year: string;
+  similarity: number;
+  color: string;
+}
+export interface SimilarTop3Card {
+  kind: "similar_top3";
+  available: boolean;
+  rows: SimilarTop3Row[];
+}
+export interface SimilarContextCard {
+  kind: "similar_context";
+  available: boolean;
+  matchLabel: string;
+  matchYear: string;
+  context: string;
+  price: string;
+  drawdown: number;
+  mayer: number;
+  gainMult: number;
+  fearGreed: number | null;
+}
 
 export type CardBody =
   | HeroCard
@@ -283,7 +313,9 @@ export type CardBody =
   | CyclePositionCard
   | WhatNextCard
   | SimilarMomentsCard
-  | SimilarOutcomesCard;
+  | SimilarOutcomesCard
+  | SimilarTop3Card
+  | SimilarContextCard;
 
 export interface Card {
   id: CardId;
@@ -674,6 +706,42 @@ function similarOutcomesCard(): SimilarOutcomesCard {
   };
 }
 
+function similarTop3Card(): SimilarTop3Card {
+  const moments = similarMoments(3);
+  return {
+    kind: "similar_top3",
+    available: moments.length > 0,
+    rows: moments.map((m, i) => ({
+      rank: i + 1,
+      label: m.dateLabel,
+      year: m.year,
+      similarity: m.similarity,
+      color: m.color,
+    })),
+  };
+}
+
+function similarContextCard(): SimilarContextCard {
+  const top = similarMoments(1)[0];
+  return {
+    kind: "similar_context",
+    available: !!top,
+    matchLabel: top?.dateLabel ?? "—",
+    matchYear: top?.year ?? "",
+    context: top?.context ?? "",
+    price: top ? fmtUsd(top.metrics.price, { compact: true }) : "—",
+    drawdown: top?.metrics.drawdown ?? 0,
+    mayer: top?.metrics.mayer ?? 0,
+    gainMult: top?.metrics.gainMult ?? 0,
+    fearGreed: top?.metrics.fearGreed ?? null,
+  };
+}
+
+// Key takeaway for the Similar Moments Pack — always the "similar" read.
+function similarTakeawayCard(): TakeawayCard {
+  return { kind: "takeaway", text: historicalTakeawayText("similar") };
+}
+
 // Narrative-specific Key Takeaway for the Historical Context Pack (≤ 2 sentences).
 function histTakeawayCard(): TakeawayCard {
   return { kind: "takeaway", text: historicalTakeawayText(selectHistoricalNarrative().narrative) };
@@ -695,7 +763,10 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   cycle_position: cyclePositionCard,
   what_next: whatNextCard,
   similar_moments: similarMomentsCard,
+  similar_top3: similarTop3Card,
+  similar_context: similarContextCard,
   similar_outcomes: similarOutcomesCard,
+  similar_takeaway: similarTakeawayCard,
   hist_takeaway: histTakeawayCard,
 };
 
@@ -706,12 +777,24 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical";
+export type PackId = "daily" | "historical" | "similar";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
   historical: "Historical Context Pack",
+  similar: "Similar Moments Pack",
 };
+
+// The Similar Moments Pack — a fixed, similarity-focused 6-slide carousel
+// (independent of the Historical Context Pack's auto-selected narrative).
+export const SIMILAR_PACK: CardId[] = [
+  "similar_moments",
+  "similar_top3",
+  "similar_context",
+  "similar_outcomes",
+  "similar_takeaway",
+  "cta",
+];
 
 export type Narrative = "similar" | "drawdown" | "fear_greed" | "position";
 
@@ -803,7 +886,9 @@ export function isCardId(id: string): id is CardId {
 }
 
 export function packOrder(packId: PackId): CardId[] {
-  return packId === "historical" ? selectHistoricalNarrative().order : CARD_ORDER;
+  if (packId === "similar") return SIMILAR_PACK;
+  if (packId === "historical") return selectHistoricalNarrative().order;
+  return CARD_ORDER;
 }
 
 export function buildCard(id: CardId, packId: PackId = "daily"): Card {
