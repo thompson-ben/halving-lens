@@ -27,7 +27,8 @@ export function CycleContextChart({ height = 420, compact = false }: { height?: 
   const yFmt = (v: number) => (v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v.toFixed(0)}`);
 
   return (
-    <div className="fade-up" style={{ width: "100%", height }}>
+    <div className="fade-up">
+      <div style={{ width: "100%", height }}>
       <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 26, right: 16, bottom: 8, left: 6 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.025)" vertical={false} />
@@ -123,6 +124,7 @@ export function CycleContextChart({ height = 420, compact = false }: { height?: 
           )}
         </LineChart>
       </ResponsiveContainer>
+      </div>
 
       {/* Zone legend */}
       <div className="flex items-center gap-x-4 gap-y-2 mt-4 text-[11px] flex-wrap">

@@ -67,7 +67,8 @@ export function CycleOverlayChart({
   };
 
   return (
-    <div className="fade-up" style={{ width: "100%", height }}>
+    <div className="fade-up">
+      <div style={{ width: "100%", height }}>
       <ResponsiveContainer>
         <LineChart data={merged} margin={{ top: 14, right: 20, bottom: 8, left: 4 }}>
           <defs>
@@ -144,6 +145,7 @@ export function CycleOverlayChart({
           ))}
         </LineChart>
       </ResponsiveContainer>
+      </div>
       {showLegend && (
         <div className="flex items-center gap-5 mt-4 text-[11px] flex-wrap">
           {CYCLES.map((c) => (
