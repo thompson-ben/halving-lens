@@ -1,14 +1,18 @@
 name: Daily sync
 
-# Refreshes the live Bitcoin data snapshot once a day at 08:00 UTC and
+# Refreshes the live Bitcoin data snapshot once a day at 08:00 Europe/London and
 # commits the change. Vercel auto-deploys on push, so the production site —
 # the daily brief, content-pack cards and warehouse — refreshes each morning.
 #
-# Can also be triggered manually from the Actions tab.
+# GitHub cron is UTC-only and doesn't follow British Summer Time, so we schedule
+# at both 07:00 and 08:00 UTC and a gate job only lets the run proceed when it's
+# actually 08:00 in London (07:00 UTC in BST, 08:00 UTC in GMT) — exactly one run
+# per day at 8am London. Manual runs from the Actions tab always proceed.
 
 on:
   schedule:
-    - cron: "0 8 * * *" # 08:00 UTC daily (London morning)
+    - cron: "0 7 * * *" # 08:00 London during BST (summer)
+    - cron: "0 8 * * *" # 08:00 London during GMT (winter)
   workflow_dispatch:
 
 concurrency:
@@ -19,8 +23,23 @@ permissions:
   contents: write
 
 jobs:
+  gate:
+    name: Only at 08:00 Europe/London
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        run: |
+          H=$(TZ=Europe/London date +%H)
+          echo "London hour: $H"
+          if [ "$H" = "08" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+
   sync:
     name: Pull live snapshot
+    needs: gate
+    # Proceed only at 8am London (scheduled) or whenever triggered manually.
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.gate.outputs.run == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
