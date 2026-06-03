@@ -297,6 +297,68 @@ export function forwardOutcomes(): ForwardOutcomes {
   return { horizons, daysToPeak, avgDaysToPeak };
 }
 
+// ── What happened next — 30 / 60 / 90 days (real price, prior cycles) ────────
+// From today's day-from-halving, what did each completed prior cycle do over
+// the next 30, 60 and 90 days. Strict historical context — not a forecast,
+// no expected returns. Weekly samples, read at the nearest day to each target.
+
+export interface WhatNextRow {
+  cycleId: number;
+  short: string;
+  color: string;
+  year: string; // halving year (2012 / 2016 / 2020)
+  d30: number | null; // % change over the next 30 days
+  d60: number | null;
+  d90: number | null;
+}
+
+export interface WhatHappenedNext {
+  cycleDay: number;
+  rows: WhatNextRow[];
+  avg30: number | null;
+  avg60: number | null;
+  avg90: number | null;
+}
+
+export function whatHappenedNext(): WhatHappenedNext {
+  const priors = CYCLES.filter((c) => c.id !== 5);
+
+  // Forward % at +days from the sample nearest today's day-in-cycle. Returns
+  // null when the cycle lacks data out to roughly that day (weekly tolerance).
+  const fwd = (c: Cycle, days: number): number | null => {
+    const base = sampleNearestDay(c, TODAY_DAY_IN_CYCLE);
+    const targetDay = base.day + days;
+    const lastDay = c.samples[c.samples.length - 1].day;
+    if (targetDay > lastDay + 10) return null;
+    const future = sampleNearestDay(c, targetDay);
+    if (future.day === base.day) return null;
+    return Math.round((future.price / base.price - 1) * 100);
+  };
+
+  const rows: WhatNextRow[] = priors.map((c) => ({
+    cycleId: c.id,
+    short: c.short,
+    color: c.color,
+    year: c.halvingDate.slice(0, 4),
+    d30: fwd(c, 30),
+    d60: fwd(c, 60),
+    d90: fwd(c, 90),
+  }));
+
+  const avg = (pick: (r: WhatNextRow) => number | null): number | null => {
+    const vals = rows.map(pick).filter((v): v is number => v != null);
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+  };
+
+  return {
+    cycleDay: TODAY_DAY_IN_CYCLE,
+    rows,
+    avg30: avg((r) => r.d30),
+    avg60: avg((r) => r.d60),
+    avg90: avg((r) => r.d90),
+  };
+}
+
 // ── Cycle divergence read (real price + peak timing) ────────────────────────
 // Honest, carefully-worded interpretation of how this cycle compares with the
 // classic four-year rhythm: later by calendar timing, but cooler by price.

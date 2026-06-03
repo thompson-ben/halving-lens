@@ -11,8 +11,9 @@
 
 import { format } from "date-fns";
 import { cycleSummary, cycleScorecard, HEAT_LABEL } from "./cycleSummary";
-import { priorCyclesAtSameDay, currentGainFromHalving } from "./cycleIntel";
+import { priorCyclesAtSameDay, currentGainFromHalving, whatHappenedNext } from "./cycleIntel";
 import { cycleTiming, cyclePeakTroughs } from "./cycleTiming";
+import { drawdownAnalysis } from "./drawdowns";
 import { priorBrief, briefDate, todaySlug } from "./briefArchive";
 import { etfStats, ETF } from "./etf";
 import { sentimentRead, pricedSentimentSeries, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
@@ -40,8 +41,14 @@ export type CardId =
   | "fear_greed_vs_price"
   | "watch"
   | "takeaway"
-  | "cta";
+  | "cta"
+  // Historical Context assets
+  | "drawdowns"
+  | "cycle_position"
+  | "what_next"
+  | "hist_takeaway";
 
+// The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
   "hero",
   "changed",
@@ -68,6 +75,10 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   watch: { kicker: "What to watch next", name: "What to watch" },
   takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
   cta: { kicker: "halvinglens.com", name: "Brand / CTA" },
+  drawdowns: { kicker: "Historical drawdowns", name: "Historical drawdowns" },
+  cycle_position: { kicker: "Current position in cycle", name: "Current position" },
+  what_next: { kicker: "What happened next?", name: "What happened next?" },
+  hist_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -181,6 +192,56 @@ export interface FgVsPriceCard {
   priceRange: string;
 }
 
+// ── Historical Context assets ────────────────────────────────────────────────
+export interface DrawdownRow {
+  label: string;
+  color: string;
+  stage: number; // drawdown at equivalent cycle stage, %, ≤ 0
+  largest: number; // deepest drawdown by that stage, %, ≤ 0
+  current: boolean;
+}
+export interface DrawdownsCard {
+  kind: "drawdowns";
+  available: boolean;
+  cycleDay: number;
+  current: number; // current cycle drawdown, %, ≤ 0
+  largestThisCycle: number;
+  avgAtStage: number;
+  rows: DrawdownRow[];
+  takeaway: string;
+}
+export interface CyclePositionCard {
+  kind: "cycle_position";
+  available: boolean;
+  todayDay: number;
+  axisMax: number;
+  peakStart: number;
+  peakEnd: number;
+  lowStart: number;
+  lowEnd: number;
+  todayLabel: string; // "Day 775"
+  peakLabel: string; // "Day 371–546"
+  lowLabel: string; // "Day 777–924"
+  position: string; // one-line plain-English placement
+  note: string;
+}
+export interface WhatNextRowView {
+  year: string;
+  color: string;
+  d30: number | null;
+  d60: number | null;
+  d90: number | null;
+}
+export interface WhatNextCard {
+  kind: "what_next";
+  available: boolean;
+  cycleDay: number;
+  rows: WhatNextRowView[];
+  avg30: number | null;
+  avg60: number | null;
+  avg90: number | null;
+}
+
 export type CardBody =
   | HeroCard
   | ChangedCard
@@ -192,7 +253,10 @@ export type CardBody =
   | FgVsPriceCard
   | WatchCard
   | TakeawayCard
-  | CtaCard;
+  | CtaCard
+  | DrawdownsCard
+  | CyclePositionCard
+  | WhatNextCard;
 
 export interface Card {
   id: CardId;
@@ -476,6 +540,88 @@ function fgVsPriceCard(): FgVsPriceCard {
   };
 }
 
+// ── Historical drawdowns — "Is this drop normal?" ────────────────────────────
+function drawdownsCard(): DrawdownsCard {
+  const a = drawdownAnalysis();
+  return {
+    kind: "drawdowns",
+    available: a.available,
+    cycleDay: a.cycleDay,
+    current: a.current,
+    largestThisCycle: a.largestThisCycle,
+    avgAtStage: a.avgAtStage,
+    rows: a.rows.map((r) => ({
+      label: r.isCurrent ? "Current cycle" : `${r.year} cycle`,
+      color: r.color,
+      stage: r.drawdownAtStage,
+      largest: r.largestSoFar,
+      current: r.isCurrent,
+    })),
+    takeaway: a.takeaway,
+  };
+}
+
+// ── Current position in cycle — "Where are we now?" ──────────────────────────
+function cyclePositionCard(): CyclePositionCard {
+  const t = cycleTiming();
+  const axisMax = Math.max(t.bottomWindow.maxDay + 150, t.todayDay + 90, 1100);
+
+  const inPeak = t.todayDay >= t.peakWindow.minDay && t.todayDay <= t.peakWindow.maxDay;
+  const beforePeak = t.todayDay < t.peakWindow.minDay;
+  const inLow = t.todayDay >= t.bottomWindow.minDay && t.todayDay <= t.bottomWindow.maxDay;
+  const afterLow = t.todayDay > t.bottomWindow.maxDay;
+  const position = beforePeak
+    ? "Earlier than the window where past cycles set their bull-market top."
+    : inPeak
+      ? "Inside the window where past cycles set their bull-market top."
+      : inLow
+        ? "Inside the window where past cycles reached their bear-market low."
+        : afterLow
+          ? "Past the window where past cycles reached their bear-market low."
+          : "Past the historical top window, ahead of the historical low window.";
+
+  return {
+    kind: "cycle_position",
+    available: true,
+    todayDay: t.todayDay,
+    axisMax,
+    peakStart: t.peakWindow.minDay,
+    peakEnd: t.peakWindow.maxDay,
+    lowStart: t.bottomWindow.minDay,
+    lowEnd: t.bottomWindow.maxDay,
+    todayLabel: `Day ${t.todayDay}`,
+    peakLabel: `Day ${t.peakWindow.minDay}–${t.peakWindow.maxDay}`,
+    lowLabel: `Day ${t.bottomWindow.minDay}–${t.bottomWindow.maxDay}`,
+    position,
+    note: "Three completed cycles — historical rhythm, not a forecast. The ETF era may break it.",
+  };
+}
+
+// ── What happened next — 30/60/90 days, prior cycles only ────────────────────
+function whatNextCard(): WhatNextCard {
+  const w = whatHappenedNext();
+  return {
+    kind: "what_next",
+    available: w.rows.some((r) => r.d30 != null || r.d60 != null || r.d90 != null),
+    cycleDay: w.cycleDay,
+    rows: w.rows.map((r) => ({
+      year: r.year,
+      color: r.color,
+      d30: r.d30,
+      d60: r.d60,
+      d90: r.d90,
+    })),
+    avg30: w.avg30,
+    avg60: w.avg60,
+    avg90: w.avg90,
+  };
+}
+
+// Narrative-specific Key Takeaway for the Historical Context Pack (≤ 2 sentences).
+function histTakeawayCard(): TakeawayCard {
+  return { kind: "takeaway", text: historicalTakeawayText(selectHistoricalNarrative().narrative) };
+}
+
 const BUILDERS: Record<CardId, () => CardBody> = {
   hero: heroCard,
   changed: changedCard,
@@ -488,24 +634,119 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   watch: watchCard,
   takeaway: takeawayCard,
   cta: ctaCard,
+  drawdowns: drawdownsCard,
+  cycle_position: cyclePositionCard,
+  what_next: whatNextCard,
+  hist_takeaway: histTakeawayCard,
 };
 
-export function buildCard(id: CardId): Card {
-  const index = CARD_ORDER.indexOf(id);
+// ── Packs ─────────────────────────────────────────────────────────────────
+// Two content types share one asset library: the Daily Brief Pack (the
+// established 11-card daily carousel) and the Historical Context Pack (a
+// 6-slide carousel whose lead assets are chosen by the strongest live
+// narrative). Selection is deterministic, so the image route and the studio
+// always agree on the same ordering for the same data snapshot.
+
+export type PackId = "daily" | "historical";
+
+export const PACK_LABELS: Record<PackId, string> = {
+  daily: "Daily Brief Pack",
+  historical: "Historical Context Pack",
+};
+
+export type Narrative = "drawdown" | "fear_greed" | "position";
+
+export interface HistoricalSelection {
+  narrative: Narrative;
+  title: string;
+  reason: string;
+  order: CardId[]; // exactly 6 cards, ending Key takeaway → CTA
+}
+
+// Pick the strongest historical story from the live data, then lay out the
+// 6-slide carousel for it. The three layouts mirror the brief's Options A/B/C.
+export function selectHistoricalNarrative(): HistoricalSelection {
+  const dd = drawdownAnalysis();
+  const sr = SENTIMENT_AVAILABLE ? sentimentRead() : null;
+  const curDrawdown = Math.abs(dd.current);
+  const fg = sr?.value ?? null;
+
+  // A) A meaningful correction is the most shareable story during volatility.
+  if (dd.available && curDrawdown >= 12) {
+    return {
+      narrative: "drawdown",
+      title: "Current correction vs historical corrections",
+      reason: `Bitcoin is ${Math.round(curDrawdown)}% below its cycle high`,
+      order: ["drawdowns", "cycle_position", "what_next", "fear_greed", "hist_takeaway", "cta"],
+    };
+  }
+
+  // C) A sentiment extreme is the next strongest hook.
+  if (fg != null && (fg <= 25 || fg >= 75)) {
+    return {
+      narrative: "fear_greed",
+      title: "Fear & Greed in historical context",
+      reason: `Fear & Greed at ${fg}`,
+      order: ["fear_greed", "fear_greed_vs_price", "drawdowns", "what_next", "hist_takeaway", "cta"],
+    };
+  }
+
+  // B) Otherwise, frame where the cycle sits — the evergreen default.
+  return {
+    narrative: "position",
+    title: "Where we sit in the cycle",
+    reason: "No correction or sentiment extreme — leading with cycle position",
+    order: ["cycle_overlay", "cycle_position", "peak_low_windows", "what_next", "hist_takeaway", "cta"],
+  };
+}
+
+// Narrative-specific Key Takeaway — a short, distinct CONCLUSION (≤ 2 sentences,
+// no predictions). Deliberately not a restatement of the data slides; it gives
+// the one-line "so what" that closes the carousel and the captions.
+export function historicalTakeawayText(narrative: Narrative): string {
+  if (narrative === "drawdown") {
+    const dd = drawdownAnalysis();
+    const curMag = Math.abs(dd.current);
+    const avgMag = Math.abs(dd.avgAtStage);
+    const rel = curMag < avgMag - 3 ? "shallower than" : curMag > avgMag + 3 ? "deeper than" : "broadly in line with";
+    return `At day ${dd.cycleDay}, this cycle's drawdown is ${rel} what previous cycles showed at the same stage. Whether a drop is "normal" is best judged against history — context, not a forecast.`;
+  }
+  if (narrative === "fear_greed") {
+    return "Sentiment matters most at the extremes, and only as a contrarian read. Where the cycle actually sits — by price and by timing — says more than the daily mood. Historical context, not a forecast.";
+  }
+  // position
+  return "Cycle timing is a rhythm drawn from only three completed cycles, not a schedule. It frames where we are; the ETF era is the new variable that could break the pattern. Historical context, not a forecast.";
+}
+
+// The full set of valid card ids (the shared asset library) — used to validate
+// the image route regardless of which pack a card belongs to.
+export const ALL_CARD_IDS: CardId[] = Object.keys(CARD_LABELS) as CardId[];
+
+export function isCardId(id: string): id is CardId {
+  return (ALL_CARD_IDS as string[]).includes(id);
+}
+
+export function packOrder(packId: PackId): CardId[] {
+  return packId === "historical" ? selectHistoricalNarrative().order : CARD_ORDER;
+}
+
+export function buildCard(id: CardId, packId: PackId = "daily"): Card {
+  const order = packOrder(packId);
+  const index = order.indexOf(id);
   return {
     id,
-    index: index + 1,
-    total: CARD_ORDER.length,
+    index: index >= 0 ? index + 1 : 1,
+    total: order.length,
     kicker: CARD_LABELS[id].kicker,
     body: BUILDERS[id](),
   };
 }
 
-export function buildDeck(): Deck {
+function packDateLabel(): string {
   // Human label for the studio meta line — includes the refresh time (UTC) so
   // it's clear how fresh the pack is, not just which day.
   const day = briefDate();
-  const dateLabel = SOURCE.fetchedAt
+  return SOURCE.fetchedAt
     ? `${new Intl.DateTimeFormat("en-GB", {
         day: "numeric",
         month: "long",
@@ -516,9 +757,18 @@ export function buildDeck(): Deck {
         timeZone: "UTC",
       }).format(day)} UTC`
     : format(day, "d MMMM yyyy");
+}
+
+export function buildPack(packId: PackId): Deck {
+  const order = packOrder(packId);
   return {
     slug: todaySlug(),
-    dateLabel,
-    cards: CARD_ORDER.map(buildCard),
+    dateLabel: packDateLabel(),
+    cards: order.map((id) => buildCard(id, packId)),
   };
+}
+
+// Back-compat: the Daily Brief Pack.
+export function buildDeck(): Deck {
+  return buildPack("daily");
 }
