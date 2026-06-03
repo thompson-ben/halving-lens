@@ -12,6 +12,8 @@ import type {
   ChartLine,
   CtaCard,
   CycleTimingCard,
+  CyclePositionCard,
+  DrawdownsCard,
   FearGreedCard,
   FgVsPriceCard,
   HeroCard,
@@ -20,6 +22,7 @@ import type {
   PeakLowCard,
   TakeawayCard,
   WatchCard,
+  WhatNextCard,
 } from "./contentCards";
 
 const SENT_TONE: Record<string, string> = {
@@ -486,6 +489,176 @@ function FgVsPrice({ c }: { c: FgVsPriceCard }) {
   );
 }
 
+// ── Historical drawdowns — "Is this drop normal?" ────────────────────────────
+function ddText(n: number): string {
+  return `${Math.round(n)}%`; // n is ≤ 0, so this yields e.g. "-24%" or "0%"
+}
+function Drawdowns({ c }: { c: DrawdownsCard }) {
+  const maxMag = Math.max(1, ...c.rows.map((r) => Math.abs(r.stage)));
+  const Stat = ({ label, value }: { label: string; value: string }) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "33.33%" }}>
+      <div style={{ display: "flex", fontSize: 20, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>
+        {label}
+      </div>
+      <div style={{ display: "flex", fontSize: 46, fontWeight: 700, color: "#ff7a7a" }}>{value}</div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Historical drawdowns</Kicker>
+      <div style={{ display: "flex", fontSize: 46, fontWeight: 700, color: INK, marginTop: 12, marginBottom: 26, fontFamily: DISPLAY }}>
+        Is this drop normal?
+      </div>
+      <div style={{ display: "flex", marginBottom: 34 }}>
+        <Stat label="Current" value={ddText(c.current)} />
+        <Stat label="Largest this cycle" value={ddText(c.largestThisCycle)} />
+        <Stat label={`Avg at day ${c.cycleDay}`} value={ddText(c.avgAtStage)} />
+      </div>
+      <div style={{ display: "flex", fontSize: 20, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase", marginBottom: 16 }}>
+        Drawdown at day {c.cycleDay} of each cycle
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {c.rows.map((r) => {
+          const w = Math.max(5, (Math.abs(r.stage) / maxMag) * 100);
+          return (
+            <div key={r.label} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ display: "flex", width: 14, height: 14, borderRadius: 7, background: r.color }} />
+                  <div style={{ display: "flex", fontSize: 28, color: r.current ? INK : INK_DIM, fontWeight: r.current ? 700 : 400 }}>
+                    {r.label}
+                  </div>
+                </div>
+                <div style={{ display: "flex", fontSize: 30, fontWeight: 700, color: r.current ? ACCENT : INK_DIM }}>
+                  {ddText(r.stage)}
+                </div>
+              </div>
+              <div style={{ display: "flex", height: 14, borderRadius: 7, background: "rgba(255,255,255,0.05)" }}>
+                <div style={{ display: "flex", width: `${w}%`, height: 14, borderRadius: 7, background: r.current ? ACCENT : r.color, opacity: r.current ? 1 : 0.55 }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", fontSize: 27, color: INK, marginTop: 30, lineHeight: 1.4, maxWidth: 920 }}>
+        {c.takeaway}
+      </div>
+    </div>
+  );
+}
+
+// ── Current position in cycle — "Where are we now?" ──────────────────────────
+function CyclePosition({ c }: { c: CyclePositionCard }) {
+  const TL_W = 920;
+  const frac = (d: number) => Math.max(0, Math.min(1, d / c.axisMax));
+  const px = (d: number) => frac(d) * TL_W;
+  const peakX = px(c.peakStart);
+  const peakW = Math.max(8, px(c.peakEnd) - px(c.peakStart));
+  const lowX = px(c.lowStart);
+  const lowW = Math.max(8, px(c.lowEnd) - px(c.lowStart));
+  const pinX = px(c.todayDay);
+  const chipLeft = Math.max(0, Math.min(TL_W - 250, pinX - 125));
+  const Tag = ({ color, label }: { color: string; label: string }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", width: 22, height: 14, borderRadius: 4, background: color }} />
+      <div style={{ display: "flex", fontSize: 23, color: INK_DIM }}>{label}</div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Current position in cycle</Kicker>
+      <div style={{ display: "flex", fontSize: 46, fontWeight: 700, color: INK, marginTop: 12, marginBottom: 30, fontFamily: DISPLAY }}>
+        Where are we now?
+      </div>
+
+      {/* Timeline (days since halving, 0 → axisMax) */}
+      <div style={{ display: "flex", position: "relative", width: TL_W, height: 230 }}>
+        {/* base track */}
+        <div style={{ display: "flex", position: "absolute", left: 0, top: 138, width: TL_W, height: 14, borderRadius: 7, background: "rgba(255,255,255,0.08)" }} />
+        {/* historical top window */}
+        <div style={{ display: "flex", position: "absolute", left: peakX, top: 132, width: peakW, height: 26, borderRadius: 6, background: "rgba(94,234,212,0.30)", border: `2px solid ${ACCENT}` }} />
+        {/* historical low window */}
+        <div style={{ display: "flex", position: "absolute", left: lowX, top: 132, width: lowW, height: 26, borderRadius: 6, background: "rgba(245,185,66,0.28)", border: "2px solid #f5b942" }} />
+        {/* halving origin marker */}
+        <div style={{ display: "flex", position: "absolute", left: 0, top: 120, width: 4, height: 50, background: "#e4e9f0" }} />
+        {/* YOU ARE HERE marker line */}
+        <div style={{ display: "flex", position: "absolute", left: pinX, top: 110, width: 4, height: 74, background: ACCENT }} />
+        <div style={{ display: "flex", position: "absolute", left: pinX - 9, top: 100, width: 22, height: 22, borderRadius: 11, background: ACCENT }} />
+        {/* YOU ARE HERE chip */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "absolute", left: chipLeft, top: 30, width: 250 }}>
+          <div style={{ display: "flex", fontSize: 22, letterSpacing: 3, fontWeight: 700, color: "#07110f", background: ACCENT, padding: "8px 16px", borderRadius: 8, textTransform: "uppercase" }}>
+            You are here
+          </div>
+          <div style={{ display: "flex", fontSize: 26, color: INK, fontWeight: 700, marginTop: 8 }}>{c.todayLabel}</div>
+        </div>
+        {/* halving label */}
+        <div style={{ display: "flex", position: "absolute", left: 0, top: 178, fontSize: 22, color: INK_FAINT }}>Halving · Day 0</div>
+      </div>
+
+      <div style={{ display: "flex", gap: 40, marginTop: 6 }}>
+        <Tag color={ACCENT} label={`Bull-top window · ${c.peakLabel}`} />
+        <Tag color="#f5b942" label={`Bear-low window · ${c.lowLabel}`} />
+      </div>
+
+      <div style={{ display: "flex", fontSize: 28, color: INK, marginTop: 30, lineHeight: 1.4, maxWidth: 920 }}>{c.position}</div>
+      <div style={{ display: "flex", fontSize: 21, color: INK_FAINT, marginTop: 14, maxWidth: 920 }}>{c.note}</div>
+    </div>
+  );
+}
+
+// ── What happened next? — 30/60/90-day history at this cycle day ─────────────
+function nextText(n: number | null): string {
+  return n == null ? "—" : `${n >= 0 ? "+" : ""}${n}%`;
+}
+function nextColor(n: number | null): string {
+  if (n == null) return INK_FAINT;
+  return n > 0 ? DIR_COLOR.up : n < 0 ? DIR_COLOR.down : INK_DIM;
+}
+function WhatNext({ c }: { c: WhatNextCard }) {
+  const Cell = ({ v, head, bold }: { v: string; head?: boolean; bold?: boolean }) => (
+    <div style={{ display: "flex", width: "22%", justifyContent: "flex-end", fontSize: head ? 22 : 34, fontWeight: bold ? 700 : 600, color: head ? INK_FAINT : undefined, letterSpacing: head ? 1 : 0 }}>
+      {v}
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>What happened next?</Kicker>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, marginTop: 14, marginBottom: 24 }}>
+        Day {c.cycleDay} comparison · price change after this point in prior cycles
+      </div>
+      {/* header */}
+      <div style={{ display: "flex", alignItems: "center", paddingBottom: 14, borderBottom: `1px solid ${HAIRLINE}` }}>
+        <div style={{ display: "flex", width: "34%", fontSize: 22, letterSpacing: 1, color: INK_FAINT, textTransform: "uppercase" }}>Cycle</div>
+        <Cell v="30d" head />
+        <Cell v="60d" head />
+        <Cell v="90d" head />
+      </div>
+      {c.rows.map((r) => (
+        <div key={r.year} style={{ display: "flex", alignItems: "center", padding: "22px 0", borderBottom: `1px solid ${HAIRLINE}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, width: "34%" }}>
+            <div style={{ display: "flex", width: 14, height: 14, borderRadius: 7, background: r.color }} />
+            <div style={{ display: "flex", fontSize: 30, color: INK }}>{r.year} cycle</div>
+          </div>
+          <div style={{ display: "flex", width: "22%", justifyContent: "flex-end", fontSize: 34, fontWeight: 600, color: nextColor(r.d30) }}>{nextText(r.d30)}</div>
+          <div style={{ display: "flex", width: "22%", justifyContent: "flex-end", fontSize: 34, fontWeight: 600, color: nextColor(r.d60) }}>{nextText(r.d60)}</div>
+          <div style={{ display: "flex", width: "22%", justifyContent: "flex-end", fontSize: 34, fontWeight: 600, color: nextColor(r.d90) }}>{nextText(r.d90)}</div>
+        </div>
+      ))}
+      {/* average */}
+      <div style={{ display: "flex", alignItems: "center", padding: "24px 0" }}>
+        <div style={{ display: "flex", width: "34%", fontSize: 30, fontWeight: 700, color: ACCENT }}>Average</div>
+        <div style={{ display: "flex", width: "22%", justifyContent: "flex-end", fontSize: 34, fontWeight: 700, color: ACCENT }}>{nextText(c.avg30)}</div>
+        <div style={{ display: "flex", width: "22%", justifyContent: "flex-end", fontSize: 34, fontWeight: 700, color: ACCENT }}>{nextText(c.avg60)}</div>
+        <div style={{ display: "flex", width: "22%", justifyContent: "flex-end", fontSize: 34, fontWeight: 700, color: ACCENT }}>{nextText(c.avg90)}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 18 }}>
+        <div style={{ display: "flex", fontSize: 26, fontWeight: 700, color: INK }}>Historical context only. Not predictive.</div>
+        <div style={{ display: "flex", fontSize: 22, color: INK_FAINT }}>Past cycles are not a forecast of this one.</div>
+      </div>
+    </div>
+  );
+}
+
 function Unavailable({ what }: { what: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -515,6 +688,12 @@ export function renderCard(card: Card): React.ReactElement {
         return card.body.available ? <FearGreed c={card.body} /> : <Unavailable what="Fear & Greed" />;
       case "fear_greed_vs_price":
         return card.body.available ? <FgVsPrice c={card.body} /> : <Unavailable what="Fear & Greed vs price" />;
+      case "drawdowns":
+        return card.body.available ? <Drawdowns c={card.body} /> : <Unavailable what="Historical drawdowns" />;
+      case "cycle_position":
+        return card.body.available ? <CyclePosition c={card.body} /> : <Unavailable what="Current position in cycle" />;
+      case "what_next":
+        return card.body.available ? <WhatNext c={card.body} /> : <Unavailable what="What happened next" />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":

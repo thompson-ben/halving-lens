@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, RefreshCw, Copy, Check, Package, Image as ImageIcon, Share2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Download, RefreshCw, Copy, Check, Package, Image as ImageIcon, Share2, Layers } from "lucide-react";
 import { makeZip, type ZipEntry } from "@/lib/zip";
 import { track } from "@/lib/track";
 
@@ -15,6 +15,14 @@ export interface StudioCopy {
   thread: string;
   linkedin: string;
   email: string;
+}
+export interface StudioPack {
+  id: string; // "daily" | "historical"
+  label: string; // button label, e.g. "Generate Daily Brief Pack"
+  slug: string;
+  dateLabel: string;
+  cards: StudioCard[];
+  copy: StudioCopy;
 }
 
 function saveBlob(blob: Blob, filename: string) {
@@ -40,17 +48,8 @@ function canShareImages(): boolean {
   }
 }
 
-export function ContentPackStudio({
-  slug,
-  dateLabel,
-  cards,
-  copy,
-}: {
-  slug: string;
-  dateLabel: string;
-  cards: StudioCard[];
-  copy: StudioCopy;
-}) {
+export function ContentPackStudio({ packs }: { packs: StudioPack[] }) {
+  const [activeId, setActiveId] = useState(packs[0]?.id);
   const [version, setVersion] = useState(() => Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [shareable, setShareable] = useState(false);
@@ -59,11 +58,29 @@ export function ContentPackStudio({
   const filesRef = useRef<Record<string, File>>({});
   const [filesReady, setFilesReady] = useState(false);
 
-  const cardUrl = useCallback((id: string) => `/admin/content/card/${id}?v=${version}`, [version]);
+  const active = useMemo(() => packs.find((p) => p.id === activeId) ?? packs[0], [packs, activeId]);
+  const { slug, dateLabel, cards, copy } = active;
+
+  const cardUrl = useCallback(
+    (id: string) => `/admin/content/card/${id}?pack=${active.id}&v=${version}`,
+    [active.id, version],
+  );
 
   useEffect(() => setShareable(canShareImages()), []);
 
-  // Prefetch the card images as Files whenever the version changes (share only).
+  // Switching pack invalidates prefetched files and forces a fresh render.
+  const selectPack = useCallback(
+    (id: string) => {
+      if (id === activeId) return;
+      setActiveId(id);
+      setVersion(Date.now());
+      track("content_pack_switch", { pack: id });
+    },
+    [activeId],
+  );
+
+  // Prefetch the active pack's card images as Files whenever pack/version
+  // changes (share only).
   useEffect(() => {
     if (!shareable) return;
     let cancelled = false;
@@ -76,7 +93,7 @@ export function ContentPackStudio({
             const res = await fetch(cardUrl(c.id));
             if (!res.ok) return;
             const blob = await res.blob();
-            filesRef.current[c.id] = new File([blob], `halvinglens-${slug}-${c.index}-${c.id}.png`, {
+            filesRef.current[c.id] = new File([blob], `halvinglens-${active.id}-${slug}-${c.index}-${c.id}.png`, {
               type: "image/png",
             });
           } catch {
@@ -89,7 +106,7 @@ export function ContentPackStudio({
     return () => {
       cancelled = true;
     };
-  }, [shareable, version, cards, slug, cardUrl]);
+  }, [shareable, version, cards, slug, cardUrl, active.id]);
 
   const shareFiles = async (files: File[], title: string, event: string, props?: Record<string, unknown>) => {
     if (!files.length) return;
@@ -107,13 +124,13 @@ export function ContentPackStudio({
       try {
         const res = await fetch(cardUrl(card.id));
         if (!res.ok) throw new Error(`${res.status}`);
-        saveBlob(await res.blob(), `halvinglens-${slug}-${card.index}-${card.id}.png`);
-        track("content_download_card", { card: card.id });
+        saveBlob(await res.blob(), `halvinglens-${active.id}-${slug}-${card.index}-${card.id}.png`);
+        track("content_download_card", { card: card.id, pack: active.id });
       } finally {
         setBusy(null);
       }
     },
-    [cardUrl, slug],
+    [cardUrl, slug, active.id],
   );
 
   const downloadZip = useCallback(async () => {
@@ -123,15 +140,15 @@ export function ContentPackStudio({
         cards.map(async (c) => {
           const res = await fetch(cardUrl(c.id));
           const buf = new Uint8Array(await res.arrayBuffer());
-          return { name: `halvinglens-${slug}-${c.index}-${c.id}.png`, data: buf };
+          return { name: `halvinglens-${active.id}-${slug}-${c.index}-${c.id}.png`, data: buf };
         }),
       );
-      saveBlob(makeZip(entries), `halvinglens-${slug}-content-pack.zip`);
-      track("content_download_zip", { slug });
+      saveBlob(makeZip(entries), `halvinglens-${active.id}-${slug}-content-pack.zip`);
+      track("content_download_zip", { slug, pack: active.id });
     } finally {
       setBusy(null);
     }
-  }, [cardUrl, cards, slug]);
+  }, [cardUrl, cards, slug, active.id]);
 
   const regenerate = useCallback(() => setVersion(Date.now()), []);
 
@@ -139,11 +156,31 @@ export function ContentPackStudio({
 
   return (
     <div className="space-y-8">
+      {/* Pack selector — the two content types */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {packs.map((p) => {
+          const on = p.id === active.id;
+          return (
+            <button
+              key={p.id}
+              onClick={() => selectPack(p.id)}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${
+                on
+                  ? "bg-accent text-ink-950 hover:bg-accent-soft"
+                  : "border border-white/[0.1] text-ink-200 hover:border-white/25 hover:text-ink-50"
+              }`}
+            >
+              <Layers size={15} /> {p.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Actions */}
       <div className="flex items-center gap-3 flex-wrap">
         {shareable && (
           <button
-            onClick={() => shareFiles(allFiles(), `halvinglens.com — content pack ${dateLabel}`, "content_share_all", { slug })}
+            onClick={() => shareFiles(allFiles(), `halvinglens.com — ${active.label} ${dateLabel}`, "content_share_all", { slug, pack: active.id })}
             disabled={!filesReady}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
           >
@@ -202,7 +239,7 @@ export function ContentPackStudio({
                         [filesRef.current[card.id]].filter(Boolean) as File[],
                         `halvinglens.com — ${card.name}`,
                         "content_share_card",
-                        { card: card.id },
+                        { card: card.id, pack: active.id },
                       )
                     }
                     disabled={!filesReady}

@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { cookies } from "next/headers";
-import { buildCard, CARD_ORDER, type CardId } from "@/lib/contentCards";
+import { buildCard, isCardId, type CardId, type PackId } from "@/lib/contentCards";
 import { renderCard, CARD_W, CARD_H } from "@/lib/cardTemplates";
 import { brandFonts } from "@/lib/ogFonts";
 
@@ -19,13 +19,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const id = params.id as CardId;
-  if (!CARD_ORDER.includes(id)) {
+  const id = params.id;
+  if (!isCardId(id)) {
     return new Response("Unknown card", { status: 404 });
   }
+  const packParam = new URL(req.url).searchParams.get("pack");
+  const pack: PackId = packParam === "historical" ? "historical" : "daily";
 
   const fonts = brandFonts();
-  return new ImageResponse(renderCard(buildCard(id)), {
+  return new ImageResponse(renderCard(buildCard(id as CardId, pack)), {
     width: CARD_W,
     height: CARD_H,
     ...(fonts.length ? { fonts } : {}),
