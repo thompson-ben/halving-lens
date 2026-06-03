@@ -1,10 +1,12 @@
 import { format } from "date-fns";
 import { CycleOverlayPanel } from "@/components/CycleOverlayPanel";
 import { CycleTimingChart } from "@/components/CycleTimingChart";
+import { CycleDrawdownChart } from "@/components/CycleDrawdownChart";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { CYCLES, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { cycleDivergence, cycleTrackingHeadline } from "@/lib/cycleIntel";
 import { cycleTiming } from "@/lib/cycleTiming";
+import { drawdownAnalysis } from "@/lib/drawdowns";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 const fmtMult = (m: number) => (m >= 10 ? `${m.toFixed(0)}×` : `${m.toFixed(1)}×`);
@@ -14,6 +16,8 @@ export default function CyclesPage() {
   const headline = cycleTrackingHeadline();
   const divergence = cycleDivergence();
   const timing = cycleTiming();
+  const drawdown = drawdownAnalysis();
+  const ddPct = (v: number) => `${Math.round(v)}%`;
 
   // Real peak multiples per completed cycle, for the diminishing-returns read.
   const completed = CYCLES.filter((c) => c.id !== 5);
@@ -60,6 +64,36 @@ export default function CyclesPage() {
 
       {/* Same day from halving comparison cards */}
       <TodayVsPriorCycles />
+
+      {/* Drawdowns — is this drop normal? */}
+      {drawdown.available && (
+        <section>
+          <div className="mb-6 max-w-3xl">
+            <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-2">
+              Historical drawdowns
+            </div>
+            <h2 className="font-display text-[24px] lg:text-[30px] font-medium tracking-tight-2 text-ink-100 leading-snug">
+              Is this drop normal?
+            </h2>
+            <p className="mt-3 text-[14px] text-ink-300 leading-relaxed">
+              How far below its own peak each cycle has traded, by day after the halving (0% = at the
+              cycle high). Today&apos;s correction is drawn against the full drawdown history of the
+              prior three cycles.
+            </p>
+          </div>
+
+          <div className="card p-5 sm:p-8 relative">
+            <div className="grid grid-cols-3 gap-4 mb-7">
+              <DrawdownStat label="Current drawdown" value={ddPct(drawdown.current)} highlight />
+              <DrawdownStat label="Largest this cycle" value={ddPct(drawdown.largestThisCycle)} />
+              <DrawdownStat label={`Avg at day ${drawdown.cycleDay}`} value={ddPct(drawdown.avgAtStage)} />
+            </div>
+            <CycleDrawdownChart />
+            <p className="mt-5 text-[13.5px] text-ink-200 leading-relaxed max-w-3xl">{drawdown.takeaway}</p>
+            <div className="watermark">halvinglens.com · drawdowns</div>
+          </div>
+        </section>
+      )}
 
       {/* Cycle timing — when do highs and lows land relative to the halving */}
       <section>
@@ -297,6 +331,21 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: "gr
       <div
         className={`mt-0.5 font-mono text-[12.5px] tabular-nums ${
           tone === "green" ? "text-signal-green" : tone === "red" ? "text-signal-red" : "text-ink-100"
+        }`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function DrawdownStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.16em] text-ink-400 mb-1.5">{label}</div>
+      <div
+        className={`font-display text-[26px] sm:text-[30px] font-medium tabular-nums ${
+          highlight ? "text-accent" : "text-ink-100"
         }`}
       >
         {value}

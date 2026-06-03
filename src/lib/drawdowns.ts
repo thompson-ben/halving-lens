@@ -60,6 +60,31 @@ function drawdownSeries(samples: CycleSample[]): number[] {
   });
 }
 
+// Full per-cycle drawdown ("underwater") series, for the public chart: how far
+// below its own running peak each cycle traded at every day after the halving.
+export interface DrawdownSeriesCycle {
+  id: number;
+  short: string;
+  label: string;
+  color: string;
+  isCurrent: boolean;
+  points: { day: number; drawdown: number }[]; // drawdown ≤ 0
+}
+
+export function drawdownSeriesByCycle(): DrawdownSeriesCycle[] {
+  return CYCLES.map((c) => {
+    const series = drawdownSeries(c.samples);
+    return {
+      id: c.id,
+      short: c.short,
+      label: c.label,
+      color: c.color,
+      isCurrent: c.id === 5,
+      points: c.samples.map((s, i) => ({ day: s.day, drawdown: Math.round(series[i] * 10) / 10 })),
+    };
+  });
+}
+
 // Drawdown read for one cycle up to (and including) the sample nearest `stageDay`.
 function readCycle(c: Cycle, stageDay: number): { drawdownAtStage: number; largestSoFar: number } {
   const idx = nearestIdx(c, stageDay);
