@@ -19,9 +19,15 @@ export function lastUpdatedLabel(): string | null {
   return `${fmt.format(new Date(SOURCE.fetchedAt))} UTC`;
 }
 
+// Compact date + time for the top-bar data pill (UTC). The page-level
+// `lastUpdatedLabel` carries the year too; here we keep it short but still show
+// the refresh time, not just the day.
 const fmtShort = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
   timeZone: "UTC",
 });
 
