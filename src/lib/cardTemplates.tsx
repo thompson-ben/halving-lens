@@ -20,6 +20,8 @@ import type {
   HistoryCard,
   OverlayCard,
   PeakLowCard,
+  SimilarMomentsCard,
+  SimilarOutcomesCard,
   TakeawayCard,
   WatchCard,
   WhatNextCard,
@@ -659,6 +661,74 @@ function WhatNext({ c }: { c: WhatNextCard }) {
   );
 }
 
+// ── Similar moments (Slide 1) ────────────────────────────────────────────────
+function SimilarMoments({ c }: { c: SimilarMomentsCard }) {
+  const Cond = ({ label, value }: { label: string; value: string }) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "33.33%" }}>
+      <div style={{ display: "flex", fontSize: 20, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color: INK }}>{value}</div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Most similar historical moment</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 50, fontWeight: 700, color: INK, marginTop: 12, marginBottom: 30, letterSpacing: -1 }}>
+        Have we seen this before?
+      </div>
+
+      <div style={{ display: "flex", fontSize: 20, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase", marginBottom: 16 }}>
+        Current conditions
+      </div>
+      <div style={{ display: "flex", marginBottom: 46 }}>
+        <Cond label="Cycle day" value={String(c.cycleDay)} />
+        <Cond label="Drawdown" value={`${Math.round(c.drawdown)}%`} />
+        <Cond label="Fear & Greed" value={c.fearGreed != null ? String(c.fearGreed) : "—"} />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 36, borderRadius: 18, background: "rgba(94,234,212,0.06)", border: "1px solid rgba(94,234,212,0.22)" }}>
+        <div style={{ display: "flex", fontSize: 22, letterSpacing: 3, color: ACCENT, textTransform: "uppercase" }}>Closest historical match</div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 20 }}>
+          <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 78, fontWeight: 700, color: INK, letterSpacing: -1 }}>{c.matchLabel}</div>
+          <div style={{ display: "flex", fontSize: 30, color: INK_DIM }}>{c.matchYear} cycle</div>
+        </div>
+        <div style={{ display: "flex", fontSize: 52, fontWeight: 700, color: ACCENT }}>{c.similarity}% similar</div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 30, fontSize: 26, color: INK_DIM }}>Swipe →</div>
+    </div>
+  );
+}
+
+// ── Similar moments — what happened next (Slide 2) ───────────────────────────
+function SimilarOutcomes({ c }: { c: SimilarOutcomesCard }) {
+  const txt = (n: number | null) => (n == null ? "—" : `${n >= 0 ? "+" : ""}${n}%`);
+  const col = (n: number | null) => (n == null ? INK_FAINT : n > 0 ? DIR_COLOR.up : n < 0 ? DIR_COLOR.down : INK_DIM);
+  const Row = ({ label, v }: { label: string; v: number | null }) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "30px 0", borderBottom: `1px solid ${HAIRLINE}` }}>
+      <div style={{ display: "flex", fontSize: 40, color: INK }}>{label}</div>
+      <div style={{ display: "flex", fontSize: 64, fontWeight: 700, color: col(v) }}>{txt(v)}</div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>What happened next?</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 50, fontWeight: 700, color: INK, marginTop: 12, marginBottom: 8, letterSpacing: -1 }}>
+        After {c.matchLabel}
+      </div>
+      <div style={{ display: "flex", fontSize: 28, color: INK_DIM, marginBottom: 24 }}>
+        How the {c.matchYear} cycle moved from that point
+      </div>
+      <Row label="Next 30 days" v={c.d30} />
+      <Row label="Next 60 days" v={c.d60} />
+      <Row label="Next 90 days" v={c.d90} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 34 }}>
+        <div style={{ display: "flex", fontSize: 28, fontWeight: 700, color: INK }}>Historical context only. Not predictive.</div>
+        <div style={{ display: "flex", fontSize: 22, color: INK_FAINT }}>Past performance does not predict future results.</div>
+      </div>
+    </div>
+  );
+}
+
 function Unavailable({ what }: { what: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -694,6 +764,10 @@ export function renderCard(card: Card): React.ReactElement {
         return card.body.available ? <CyclePosition c={card.body} /> : <Unavailable what="Current position in cycle" />;
       case "what_next":
         return card.body.available ? <WhatNext c={card.body} /> : <Unavailable what="What happened next" />;
+      case "similar_moments":
+        return card.body.available ? <SimilarMoments c={card.body} /> : <Unavailable what="Similar moments" />;
+      case "similar_outcomes":
+        return card.body.available ? <SimilarOutcomes c={card.body} /> : <Unavailable what="Historical outcomes" />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":

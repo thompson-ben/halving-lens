@@ -19,7 +19,7 @@ import { fmtUsd } from "@/lib/format";
 // on a days-since-halving axis, over historical phase zones (derived from where
 // prior cycles expanded and topped), the historical low window, and a
 // prominent YOU ARE HERE marker. Historical context, not a forecast.
-export function CycleContextChart({ height = 420 }: { height?: number }) {
+export function CycleContextChart({ height = 420, compact = false }: { height?: number; compact?: boolean }) {
   const ctx = cycleContext();
   const data = ctx.priceByDay;
   const last = data[data.length - 1];
@@ -125,25 +125,29 @@ export function CycleContextChart({ height = 420 }: { height?: number }) {
       </ResponsiveContainer>
 
       {/* Zone legend */}
-      <div className="flex items-center gap-x-5 gap-y-2 mt-4 text-[11px] flex-wrap">
+      <div className="flex items-center gap-x-4 gap-y-2 mt-4 text-[11px] flex-wrap">
         {ctx.zones.map((z) => (
           <div key={z.key} className="flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-[3px]" style={{ background: z.color, opacity: 0.55 }} />
             <span className="text-ink-350">{z.label}</span>
           </div>
         ))}
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-[3px] border border-[#5aa9ff]/40" style={{ background: "rgba(90,169,255,0.18)" }} />
-          <span className="text-ink-350">
-            Low window · day {ctx.lowWindow.startDay}–{ctx.lowWindow.endDay}
-          </span>
-        </div>
+        {!compact && (
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-[3px] border border-[#5aa9ff]/40" style={{ background: "rgba(90,169,255,0.18)" }} />
+            <span className="text-ink-350">
+              Low window · day {ctx.lowWindow.startDay}–{ctx.lowWindow.endDay}
+            </span>
+          </div>
+        )}
       </div>
-      <p className="mt-2.5 text-[11px] text-ink-500 leading-relaxed">
-        Phase zones derived from where the three prior cycles expanded and topped (peak window: day{" "}
-        {ctx.peakWindow.startDay}–{ctx.peakWindow.endDay}). Days since the April 2024 halving · log
-        price · historical context, not a forecast.
-      </p>
+      {!compact && (
+        <p className="mt-2.5 text-[11px] text-ink-500 leading-relaxed">
+          Phase zones derived from where the three prior cycles expanded and topped (peak window: day{" "}
+          {ctx.peakWindow.startDay}–{ctx.peakWindow.endDay}). Days since the April 2024 halving · log
+          price · historical context, not a forecast.
+        </p>
+      )}
     </div>
   );
 }
