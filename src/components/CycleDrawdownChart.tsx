@@ -35,7 +35,8 @@ export function CycleDrawdownChart({ height = 380, showLegend = true }: { height
   const yFormatter = (v: number) => `${Math.round(v)}%`;
 
   return (
-    <div className="fade-up" style={{ width: "100%", height }}>
+    <div className="fade-up">
+      <div style={{ width: "100%", height }}>
       <ResponsiveContainer>
         <LineChart data={merged} margin={{ top: 14, right: 20, bottom: 8, left: 4 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.025)" vertical={false} />
@@ -98,6 +99,7 @@ export function CycleDrawdownChart({ height = 380, showLegend = true }: { height
           ))}
         </LineChart>
       </ResponsiveContainer>
+      </div>
       {showLegend && (
         <div className="flex items-center gap-5 mt-4 text-[11px] flex-wrap">
           {series.map((c) => (
