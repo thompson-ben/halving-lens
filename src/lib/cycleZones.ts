@@ -9,6 +9,7 @@ import { cycleTiming } from "./cycleTiming";
 import { cycleScorecard, cycleSummary } from "./cycleSummary";
 import { drawdownAnalysis } from "./drawdowns";
 import { sentimentRead, sentimentPercentile, SENTIMENT_AVAILABLE } from "./sentiment";
+import { similarMoments } from "./similarity";
 
 export interface CycleZone {
   key: "accumulation" | "expansion" | "euphoria" | "blow_off";
@@ -134,6 +135,43 @@ export function cycleContextInsight(): DynamicInsight {
 
   // 4. Fallback — plain cycle position.
   return { metric: "Current cycle day", value: String(day), headline: `Day ${day} of the halving cycle. Prior cycles set their bull-market top around ${peakLabel} and their bear-market low around ${lowLabel} after the halving.` };
+}
+
+// Homepage hero insight — the same dynamic read as /price, but it will surface
+// a strong historical analogue ("conditions most closely resemble …") when
+// there's a high-confidence match and no flagship window/sentiment moment is
+// active. Returns an optional contextual link for that case.
+export interface HeroInsight extends DynamicInsight {
+  href?: string;
+  cta?: string;
+}
+
+export function heroInsight(): HeroInsight {
+  const t = cycleTiming();
+  const sr = SENTIMENT_AVAILABLE ? sentimentRead() : null;
+  const fg = sr?.value ?? null;
+
+  const windowActive =
+    t.todayVsBottom === "within" ||
+    (t.todayDay >= t.peakWindow.minDay && t.todayDay <= t.peakWindow.maxDay) ||
+    (t.todayVsBottom === "before" && t.daysToBottomOpen <= 75);
+  const fgExtreme = fg != null && (fg <= 20 || fg >= 80);
+
+  // Lead with a strong analogue only when no flagship window or sentiment
+  // extreme is in play — those are the more decisive "where are we" answers.
+  if (!windowActive && !fgExtreme) {
+    const top = similarMoments(1)[0];
+    if (top && top.similarity >= 80) {
+      return {
+        metric: "Conditions most resemble",
+        value: `${top.similarity}%`,
+        headline: `Today most closely resembles ${top.dateLabel} (${top.year} cycle) — measured on cycle position, drawdown and price heat.`,
+        href: "/similar-moments",
+        cta: "Explore similar moments",
+      };
+    }
+  }
+  return cycleContextInsight();
 }
 
 function fmtUsdShort(n: number): string {

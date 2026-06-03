@@ -14,6 +14,7 @@ import { drawdownAnalysis } from "./drawdowns";
 import { cycleTiming } from "./cycleTiming";
 import { whatHappenedNext } from "./cycleIntel";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
+import { similarMoments } from "./similarity";
 import { selectHistoricalNarrative, historicalTakeawayText } from "./contentCards";
 import type { ContentPack } from "./brief";
 
@@ -51,8 +52,15 @@ function narrativeCopy(): NarrativeCopy {
     ? `Market sentiment currently reads ${sr.band.label.toLowerCase()} (Fear & Greed ${sr.value}/100). Sentiment extremes have historically clustered near cycle turning points — a contrarian read, not a timing tool.`
     : "";
 
+  const top = similarMoments(1)[0];
+  const similarLine = top
+    ? `Today's market conditions most closely resemble ${top.dateLabel} (${top.year} cycle) — a ${top.similarity}% match on cycle position, drawdown and price heat. After that moment, the next 90 days returned ${signed(top.next.d90)} — historical context only.`
+    : "";
+
   let points: string[];
-  if (sel.narrative === "drawdown") {
+  if (sel.narrative === "similar") {
+    points = [similarLine, drawdownLine, positionLine, whatNextLine].filter(Boolean);
+  } else if (sel.narrative === "drawdown") {
     points = [drawdownLine, positionLine, whatNextLine, fgLine].filter(Boolean);
   } else if (sel.narrative === "fear_greed") {
     points = [fgLine, drawdownLine, whatNextLine].filter(Boolean);

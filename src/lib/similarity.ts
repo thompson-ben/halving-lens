@@ -73,10 +73,28 @@ export interface SimilarMoment {
     fearGreed: number | null; // only where the index existed
   };
   context: string;
+  // What followed this exact moment, in its own cycle: price change 30/60/90
+  // days later. Null where that cycle lacks data that far out. Historical only.
+  next: { d30: number | null; d60: number | null; d90: number | null };
   // Price path around the moment (±150d within that cycle), as multiple of the
   // moment's price, for a sparkline. `markerDay` is the moment itself.
   spark: { day: number; mult: number }[];
   markerDay: number;
+}
+
+function nearestSample(c: Cycle, day: number): CycleSample {
+  return c.samples.reduce((best, x) => (Math.abs(x.day - day) < Math.abs(best.day - day) ? x : best));
+}
+
+// Price change `days` after a moment, within its own cycle. Null when the cycle
+// doesn't extend that far (weekly tolerance).
+function fwd(c: Cycle, baseDay: number, basePrice: number, days: number): number | null {
+  const target = baseDay + days;
+  const lastDay = c.samples[c.samples.length - 1].day;
+  if (target > lastDay + 10) return null;
+  const f = nearestSample(c, target);
+  if (f.day <= baseDay) return null;
+  return Math.round((f.price / basePrice - 1) * 100);
 }
 
 function todayFeat(): { feat: Feat; drawdown: number } {
@@ -146,6 +164,11 @@ export function similarMoments(limit = 4): SimilarMoment[] {
         ddTxt <= -3
           ? `Day ${s.day} of the ${year} cycle — about ${Math.abs(ddTxt)}% below its high, with price ${gainMult.toFixed(1)}× its halving level.`
           : `Day ${s.day} of the ${year} cycle — near its highs, price ${gainMult.toFixed(1)}× its halving level.`,
+      next: {
+        d30: fwd(c, s.day, s.price, 30),
+        d60: fwd(c, s.day, s.price, 60),
+        d90: fwd(c, s.day, s.price, 90),
+      },
       spark,
       markerDay: s.day,
     };

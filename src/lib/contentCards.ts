@@ -14,6 +14,7 @@ import { cycleSummary, cycleScorecard, HEAT_LABEL } from "./cycleSummary";
 import { priorCyclesAtSameDay, currentGainFromHalving, whatHappenedNext } from "./cycleIntel";
 import { cycleTiming, cyclePeakTroughs } from "./cycleTiming";
 import { drawdownAnalysis } from "./drawdowns";
+import { similarMoments, currentMoment } from "./similarity";
 import { priorBrief, briefDate, todaySlug } from "./briefArchive";
 import { etfStats, ETF } from "./etf";
 import { sentimentRead, pricedSentimentSeries, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
@@ -46,6 +47,8 @@ export type CardId =
   | "drawdowns"
   | "cycle_position"
   | "what_next"
+  | "similar_moments"
+  | "similar_outcomes"
   | "hist_takeaway";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
@@ -78,6 +81,8 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   drawdowns: { kicker: "Historical drawdowns", name: "Historical drawdowns" },
   cycle_position: { kicker: "Current position in cycle", name: "Current position" },
   what_next: { kicker: "What happened next?", name: "What happened next?" },
+  similar_moments: { kicker: "Similar moments", name: "Similar moment" },
+  similar_outcomes: { kicker: "What happened next?", name: "Similar · what happened next" },
   hist_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
 };
 
@@ -242,6 +247,26 @@ export interface WhatNextCard {
   avg90: number | null;
 }
 
+export interface SimilarMomentsCard {
+  kind: "similar_moments";
+  available: boolean;
+  cycleDay: number;
+  drawdown: number;
+  fearGreed: number | null;
+  matchLabel: string; // "July 2020"
+  matchYear: string;
+  similarity: number; // 0..100
+}
+export interface SimilarOutcomesCard {
+  kind: "similar_outcomes";
+  available: boolean;
+  matchLabel: string;
+  matchYear: string;
+  d30: number | null;
+  d60: number | null;
+  d90: number | null;
+}
+
 export type CardBody =
   | HeroCard
   | ChangedCard
@@ -256,7 +281,9 @@ export type CardBody =
   | CtaCard
   | DrawdownsCard
   | CyclePositionCard
-  | WhatNextCard;
+  | WhatNextCard
+  | SimilarMomentsCard
+  | SimilarOutcomesCard;
 
 export interface Card {
   id: CardId;
@@ -617,6 +644,36 @@ function whatNextCard(): WhatNextCard {
   };
 }
 
+// ── Similar moments — "Have we seen this before?" ────────────────────────────
+function similarMomentsCard(): SimilarMomentsCard {
+  const top = similarMoments(1)[0];
+  const cur = currentMoment();
+  const sr = SENTIMENT_AVAILABLE ? sentimentRead() : null;
+  return {
+    kind: "similar_moments",
+    available: !!top,
+    cycleDay: cur.day,
+    drawdown: cur.drawdown,
+    fearGreed: sr?.value ?? null,
+    matchLabel: top?.dateLabel ?? "—",
+    matchYear: top?.year ?? "",
+    similarity: top?.similarity ?? 0,
+  };
+}
+
+function similarOutcomesCard(): SimilarOutcomesCard {
+  const top = similarMoments(1)[0];
+  return {
+    kind: "similar_outcomes",
+    available: !!top,
+    matchLabel: top?.dateLabel ?? "—",
+    matchYear: top?.year ?? "",
+    d30: top?.next.d30 ?? null,
+    d60: top?.next.d60 ?? null,
+    d90: top?.next.d90 ?? null,
+  };
+}
+
 // Narrative-specific Key Takeaway for the Historical Context Pack (≤ 2 sentences).
 function histTakeawayCard(): TakeawayCard {
   return { kind: "takeaway", text: historicalTakeawayText(selectHistoricalNarrative().narrative) };
@@ -637,6 +694,8 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   drawdowns: drawdownsCard,
   cycle_position: cyclePositionCard,
   what_next: whatNextCard,
+  similar_moments: similarMomentsCard,
+  similar_outcomes: similarOutcomesCard,
   hist_takeaway: histTakeawayCard,
 };
 
@@ -654,7 +713,7 @@ export const PACK_LABELS: Record<PackId, string> = {
   historical: "Historical Context Pack",
 };
 
-export type Narrative = "drawdown" | "fear_greed" | "position";
+export type Narrative = "similar" | "drawdown" | "fear_greed" | "position";
 
 export interface HistoricalSelection {
   narrative: Narrative;
@@ -670,6 +729,18 @@ export function selectHistoricalNarrative(): HistoricalSelection {
   const sr = SENTIMENT_AVAILABLE ? sentimentRead() : null;
   const curDrawdown = Math.abs(dd.current);
   const fg = sr?.value ?? null;
+
+  // 0) A strong historical analogue is the most compelling, most unique story —
+  // it leads whenever today closely matches a real prior moment.
+  const top = similarMoments(1)[0];
+  if (top && top.similarity >= 80) {
+    return {
+      narrative: "similar",
+      title: "What this moment rhymes with",
+      reason: `${top.similarity}% match to ${top.dateLabel}`,
+      order: ["similar_moments", "similar_outcomes", "cycle_position", "drawdowns", "hist_takeaway", "cta"],
+    };
+  }
 
   // A) A meaningful correction is the most shareable story during volatility.
   if (dd.available && curDrawdown >= 12) {
@@ -704,6 +775,11 @@ export function selectHistoricalNarrative(): HistoricalSelection {
 // no predictions). Deliberately not a restatement of the data slides; it gives
 // the one-line "so what" that closes the carousel and the captions.
 export function historicalTakeawayText(narrative: Narrative): string {
+  if (narrative === "similar") {
+    const top = similarMoments(1)[0];
+    const ml = top ? `${top.dateLabel}` : "earlier cycles";
+    return `History rhymes more than it repeats. Today's conditions most resemble ${ml}, but the 2024 cycle's spot-ETF demand is a genuine structural difference — historical context, not a forecast.`;
+  }
   if (narrative === "drawdown") {
     const dd = drawdownAnalysis();
     const curMag = Math.abs(dd.current);

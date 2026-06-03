@@ -3,6 +3,7 @@ import {
   BookOpen,
   Boxes,
   Gauge,
+  History,
   Hourglass,
   Layers,
   LineChart,
@@ -26,6 +27,7 @@ export interface NavLink {
 export const PRIMARY: readonly NavLink[] = [
   { href: "/", label: "Cycle dashboard", icon: Gauge },
   { href: "/cycles", label: "Cycle comparison", icon: Layers },
+  { href: "/similar-moments", label: "Similar moments", icon: History },
   { href: "/downside-scenarios", label: "Downside scenarios", icon: TrendingDown },
   { href: "/brief", label: "Daily brief", icon: Newspaper },
   { href: "/sentiment", label: "Sentiment", icon: Activity },

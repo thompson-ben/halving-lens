@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Play } from "lucide-react";
+import { HomeHero } from "@/components/HomeHero";
 import { CycleSummaryHero } from "@/components/CycleSummaryHero";
 import { WhyCheckToday } from "@/components/WhyCheckToday";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
@@ -20,11 +21,8 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 export default function CycleDashboardPage() {
   return (
     <div className="space-y-14 lg:space-y-20">
-      {/* 1. The answer first — visual hero with the cycle thermometer */}
-      <div>
-        <CycleSummaryHero />
-        <FeedbackWidget variant="inline" section="cycle_summary" contentType="homepage_section" />
-      </div>
+      {/* 1. Demonstrate first — dynamic insight + mini cycle-context chart */}
+      <HomeHero />
 
       {/* 2. The moat visual — every cycle lined up from day zero */}
       <section>
@@ -44,6 +42,17 @@ export default function CycleDashboardPage() {
         >
           Open full overlay <ArrowUpRight size={14} />
         </Link>
+      </section>
+
+      {/* 2b. The full cycle read — detailed thermometer + numbers */}
+      <section>
+        <SectionHeader
+          eyebrow="Today's full read"
+          title="Where Bitcoin sits in the cycle"
+          subtitle="The complete read behind the headline — risk level, confidence and how today compares with prior cycles."
+        />
+        <CycleSummaryHero />
+        <FeedbackWidget variant="inline" section="cycle_summary" contentType="homepage_section" />
       </section>
 
       {/* 3. Why check today — compact daily-habit reminder */}
