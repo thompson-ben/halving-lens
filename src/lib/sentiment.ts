@@ -37,6 +37,33 @@ export function currentSentiment(): SentimentPoint | null {
   return p.length ? p[p.length - 1] : null;
 }
 
+// Share (%) of recorded history at or below `value` — i.e. "only X% of days
+// were this fearful or lower". Null when no sentiment history is available.
+export function sentimentPercentile(value: number): number | null {
+  const p = points();
+  if (!p.length) return null;
+  const atOrBelow = p.filter((pt) => pt.value <= value).length;
+  return (atOrBelow / p.length) * 100;
+}
+
+// Fear & Greed value nearest a given timestamp (within ~10 days), or null if
+// that date predates the index (it begins in 2018). For labelling historical
+// "similar moments" — shown only where it genuinely existed.
+export function sentimentValueNear(tsMs: number): number | null {
+  const p = points();
+  if (!p.length) return null;
+  let best: SentimentPoint | null = null;
+  let bestGap = Infinity;
+  for (const pt of p) {
+    const gap = Math.abs(pt.ts - tsMs);
+    if (gap < bestGap) {
+      bestGap = gap;
+      best = pt;
+    }
+  }
+  return best && bestGap <= 10 * 86_400_000 ? best.value : null;
+}
+
 // Value roughly `days` ago (nearest point at or before the cutoff).
 function valueDaysAgo(days: number): number | null {
   const p = points();
