@@ -5,8 +5,5 @@
   "installCommand": "npm install",
   "github": {
     "silent": false
-  },
-  "crons": [
-    { "path": "/api/cron/refresh", "schedule": "0 0,6,12,18 * * *" }
-  ]
+  }
 }
