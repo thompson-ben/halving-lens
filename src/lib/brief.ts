@@ -11,6 +11,7 @@ import { fmtPct, fmtUsd } from "./format";
 import { etfStats, ETF } from "./etf";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { cycleDivergence } from "./cycleIntel";
+import { reelPackage, type ReelPackage } from "./reel";
 
 export interface Brief {
   date: string; // display date
@@ -230,6 +231,9 @@ export interface StoredBrief {
   // Cross-channel content pack, generated once and stored with the brief.
   // Optional: entries persisted before the content engine won't have it.
   content?: ContentPack;
+  // Daily Reel package — the short-form video script. Its `angle` also drives
+  // the reel's repetition control across days. Optional for older entries.
+  reel?: ReelPackage;
 }
 
 export function serializeBrief(): StoredBrief {
@@ -274,6 +278,7 @@ export function serializeBrief(): StoredBrief {
     })),
     shortPost: shortPost(),
     content: contentPack(),
+    reel: reelPackage(),
   };
 }
 
