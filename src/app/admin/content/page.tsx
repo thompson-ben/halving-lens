@@ -3,9 +3,11 @@ import { cookies } from "next/headers";
 import { ArrowLeft } from "lucide-react";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ContentPackStudio, type StudioPack } from "@/components/ContentPackStudio";
+import { ReelStudio } from "@/components/ReelStudio";
 import { buildPack, CARD_LABELS, type Deck, type PackId } from "@/lib/contentCards";
 import { contentPack } from "@/lib/brief";
 import { historicalContentPack, similarContentPack } from "@/lib/historicalPack";
+import { reelPackage, reelScriptText } from "@/lib/reel";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -65,9 +67,14 @@ export default function ContentPackPage({ searchParams }: { searchParams: { key?
     toStudioPack("similar", "Generate Similar Moments Pack", buildPack("similar"), similarContentPack()),
   ];
 
+  const reel = reelPackage();
+
   return (
     <Shell>
       <ContentPackStudio packs={packs} />
+      <div className="mt-12 pt-10 border-t border-white/[0.07]">
+        <ReelStudio reel={reel} script={reelScriptText(reel)} />
+      </div>
     </Shell>
   );
 }
@@ -91,8 +98,10 @@ function Shell({ children }: { children: React.ReactNode }) {
           <span className="text-ink-100">Daily Brief Pack</span> or the{" "}
           <span className="text-ink-100">Historical Context Pack</span> (which leads with the
           strongest historical narrative: drawdowns, cycle position or sentiment). Each produces
-          Instagram-ready cards plus captions for X, LinkedIn and email. Generated server-side; no
-          manual design.
+          Instagram-ready cards plus captions for X, LinkedIn and email. Below them, the{" "}
+          <span className="text-ink-100">Daily Reel package</span> — a ready-to-shoot short-form
+          video script built around the single most interesting insight today. Generated
+          server-side; no manual design.
         </p>
       </header>
       {children}
