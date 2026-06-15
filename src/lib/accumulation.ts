@@ -28,6 +28,7 @@ export interface AccumulationBand {
   key: AccumulationBandKey;
   label: string;
   range: [number, number];
+  color: string; // hex, opportunity→risk ramp (cool/cyan = deep value, red = overheated)
   context: string; // historical framing, compliance-safe
 }
 
@@ -37,6 +38,7 @@ export const ACCUMULATION_BANDS: AccumulationBand[] = [
     key: "deep_value",
     label: "Historically Deep Value",
     range: [0, 20],
+    color: "#22d3ee",
     context:
       "Conditions sit toward the cheapest end of Bitcoin's historical range. Periods that looked like this have, historically, preceded strong long-term outcomes — though the past is never a guarantee.",
   },
@@ -44,6 +46,7 @@ export const ACCUMULATION_BANDS: AccumulationBand[] = [
     key: "attractive",
     label: "Historically Attractive",
     range: [20, 40],
+    color: "#34d399",
     context:
       "Conditions sit in the lower, historically calmer part of Bitcoin's range — below the levels that have marked past cycle peaks.",
   },
@@ -51,12 +54,14 @@ export const ACCUMULATION_BANDS: AccumulationBand[] = [
     key: "neutral",
     label: "Historically Neutral",
     range: [40, 60],
+    color: "#eab308",
     context: "Conditions sit in the middle of Bitcoin's historical range — historically neither cheap nor stretched.",
   },
   {
     key: "elevated",
     label: "Historically Elevated",
     range: [60, 80],
+    color: "#f97316",
     context:
       "Conditions are elevated versus history — the kind of range seen in the later, higher-risk parts of past cycles.",
   },
@@ -64,6 +69,7 @@ export const ACCUMULATION_BANDS: AccumulationBand[] = [
     key: "overheated",
     label: "Historically Overheated",
     range: [80, 100],
+    color: "#ef4444",
     context:
       "Conditions sit in the stretched end of Bitcoin's historical range, associated with late-cycle periods that have historically preceded weaker forward returns.",
   },
