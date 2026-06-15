@@ -8,7 +8,15 @@ import { track } from "@/lib/track";
 // Real email capture for the daily brief / future alerts. POSTs to
 // /api/subscribe (validates + forwards to a configured destination). Falls back
 // to localStorage if the request fails, so a signup is never lost.
-export function BriefSignup({ compact = false }: { compact?: boolean }) {
+export function BriefSignup({
+  compact = false,
+  heading,
+  blurb,
+}: {
+  compact?: boolean;
+  heading?: string;
+  blurb?: string;
+}) {
   const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(true);
@@ -61,10 +69,10 @@ export function BriefSignup({ compact = false }: { compact?: boolean }) {
           <span className="text-[10.5px] uppercase tracking-[0.2em]">Daily brief</span>
         </div>
         <h2 className="font-display text-[20px] lg:text-[24px] font-medium tracking-tight-2 text-ink-100 leading-snug">
-          Get the daily Bitcoin Cycle Brief
+          {heading ?? "Get the daily Bitcoin Cycle Brief"}
         </h2>
         <p className="mt-2 text-[13px] text-ink-300 leading-relaxed">
-          One clear daily summary of where Bitcoin sits in the cycle.
+          {blurb ?? "One clear daily summary of where Bitcoin sits in the cycle."}
         </p>
 
         {!done && (

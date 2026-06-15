@@ -17,6 +17,7 @@ import { DataBadge } from "@/components/DataBadge";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
+import { AccumulationIndexModule } from "@/components/AccumulationIndexModule";
 import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { DAYS_TO_NEXT_HALVING } from "@/lib/btcData";
@@ -106,6 +107,14 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
           <InsightCard insight={etfInsight()} />
           <InsightCard insight={sentimentInsight()} />
         </div>
+      </section>
+
+      {/* Accumulation Index — today's historical accumulation environment */}
+      <section>
+        <h2 className="font-display text-[20px] font-medium tracking-tight-2 text-ink-100 mb-4">
+          Accumulation Index
+        </h2>
+        <AccumulationIndexModule />
       </section>
 
       <ContentPack pack={pack} />

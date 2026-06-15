@@ -26,6 +26,11 @@ const ALLOWED = new Set([
   "content_share_all",
   "feature_vote",
   "feedback",
+  // Engagement + Accumulation-specific (growth sprint)
+  "engagement",
+  "copy_summary",
+  "dca_change",
+  "timeline_range",
 ]);
 
 // Internal / non-content paths that should never count as a viewer page view.

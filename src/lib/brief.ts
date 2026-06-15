@@ -12,6 +12,20 @@ import { etfStats, ETF } from "./etf";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { cycleDivergence } from "./cycleIntel";
 import { reelPackage, type ReelPackage } from "./reel";
+import { accumulationRead } from "./accumulation";
+
+// One-line Accumulation Index summary, shared across the brief's channels
+// (web, email, X, LinkedIn). Historical context framing only.
+export function accumulationBriefLine(): string {
+  const r = accumulationRead();
+  const cheaper = 100 - r.historicalPercentile;
+  return (
+    `Accumulation Index: ${r.score}/100 — ${r.band.label}. ` +
+    `Today's reading sits in the ${r.historicalPercentile}th percentile of Bitcoin history ` +
+    `(only ${cheaper}% of weeks have been cheaper by this price-only methodology). ` +
+    `Historically, conditions like this have produced stronger long-term outcomes than average — historical context, not a prediction.`
+  );
+}
 
 export interface Brief {
   date: string; // display date
@@ -81,6 +95,7 @@ export function threadPost(): string[] {
   );
   t.push(`4/ What makes this cycle different: ${s.whatsDifferent}`);
   t.push(`5/ What to watch: ${s.whatToWatch}`);
+  t.push(`6/ ${accumulationBriefLine()}`);
   t.push(
     `Historical cycle behaviour is not a forecast — educational analysis, not financial advice.\n\nFull read: ${SITE_HOST}`,
   );
@@ -137,6 +152,9 @@ export function emailNewsletter(): { subject: string; body: string } {
     `What to watch next`,
     s.whatToWatch,
     "",
+    `Accumulation Index`,
+    accumulationBriefLine(),
+    "",
     "—",
     "",
     `Read the full daily brief, with charts: https://${SITE_HOST}/brief`,
@@ -189,6 +207,8 @@ export function linkedinPost(): string {
     `What makes this cycle different: ${s.whatsDifferent}`,
     "",
     `What to watch next: ${s.whatToWatch}`,
+    "",
+    accumulationBriefLine(),
     "",
     "Historical cycle behaviour is not a forecast. This is educational analysis, not financial advice.",
     "",

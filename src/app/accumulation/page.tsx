@@ -6,8 +6,12 @@ import { DcaSimulatorPanel } from "@/components/DcaSimulatorPanel";
 import { DataBadge } from "@/components/DataBadge";
 import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { BriefSignup } from "@/components/BriefSignup";
+import { AccumulationShare } from "@/components/AccumulationShare";
 import { accumulationRead, accumulationSeries, ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
 import { runAccumulationBacktest } from "@/lib/accumulationBacktest";
+import { accumulationContentPack } from "@/lib/contentCards";
+import { SITE_HOST } from "@/lib/site";
 import { fmtUsd } from "@/lib/format";
 
 export const metadata = {
@@ -28,6 +32,19 @@ export default function AccumulationPage() {
     bandKey: p.bandKey,
   }));
   const bt = runAccumulationBacktest();
+  const cheaperThan = 100 - read.historicalPercentile;
+
+  // Share copy — short, paste-anywhere summary + per-channel versions.
+  const pack = accumulationContentPack();
+  const shareSummary = [
+    "Bitcoin Accumulation Index",
+    `${read.score} / 100 — ${read.band.label}`,
+    "",
+    "Historically, conditions similar to today have produced stronger long-term outcomes than average.",
+    "",
+    "Historical context only. Not financial advice.",
+    `https://${SITE_HOST}/accumulation`,
+  ].join("\n");
 
   return (
     <div className="space-y-12">
@@ -78,6 +95,20 @@ export default function AccumulationPage() {
             </p>
           </div>
         </div>
+      </section>
+
+      {/* How rare is today? — the headline explanatory statistic */}
+      <section className="card-glow p-6 sm:p-8 text-center">
+        <div className="text-[11px] uppercase tracking-[0.2em] text-accent mb-3">How rare is today?</div>
+        <div className="font-display text-[44px] sm:text-[60px] font-medium tracking-tightest leading-none" style={{ color: read.band.color }}>
+          {read.historicalPercentile}<span className="text-[26px] sm:text-[32px] text-ink-500">th percentile</span>
+        </div>
+        <p className="mt-4 text-[15px] sm:text-[16px] text-ink-200 leading-relaxed max-w-2xl mx-auto">
+          Only <span className="text-ink-50 font-medium">{cheaperThan}% of Bitcoin&apos;s history</span> has been
+          cheaper than today by this price-only methodology. Put another way, today&apos;s conditions are
+          more attractive than <span className="text-ink-50 font-medium">{cheaperThan}%</span> of all weeks since 2012.
+        </p>
+        <p className="mt-3 text-[11.5px] text-ink-500">Historical context — not a prediction or advice.</p>
       </section>
 
       {/* Flagship timeline */}
@@ -179,6 +210,30 @@ export default function AccumulationPage() {
           <div className="watermark">halvinglens.com · dynamic DCA</div>
         </div>
       </section>
+
+      {/* Share this read */}
+      <section>
+        <h2 className="text-[11px] uppercase tracking-[0.2em] text-accent mb-1.5">Share this read</h2>
+        <p className="text-[12.5px] text-ink-400 mb-4 max-w-2xl">
+          Copy a ready-to-post summary, or grab the version for each channel. Every figure is the live
+          reading — historical context, not advice.
+        </p>
+        <div className="card p-4 sm:p-6">
+          <AccumulationShare
+            summary={shareSummary}
+            x={pack.xThread.join("\n\n")}
+            linkedin={pack.linkedin}
+            instagram={pack.instagram}
+            email={`Subject: ${pack.emailSubject}\n\n${pack.emailBody}`}
+          />
+        </div>
+      </section>
+
+      {/* Email conversion — accumulation framing */}
+      <BriefSignup
+        heading="Get tomorrow's Accumulation Index by email"
+        blurb="Join the free Daily Bitcoin Cycle Brief — it includes the Accumulation Index, where today sits in history, and what to watch. No hype, no predictions."
+      />
 
       {/* Methodology */}
       <section>

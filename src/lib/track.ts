@@ -95,13 +95,13 @@ export function setOptOut(on: boolean): void {
 export function track(
   name: string,
   props: Record<string, unknown> = {},
-  opts: { isNew?: boolean } = {},
+  opts: { isNew?: boolean; path?: string } = {},
 ): void {
   if (typeof window === "undefined") return;
   if (isOptedOut()) return; // don't count opted-out browsers (e.g. your own testing)
   const payload = JSON.stringify({
     name,
-    path: window.location.pathname,
+    path: opts.path ?? window.location.pathname,
     props,
     sessionId: sessionId(),
     isNew: opts.isNew ?? false,
@@ -121,4 +121,13 @@ export function track(
 export function trackPageView(): void {
   if (isOptedOut()) return; // skip before touching the new-visitor flag
   track("page_view", {}, { isNew: isNewVisitor() });
+}
+
+// Engagement for a page: time on page (seconds) + max scroll depth (%). Fired
+// once per page when the visitor leaves it. Path is passed explicitly because by
+// the time this fires the URL may already point at the next page.
+export function trackEngagement(seconds: number, scrollPct: number, path: string): void {
+  if (isOptedOut()) return;
+  if (seconds < 2) return; // ignore instant bounces — no meaningful dwell
+  track("engagement", { seconds, scrollPct: Math.min(100, Math.max(0, Math.round(scrollPct))) }, { path });
 }

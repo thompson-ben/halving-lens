@@ -3,6 +3,7 @@ import { ArrowUpRight, Play } from "lucide-react";
 import { HomeHero } from "@/components/HomeHero";
 import { CycleSummaryHero } from "@/components/CycleSummaryHero";
 import { WhyCheckToday } from "@/components/WhyCheckToday";
+import { AccumulationIndexModule } from "@/components/AccumulationIndexModule";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatChanged } from "@/components/WhatChanged";
 import { WhatToWatch } from "@/components/WhatToWatch";
@@ -57,6 +58,11 @@ export default function CycleDashboardPage() {
 
       {/* 3. Why check today — compact daily-habit reminder */}
       <WhyCheckToday />
+
+      {/* 3b. Accumulation Index teaser — curiosity + click-through */}
+      <TrackedSection id="accumulation-index" feedback="accumulation_index">
+        <AccumulationIndexModule />
+      </TrackedSection>
 
       {/* 4. The moat in numbers — current cycle vs prior cycles */}
       <TrackedSection id="today-vs-prior" feedback="today_vs_prior_cycles"><TodayVsPriorCycles /></TrackedSection>

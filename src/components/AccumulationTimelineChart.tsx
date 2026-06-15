@@ -14,6 +14,7 @@ import {
 import { format } from "date-fns";
 import { ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
 import { fmtUsd } from "@/lib/format";
+import { track } from "@/lib/track";
 import { SegmentedControl } from "./SegmentedControl";
 
 // The flagship timeline: the Accumulation Index through history, rendered as
@@ -106,7 +107,10 @@ export function AccumulationTimelineChart({
           aria-label="Timeline range"
           options={RANGES.map((r) => ({ key: r.key, label: r.label }))}
           value={range}
-          onChange={(k) => setRange(k as RangeKey)}
+          onChange={(k) => {
+            setRange(k as RangeKey);
+            track("timeline_range", { range: k });
+          }}
         />
       </div>
 

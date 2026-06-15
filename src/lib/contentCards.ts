@@ -19,7 +19,8 @@ import { priorBrief, briefDate, todaySlug } from "./briefArchive";
 import { etfStats, ETF } from "./etf";
 import { sentimentRead, pricedSentimentSeries, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
 import { currentSentiment } from "./sentiment";
-import { accumulationRead } from "./accumulation";
+import { accumulationRead, ACCUMULATION_BANDS } from "./accumulation";
+import { runAccumulationBacktest } from "./accumulationBacktest";
 import { SITE_HOST } from "./site";
 
 // Fear & Greed band → hex, matching the standard palette.
@@ -55,8 +56,9 @@ export type CardId =
   | "similar_outcomes"
   | "similar_takeaway"
   | "hist_takeaway"
-  // Accumulation Index asset
-  | "accumulation";
+  // Accumulation Index assets
+  | "accumulation"
+  | "accumulation_outcomes";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -95,6 +97,7 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   similar_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
   hist_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
   accumulation: { kicker: "Accumulation Index", name: "Accumulation Index" },
+  accumulation_outcomes: { kicker: "Accumulation Index", name: "Accumulation outcomes" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -312,6 +315,14 @@ export interface AccumulationCardView {
   takeaway: string;
 }
 
+export interface AccumulationOutcomesCardView {
+  kind: "accumulation_outcomes";
+  todayBandLabel: string;
+  todayBandColor: string;
+  rows: { label: string; color: string; median1y: number | null; median2y: number | null; current: boolean }[];
+  takeaway: string;
+}
+
 export type CardBody =
   | HeroCard
   | ChangedCard
@@ -331,7 +342,8 @@ export type CardBody =
   | SimilarOutcomesCard
   | SimilarTop3Card
   | SimilarContextCard
-  | AccumulationCardView;
+  | AccumulationCardView
+  | AccumulationOutcomesCardView;
 
 export interface Card {
   id: CardId;
@@ -831,6 +843,30 @@ export function accumulationContentPack(): import("./brief").ContentPack {
   return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
 }
 
+function accumulationOutcomesCard(): AccumulationOutcomesCardView {
+  const r = accumulationRead();
+  const bt = runAccumulationBacktest();
+  const rows = bt.bands.map((b) => {
+    const h1 = b.horizons.find((h) => h.years === 1);
+    const h2 = b.horizons.find((h) => h.years === 2);
+    return {
+      label: b.label.replace("Historically ", ""),
+      color: ACCUMULATION_BANDS.find((x) => x.key === b.key)?.color ?? "#9aa6b4",
+      median1y: h1?.median ?? null,
+      median2y: h2?.median ?? null,
+      current: b.key === r.band.key,
+    };
+  });
+  return {
+    kind: "accumulation_outcomes",
+    todayBandLabel: r.band.label,
+    todayBandColor: r.band.color,
+    rows,
+    takeaway:
+      "In past cycles, more attractive (lower-score) conditions were followed by stronger median returns 1–2 years later. Historical context, not a forecast.",
+  };
+}
+
 const BUILDERS: Record<CardId, () => CardBody> = {
   hero: heroCard,
   changed: changedCard,
@@ -853,6 +889,7 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   similar_takeaway: similarTakeawayCard,
   hist_takeaway: histTakeawayCard,
   accumulation: accumulationCard,
+  accumulation_outcomes: accumulationOutcomesCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -873,7 +910,7 @@ export const PACK_LABELS: Record<PackId, string> = {
 
 // The Accumulation Index Pack — a focused share asset (the index card) followed
 // by the brand CTA. Instagram-ready 1080×1350 portrait, like every other card.
-export const ACCUMULATION_PACK: CardId[] = ["accumulation", "cta"];
+export const ACCUMULATION_PACK: CardId[] = ["accumulation", "accumulation_outcomes", "cta"];
 
 // The Similar Moments Pack — a fixed, similarity-focused 6-slide carousel
 // (independent of the Historical Context Pack's auto-selected narrative).
