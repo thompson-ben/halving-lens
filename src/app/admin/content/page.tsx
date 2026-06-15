@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ContentPackStudio, type StudioPack } from "@/components/ContentPackStudio";
 import { ReelStudio } from "@/components/ReelStudio";
-import { buildPack, CARD_LABELS, type Deck, type PackId } from "@/lib/contentCards";
+import { buildPack, CARD_LABELS, accumulationContentPack, type Deck, type PackId } from "@/lib/contentCards";
 import { contentPack } from "@/lib/brief";
 import { historicalContentPack, similarContentPack } from "@/lib/historicalPack";
 import { reelPackage, reelScriptText } from "@/lib/reel";
@@ -65,6 +65,7 @@ export default function ContentPackPage({ searchParams }: { searchParams: { key?
     toStudioPack("daily", "Generate Daily Brief Pack", buildPack("daily"), contentPack()),
     toStudioPack("historical", "Generate Historical Context Pack", buildPack("historical"), historicalContentPack()),
     toStudioPack("similar", "Generate Similar Moments Pack", buildPack("similar"), similarContentPack()),
+    toStudioPack("accumulation", "Generate Accumulation Index Pack", buildPack("accumulation"), accumulationContentPack()),
   ];
 
   const reel = reelPackage();
