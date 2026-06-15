@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
 import { simulateDca } from "@/lib/accumulationDca";
 import { fmtUsd } from "@/lib/format";
+import { track } from "@/lib/track";
 import { SegmentedControl } from "./SegmentedControl";
 
 // Interactive Dynamic DCA backtest: a flat weekly contribution vs one that scales
@@ -50,7 +51,10 @@ export function DcaSimulatorPanel() {
           aria-label="Weekly amount"
           options={BASES.map((b) => ({ key: b.key, label: b.label }))}
           value={base}
-          onChange={setBase}
+          onChange={(k) => {
+            setBase(k);
+            track("dca_change", { weekly: Number(k) });
+          }}
         />
       </div>
 

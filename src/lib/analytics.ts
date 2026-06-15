@@ -4,6 +4,197 @@
 
 import { sbCount, sbSelect, supabaseConfigured } from "./supabase";
 
+// ── Founder growth dashboard (/admin/analytics) ──────────────────────────────
+// A focused, fast read on what users value and where the email list grows from.
+
+export interface LabelCount {
+  label: string;
+  n: number;
+}
+
+export interface GrowthDashboard {
+  configured: boolean;
+  totals: {
+    pageViews: number;
+    visitors: number; // distinct sessions
+    returning: number; // sessions that aren't first-ever visits
+    signups: number;
+    subscribers: number | null;
+  };
+  windows: { views7: number; views30: number; signups7: number; signups30: number };
+  topPages: LabelCount[];
+  topMetrics: LabelCount[]; // individual /metrics/* pages
+  mostCopied: LabelCount[];
+  mostDownloaded: LabelCount[];
+  accumulation: {
+    views: number;
+    dcaChanges: number;
+    timelineChanges: number;
+    copies: number;
+    signups: number;
+    avgSeconds: number | null;
+    avgScroll: number | null;
+  };
+  trend: { date: string; views: number }[]; // last 30 days, page views/day
+}
+
+const COPY_LABEL: Record<string, string> = {
+  copy_post: "X / post",
+  copy_thread: "X thread",
+  copy_linkedin: "LinkedIn",
+  copy_instagram: "Instagram",
+  copy_email: "Email",
+  copy_summary: "Accumulation summary",
+};
+
+function isoDaysAgo(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString();
+}
+function dayKey(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+export async function growthDashboard(): Promise<GrowthDashboard> {
+  const empty: GrowthDashboard = {
+    configured: false,
+    totals: { pageViews: 0, visitors: 0, returning: 0, signups: 0, subscribers: null },
+    windows: { views7: 0, views30: 0, signups7: 0, signups30: 0 },
+    topPages: [],
+    topMetrics: [],
+    mostCopied: [],
+    mostDownloaded: [],
+    accumulation: { views: 0, dcaChanges: 0, timelineChanges: 0, copies: 0, signups: 0, avgSeconds: null, avgScroll: null },
+    trend: [],
+  };
+  if (!supabaseConfigured) return empty;
+
+  const since7 = isoDaysAgo(7);
+  const since30 = isoDaysAgo(30);
+
+  // Page views (path, session, is_new, created_at) — drives most of the panels.
+  const pv = await sbSelect<{ path: string | null; session_id: string | null; is_new: boolean | null; created_at: string }[]>(
+    "events?select=path,session_id,is_new,created_at&name=eq.page_view&order=created_at.desc&limit=20000",
+  );
+  const pageRows = pv ?? [];
+
+  const pageTally = new Map<string, number>();
+  const trendMap = new Map<string, number>();
+  const sessions = new Set<string>();
+  let returning = 0;
+  let views7 = 0;
+  let views30 = 0;
+  // Seed the last 30 days so the trend has no gaps.
+  for (let i = 29; i >= 0; i--) trendMap.set(dayKey(isoDaysAgo(i)), 0);
+
+  for (const r of pageRows) {
+    const path = r.path ?? "—";
+    pageTally.set(path, (pageTally.get(path) ?? 0) + 1);
+    if (r.session_id) sessions.add(r.session_id);
+    if (r.is_new === false) returning += 1;
+    if (r.created_at >= since30) views30 += 1;
+    if (r.created_at >= since7) views7 += 1;
+    const dk = dayKey(r.created_at);
+    if (trendMap.has(dk)) trendMap.set(dk, (trendMap.get(dk) ?? 0) + 1);
+  }
+
+  const topPagesAll = [...pageTally.entries()].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n);
+  const topPages = topPagesAll.slice(0, 12);
+  const topMetrics = topPagesAll.filter((p) => /^\/metrics\/.+/.test(p.label)).slice(0, 10);
+
+  // Copy + download + signup + accumulation interaction events.
+  const [copyRows, dlRows, signupRows, accEng, accInteract] = await Promise.all([
+    sbSelect<{ name: string; created_at: string }[]>(
+      "events?select=name,created_at&name=in.(copy_post,copy_thread,copy_linkedin,copy_instagram,copy_email,copy_summary)&limit=20000",
+    ),
+    sbSelect<{ props: Record<string, unknown> }[]>(
+      "events?select=props&name=eq.content_download_card&limit=20000",
+    ),
+    sbSelect<{ props: Record<string, unknown>; created_at: string }[]>(
+      "events?select=props,created_at&name=eq.signup&limit=20000",
+    ),
+    sbSelect<{ props: Record<string, unknown> }[]>(
+      "events?select=props&name=eq.engagement&path=eq./accumulation&limit=20000",
+    ),
+    sbSelect<{ name: string }[]>(
+      "events?select=name&name=in.(dca_change,timeline_range,copy_summary)&path=eq./accumulation&limit=20000",
+    ),
+  ]);
+
+  const copyTally = new Map<string, number>();
+  for (const r of copyRows ?? []) copyTally.set(r.name, (copyTally.get(r.name) ?? 0) + 1);
+  const mostCopied = [...copyTally.entries()]
+    .map(([k, n]) => ({ label: COPY_LABEL[k] ?? k, n }))
+    .sort((a, b) => b.n - a.n);
+
+  const dlTally = new Map<string, number>();
+  for (const r of dlRows ?? []) {
+    const card = (r.props?.card as string) ?? (r.props?.pack as string) ?? "card";
+    dlTally.set(card, (dlTally.get(card) ?? 0) + 1);
+  }
+  const mostDownloaded = [...dlTally.entries()].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n).slice(0, 10);
+
+  let signups7 = 0;
+  let signups30 = 0;
+  for (const r of signupRows ?? []) {
+    if (r.created_at >= since30) signups30 += 1;
+    if (r.created_at >= since7) signups7 += 1;
+  }
+
+  // Accumulation engagement averages.
+  let secSum = 0;
+  let scrollSum = 0;
+  let engN = 0;
+  for (const r of accEng ?? []) {
+    const s = Number(r.props?.seconds);
+    const sc = Number(r.props?.scrollPct);
+    if (Number.isFinite(s)) {
+      secSum += s;
+      scrollSum += Number.isFinite(sc) ? sc : 0;
+      engN += 1;
+    }
+  }
+  let dcaChanges = 0;
+  let timelineChanges = 0;
+  let accCopies = 0;
+  for (const r of accInteract ?? []) {
+    if (r.name === "dca_change") dcaChanges += 1;
+    else if (r.name === "timeline_range") timelineChanges += 1;
+    else if (r.name === "copy_summary") accCopies += 1;
+  }
+
+  const [signupsAll, subscribers] = await Promise.all([
+    sbCount("events", "name=eq.signup"),
+    sbCount("brief_subscribers"),
+  ]);
+  const accSignups = (signupRows ?? []).filter((r) => (r.props?.source as string) === "/accumulation").length;
+
+  return {
+    configured: true,
+    totals: {
+      pageViews: pageRows.length,
+      visitors: sessions.size,
+      returning,
+      signups: signupsAll ?? 0,
+      subscribers,
+    },
+    windows: { views7, views30, signups7, signups30 },
+    topPages,
+    topMetrics,
+    mostCopied,
+    mostDownloaded,
+    accumulation: {
+      views: pageTally.get("/accumulation") ?? 0,
+      dcaChanges,
+      timelineChanges,
+      copies: accCopies,
+      signups: accSignups,
+      avgSeconds: engN ? Math.round(secSum / engN) : null,
+      avgScroll: engN ? Math.round(scrollSum / engN) : null,
+    },
+    trend: [...trendMap.entries()].map(([date, views]) => ({ date, views })),
+  };
+}
+
 export interface AnalyticsSummary {
   configured: boolean;
   totals: {

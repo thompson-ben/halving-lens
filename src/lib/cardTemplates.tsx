@@ -9,6 +9,7 @@
 import { ACCUMULATION_BANDS } from "./accumulation";
 import type {
   AccumulationCardView,
+  AccumulationOutcomesCardView,
   Card,
   ChangedCard,
   ChartLine,
@@ -865,6 +866,47 @@ function Accumulation({ c }: { c: AccumulationCardView }) {
   );
 }
 
+// ── Accumulation outcomes — "what happened when Bitcoin looked like this?" ───
+function pctText(n: number | null): string {
+  return n == null ? "—" : `${n >= 0 ? "+" : ""}${n.toLocaleString()}%`;
+}
+function AccumulationOutcomes({ c }: { c: AccumulationOutcomesCardView }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Accumulation Index</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 44, fontWeight: 700, color: INK, marginTop: 12, marginBottom: 8, letterSpacing: -1, lineHeight: 1.1 }}>
+        What happened when Bitcoin looked like this?
+      </div>
+      <div style={{ display: "flex", fontSize: 26, color: INK_DIM, marginBottom: 26 }}>
+        Median forward return by environment, across every cycle since 2012
+      </div>
+
+      {/* header */}
+      <div style={{ display: "flex", alignItems: "center", paddingBottom: 14, borderBottom: `1px solid ${HAIRLINE}` }}>
+        <div style={{ display: "flex", width: "44%", fontSize: 21, letterSpacing: 1, color: INK_FAINT, textTransform: "uppercase" }}>Environment</div>
+        <div style={{ display: "flex", width: "28%", justifyContent: "flex-end", fontSize: 21, letterSpacing: 1, color: INK_FAINT, textTransform: "uppercase" }}>1 year</div>
+        <div style={{ display: "flex", width: "28%", justifyContent: "flex-end", fontSize: 21, letterSpacing: 1, color: INK_FAINT, textTransform: "uppercase" }}>2 years</div>
+      </div>
+      {c.rows.map((r) => (
+        <div key={r.label} style={{ display: "flex", alignItems: "center", padding: "22px 0", borderBottom: `1px solid ${HAIRLINE}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, width: "44%" }}>
+            <div style={{ display: "flex", width: 16, height: 16, borderRadius: 8, background: r.color }} />
+            <div style={{ display: "flex", fontSize: 30, fontWeight: r.current ? 700 : 500, color: r.current ? INK : INK_DIM }}>{r.label}</div>
+          </div>
+          <div style={{ display: "flex", width: "28%", justifyContent: "flex-end", fontSize: 32, fontWeight: 600, color: r.current ? r.color : INK }}>{pctText(r.median1y)}</div>
+          <div style={{ display: "flex", width: "28%", justifyContent: "flex-end", fontSize: 32, fontWeight: 600, color: r.current ? r.color : INK }}>{pctText(r.median2y)}</div>
+        </div>
+      ))}
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 30 }}>
+        <div style={{ display: "flex", fontSize: 24, color: INK_DIM }}>Today:</div>
+        <div style={{ display: "flex", fontSize: 28, fontWeight: 700, color: c.todayBandColor }}>{c.todayBandLabel}</div>
+      </div>
+      <div style={{ display: "flex", fontSize: 23, color: INK_FAINT, marginTop: 16, lineHeight: 1.4, maxWidth: 920 }}>{c.takeaway}</div>
+    </div>
+  );
+}
+
 function Unavailable({ what }: { what: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -910,6 +952,8 @@ export function renderCard(card: Card): React.ReactElement {
         return card.body.available ? <SimilarContext c={card.body} /> : <Unavailable what="Historical context" />;
       case "accumulation":
         return <Accumulation c={card.body} />;
+      case "accumulation_outcomes":
+        return <AccumulationOutcomes c={card.body} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":
