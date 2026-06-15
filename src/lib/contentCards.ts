@@ -19,6 +19,8 @@ import { priorBrief, briefDate, todaySlug } from "./briefArchive";
 import { etfStats, ETF } from "./etf";
 import { sentimentRead, pricedSentimentSeries, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
 import { currentSentiment } from "./sentiment";
+import { accumulationRead } from "./accumulation";
+import { SITE_HOST } from "./site";
 
 // Fear & Greed band → hex, matching the standard palette.
 const TONE_HEX: Record<string, string> = {
@@ -52,7 +54,9 @@ export type CardId =
   | "similar_context"
   | "similar_outcomes"
   | "similar_takeaway"
-  | "hist_takeaway";
+  | "hist_takeaway"
+  // Accumulation Index asset
+  | "accumulation";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -90,6 +94,7 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   similar_outcomes: { kicker: "What happened next?", name: "Similar · what happened next" },
   similar_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
   hist_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
+  accumulation: { kicker: "Accumulation Index", name: "Accumulation Index" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -297,6 +302,16 @@ export interface SimilarContextCard {
   fearGreed: number | null;
 }
 
+export interface AccumulationCardView {
+  kind: "accumulation";
+  score: number;
+  bandLabel: string;
+  bandColor: string;
+  percentile: number; // historical percentile of today's score
+  factors: { label: string; value: string }[];
+  takeaway: string;
+}
+
 export type CardBody =
   | HeroCard
   | ChangedCard
@@ -315,7 +330,8 @@ export type CardBody =
   | SimilarMomentsCard
   | SimilarOutcomesCard
   | SimilarTop3Card
-  | SimilarContextCard;
+  | SimilarContextCard
+  | AccumulationCardView;
 
 export interface Card {
   id: CardId;
@@ -747,6 +763,74 @@ function histTakeawayCard(): TakeawayCard {
   return { kind: "takeaway", text: historicalTakeawayText(selectHistoricalNarrative().narrative) };
 }
 
+function accumulationCard(): AccumulationCardView {
+  const r = accumulationRead();
+  const takeaway =
+    `Conditions read ${r.score}/100 — ${r.band.label.toLowerCase()}, ` +
+    `lower in its history than ${100 - r.historicalPercentile}% of all weeks since 2012. Historical context, not a forecast.`;
+  return {
+    kind: "accumulation",
+    score: r.score,
+    bandLabel: r.band.label,
+    bandColor: r.band.color,
+    percentile: r.historicalPercentile,
+    factors: r.factors.map((f) => ({ label: f.factor, value: f.reading })),
+    takeaway,
+  };
+}
+
+// Cross-channel copy for the Accumulation Index pack. Same careful framing —
+// historical context, no predictions, no price targets.
+export function accumulationContentPack(): import("./brief").ContentPack {
+  const r = accumulationRead();
+  const pct = 100 - r.historicalPercentile;
+  const band = r.band.label.toLowerCase();
+  const link = `https://${SITE_HOST}/accumulation`;
+  const x1 = `Bitcoin Accumulation Index: ${r.score}/100 — ${band}.`;
+  const x2 = `That's lower in its history than ${pct}% of all weeks since 2012. ${r.reasoning}`;
+  const xThread = [
+    `${x1}\n\nA price-only, historically-backtested read on how today's accumulation environment compares with Bitcoin's own past.`,
+    x2,
+    `In past cycles, the more attractive (lower-score) the environment, the stronger the median forward returns 1–2 years later. The 4-year read rests on only 2–3 cycles, so we flag it as indicative.\n\nHistorical context, not a forecast.`,
+    `See the full index, timeline and Dynamic DCA backtest: ${link}\n\nEducational analysis, not financial advice.`,
+  ];
+  const instagram = [
+    `Bitcoin Accumulation Index: ${r.score}/100`,
+    "",
+    `Today's conditions read as ${band} — lower in Bitcoin's history than ${pct}% of all weeks since 2012.`,
+    "",
+    "A price-only gauge of how the accumulation environment compares with the past — backtested across every cycle. Historical context, not a prediction or advice.",
+    "",
+    `Full breakdown → ${link}`,
+    "",
+    "#bitcoin #btc #crypto #dca #bitcoinhalving",
+  ].join("\n");
+  const linkedin = [
+    `Bitcoin Accumulation Index: ${r.score}/100 — ${band}.`,
+    "",
+    `${r.reasoning}`,
+    "",
+    `The index is built only from real, price-based history (Mayer Multiple, 200-week MA multiple and drawdown from the running high), computed point-in-time so every past reading is exactly what an observer would have seen then — which is what makes the backtest legitimate.`,
+    "",
+    `Explore the index, the colour-coded historical timeline and a Dynamic DCA backtest: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `Accumulation Index: ${r.score}/100 — ${band}`;
+  const emailBody = [
+    `Bitcoin's Accumulation Index reads ${r.score}/100 today — ${band}.`,
+    "",
+    r.reasoning,
+    "",
+    `That's lower in its history than ${pct}% of all weeks since 2012.`,
+    "",
+    `See the full index, the historical timeline and the Dynamic DCA backtest: ${link}`,
+    "",
+    "Historical context only. Past behaviour is not a forecast. Not financial advice.",
+  ].join("\n");
+  return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
+}
+
 const BUILDERS: Record<CardId, () => CardBody> = {
   hero: heroCard,
   changed: changedCard,
@@ -768,6 +852,7 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   similar_outcomes: similarOutcomesCard,
   similar_takeaway: similarTakeawayCard,
   hist_takeaway: histTakeawayCard,
+  accumulation: accumulationCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -777,13 +862,18 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar";
+export type PackId = "daily" | "historical" | "similar" | "accumulation";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
   historical: "Historical Context Pack",
   similar: "Similar Moments Pack",
+  accumulation: "Accumulation Index Pack",
 };
+
+// The Accumulation Index Pack — a focused share asset (the index card) followed
+// by the brand CTA. Instagram-ready 1080×1350 portrait, like every other card.
+export const ACCUMULATION_PACK: CardId[] = ["accumulation", "cta"];
 
 // The Similar Moments Pack — a fixed, similarity-focused 6-slide carousel
 // (independent of the Historical Context Pack's auto-selected narrative).
@@ -888,6 +978,7 @@ export function isCardId(id: string): id is CardId {
 export function packOrder(packId: PackId): CardId[] {
   if (packId === "similar") return SIMILAR_PACK;
   if (packId === "historical") return selectHistoricalNarrative().order;
+  if (packId === "accumulation") return ACCUMULATION_PACK;
   return CARD_ORDER;
 }
 

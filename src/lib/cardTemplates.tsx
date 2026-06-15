@@ -6,7 +6,9 @@
 // 1080×1350 portrait (4:5) with generous safe margins. One consistent frame +
 // header/footer treatment so the six cards read as a single professional deck.
 
+import { ACCUMULATION_BANDS } from "./accumulation";
 import type {
+  AccumulationCardView,
   Card,
   ChangedCard,
   ChartLine,
@@ -792,6 +794,77 @@ function SimilarContext({ c }: { c: SimilarContextCard }) {
   );
 }
 
+// ── Accumulation Index — today's historical accumulation environment ─────────
+function Accumulation({ c }: { c: AccumulationCardView }) {
+  const score = Math.max(0, Math.min(100, c.score));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Accumulation Index</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 46, fontWeight: 700, color: INK, marginTop: 12, letterSpacing: -1 }}>
+        Bitcoin Accumulation Index
+      </div>
+
+      {/* Score + band */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 22, marginTop: 28 }}>
+        <div style={{ display: "flex", fontSize: 150, fontWeight: 700, color: c.bandColor, lineHeight: 1, fontFamily: DISPLAY }}>
+          {c.score}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", fontSize: 30, color: INK_DIM }}>/ 100</div>
+          <div style={{ display: "flex", fontSize: 42, fontWeight: 700, color: c.bandColor }}>{c.bandLabel}</div>
+        </div>
+      </div>
+
+      {/* Five-band meter with marker */}
+      <div style={{ display: "flex", flexDirection: "column", marginTop: 36 }}>
+        <div style={{ display: "flex", position: "relative", width: "100%" }}>
+          <div style={{ display: "flex", width: "100%", height: 24, borderRadius: 12, overflow: "hidden" }}>
+            {ACCUMULATION_BANDS.map((b) => (
+              <div key={b.key} style={{ display: "flex", flex: 1, background: b.color, opacity: 0.88 }} />
+            ))}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              position: "absolute",
+              left: `${score}%`,
+              top: -8,
+              marginLeft: -20,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              background: "#ffffff",
+              border: "5px solid #070a0f",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, fontSize: 20, color: INK_FAINT, textTransform: "uppercase", letterSpacing: 1 }}>
+          <div style={{ display: "flex" }}>Deep value</div>
+          <div style={{ display: "flex" }}>Neutral</div>
+          <div style={{ display: "flex" }}>Overheated</div>
+        </div>
+      </div>
+
+      {/* Factor readings */}
+      <div style={{ display: "flex", flexDirection: "column", marginTop: 44 }}>
+        {c.factors.map((f) => (
+          <div
+            key={f.label}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0", borderBottom: `1px solid ${HAIRLINE}` }}
+          >
+            <div style={{ display: "flex", fontSize: 28, color: INK_DIM }}>{f.label}</div>
+            <div style={{ display: "flex", fontSize: 30, fontWeight: 600, color: INK }}>{f.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", fontSize: 27, color: INK, marginTop: 36, lineHeight: 1.4, maxWidth: 920 }}>
+        {c.takeaway}
+      </div>
+    </div>
+  );
+}
+
 function Unavailable({ what }: { what: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -835,6 +908,8 @@ export function renderCard(card: Card): React.ReactElement {
         return card.body.available ? <SimilarTop3 c={card.body} /> : <Unavailable what="Similar moments" />;
       case "similar_context":
         return card.body.available ? <SimilarContext c={card.body} /> : <Unavailable what="Historical context" />;
+      case "accumulation":
+        return <Accumulation c={card.body} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":
