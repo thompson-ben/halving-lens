@@ -42,6 +42,8 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
   }
 
   const acc = a.accumulation;
+  const email = a.email;
+  const brief = a.brief;
 
   return (
     <Shell>
@@ -64,10 +66,18 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
         <Stat label="Views · 7d" value={a.windows.views7} />
       </section>
 
+      {/* Yesterday — the morning glance */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+        <Stat label="Visitors · 24h" value={a.windows.visitors1} />
+        <Stat label="Views · 24h" value={a.windows.views1} />
+        <Stat label="Signups · 24h" value={a.windows.signups1} />
+        <Stat label="Signups · 7d" value={a.windows.signups7} />
+      </section>
+
       {/* Traffic trend */}
       <Panel title="Traffic — last 30 days">
         <Trend points={a.trend} />
-        <div className="mt-3 flex gap-6 text-[11.5px] text-ink-400">
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[11.5px] text-ink-400">
           <span>7d views: <span className="text-ink-100 font-mono">{a.windows.views7.toLocaleString()}</span></span>
           <span>30d views: <span className="text-ink-100 font-mono">{a.windows.views30.toLocaleString()}</span></span>
           <span>7d signups: <span className="text-ink-100 font-mono">{a.windows.signups7.toLocaleString()}</span></span>
@@ -75,21 +85,63 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
         </div>
       </Panel>
 
-      {/* Accumulation performance */}
-      <Panel title="Accumulation Index performance">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-          <MiniStat label="Page views" value={acc.views} />
-          <MiniStat label="Signups here" value={acc.signups} />
-          <MiniStat label="Avg time" value={acc.avgSeconds != null ? `${acc.avgSeconds}s` : "—"} />
-          <MiniStat label="Avg scroll" value={acc.avgScroll != null ? `${acc.avgScroll}%` : "—"} />
-          <MiniStat label="DCA tweaks" value={acc.dcaChanges} />
-          <MiniStat label="Timeline + copies" value={acc.timelineChanges + acc.copies} />
+      {/* Email delivery */}
+      <Panel title="Email delivery">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden mb-4">
+          <MiniStat label="Emails sent" value={email.sent} />
+          <MiniStat label="Delivered" value={email.delivered} />
+          <MiniStat label="Delivery rate" value={email.deliveryRate != null ? `${email.deliveryRate}%` : "—"} />
+          <MiniStat label="Failure rate" value={email.failureRate != null ? `${email.failureRate}%` : "—"} />
         </div>
+        {email.recent.length === 0 ? (
+          <p className="text-[12.5px] text-ink-500">No sends yet — connect RESEND_API_KEY and run supabase/email.sql.</p>
+        ) : (
+          <div className="space-y-1.5">
+            <div className="flex text-[10px] uppercase tracking-[0.12em] text-ink-500">
+              <span className="w-1/3">Date</span>
+              <span className="w-1/4 text-right">Sent</span>
+              <span className="w-1/4 text-right">Delivered</span>
+              <span className="w-1/6 text-right">Failed</span>
+            </div>
+            {email.recent.map((r) => (
+              <div key={r.date} className="flex text-[12px] font-mono tabular-nums">
+                <span className="w-1/3 text-ink-300">{r.date}</span>
+                <span className="w-1/4 text-right text-ink-200">{r.sent}</span>
+                <span className="w-1/4 text-right text-signal-green">{r.delivered}</span>
+                <span className={`w-1/6 text-right ${r.failed ? "text-signal-red" : "text-ink-500"}`}>{r.failed}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </Panel>
+
+      {/* Page performance — Accumulation + Daily Brief */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Panel title="Accumulation Index performance">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+            <MiniStat label="Page views" value={acc.views} />
+            <MiniStat label="Signups here" value={acc.signups} />
+            <MiniStat label="Avg time" value={acc.avgSeconds != null ? `${acc.avgSeconds}s` : "—"} />
+            <MiniStat label="Avg scroll" value={acc.avgScroll != null ? `${acc.avgScroll}%` : "—"} />
+            <MiniStat label="DCA tweaks" value={acc.dcaChanges} />
+            <MiniStat label="Timeline + copies" value={acc.timelineChanges + acc.copies} />
+          </div>
+        </Panel>
+        <Panel title="Daily Brief performance">
+          <div className="grid grid-cols-3 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+            <MiniStat label="Page views" value={brief.views} />
+            <MiniStat label="Avg time" value={brief.avgSeconds != null ? `${brief.avgSeconds}s` : "—"} />
+            <MiniStat label="Avg scroll" value={brief.avgScroll != null ? `${brief.avgScroll}%` : "—"} />
+          </div>
+        </Panel>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Top pages">
           <Bars items={a.topPages} />
+        </Panel>
+        <Panel title="Top signup sources">
+          <Bars items={a.topSignupSources} empty="No signups yet." />
         </Panel>
         <Panel title="Most viewed metric pages">
           <Bars items={a.topMetrics} empty="No individual metric-page views yet." />

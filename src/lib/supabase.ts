@@ -16,9 +16,10 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   };
 }
 
-// Insert a row. Returns true on success (or 409 duplicate); false otherwise.
-export async function sbInsert(table: string, row: Record<string, unknown>): Promise<boolean> {
+// Insert a row (or rows). Returns true on success (or 409 duplicate); false otherwise.
+export async function sbInsert(table: string, row: Record<string, unknown> | Record<string, unknown>[]): Promise<boolean> {
   if (!supabaseConfigured) return false;
+  if (Array.isArray(row) && row.length === 0) return true;
   try {
     const res = await fetch(`${URL}/rest/v1/${table}`, {
       method: "POST",
@@ -26,6 +27,21 @@ export async function sbInsert(table: string, row: Record<string, unknown>): Pro
       body: JSON.stringify(row),
     });
     return res.ok || res.status === 409;
+  } catch {
+    return false;
+  }
+}
+
+// Patch rows matching a PostgREST filter (required). Returns true on success.
+export async function sbUpdate(table: string, filter: string, patch: Record<string, unknown>): Promise<boolean> {
+  if (!supabaseConfigured) return false;
+  try {
+    const res = await fetch(`${URL}/rest/v1/${table}?${filter}`, {
+      method: "PATCH",
+      headers: headers({ Prefer: "return=minimal" }),
+      body: JSON.stringify(patch),
+    });
+    return res.ok;
   } catch {
     return false;
   }

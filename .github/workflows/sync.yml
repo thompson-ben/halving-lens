@@ -75,6 +75,20 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
+      - name: Send the daily brief email
+        # Sends the day's brief to active subscribers via Resend, then logs each
+        # send + a daily summary to Supabase. Idempotent per day (won't double-
+        # send). Non-fatal and skips quietly if RESEND_API_KEY / Supabase aren't
+        # set. Run supabase/email.sql once. Requires a verified Resend domain.
+        run: npm run send-email
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
       - name: Commit snapshot + brief archive if changed
         run: |
           if git diff --quiet src/lib/data/snapshot.ts src/lib/data/briefs.ts; then
