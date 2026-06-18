@@ -21,11 +21,20 @@ export interface GrowthDashboard {
     signups: number;
     subscribers: number | null;
   };
-  windows: { views7: number; views30: number; signups7: number; signups30: number };
+  windows: {
+    views1: number; // last 24h ("yesterday")
+    views7: number;
+    views30: number;
+    visitors1: number;
+    signups1: number;
+    signups7: number;
+    signups30: number;
+  };
   topPages: LabelCount[];
   topMetrics: LabelCount[]; // individual /metrics/* pages
   mostCopied: LabelCount[];
   mostDownloaded: LabelCount[];
+  topSignupSources: LabelCount[];
   accumulation: {
     views: number;
     dcaChanges: number;
@@ -34,6 +43,15 @@ export interface GrowthDashboard {
     signups: number;
     avgSeconds: number | null;
     avgScroll: number | null;
+  };
+  brief: { views: number; avgSeconds: number | null; avgScroll: number | null };
+  email: {
+    sent: number;
+    delivered: number;
+    failed: number;
+    deliveryRate: number | null; // %
+    failureRate: number | null; // %
+    recent: { date: string; sent: number; delivered: number; failed: number }[];
   };
   trend: { date: string; views: number }[]; // last 30 days, page views/day
 }
@@ -58,16 +76,20 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
   const empty: GrowthDashboard = {
     configured: false,
     totals: { pageViews: 0, visitors: 0, returning: 0, signups: 0, subscribers: null },
-    windows: { views7: 0, views30: 0, signups7: 0, signups30: 0 },
+    windows: { views1: 0, views7: 0, views30: 0, visitors1: 0, signups1: 0, signups7: 0, signups30: 0 },
     topPages: [],
     topMetrics: [],
     mostCopied: [],
     mostDownloaded: [],
+    topSignupSources: [],
     accumulation: { views: 0, dcaChanges: 0, timelineChanges: 0, copies: 0, signups: 0, avgSeconds: null, avgScroll: null },
+    brief: { views: 0, avgSeconds: null, avgScroll: null },
+    email: { sent: 0, delivered: 0, failed: 0, deliveryRate: null, failureRate: null, recent: [] },
     trend: [],
   };
   if (!supabaseConfigured) return empty;
 
+  const since1 = isoDaysAgo(1);
   const since7 = isoDaysAgo(7);
   const since30 = isoDaysAgo(30);
 
@@ -80,7 +102,9 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
   const pageTally = new Map<string, number>();
   const trendMap = new Map<string, number>();
   const sessions = new Set<string>();
+  const sessions1 = new Set<string>();
   let returning = 0;
+  let views1 = 0;
   let views7 = 0;
   let views30 = 0;
   // Seed the last 30 days so the trend has no gaps.
@@ -93,6 +117,10 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     if (r.is_new === false) returning += 1;
     if (r.created_at >= since30) views30 += 1;
     if (r.created_at >= since7) views7 += 1;
+    if (r.created_at >= since1) {
+      views1 += 1;
+      if (r.session_id) sessions1.add(r.session_id);
+    }
     const dk = dayKey(r.created_at);
     if (trendMap.has(dk)) trendMap.set(dk, (trendMap.get(dk) ?? 0) + 1);
   }
@@ -133,12 +161,58 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
   }
   const mostDownloaded = [...dlTally.entries()].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n).slice(0, 10);
 
+  let signups1 = 0;
   let signups7 = 0;
   let signups30 = 0;
   for (const r of signupRows ?? []) {
     if (r.created_at >= since30) signups30 += 1;
     if (r.created_at >= since7) signups7 += 1;
+    if (r.created_at >= since1) signups1 += 1;
   }
+
+  // Top signup sources (from the subscriber table) + brief engagement + email
+  // delivery history.
+  const [srcRows, briefEng, deliveries] = await Promise.all([
+    sbSelect<{ source: string | null }[]>("brief_subscribers?select=source&limit=20000"),
+    sbSelect<{ props: Record<string, unknown> }[]>("events?select=props&name=eq.engagement&path=eq./brief&limit=20000"),
+    sbSelect<{ date: string; emails_sent: number; emails_delivered: number; emails_failed: number }[]>(
+      "email_deliveries?select=date,emails_sent,emails_delivered,emails_failed&order=date.desc&limit=30",
+    ),
+  ]);
+
+  const srcTally = new Map<string, number>();
+  for (const r of srcRows ?? []) {
+    const k = (r.source && r.source.trim()) || "unknown";
+    srcTally.set(k, (srcTally.get(k) ?? 0) + 1);
+  }
+  const topSignupSources = [...srcTally.entries()].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n).slice(0, 10);
+
+  let bSec = 0;
+  let bScroll = 0;
+  let bN = 0;
+  for (const r of briefEng ?? []) {
+    const sec = Number(r.props?.seconds);
+    if (Number.isFinite(sec)) {
+      bSec += sec;
+      bScroll += Number.isFinite(Number(r.props?.scrollPct)) ? Number(r.props?.scrollPct) : 0;
+      bN += 1;
+    }
+  }
+
+  let emSent = 0;
+  let emDelivered = 0;
+  let emFailed = 0;
+  for (const d of deliveries ?? []) {
+    emSent += d.emails_sent ?? 0;
+    emDelivered += d.emails_delivered ?? 0;
+    emFailed += d.emails_failed ?? 0;
+  }
+  const emailRecent = (deliveries ?? []).slice(0, 10).map((d) => ({
+    date: d.date,
+    sent: d.emails_sent ?? 0,
+    delivered: d.emails_delivered ?? 0,
+    failed: d.emails_failed ?? 0,
+  }));
 
   // Accumulation engagement averages.
   let secSum = 0;
@@ -177,11 +251,21 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
       signups: signupsAll ?? 0,
       subscribers,
     },
-    windows: { views7, views30, signups7, signups30 },
+    windows: { views1, views7, views30, visitors1: sessions1.size, signups1, signups7, signups30 },
     topPages,
     topMetrics,
     mostCopied,
     mostDownloaded,
+    topSignupSources,
+    brief: { views: pageTally.get("/brief") ?? 0, avgSeconds: bN ? Math.round(bSec / bN) : null, avgScroll: bN ? Math.round(bScroll / bN) : null },
+    email: {
+      sent: emSent,
+      delivered: emDelivered,
+      failed: emFailed,
+      deliveryRate: emSent ? Math.round((emDelivered / emSent) * 100) : null,
+      failureRate: emSent ? Math.round((emFailed / emSent) * 100) : null,
+      recent: emailRecent,
+    },
     accumulation: {
       views: pageTally.get("/accumulation") ?? 0,
       dcaChanges,
