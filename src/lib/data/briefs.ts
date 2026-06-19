@@ -6,6 +6,160 @@ import type { StoredBrief } from "../brief";
 
 export const STORED_BRIEFS: StoredBrief[] = [
   {
+    "slug": "2026-06-19",
+    "dateLabel": "19 June 2026",
+    "generatedAt": "2026-06-19T07:01:28.017Z",
+    "headline": "Bitcoin slips to $62,835.22 despite ETF inflows pick up",
+    "phaseLabel": "Later-running mid-cycle expansion",
+    "heat": "cool",
+    "price": 62835.222483,
+    "changePct": -2.430877,
+    "changeLabel": "24h",
+    "cycleDay": 791,
+    "progressPct": 54,
+    "gainFromHalving": -0.45009657124244207,
+    "drawdownFromAth": -48.118832025961034,
+    "cycleScore": 53,
+    "heatPercentile": 19,
+    "sentimentValue": 14,
+    "etfCumulative": 17760939299.39002,
+    "etfTrailingWeek": -373868585.99,
+    "summary": "Bitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.",
+    "support": "Historically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.",
+    "whatsDifferent": "The 2024 cycle is the first Bitcoin cycle with US spot ETF demand — a structural source of buying that did not exist in 2012, 2016 or 2020. That makes comparison with prior cycles useful, but not perfect. So far this cycle has been flatter and slower than the classic four-year rhythm.",
+    "whatToWatch": "Whether price begins to accelerate toward prior-cycle behaviour, plus ETFs have seen net outflows recently, and sentiment is extreme fear. These are the signals that would show the cycle either converging with history or continuing to diverge.",
+    "conclusion": "Historically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.",
+    "insights": [
+      {
+        "title": "Cycle insight of the day",
+        "body": "Historically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly."
+      },
+      {
+        "title": "ETF insight of the day",
+        "body": "US spot Bitcoin ETFs have seen net outflows over the past week (~$373.87M). Cumulative net flow since launch stands at $17.76B, with the largest single inflow day at $1.21B. ETF demand is the structural variable unique to this cycle."
+      },
+      {
+        "title": "Sentiment insight of the day",
+        "body": "Market mood reads extreme fear (Fear & Greed 14/100), falling over the past month. Extremes matter most: euphoria has often appeared near cycle tops, deep fear near lows — a contrarian read, not a timing tool."
+      }
+    ],
+    "watchSignals": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles",
+        "level": "watch",
+        "confidence": "high"
+      },
+      {
+        "signal": "Sentiment approaching euphoric territory",
+        "status": "Deep fear — Fear & Greed at 14",
+        "level": "watch",
+        "confidence": "high"
+      },
+      {
+        "signal": "Price acceleration vs previous cycles",
+        "status": "Steady — +4.2% over the last 7d",
+        "level": "calm",
+        "confidence": "medium"
+      },
+      {
+        "signal": "ETF inflows accelerating",
+        "status": "Net outflows of ~$374M over the last 7 days",
+        "level": "calm",
+        "confidence": "high"
+      },
+      {
+        "signal": "Rising risk / heat level",
+        "status": "Currently historically cool",
+        "level": "calm",
+        "confidence": "medium"
+      },
+      {
+        "signal": "Miner stress",
+        "status": "Miner revenue suppressed, hashrate 938 EH/s",
+        "level": "calm",
+        "confidence": "medium"
+      }
+    ],
+    "shortPost": "Bitcoin Cycle Brief — 19 June 2026\n\nBTC $62,835.22 (-2.4% 24h) · day 791 (54% through the cycle).\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nCycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.\n\nHistorical context, not financial advice.\nhalvinglens.com",
+    "content": {
+      "xPost": "Bitcoin Cycle Brief — 19 June 2026\n\nBTC $62,835.22 (-2.4% 24h) · day 791 (54% through the cycle).\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nCycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.\n\nHistorical context, not financial advice.\nhalvinglens.com",
+      "xThread": [
+        "Bitcoin Cycle Brief 🧵\n\nBTC $62,835.22 · day 791 of the halving cycle, 54% through.\n\nPhase: Later-running mid-cycle expansion.",
+        "1/ Bitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.",
+        "2/ Historically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.",
+        "3/ How stretched is it? Bitcoin sits around the 19th percentile of its historical range vs its long-term average — not near the extremes that have marked past tops.",
+        "4/ What makes this cycle different: The 2024 cycle is the first Bitcoin cycle with US spot ETF demand — a structural source of buying that did not exist in 2012, 2016 or 2020. That makes comparison with prior cycles useful, but not perfect. So far this cycle has been flatter and slower than the classic four-year rhythm.",
+        "5/ What to watch: Whether price begins to accelerate toward prior-cycle behaviour, plus ETFs have seen net outflows recently, and sentiment is extreme fear. These are the signals that would show the cycle either converging with history or continuing to diverge.",
+        "6/ Accumulation Index: 20/100 — Historically Attractive. Today's reading sits in the 20th percentile of Bitcoin history (only 80% of weeks have been cheaper by this price-only methodology). Historically, conditions like this have produced stronger long-term outcomes than average — historical context, not a prediction.",
+        "Historical cycle behaviour is not a forecast — educational analysis, not financial advice.\n\nFull read: halvinglens.com"
+      ],
+      "instagram": "Bitcoin Cycle Read — 19 June 2026\n\n₿ $62,835.22 · Day 791 (54% through the cycle)\n🟦 Risk: Historically cool\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nAt this point, previous cycles had usually already peaked. This one's behaving differently — slower, flatter, and ETF-supported.\n\n📊 Full cycle read + daily brief at the link in bio.\n\nHistorical context, not financial advice.\n\n#Bitcoin #BTC #crypto #bitcoinhalving #cryptocycle #halvinglens #onchain #bitcoinanalysis",
+      "linkedin": "Bitcoin Cycle Brief — 19 June 2026\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nWhere we are: day 791 of the halving cycle (54% through), later-running mid-cycle expansion. BTC $62,835.22.\n\nWhat makes this cycle different: The 2024 cycle is the first Bitcoin cycle with US spot ETF demand — a structural source of buying that did not exist in 2012, 2016 or 2020. That makes comparison with prior cycles useful, but not perfect. So far this cycle has been flatter and slower than the classic four-year rhythm.\n\nWhat to watch next: Whether price begins to accelerate toward prior-cycle behaviour, plus ETFs have seen net outflows recently, and sentiment is extreme fear. These are the signals that would show the cycle either converging with history or continuing to diverge.\n\nAccumulation Index: 20/100 — Historically Attractive. Today's reading sits in the 20th percentile of Bitcoin history (only 80% of weeks have been cheaper by this price-only methodology). Historically, conditions like this have produced stronger long-term outcomes than average — historical context, not a prediction.\n\nHistorical cycle behaviour is not a forecast. This is educational analysis, not financial advice.\n\nMore: halvinglens.com",
+      "emailSubject": "Bitcoin Cycle Brief — 19 June 2026: Later-running mid-cycle expansion",
+      "emailBody": "Bitcoin Cycle Brief\n19 June 2026\n\n—\n\nWhere we are\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nThe numbers: BTC $62,835.22 (-2.4% 24h) · day 791 of the cycle (54% through) · risk level: cool.\n\nHistorical context\nHistorically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.\n\nWhat makes this cycle different\nThe 2024 cycle is the first Bitcoin cycle with US spot ETF demand — a structural source of buying that did not exist in 2012, 2016 or 2020. That makes comparison with prior cycles useful, but not perfect. So far this cycle has been flatter and slower than the classic four-year rhythm.\n\nWhat to watch next\nWhether price begins to accelerate toward prior-cycle behaviour, plus ETFs have seen net outflows recently, and sentiment is extreme fear. These are the signals that would show the cycle either converging with history or continuing to diverge.\n\nAccumulation Index\nAccumulation Index: 20/100 — Historically Attractive. Today's reading sits in the 20th percentile of Bitcoin history (only 80% of weeks have been cheaper by this price-only methodology). Historically, conditions like this have produced stronger long-term outcomes than average — historical context, not a prediction.\n\n—\n\nRead the full daily brief, with charts: https://halvinglens.com/brief\n\nHistorical cycle behaviour is not a forecast. This is educational analysis, not financial advice.\nYou're receiving this because you joined the halvinglens.com daily brief waitlist."
+    },
+    "reel": {
+      "date": "19 June 2026",
+      "angle": "risk_level",
+      "angleLabel": "Risk level",
+      "insight": "Bitcoin sits in the historically cool part of its historical range — 19th percentile.",
+      "title": "Cooler Than It Looks Right Now",
+      "hook": "COOLER THAN THE HEADLINES SUGGEST",
+      "voiceover": "One number tracks how stretched Bitcoin is versus its own history. Right now it sits historically cool, around the 19th percentile of its range. It measures price against its long-term average — not a buy or sell signal, just an honest read of how hot the moment is. See today's full brief at halving lens dot com.",
+      "voiceoverWordCount": 57,
+      "estDurationSec": 25,
+      "storyboard": [
+        {
+          "n": 1,
+          "durationSec": 3,
+          "action": "Open on the homepage hero; punch in the hook as large on-screen text over a slow zoom.",
+          "source": "halvinglens.com — homepage hero",
+          "onScreenText": "COOLER THAN THE HEADLINES SUGGEST"
+        },
+        {
+          "n": 2,
+          "durationSec": 6,
+          "action": "Open the homepage and let the risk read / cycle scorecard settle.",
+          "source": "halvinglens.com",
+          "onScreenText": "Risk: Historically cool"
+        },
+        {
+          "n": 3,
+          "durationSec": 7,
+          "action": "Scroll to the cycle scorecard factors.",
+          "source": "/cycles",
+          "onScreenText": "19th percentile of range"
+        },
+        {
+          "n": 4,
+          "durationSec": 6,
+          "action": "End on the Today vs Prior Cycles overlay for context.",
+          "source": "/cycles — overlay",
+          "onScreenText": "Where we sit vs history"
+        },
+        {
+          "n": 5,
+          "durationSec": 3,
+          "action": "Cut to a clean HalvingLens logo card; hold for the CTA.",
+          "source": "HalvingLens logo / outro card",
+          "onScreenText": "See today's full cycle brief at halvinglens.com"
+        }
+      ],
+      "onScreenText": [
+        "COOLER THAN THE HEADLINES SUGGEST",
+        "Risk: Cooler",
+        "19th percentile",
+        "Risk: Historically cool",
+        "19th percentile of range",
+        "Where we sit vs history",
+        "See today's full cycle brief at halvinglens.com"
+      ],
+      "cta": "See today's full cycle brief at halvinglens.com",
+      "instagram": "Bitcoin sits in the historically cool part of its historical range — 19th percentile.\n\nDoes this risk read match how the market feels to you? 👇\n\nEducational analysis, not financial advice.\n\n#Bitcoin #BTC #BitcoinCycle #CryptoInvesting #HalvingLens"
+    }
+  },
+  {
     "slug": "2026-06-18",
     "dateLabel": "18 June 2026",
     "generatedAt": "2026-06-18T07:01:30.819Z",
