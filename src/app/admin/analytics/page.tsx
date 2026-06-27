@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { growthDashboard, type LabelCount } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
+import { SendTestEmailButton } from "@/components/SendTestEmailButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Growth analytics — halvinglens.com", robots: { index: false } };
@@ -87,6 +88,12 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
 
       {/* Email delivery */}
       <Panel title="Email delivery">
+        <div className="mb-4">
+          <SendTestEmailButton />
+          <p className="mt-2 text-[11px] text-ink-500">
+            Sends today&apos;s brief to all active subscribers now (bypasses the once-per-day guard).
+          </p>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden mb-4">
           <MiniStat label="Emails sent" value={email.sent} />
           <MiniStat label="Delivered" value={email.delivered} />
