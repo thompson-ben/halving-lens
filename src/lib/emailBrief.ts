@@ -17,7 +17,7 @@ import { accumulationRead } from "./accumulation";
 import { etfStats, ETF } from "./etf";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { similarMoments } from "./similarity";
-import { editorialFeature } from "./editorial";
+import { editorialFeature, editionNumber } from "./editorial";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
 import { fmtUsd, fmtPct } from "./format";
 
@@ -135,24 +135,44 @@ function cap(s: string): string {
 }
 
 // ── Market Health — narrative readings, not isolated numbers ──────────────────
-function marketHealth(): { label: string; value: string; color: string }[] {
+// strength 1–3 drives the visual bar; color carries the tone.
+function marketHealth(): { label: string; value: string; color: string; strength: number }[] {
   const { s, acc, sr, etfWk } = reads();
   const valueTone = acc.band.key === "deep_value" || acc.band.key === "attractive" ? C.green : acc.band.key === "neutral" ? C.dim : C.red;
+  const valueStr = acc.band.key === "deep_value" || acc.band.key === "overheated" ? 3 : acc.band.key === "neutral" ? 1 : 2;
   const posWord =
     s.heat === "cool" ? "Cooling" : s.heat === "neutral" ? "Neutral" : s.heat === "heating" ? "Warming" : s.heat === "elevated" ? "Elevated" : "Hot";
   const posTone = s.heat === "cool" ? C.green : s.heat === "neutral" || s.heat === "heating" ? C.dim : C.red;
+  const posStr = s.heat === "euphoria" || s.heat === "elevated" || s.heat === "cool" ? 3 : s.heat === "heating" ? 2 : 1;
   const etfWord = etfWk == null ? "—" : etfWk > 0 ? "Improving" : etfWk < 0 ? "Weak" : "Neutral";
   const etfTone = etfWk == null ? C.dim : etfWk > 0 ? C.green : etfWk < 0 ? C.red : C.dim;
+  const etfStr = etfWk == null ? 1 : etfWk === 0 ? 1 : 2;
   const mom = s.change24h;
   const momWord = mom == null ? "Neutral" : mom > 1.5 ? "Positive" : mom < -1.5 ? "Negative" : "Neutral";
   const momTone = mom == null ? C.dim : mom > 1.5 ? C.green : mom < -1.5 ? C.red : C.dim;
+  const momStr = mom == null ? 1 : Math.abs(mom) > 4 ? 3 : Math.abs(mom) > 1.5 ? 2 : 1;
+  const sentStr = sr ? (sr.value <= 25 || sr.value >= 75 ? 3 : sr.value < 45 || sr.value >= 55 ? 2 : 1) : 1;
   return [
-    { label: "Historical value", value: acc.band.label.replace("Historically ", ""), color: valueTone },
-    { label: "Sentiment", value: sr ? sr.band.label : "n/a", color: sr ? SENT_HEX[sr.band.tone] ?? C.dim : C.dim },
-    { label: "Cycle position", value: posWord, color: posTone },
-    { label: "ETF demand", value: etfWord, color: etfTone },
-    { label: "Momentum", value: momWord, color: momTone },
+    { label: "Historical value", value: acc.band.label.replace("Historically ", ""), color: valueTone, strength: valueStr },
+    { label: "Sentiment", value: sr ? sr.band.label : "n/a", color: sr ? SENT_HEX[sr.band.tone] ?? C.dim : C.dim, strength: sentStr },
+    { label: "Cycle position", value: posWord, color: posTone, strength: posStr },
+    { label: "ETF demand", value: etfWord, color: etfTone, strength: etfStr },
+    { label: "Momentum", value: momWord, color: momTone, strength: momStr },
   ];
+}
+
+// ── A delightful one-liner — a true, calm piece of Bitcoin history ────────────
+function bitcoinMemory(): string {
+  const { s } = reads();
+  const facts = [
+    "Bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far.",
+    "Its 200-week moving average has never closed a full cycle below where that cycle began.",
+    "There will only ever be 21 million bitcoin, and more than 19.5 million already exist.",
+    "The word “HODL” began life as a typo in a 2013 Bitcoin forum post.",
+    "Bitcoin has spent more of its life below a prior high than at new ones — yet its long-term trend has only risen.",
+    "Every roughly four years, by a rule written in code, the new supply of bitcoin is cut in half.",
+  ];
+  return facts[Math.abs(s.cycleDay) % facts.length];
 }
 
 // ── Context Score — the HalvingLens signature ────────────────────────────────
@@ -201,23 +221,28 @@ function analystObservation(): { quote: string; body: string } {
   // Weekday-led features get their own voice.
   if (feature === "etf")
     return {
-      quote: "ETF demand has changed Bitcoin's rhythm, but not investor psychology.",
-      body: `Flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. The structure underneath has shifted; the behaviour on top of it hasn't. ${cheap ? `Today that leaves Bitcoin in the cheapest ${cheaper}% of its history regardless of the tape.` : "The cycle's mechanics are new; its emotions are familiar."}`,
+      quote: "ETF demand has altered Bitcoin's rhythm, but not investor psychology.",
+      body: `Flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. The plumbing has changed; the behaviour running through it hasn't. ${cheap ? `Today that leaves Bitcoin in the cheapest ${cheaper}% of its history regardless of the tape.` : "The cycle's mechanics are new; its emotions are familiar."}`,
     };
-  if (feature === "structure")
+  if (feature === "weekly_close")
     return {
-      quote: "Price is what moves. Structure is what lasts.",
-      body: "Day to day, the tape commands attention. Across cycles, it's the slower scaffolding — long-term cost basis, the 200-week trend, where supply has historically changed hands — that decides the story. Today's reading is best understood against that scaffolding, not against this week's candle.",
+      quote: "A week's close is a data point. A cycle's position is the story.",
+      body: "It's tempting to let Friday's candle set the mood for the weekend. But a single close rarely changes where we sit in the larger arc — and that position, not the print, is what history actually speaks to.",
     };
-  if (feature === "essay")
+  if (feature === "long_view")
     return {
-      quote: "History doesn't repeat, but it rhymes — and the rhythm is what we track.",
-      body: `Markets are narratives wearing the costume of numbers. The numbers tell you where you are; the narratives tell you how people tend to behave once they get there. ${cheap ? "Today's numbers sit at the cheaper end of the range — and history's narrative around moments like this has been a patient one." : "Today's numbers sit mid-range, and history's narrative here is simply: wait, and watch the extremes."}`,
+      quote: "History rarely repeats exactly. It rhymes most loudly where sentiment is most extreme.",
+      body: `Step back far enough and the daily noise resolves into a pattern. The numbers tell you where you are; history tells you how people have behaved once they got there. ${cheap ? "Today sits at the cheaper end of that arc — and the patient stretches, not the loud ones, are where it has mattered most." : "Today sits mid-arc — a time to watch the extremes, not chase the middle."}`,
     };
   if (feature === "weekahead")
     return {
       quote: "The week ahead matters less than the environment we enter it from.",
       body: `Forecasts age badly; environments don't. The useful question on a Sunday isn't what happens next, but what kind of market we're standing in — and today that's a ${acc.band.label.toLowerCase().replace("historically ", "")} one by historical standards. Position is context; the calendar is noise.`,
+    };
+  if (feature === "market_reset")
+    return {
+      quote: "Monday rewards a clear head more than a strong opinion.",
+      body: `The weekend's moves feel decisive in the moment and forgettable by Wednesday. Bitcoin's position in the cycle didn't change overnight — and ${cheap ? `it remains in the cheapest ${cheaper}% of its history.` : "it remains exactly where the data left it on Friday."} Reset the noise; keep the context.`,
     };
 
   // Condition-led (Mon/Tue/Wed features).
@@ -316,6 +341,14 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
   const feature = editorialFeature();
   const cs = contextScore();
   const obs = analystObservation();
+  const stars = Math.max(1, Math.min(5, Math.round(cs.score / 20)));
+  const starStr = `<span style="color:${C.gold};">${"★".repeat(stars)}</span><span style="color:${C.hair};">${"★".repeat(5 - stars)}</span>`;
+  const csRank =
+    cs.score >= 80
+      ? "Today ranks among the strongest historical contexts seen across past Bitcoin cycles."
+      : cs.score >= 60
+        ? "Today shows a clearer-than-usual parallel to Bitcoin's history."
+        : "Today's historical parallel is modest — context worth noting, not leaning on.";
 
   const take = `
     ${eyebrow("Today's Take")}
@@ -323,14 +356,20 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
 
   const hero = `
     ${eyebrow(`Signature Read · ${feature.title}`)}
-    <img src="${chartUrl}" width="528" alt="HalvingLens Research — today's signature read" style="width:100%;height:auto;border-radius:16px;display:block;border:1px solid ${C.border};" />
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;"><tr>
-      <td style="vertical-align:middle;">
-        <div style="font:600 9.5px/1.4 ${SANS};letter-spacing:.18em;text-transform:uppercase;color:${C.faint};">HalvingLens Context Score</div>
-        <div style="font:600 15px/1.3 ${SANS};color:${C.gold};margin-top:3px;">${cs.score} <span style="color:${C.dim};font-weight:400;">· ${esc(cs.label)}</span></div>
-      </td>
-      <td style="vertical-align:middle;text-align:right;font:400 13px/1.5 ${SANS};color:${C.sub};max-width:300px;">Only ${cheaper}% of Bitcoin's history has been cheaper than today.</td>
-    </tr></table>`;
+    <img src="${chartUrl}" width="528" alt="HalvingLens Research — today's signature read" style="width:100%;height:auto;border-radius:16px;display:block;border:1px solid ${C.border};" />`;
+
+  const contextScoreBlock = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.border};border-radius:16px;">
+      <tr><td style="padding:28px 28px 24px;">
+        <div style="font:600 10.5px/1.4 ${SANS};letter-spacing:.22em;text-transform:uppercase;color:${C.gold};">HalvingLens Context Score</div>
+        <div style="margin-top:14px;">
+          <span style="font:700 52px/1 ${SERIF};color:${C.ink};">${cs.score}</span><span style="font:400 22px/1 ${SERIF};color:${C.dim};"> /100</span>
+        </div>
+        <div style="font-size:20px;letter-spacing:3px;margin-top:12px;">${starStr}</div>
+        <div style="font:600 16px/1.4 ${SANS};color:${C.gold};margin-top:10px;">${esc(cs.label)}</div>
+        <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:14px;">Higher scores mean today's market closely resembles historically significant environments. ${esc(csRank)}</div>
+      </td></tr>
+    </table>`;
 
   const oneThingCard = `
     ${eyebrow("If you only read one thing")}
@@ -346,13 +385,15 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
     <div style="font:700 40px/1 ${SERIF};color:${conf.color};">${conf.level}</div>
     <div style="font:400 16px/1.55 ${SANS};color:${C.sub};margin-top:12px;">${esc(conf.blurb)} <span style="color:${C.dim};">${esc(conf.detail)}</span></div>`;
 
+  const pip = (on: boolean, color: string) =>
+    `<span style="display:inline-block;width:18px;height:5px;border-radius:3px;background:${on ? color : C.hair};margin-left:4px;vertical-align:middle;"></span>`;
   const healthRows = marketHealth()
     .map(
       (r) => `<tr>
-        <td style="padding:14px 0;border-bottom:1px solid ${C.hair};font:400 15px/1.4 ${SANS};color:${C.dim};">${esc(r.label)}</td>
-        <td style="padding:14px 0;border-bottom:1px solid ${C.hair};text-align:right;white-space:nowrap;">
-          <span style="display:inline-block;width:9px;height:9px;border-radius:5px;background:${r.color};margin-right:9px;vertical-align:middle;"></span>
-          <span style="font:600 17px/1.4 ${SANS};color:${r.color};vertical-align:middle;">${esc(r.value)}</span>
+        <td style="padding:15px 0;border-bottom:1px solid ${C.hair};font:400 15px/1.4 ${SANS};color:${C.dim};">${esc(r.label)}</td>
+        <td style="padding:15px 0;border-bottom:1px solid ${C.hair};text-align:right;white-space:nowrap;">
+          <span style="font:600 16px/1.4 ${SANS};color:${r.color};vertical-align:middle;margin-right:12px;">${esc(r.value)}</span>
+          ${pip(r.strength >= 1, r.color)}${pip(r.strength >= 2, r.color)}${pip(r.strength >= 3, r.color)}
         </td>
       </tr>`,
     )
@@ -370,15 +411,19 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
     : "";
 
   const analystBlock = `
-    ${eyebrow("Analyst Observation")}
+    ${eyebrow("The Research Desk")}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.border};border-radius:16px;">
       <tr><td style="padding:30px 30px 26px;">
-        <div style="font:600 9.5px/1.4 ${SANS};letter-spacing:.18em;text-transform:uppercase;color:${C.gold};margin-bottom:18px;">Research note · subscriber-only</div>
+        <div style="font:600 9.5px/1.4 ${SANS};letter-spacing:.18em;text-transform:uppercase;color:${C.gold};margin-bottom:18px;">Subscriber edition · written for you this morning</div>
         <div style="font:400 24px/1.4 ${SERIF};color:${C.ink};font-style:italic;">&ldquo;${esc(obs.quote)}&rdquo;</div>
         <div style="font:400 16px/1.65 ${SANS};color:${C.sub};margin-top:16px;">${esc(obs.body)}</div>
         <div style="font:600 11px/1.4 ${SANS};letter-spacing:.1em;color:${C.gold};margin-top:18px;">— HalvingLens Research</div>
       </td></tr>
     </table>`;
+
+  const delightBlock = `
+    <div style="font:600 10px/1.4 ${SANS};letter-spacing:.2em;text-transform:uppercase;color:${C.faint};margin-bottom:8px;">Did you know?</div>
+    <div style="font:400 16px/1.6 ${SERIF};color:${C.sub};">${esc(bitcoinMemory())}</div>`;
 
   const watchBlock = watch.length
     ? `
@@ -397,21 +442,34 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
 
   const cta = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-      <a href="${SITE_URL}/brief" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 36px;border-radius:12px;">Open the interactive analysis →</a>
+      <a href="${SITE_URL}/brief" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 38px;border-radius:12px;">Continue inside HalvingLens →</a>
     </td></tr></table>`;
+
+  const archive = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font:400 12px/1.5 ${SANS};color:${C.faint};">
+        <a href="${SITE_URL}/brief/archive" style="color:${C.dim};text-decoration:none;">← Yesterday's edition</a>
+      </td>
+      <td style="text-align:right;font:400 12px/1.5 ${SANS};">
+        <a href="${SITE_URL}/brief/archive" style="color:${C.gold};text-decoration:none;">Research archive →</a>
+      </td>
+    </tr></table>`;
 
   // Section order with tier gating.
   // Free: Take, Hero, Market Health, CTA. Pro adds the rest.
   const rows: string[] = [];
-  rows.push(section(take, "30px 36px 10px"));
-  rows.push(section(hero, "22px 36px"));
-  if (pro) rows.push(section(oneThingCard, "22px 36px"));
-  if (pro) rows.push(section(confidenceBlock, "22px 36px"));
-  rows.push(section(marketHealthBlock, "22px 36px"));
-  if (pro && ctx) rows.push(section(contextBlock, "22px 36px"));
-  if (pro) rows.push(section(analystBlock, "22px 36px"));
-  if (pro && watchBlock) rows.push(section(watchBlock, "22px 36px"));
-  rows.push(section(cta, "30px 36px 36px"));
+  rows.push(section(take, "30px 36px 12px"));
+  rows.push(section(hero, "24px 36px 16px"));
+  rows.push(section(contextScoreBlock, "16px 36px 24px"));
+  if (pro) rows.push(section(oneThingCard, "24px 36px"));
+  if (pro) rows.push(section(confidenceBlock, "24px 36px"));
+  rows.push(section(marketHealthBlock, "24px 36px"));
+  if (pro && ctx) rows.push(section(contextBlock, "24px 36px"));
+  if (pro) rows.push(section(analystBlock, "24px 36px"));
+  if (pro && watchBlock) rows.push(section(watchBlock, "24px 36px"));
+  if (pro) rows.push(section(delightBlock, "8px 36px 4px"));
+  rows.push(section(cta, "30px 36px 18px"));
+  rows.push(section(archive, "6px 36px 30px"));
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -428,7 +486,7 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
           <td style="font:700 15px/1 ${SANS};letter-spacing:.26em;text-transform:uppercase;color:${C.ink};">
             <span style="color:${C.gold};">◆</span>&nbsp; HalvingLens Research
           </td>
-          <td style="text-align:right;font:400 12px/1 ${SANS};color:${C.dim};">${esc(b.date)}</td>
+          <td style="text-align:right;font:400 12px/1 ${SANS};color:${C.dim};">Edition #${editionNumber()} · ${esc(b.date)}</td>
         </tr></table>
         <div style="margin-top:10px;font:400 13px/1.4 ${SERIF};color:${C.faint};">
           <span style="color:${C.gold};font-weight:600;">${esc(feature.day)}</span>
