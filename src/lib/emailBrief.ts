@@ -17,6 +17,7 @@ import { accumulationRead } from "./accumulation";
 import { etfStats, ETF } from "./etf";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { similarMoments } from "./similarity";
+import { editorialFeature } from "./editorial";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
 import { fmtUsd, fmtPct } from "./format";
 
@@ -154,9 +155,27 @@ function marketHealth(): { label: string; value: string; color: string }[] {
   ];
 }
 
-// ── Why This Matters — one tight paragraph ───────────────────────────────────
-function whyThisMatters(): string {
-  return reads().s.support;
+// ── Context Score — the HalvingLens signature ────────────────────────────────
+// A proprietary 0–100 read on how strongly today resonates with a clear
+// historical context: how unusual today's valuation is (rarity) and how cleanly
+// it maps to a real prior moment (analogue). High = an unusually legible market.
+function contextScore(): { score: number; label: string } {
+  const { acc, top } = reads();
+  const rarity = Math.min(100, Math.round(Math.abs(acc.historicalPercentile - 50) * 2));
+  const analogue = top?.similarity ?? 0;
+  const score = Math.round(0.55 * analogue + 0.45 * rarity);
+  const label = score >= 80 ? "Strong historical context" : score >= 60 ? "Clear historical context" : score >= 40 ? "Moderate context" : "Limited context";
+  return { score, label };
+}
+
+// ── Why This Matters Today — a one-sentence bridge from history to now ────────
+function whyThisMattersToday(): string {
+  const { cheap, greed } = reads();
+  if (cheap)
+    return "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.";
+  if (greed)
+    return "Environments like today's have, historically, rewarded patience over conviction — context worth holding lightly rather than acting on.";
+  return "History doesn't predict, but it does provide context — and today's environment is one worth understanding rather than reacting to.";
 }
 
 // ── Today's Historical Context — closest match + why ─────────────────────────
@@ -171,18 +190,61 @@ function historicalContext(): { match: string; similarity: number; body: string 
   return { match: top.dateLabel, similarity: top.similarity, body };
 }
 
-// ── Analyst Observation — authored, email-only research ──────────────────────
-function analystObservation(): string {
-  const { cheap, fear, etfNeg, greed, cheaper, acc, sr } = reads();
+// ── Analyst Observation — authored, quotable, email-only research ─────────────
+// Written in the voice of a head of digital-assets research: a memorable pull-
+// quote, then one supporting paragraph. Flavoured by the day's editorial feature
+// so each edition reads differently. This never appears on the public site.
+function analystObservation(): { quote: string; body: string } {
+  const { cheap, fear, etfNeg, greed, cheaper, acc } = reads();
+  const feature = editorialFeature().key;
+
+  // Weekday-led features get their own voice.
+  if (feature === "etf")
+    return {
+      quote: "ETF demand has changed Bitcoin's rhythm, but not investor psychology.",
+      body: `Flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. The structure underneath has shifted; the behaviour on top of it hasn't. ${cheap ? `Today that leaves Bitcoin in the cheapest ${cheaper}% of its history regardless of the tape.` : "The cycle's mechanics are new; its emotions are familiar."}`,
+    };
+  if (feature === "structure")
+    return {
+      quote: "Price is what moves. Structure is what lasts.",
+      body: "Day to day, the tape commands attention. Across cycles, it's the slower scaffolding — long-term cost basis, the 200-week trend, where supply has historically changed hands — that decides the story. Today's reading is best understood against that scaffolding, not against this week's candle.",
+    };
+  if (feature === "essay")
+    return {
+      quote: "History doesn't repeat, but it rhymes — and the rhythm is what we track.",
+      body: `Markets are narratives wearing the costume of numbers. The numbers tell you where you are; the narratives tell you how people tend to behave once they get there. ${cheap ? "Today's numbers sit at the cheaper end of the range — and history's narrative around moments like this has been a patient one." : "Today's numbers sit mid-range, and history's narrative here is simply: wait, and watch the extremes."}`,
+    };
+  if (feature === "weekahead")
+    return {
+      quote: "The week ahead matters less than the environment we enter it from.",
+      body: `Forecasts age badly; environments don't. The useful question on a Sunday isn't what happens next, but what kind of market we're standing in — and today that's a ${acc.band.label.toLowerCase().replace("historically ", "")} one by historical standards. Position is context; the calendar is noise.`,
+    };
+
+  // Condition-led (Mon/Tue/Wed features).
   if (cheap && fear)
-    return `The biggest mistake investors make in moments like this is assuming fear and opportunity can't coexist. Today they do: Bitcoin sits in the cheapest ${cheaper}% of its history while the crowd is at its most fearful. History doesn't repeat — but it rarely leaves these conditions on the table for long.`;
+    return {
+      quote: "The crowd usually notices value only after fear has disappeared.",
+      body: `Today fear and opportunity occupy the same room: Bitcoin sits in the cheapest ${cheaper}% of its history while sentiment is at its most fearful. History doesn't repeat — but it rarely leaves these conditions on the table for long.`,
+    };
   if (cheap && etfNeg)
-    return `It's tempting to read negative ETF flows as a verdict. They aren't — flows tend to follow price more than they lead it. Bitcoin is trading in the cheapest ${cheaper}% of its history regardless. The setup and the sentiment rarely agree, and that disagreement is usually the whole point.`;
+    return {
+      quote: "It's tempting to read negative flows as a verdict. They're usually just an echo.",
+      body: `Flows follow price more than they lead it. Bitcoin is trading in the cheapest ${cheaper}% of its history regardless — and the gap between a cheap setup and a fearful tape is usually where the interesting decisions get made.`,
+    };
   if (cheap)
-    return `Cheap and boring is an underrated combination. Bitcoin sits in the cheapest ${cheaper}% of its history with little drama attached — and history suggests the quiet stretches, not the loud ones, are where positioning is decided.`;
+    return {
+      quote: "Cheap and boring is an underrated combination.",
+      body: `Bitcoin sits in the cheapest ${cheaper}% of its history with little drama attached. History suggests the quiet stretches, not the loud ones, are where positioning is quietly decided.`,
+    };
   if (greed)
-    return `Late-cycle conviction feels safest precisely when it's most expensive. With sentiment hot and valuation in the upper ${acc.historicalPercentile}% of its range, the asymmetry that rewarded patience earlier has narrowed. Discipline, not conviction, tends to be the edge from here.`;
-  return `Every cycle tempts investors to believe this one is different. Sometimes it genuinely is — this one is slower and ETF-shaped — but the discipline that travels across all of them is the same: judge today against Bitcoin's own history, not against your expectations.`;
+    return {
+      quote: "Conviction feels safest precisely when it has become most expensive.",
+      body: `With sentiment hot and valuation in the upper ${acc.historicalPercentile}% of its range, the asymmetry that rewarded patience earlier has narrowed. Discipline, not conviction, tends to be the edge from here.`,
+    };
+  return {
+    quote: "Every cycle insists it's different. The discipline that survives all of them is the same.",
+    body: "This cycle genuinely is slower and ETF-shaped — but the habit that travels across every one of them is to judge today against Bitcoin's own history, not against your expectations.",
+  };
 }
 
 // ── What We're Watching — up to 3 short items ────────────────────────────────
@@ -194,15 +256,17 @@ function watching(): { signal: string; status: string }[] {
 
 // ── Subject — curiosity-first, no formulaic prefix ───────────────────────────
 export function dailyEmailSubject(): string {
-  const { s, acc, cheap, fear, greed, etfNeg, etfPos, etfWk } = reads();
+  const { s, acc, top, cheap, fear, greed, etfNeg, etfPos, etfWk } = reads();
+  if (cheap && fear) return "The crowd is fearful. History wasn't.";
   if (acc.band.key === "deep_value") return "Bitcoin just entered a rare historical zone";
-  if (cheap && fear) return "Historically cheap, and fearful";
+  if (top && top.similarity >= 80) return `Today's market rhymes with ${top.dateLabel}`;
+  if (cheap && etfNeg) return "Historically cheap, despite the outflows";
   if (cheap) return "Bitcoin remains historically cheap";
+  if (greed) return "The expensive comfort of conviction";
   if (fear) return "Extreme Fear persists";
-  if (greed) return "Sentiment is running hot again";
   if (etfNeg && Math.abs(etfWk!) > 0) return "ETF outflows accelerate again";
   if (etfPos) return "ETF demand picks up again";
-  if (s.heat === "cool") return "Today's cycle still looks unusually cool";
+  if (s.heat === "cool") return "Bitcoin's rhythm continues to diverge";
   return "Where Bitcoin sits in the cycle today";
 }
 
@@ -224,7 +288,7 @@ export function dailyEmailText(): string {
     `Market health — value: ${acc.band.label.replace("Historically ", "")} · sentiment: ${s.heat} · cycle score: ${sc.overall}/100`,
     `Price: ${fmtUsd(s.price)}${s.change24h != null ? ` (${fmtPct(s.change24h, 1)} 24h)` : ""} · Accumulation: ${acc.score}/100 (only ${cheaper}% of weeks cheaper)`,
     "",
-    `Analyst observation: ${analystObservation()}`,
+    `Analyst observation: "${analystObservation().quote}" ${analystObservation().body}`,
     "",
     `Open the interactive analysis: ${SITE_URL}/brief`,
     "",
@@ -249,15 +313,24 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
   const conf = confidence();
   const ctx = historicalContext();
   const watch = watching();
+  const feature = editorialFeature();
+  const cs = contextScore();
+  const obs = analystObservation();
 
   const take = `
     ${eyebrow("Today's Take")}
     <div style="font:500 30px/1.32 ${SERIF};color:${C.ink};letter-spacing:-.3px;">${esc(todaysTake())}</div>`;
 
   const hero = `
-    ${eyebrow("Today's signature read")}
-    <img src="${chartUrl}" width="528" alt="HalvingLens Research — today's hero chart" style="width:100%;height:auto;border-radius:16px;display:block;border:1px solid ${C.border};" />
-    <div style="font:400 14px/1.55 ${SANS};color:${C.sub};margin-top:14px;">Today reads ${acc.score}/100 on the Accumulation Index — only ${cheaper}% of Bitcoin's history has been cheaper.</div>`;
+    ${eyebrow(`Signature Read · ${feature.title}`)}
+    <img src="${chartUrl}" width="528" alt="HalvingLens Research — today's signature read" style="width:100%;height:auto;border-radius:16px;display:block;border:1px solid ${C.border};" />
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;"><tr>
+      <td style="vertical-align:middle;">
+        <div style="font:600 9.5px/1.4 ${SANS};letter-spacing:.18em;text-transform:uppercase;color:${C.faint};">HalvingLens Context Score</div>
+        <div style="font:600 15px/1.3 ${SANS};color:${C.gold};margin-top:3px;">${cs.score} <span style="color:${C.dim};font-weight:400;">· ${esc(cs.label)}</span></div>
+      </td>
+      <td style="vertical-align:middle;text-align:right;font:400 13px/1.5 ${SANS};color:${C.sub};max-width:300px;">Only ${cheaper}% of Bitcoin's history has been cheaper than today.</td>
+    </tr></table>`;
 
   const oneThingCard = `
     ${eyebrow("If you only read one thing")}
@@ -276,8 +349,11 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
   const healthRows = marketHealth()
     .map(
       (r) => `<tr>
-        <td style="padding:13px 0;border-bottom:1px solid ${C.hair};font:400 15px/1.4 ${SANS};color:${C.dim};">${esc(r.label)}</td>
-        <td style="padding:13px 0;border-bottom:1px solid ${C.hair};font:600 17px/1.4 ${SANS};color:${r.color};text-align:right;">${esc(r.value)}</td>
+        <td style="padding:14px 0;border-bottom:1px solid ${C.hair};font:400 15px/1.4 ${SANS};color:${C.dim};">${esc(r.label)}</td>
+        <td style="padding:14px 0;border-bottom:1px solid ${C.hair};text-align:right;white-space:nowrap;">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:5px;background:${r.color};margin-right:9px;vertical-align:middle;"></span>
+          <span style="font:600 17px/1.4 ${SANS};color:${r.color};vertical-align:middle;">${esc(r.value)}</span>
+        </td>
       </tr>`,
     )
     .join("");
@@ -285,23 +361,21 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
     ${eyebrow("Market Health")}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${healthRows}</table>`;
 
-  const whyBlock = `
-    ${eyebrow("Why this matters")}
-    <div style="font:400 17px/1.65 ${SANS};color:${C.sub};">${esc(whyThisMatters())}</div>`;
-
   const contextBlock = ctx
     ? `
     ${eyebrow("Today's Historical Context")}
     <div style="font:500 21px/1.35 ${SERIF};color:${C.ink};">Closest match: ${esc(ctx.match)} <span style="color:${C.gold};">· ${ctx.similarity}% similar</span></div>
-    <div style="font:400 16px/1.65 ${SANS};color:${C.sub};margin-top:12px;">${esc(ctx.body)}</div>`
+    <div style="font:400 16px/1.65 ${SANS};color:${C.sub};margin-top:12px;">${esc(ctx.body)}</div>
+    <div style="font:500 16px/1.55 ${SERIF};color:${C.ink};margin-top:18px;border-left:2px solid ${C.gold};padding-left:14px;">${esc(whyThisMattersToday())}</div>`
     : "";
 
   const analystBlock = `
     ${eyebrow("Analyst Observation")}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.border};border-radius:16px;">
-      <tr><td style="padding:28px 28px 24px;">
-        <div style="font:600 9.5px/1.4 ${SANS};letter-spacing:.18em;text-transform:uppercase;color:${C.gold};margin-bottom:14px;">Research note · subscriber-only</div>
-        <div style="font:400 18px/1.7 ${SERIF};color:${C.ink};">${esc(analystObservation())}</div>
+      <tr><td style="padding:30px 30px 26px;">
+        <div style="font:600 9.5px/1.4 ${SANS};letter-spacing:.18em;text-transform:uppercase;color:${C.gold};margin-bottom:18px;">Research note · subscriber-only</div>
+        <div style="font:400 24px/1.4 ${SERIF};color:${C.ink};font-style:italic;">&ldquo;${esc(obs.quote)}&rdquo;</div>
+        <div style="font:400 16px/1.65 ${SANS};color:${C.sub};margin-top:16px;">${esc(obs.body)}</div>
         <div style="font:600 11px/1.4 ${SANS};letter-spacing:.1em;color:${C.gold};margin-top:18px;">— HalvingLens Research</div>
       </td></tr>
     </table>`;
@@ -334,7 +408,6 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
   if (pro) rows.push(section(oneThingCard, "22px 36px"));
   if (pro) rows.push(section(confidenceBlock, "22px 36px"));
   rows.push(section(marketHealthBlock, "22px 36px"));
-  if (pro) rows.push(section(whyBlock, "22px 36px"));
   if (pro && ctx) rows.push(section(contextBlock, "22px 36px"));
   if (pro) rows.push(section(analystBlock, "22px 36px"));
   if (pro && watchBlock) rows.push(section(watchBlock, "22px 36px"));
@@ -357,7 +430,10 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
           </td>
           <td style="text-align:right;font:400 12px/1 ${SANS};color:${C.dim};">${esc(b.date)}</td>
         </tr></table>
-        <div style="font:italic 400 13px/1.4 ${SERIF};color:${C.faint};margin-top:8px;">Today's edition · the analyst note behind the dashboard</div>
+        <div style="margin-top:10px;font:400 13px/1.4 ${SERIF};color:${C.faint};">
+          <span style="color:${C.gold};font-weight:600;">${esc(feature.day)}</span>
+          <span style="font-style:italic;"> · Today's feature: ${esc(feature.title)}</span>
+        </div>
       </td></tr>
 
       ${rows.join("")}
