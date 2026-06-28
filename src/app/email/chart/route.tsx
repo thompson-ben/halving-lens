@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { accumulationSeries, accumulationRead, ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
-import { selectHistoricalNarrative } from "@/lib/contentCards";
+import { featureHeroNarrative } from "@/lib/editorial";
 import { similarMoments } from "@/lib/similarity";
 import { drawdownAnalysis } from "@/lib/drawdowns";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "@/lib/sentiment";
@@ -64,7 +64,7 @@ function Bar({ name, pct, value, color, strong }: { name: string; pct: number; v
 }
 
 export async function GET() {
-  const narrative = selectHistoricalNarrative().narrative;
+  const narrative = featureHeroNarrative();
   const fonts = brandFonts();
   const opts = { ...SIZE, ...(fonts.length ? { fonts } : {}) };
 
