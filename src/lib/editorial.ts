@@ -5,7 +5,14 @@
 
 import { selectHistoricalNarrative } from "./contentCards";
 
-export type FeatureKey = "weekahead" | "position" | "similar" | "drawdown" | "etf" | "structure" | "essay";
+export type FeatureKey =
+  | "weekahead"
+  | "market_reset"
+  | "similar"
+  | "etf"
+  | "historical"
+  | "weekly_close"
+  | "long_view";
 export type HeroNarrative = "similar" | "position" | "drawdown" | "fear_greed";
 
 export interface EditorialFeature {
@@ -14,14 +21,15 @@ export interface EditorialFeature {
   title: string; // "Similar Moments"
 }
 
+// The editorial calendar — one defining feature per day of the week.
 const WEEK: { key: FeatureKey; title: string }[] = [
   { key: "weekahead", title: "Week Ahead" }, // 0 Sun
-  { key: "position", title: "Cycle Position Deep Dive" }, // 1 Mon
+  { key: "market_reset", title: "Market Reset" }, // 1 Mon
   { key: "similar", title: "Similar Moments" }, // 2 Tue
-  { key: "drawdown", title: "Historical Drawdowns" }, // 3 Wed
-  { key: "etf", title: "ETF Insight" }, // 4 Thu
-  { key: "structure", title: "Market Structure" }, // 5 Fri
-  { key: "essay", title: "Analyst Essay" }, // 6 Sat
+  { key: "etf", title: "ETF Watch" }, // 3 Wed
+  { key: "historical", title: "Historical Context" }, // 4 Thu
+  { key: "weekly_close", title: "Weekly Close" }, // 5 Fri
+  { key: "long_view", title: "Long View" }, // 6 Sat
 ];
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -30,14 +38,23 @@ export function editorialFeature(): EditorialFeature {
   return { day: DAY_NAMES[d], ...WEEK[d] };
 }
 
+// A growing edition number, so each email feels like part of an expanding
+// publication ("Edition #392"). Counted in whole UTC days from launch.
+const LAUNCH = Date.UTC(2025, 5, 1); // 1 Jun 2025
+export function editionNumber(): number {
+  const today = new Date();
+  const days = Math.floor((Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - LAUNCH) / 86_400_000);
+  return Math.max(1, days + 1);
+}
+
 // Which Signature Read hero to render. The weekday feature leads when it has a
 // dedicated visual; otherwise we fall back to the day's strongest live narrative.
 export function featureHeroNarrative(): HeroNarrative {
   const f = editorialFeature().key;
   if (f === "similar") return "similar";
-  if (f === "drawdown") return "drawdown";
-  if (f === "position") return "position";
-  // etf / structure / essay / weekahead → strongest live story.
+  if (f === "long_view") return "position"; // the long arc — accumulation timeline
+  if (f === "market_reset") return "drawdown"; // "is this drop normal?" recalibration
+  // etf / historical / weekly_close / weekahead → strongest live story.
   const n = selectHistoricalNarrative().narrative;
   if (n === "similar" || n === "drawdown" || n === "fear_greed" || n === "position") return n;
   return "position";
