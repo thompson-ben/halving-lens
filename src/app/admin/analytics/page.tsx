@@ -90,10 +90,12 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
 
       {/* Email delivery */}
       <Panel title="Email delivery">
-        <div className="mb-4">
+        <div className="mb-4 flex flex-col gap-3">
           <SendTestEmailButton />
-          <p className="mt-2 text-[11px] text-ink-500">
-            Sends today&apos;s brief to all active subscribers now (bypasses the once-per-day guard).
+          <SendTestEmailButton endpoint="/api/admin/send-weekly" label="Send weekly research now" />
+          <p className="text-[11px] text-ink-500">
+            Sends the daily brief (or latest weekly) to all active subscribers now, bypassing the
+            once-per-day / Sunday guards.
           </p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden mb-4">

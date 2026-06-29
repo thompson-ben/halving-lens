@@ -6,6 +6,9 @@
 import { sbSelect, sbInsert, sbUpdate, supabaseConfigured } from "./supabase";
 import { sendEmail, resendConfigured } from "./resend";
 import { dailyEmailHtml, dailyEmailText, dailyEmailSubject } from "./emailBrief";
+import { weeklyEmailHtml, weeklyEmailText, weeklyEmailSubject } from "./weeklyEmail";
+import { latestWeekly } from "./weekly";
+import { briefDate } from "./briefArchive";
 import { unsubToken } from "./emailToken";
 import { absoluteUrl } from "./site";
 
@@ -95,6 +98,50 @@ export async function sendDailyBrief(opts: { force?: boolean } = {}): Promise<Se
     emails_failed: failed,
     provider: "resend",
   });
+
+  return { ...base, ok: true, subscriberCount: subs.length, sent: subs.length, delivered, failed };
+}
+
+// ── Weekly Research email (Sundays) ──────────────────────────────────────────
+// Idempotent per ISO week. By default only sends on Sundays (UTC); force skips
+// the day gate for testing. Never throws.
+export async function sendWeekly(opts: { force?: boolean } = {}): Promise<SendSummary & { slug: string }> {
+  const w = latestWeekly();
+  const slug = w?.slug ?? "";
+  const base = { ok: false, date: today(), subscriberCount: 0, sent: 0, delivered: 0, failed: 0, provider: "resend", slug };
+
+  if (!supabaseConfigured) return { ...base, reason: "supabase_not_configured" };
+  if (!resendConfigured) return { ...base, reason: "resend_not_configured" };
+  if (!w) return { ...base, reason: "no_weekly_report" };
+  if (!opts.force && briefDate().getUTCDay() !== 0) return { ...base, ok: true, skipped: true, reason: "not_sunday" };
+
+  if (!opts.force) {
+    const seen = await sbSelect<{ slug: string }[]>(`weekly_email_deliveries?select=slug&slug=eq.${encodeURIComponent(slug)}&limit=1`);
+    if (seen && seen.length) return { ...base, ok: true, skipped: true, reason: "already_sent_this_week" };
+  }
+
+  const subs = (await sbSelect<Subscriber[]>("brief_subscribers?select=id,email&or=(status.is.null,status.eq.active)&limit=20000")) ?? [];
+  const subject = weeklyEmailSubject(w);
+  const text = weeklyEmailText(w);
+
+  let delivered = 0;
+  let failed = 0;
+  const logs: Record<string, unknown>[] = [];
+  for (const sub of subs) {
+    const unsubUrl = absoluteUrl(`/api/unsubscribe?e=${encodeURIComponent(sub.email)}&t=${unsubToken(sub.email)}`);
+    const res = await sendEmail({
+      to: sub.email,
+      subject,
+      html: weeklyEmailHtml(w, unsubUrl),
+      text,
+      headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+    });
+    if (res.ok) delivered += 1;
+    else failed += 1;
+    logs.push({ date: today(), subscriber_id: sub.id, email: sub.email, email_status: res.ok ? "delivered" : "failed", provider_message_id: res.id ?? null, error: res.ok ? null : (res.error ?? "unknown").slice(0, 300) });
+  }
+  for (let i = 0; i < logs.length; i += 500) await sbInsert("email_sends", logs.slice(i, i + 500));
+  await sbInsert("weekly_email_deliveries", { slug, subscriber_count: subs.length, emails_sent: subs.length, emails_delivered: delivered, emails_failed: failed, provider: "resend" });
 
   return { ...base, ok: true, subscriberCount: subs.length, sent: subs.length, delivered, failed };
 }

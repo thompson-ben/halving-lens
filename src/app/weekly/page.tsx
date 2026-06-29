@@ -24,11 +24,18 @@ export default function WeeklyPage() {
       <header className="pt-2">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>HalvingLens Weekly Research</div>
-          {stats.total > 0 && (
-            <Link href="/weekly/archive" className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft">
-              Weekly archive <ArrowUpRight size={14} />
-            </Link>
-          )}
+          <div className="flex items-center gap-4">
+            {w && (
+              <a href={`/weekly/${w.slug}/print`} className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">
+                Save as PDF
+              </a>
+            )}
+            {stats.total > 0 && (
+              <Link href="/weekly/archive" className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft">
+                Weekly archive <ArrowUpRight size={14} />
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

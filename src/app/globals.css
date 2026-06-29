@@ -235,3 +235,11 @@ input:focus-visible {
 
 /* Distraction-free landing: hide site chrome on /start (paid traffic). */
 html[data-bare="1"] .site-chrome { display: none !important; }
+
+/* Print / Save-as-PDF: show only the document, on white. */
+@media print {
+  .site-chrome, .no-print { display: none !important; }
+  html, body { background: #fff !important; }
+  main { padding: 0 !important; }
+  .print-page { margin: 0 !important; }
+}

@@ -52,9 +52,14 @@ export default function WeeklySlugPage({ params }: { params: { slug: string } })
   return (
     <div className="space-y-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <Link href="/weekly/archive" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">
-        <ArrowLeft size={13} /> Weekly archive
-      </Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link href="/weekly/archive" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">
+          <ArrowLeft size={13} /> Weekly archive
+        </Link>
+        <a href={`/weekly/${w.slug}/print`} className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">
+          Save as PDF
+        </a>
+      </div>
 
       <WeeklyReport w={w} liveChart={isLatest} />
 
