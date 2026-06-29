@@ -6,6 +6,99 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 394,
+    "slug": "2026-06-29",
+    "dateLabel": "Monday 29 June 2026",
+    "feature": {
+      "key": "market_reset",
+      "day": "Monday",
+      "title": "Market Reset"
+    },
+    "subject": "The crowd is fearful. History wasn't.",
+    "take": "Bitcoin remains historically cheap while sentiment sits in extreme fear.",
+    "contextScore": {
+      "score": 78,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "Bitcoin is trading within the cheapest 84% of historical weeks, while sentiment remains in extreme fear. We have only seen conditions like this a handful of times before.",
+    "confidence": {
+      "level": "HIGH",
+      "blurb": "Today's data strongly aligns with historical behaviour.",
+      "detail": "Valuation, sentiment, cycle timing point the same way; ETF flows diverge."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Deep Value",
+        "color": "#5fd0a0",
+        "strength": 3
+      },
+      {
+        "label": "Sentiment",
+        "value": "Extreme fear",
+        "color": "#e8786f",
+        "strength": 3
+      },
+      {
+        "label": "Cycle position",
+        "value": "Cooling",
+        "color": "#5fd0a0",
+        "strength": 3
+      },
+      {
+        "label": "ETF demand",
+        "value": "Weak",
+        "color": "#e8786f",
+        "strength": 2
+      },
+      {
+        "label": "Momentum",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1
+      }
+    ],
+    "historicalContext": {
+      "match": "Aug 2022",
+      "similarity": 87,
+      "body": "Today most closely resembles Aug 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a deep value valuation backdrop, with sentiment in extreme fear. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "Monday rewards a clear head more than a strong opinion.",
+      "body": "The weekend's moves feel decisive in the moment and forgettable by Wednesday. Bitcoin's position in the cycle didn't change overnight — and it remains in the cheapest 84% of its history. Reset the noise; keep the context."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      },
+      {
+        "signal": "ETF inflows accelerating",
+        "status": "Net outflows of ~$2.0B over the last 7 days"
+      },
+      {
+        "signal": "Sentiment approaching euphoric territory",
+        "status": "Deep fear — Fear & Greed at 12"
+      }
+    ],
+    "memory": "The word “HODL” began life as a typo in a 2013 Bitcoin forum post.",
+    "heroNarrative": "drawdown",
+    "readMin": 2,
+    "metrics": {
+      "price": 59516.673653,
+      "fearGreed": 12,
+      "accumulationScore": 17,
+      "accumulationBand": "Historically Deep Value",
+      "accumulationPercentile": 16,
+      "cycleDay": 801,
+      "etf": "Weak",
+      "sentiment": "Extreme fear"
+    },
+    "search": "bitcoin remains historically cheap while sentiment sits in extreme fear. bitcoin is trading within the cheapest 84% of historical weeks, while sentiment remains in extreme fear. we have only seen conditions like this a handful of times before. monday rewards a clear head more than a strong opinion. the weekend's moves feel decisive in the moment and forgettable by wednesday. bitcoin's position in the cycle didn't change overnight — and it remains in the cheapest 84% of its history. reset the noise; keep the context. today most closely resembles aug 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a deep value valuation backdrop, with sentiment in extreme fear. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. the word “hodl” began life as a typo in a 2013 bitcoin forum post. market reset clear historical context extreme fear historically deep value divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles etf inflows accelerating net outflows of ~$2.0b over the last 7 days sentiment approaching euphoric territory deep fear — fear & greed at 12"
+  },
+  {
     "edition": 393,
     "slug": "2026-06-28",
     "dateLabel": "Sunday 28 June 2026",
