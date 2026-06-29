@@ -3,54 +3,68 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ArrowRight } from "lucide-react";
 import { track } from "@/lib/track";
+import { getAttribution } from "@/lib/attribution";
+import { assignVariant, getVariant } from "@/lib/experiments";
 
-// UTM + referrer for the /start landing — captured client-side and attached to
-// landing + signup events so paid campaigns are attributable.
-function utm(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const p = new URLSearchParams(window.location.search);
-  const o: Record<string, string> = {};
-  for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
-    const v = p.get(k);
-    if (v) o[k] = v.slice(0, 80);
-  }
-  return o;
-}
+const GOLD = "#d9b96a";
 
-// Fires landing_view once per session with UTM + referrer.
-export function LandingAnalytics() {
+// A/B headline variants for the landing hero (config in experiments.ts).
+const HEADLINES: Record<string, string> = {
+  a: "The clearest view of the Bitcoin cycle.",
+  b: "Know where Bitcoin sits — before you check the price.",
+};
+
+// Hero with stable A/B headline + first landing_view (variant + attribution).
+export function LandingHero() {
+  const [variant, setVariant] = useState("a");
+  const fired = useRef(false);
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem("hl.landing")) return;
-      sessionStorage.setItem("hl.landing", "1");
-    } catch {
-      /* ignore */
+    const v = assignVariant("start_headline");
+    setVariant(v);
+    if (!fired.current) {
+      fired.current = true;
+      track("landing_view", { variant: v, ...getAttribution() });
     }
-    track("landing_view", { ...utm(), ref: (typeof document !== "undefined" ? document.referrer : "").slice(0, 120) });
   }, []);
-  return null;
+
+  return (
+    <section className="pt-6 text-center max-w-3xl mx-auto">
+      <div className="text-[10.5px] uppercase tracking-[0.24em] mb-5" style={{ color: GOLD }}>HalvingLens Research</div>
+      <h1 className="font-display text-[40px] sm:text-[60px] font-medium tracking-tightest text-ink-50 leading-[1.03]">
+        {HEADLINES[variant] ?? HEADLINES.a}
+      </h1>
+      <p className="mt-6 text-[16px] sm:text-[18px] text-ink-300 leading-relaxed max-w-xl mx-auto">
+        Understand today&apos;s Bitcoin market in under 60 seconds. No hype. No predictions. Just historical context.
+      </p>
+      <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
+        <LandingCta href="#signup" label="hero_primary" variant={variant}>Get today&apos;s free research</LandingCta>
+        <LandingCta href="/accumulation" label="hero_secondary" variant={variant} kind="secondary">Explore today&apos;s analysis</LandingCta>
+      </div>
+    </section>
+  );
 }
 
-// A premium CTA that records landing_cta (with which CTA + UTM) before navigating.
 export function LandingCta({
   href,
   label,
-  variant = "primary",
+  kind = "primary",
+  variant,
   children,
 }: {
   href: string;
   label: string;
-  variant?: "primary" | "secondary";
+  kind?: "primary" | "secondary";
+  variant?: string;
   children: React.ReactNode;
 }) {
   const cls =
-    variant === "primary"
+    kind === "primary"
       ? "bg-accent text-ink-950 hover:bg-accent-soft"
       : "border border-white/[0.12] bg-white/[0.02] text-ink-100 hover:border-accent/40";
   return (
     <a
       href={href}
-      onClick={() => track("landing_cta", { cta: label, ...utm() })}
+      onClick={() => track("landing_cta", { cta: label, variant: variant ?? getVariant("start_headline"), ...getAttribution() })}
       className={`inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl text-[14px] font-medium transition-colors ${cls}`}
     >
       {children}
@@ -59,17 +73,13 @@ export function LandingCta({
   );
 }
 
-// Email capture tuned for the landing — posts source with UTM and fires a
-// signup event tagged with the campaign.
-export function StartSignup({ compact = false }: { compact?: boolean }) {
+// Email capture tuned for the landing — first-touch attribution + A/B variant
+// ride along on the signup event.
+export function StartSignup() {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const params = useRef<Record<string, string>>({});
-  useEffect(() => {
-    params.current = utm();
-  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,8 +89,8 @@ export function StartSignup({ compact = false }: { compact?: boolean }) {
     }
     setBusy(true);
     setError(null);
-    const u = params.current;
-    const qs = new URLSearchParams(u).toString();
+    const attr = getAttribution();
+    const qs = new URLSearchParams(attr).toString();
     const source = qs ? `/start?${qs}` : "/start";
     try {
       const res = await fetch("/api/subscribe", {
@@ -89,8 +99,6 @@ export function StartSignup({ compact = false }: { compact?: boolean }) {
         body: JSON.stringify({ email, source, consent: true }),
       });
       if (!res.ok) throw new Error();
-      track("signup", { source: "/start", ...u });
-      setDone(true);
     } catch {
       try {
         const key = "halvinglens.brief.waitlist";
@@ -100,9 +108,9 @@ export function StartSignup({ compact = false }: { compact?: boolean }) {
       } catch {
         /* ignore */
       }
-      track("signup", { source: "/start", ...u });
-      setDone(true);
     } finally {
+      track("signup", { source: "/start", variant: getVariant("start_headline"), ...attr });
+      setDone(true);
       setBusy(false);
     }
   };
@@ -116,7 +124,7 @@ export function StartSignup({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <form onSubmit={submit} className={`flex gap-2 flex-wrap ${compact ? "" : "max-w-md"}`}>
+    <form onSubmit={submit} className="flex gap-2 flex-wrap max-w-md">
       <input
         type="email"
         value={email}

@@ -4,6 +4,8 @@ import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { PageTracker } from "@/components/PageTracker";
+import { AttributionCapture } from "@/components/AttributionCapture";
+import { BareChromeSync } from "@/components/ChromeGate";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -53,16 +55,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable} dark`}
     >
       <body className="min-h-screen bg-ink-950 text-ink-100 font-sans antialiased">
+        {/* Hide site chrome before paint on the paid landing (?nav=1 keeps it). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=location.pathname,n=new URLSearchParams(location.search).get('nav');if(p==='/start'&&n!=='1'){document.documentElement.setAttribute('data-bare','1');}}catch(e){}})();`,
+          }}
+        />
         <div className="flex min-h-screen">
-          <Sidebar />
+          <div className="site-chrome" style={{ display: "contents" }}>
+            <Sidebar />
+          </div>
           <div className="flex-1 flex flex-col min-w-0">
-            <TopBar />
+            <div className="site-chrome" style={{ display: "contents" }}>
+              <TopBar />
+            </div>
             <main className="flex-1 px-8 lg:px-14 py-10 lg:py-14">
               <div className="max-w-[1320px] mx-auto">{children}</div>
             </main>
           </div>
         </div>
         <PageTracker />
+        <AttributionCapture />
+        <BareChromeSync />
       </body>
     </html>
   );

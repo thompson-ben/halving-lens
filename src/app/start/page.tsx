@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Check, X } from "lucide-react";
-import { LandingAnalytics, LandingCta, StartSignup } from "@/components/LandingClient";
+import { LandingHero, LandingCta, StartSignup } from "@/components/LandingClient";
 import { editionContent } from "@/lib/emailBrief";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "@/lib/sentiment";
 import { libraryStats } from "@/lib/research";
@@ -22,22 +22,7 @@ export default function StartPage() {
 
   return (
     <div className="space-y-24">
-      <LandingAnalytics />
-
-      {/* Hero */}
-      <section className="pt-6 text-center max-w-3xl mx-auto">
-        <div className="text-[10.5px] uppercase tracking-[0.24em] mb-5" style={{ color: GOLD }}>HalvingLens Research</div>
-        <h1 className="font-display text-[40px] sm:text-[60px] font-medium tracking-tightest text-ink-50 leading-[1.03]">
-          The clearest view of the Bitcoin cycle.
-        </h1>
-        <p className="mt-6 text-[16px] sm:text-[18px] text-ink-300 leading-relaxed max-w-xl mx-auto">
-          Understand today&apos;s Bitcoin market in under 60 seconds. No hype. No predictions. Just historical context.
-        </p>
-        <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
-          <LandingCta href="#signup" label="hero_primary">Get today&apos;s free research</LandingCta>
-          <LandingCta href="/accumulation" label="hero_secondary" variant="secondary">Explore today&apos;s analysis</LandingCta>
-        </div>
-      </section>
+      <LandingHero />
 
       {/* Today's Bitcoin Check — immediate value */}
       <section>
