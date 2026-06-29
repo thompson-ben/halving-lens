@@ -46,6 +46,7 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
   const email = a.email;
   const brief = a.brief;
   const research = a.research;
+  const landing = a.landing;
 
   return (
     <Shell>
@@ -143,6 +144,26 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
           </div>
         </Panel>
       </div>
+
+      {/* /start landing conversion */}
+      <Panel title="Landing &amp; conversion (/start)">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden mb-4">
+          <MiniStat label="Landing views" value={landing.views} />
+          <MiniStat label="CTA clicks" value={landing.ctaClicks} />
+          <MiniStat label="Signups" value={landing.signups} />
+          <MiniStat label="Conversion" value={landing.conversionRate != null ? `${landing.conversionRate}%` : "—"} />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-ink-500 mb-2">Top UTM sources</div>
+            <Bars items={landing.topSources} empty="No campaign traffic yet." />
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-ink-500 mb-2">Top campaigns</div>
+            <Bars items={landing.topCampaigns} empty="No campaigns yet." />
+          </div>
+        </div>
+      </Panel>
 
       {/* Morning Research Library */}
       <Panel title="Morning Research Library">

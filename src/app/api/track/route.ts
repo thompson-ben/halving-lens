@@ -36,6 +36,11 @@ const ALLOWED = new Set([
   "research_search",
   "research_filter",
   "research_share",
+  // Weekly Research + /start landing
+  "weekly_view",
+  "weekly_share",
+  "landing_view",
+  "landing_cta",
 ]);
 
 // Internal / non-content paths that should never count as a viewer page view.

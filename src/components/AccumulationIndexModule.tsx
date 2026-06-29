@@ -29,7 +29,7 @@ export function AccumulationIndexModule() {
               {r.band.label}
             </div>
             <div className="text-[12px] text-ink-400 mt-1">
-              {r.historicalPercentile}th percentile of Bitcoin history · only {cheaperThan}% of weeks have been cheaper
+              {r.historicalPercentile}th percentile of Bitcoin history · cheaper than {cheaperThan}% of all weeks
             </div>
           </div>
         </div>

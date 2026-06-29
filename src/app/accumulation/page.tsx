@@ -104,7 +104,7 @@ export default function AccumulationPage() {
           {read.historicalPercentile}<span className="text-[26px] sm:text-[32px] text-ink-500">th percentile</span>
         </div>
         <p className="mt-4 text-[15px] sm:text-[16px] text-ink-200 leading-relaxed max-w-2xl mx-auto">
-          Only <span className="text-ink-50 font-medium">{cheaperThan}% of Bitcoin&apos;s history</span> has been
+          Only <span className="text-ink-50 font-medium">{read.historicalPercentile}% of Bitcoin&apos;s history</span> has been
           cheaper than today by this price-only methodology. Put another way, today&apos;s conditions are
           more attractive than <span className="text-ink-50 font-medium">{cheaperThan}%</span> of all weeks since 2012.
         </p>

@@ -88,7 +88,7 @@ function oneThing(): string {
   const { acc, cheaper, cheap, greed, fear, sr } = reads();
   if (cheap)
     return (
-      `Bitcoin is trading within the cheapest ${cheaper}% of historical weeks` +
+      `Bitcoin is trading cheaper than ${cheaper}% of all weeks in its history` +
       (fear ? `, while sentiment remains in ${sr!.band.label.toLowerCase()}` : "") +
       `. We have only seen conditions like this a handful of times before.`
     );
@@ -225,7 +225,7 @@ function analystObservation(): { quote: string; body: string } {
   if (feature === "etf")
     return {
       quote: "ETF demand has altered Bitcoin's rhythm, but not investor psychology.",
-      body: `Flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. The plumbing has changed; the behaviour running through it hasn't. ${cheap ? `Today that leaves Bitcoin in the cheapest ${cheaper}% of its history regardless of the tape.` : "The cycle's mechanics are new; its emotions are familiar."}`,
+      body: `Flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. The plumbing has changed; the behaviour running through it hasn't. ${cheap ? `Today that leaves Bitcoin cheaper than ${cheaper}% of its history regardless of the tape.` : "The cycle's mechanics are new; its emotions are familiar."}`,
     };
   if (feature === "weekly_close")
     return {
@@ -245,24 +245,24 @@ function analystObservation(): { quote: string; body: string } {
   if (feature === "market_reset")
     return {
       quote: "Monday rewards a clear head more than a strong opinion.",
-      body: `The weekend's moves feel decisive in the moment and forgettable by Wednesday. Bitcoin's position in the cycle didn't change overnight — and ${cheap ? `it remains in the cheapest ${cheaper}% of its history.` : "it remains exactly where the data left it on Friday."} Reset the noise; keep the context.`,
+      body: `The weekend's moves feel decisive in the moment and forgettable by Wednesday. Bitcoin's position in the cycle didn't change overnight — and ${cheap ? `it remains cheaper than ${cheaper}% of its history.` : "it remains exactly where the data left it on Friday."} Reset the noise; keep the context.`,
     };
 
   // Condition-led (Mon/Tue/Wed features).
   if (cheap && fear)
     return {
       quote: "The crowd usually notices value only after fear has disappeared.",
-      body: `Today fear and opportunity occupy the same room: Bitcoin sits in the cheapest ${cheaper}% of its history while sentiment is at its most fearful. History doesn't repeat — but it rarely leaves these conditions on the table for long.`,
+      body: `Today fear and opportunity occupy the same room: Bitcoin sits cheaper than ${cheaper}% of its history while sentiment is at its most fearful. History doesn't repeat — but it rarely leaves these conditions on the table for long.`,
     };
   if (cheap && etfNeg)
     return {
       quote: "It's tempting to read negative flows as a verdict. They're usually just an echo.",
-      body: `Flows follow price more than they lead it. Bitcoin is trading in the cheapest ${cheaper}% of its history regardless — and the gap between a cheap setup and a fearful tape is usually where the interesting decisions get made.`,
+      body: `Flows follow price more than they lead it. Bitcoin is trading cheaper than ${cheaper}% of its history regardless — and the gap between a cheap setup and a fearful tape is usually where the interesting decisions get made.`,
     };
   if (cheap)
     return {
       quote: "Cheap and boring is an underrated combination.",
-      body: `Bitcoin sits in the cheapest ${cheaper}% of its history with little drama attached. History suggests the quiet stretches, not the loud ones, are where positioning is quietly decided.`,
+      body: `Bitcoin sits cheaper than ${cheaper}% of its history with little drama attached. History suggests the quiet stretches, not the loud ones, are where positioning is quietly decided.`,
     };
   if (greed)
     return {
@@ -373,7 +373,7 @@ export function dailyEmailText(): string {
     `Confidence: ${conf.level} — ${conf.blurb}`,
     "",
     `Market health — value: ${acc.band.label.replace("Historically ", "")} · sentiment: ${s.heat} · cycle score: ${sc.overall}/100`,
-    `Price: ${fmtUsd(s.price)}${s.change24h != null ? ` (${fmtPct(s.change24h, 1)} 24h)` : ""} · Accumulation: ${acc.score}/100 (only ${cheaper}% of weeks cheaper)`,
+    `Price: ${fmtUsd(s.price)}${s.change24h != null ? ` (${fmtPct(s.change24h, 1)} 24h)` : ""} · Accumulation: ${acc.score}/100 (cheaper than ${cheaper}% of weeks)`,
     "",
     `Analyst observation: "${analystObservation().quote}" ${analystObservation().body}`,
     "",

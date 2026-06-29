@@ -55,6 +55,14 @@ export interface GrowthDashboard {
     topSearches: LabelCount[];
     topFeatures: LabelCount[];
   };
+  landing: {
+    views: number;
+    ctaClicks: number;
+    signups: number;
+    conversionRate: number | null; // %
+    topSources: LabelCount[];
+    topCampaigns: LabelCount[];
+  };
   email: {
     sent: number;
     delivered: number;
@@ -104,6 +112,7 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     accumulation: { views: 0, dcaChanges: 0, timelineChanges: 0, copies: 0, signups: 0, avgSeconds: null, avgScroll: null },
     brief: { views: 0, avgSeconds: null, avgScroll: null },
     research: { ...editionLibrary(), views: 0, topEditions: [], topShared: [], topSearches: [], topFeatures: [] },
+    landing: { views: 0, ctaClicks: 0, signups: 0, conversionRate: null, topSources: [], topCampaigns: [] },
     email: { sent: 0, delivered: 0, failed: 0, deliveryRate: null, failureRate: null, recent: [] },
     trend: [],
   };
@@ -262,6 +271,17 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
   const topSearches = tallyProp(searchRows, "q");
   const topFeatures = tallyProp(rFilterRows, "feature");
 
+  // ── /start landing conversion ─────────────────────────────────────────────
+  const [landingViewRows, landingCtaRows] = await Promise.all([
+    sbSelect<{ props: Record<string, unknown> }[]>("events?select=props&name=eq.landing_view&limit=20000"),
+    sbSelect<{ props: Record<string, unknown> }[]>("events?select=props&name=eq.landing_cta&limit=20000"),
+  ]);
+  const landingViews = (landingViewRows ?? []).length;
+  const landingCtas = (landingCtaRows ?? []).length;
+  const landingSignups = (signupRows ?? []).filter((r) => (r.props?.source as string) === "/start").length;
+  const landingTopSources = tallyProp(landingViewRows, "utm_source");
+  const landingTopCampaigns = tallyProp(landingViewRows, "utm_campaign");
+
   // Accumulation engagement averages.
   let secSum = 0;
   let scrollSum = 0;
@@ -307,6 +327,14 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     topSignupSources,
     brief: { views: pageTally.get("/brief") ?? 0, avgSeconds: bN ? Math.round(bSec / bN) : null, avgScroll: bN ? Math.round(bScroll / bN) : null },
     research: { totalEditions: lib.totalEditions, avgReadMin: lib.avgReadMin, views: researchViews, topEditions, topShared, topSearches, topFeatures },
+    landing: {
+      views: landingViews,
+      ctaClicks: landingCtas,
+      signups: landingSignups,
+      conversionRate: landingViews ? Math.round((landingSignups / landingViews) * 1000) / 10 : null,
+      topSources: landingTopSources,
+      topCampaigns: landingTopCampaigns,
+    },
     email: {
       sent: emSent,
       delivered: emDelivered,
