@@ -17,9 +17,12 @@ import { accumulationRead } from "./accumulation";
 import { etfStats, ETF } from "./etf";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { similarMoments } from "./similarity";
-import { editorialFeature, editionNumber } from "./editorial";
+import { editorialFeature, editionNumber, featureHeroNarrative } from "./editorial";
+import { briefDate } from "./briefArchive";
+import type { Edition } from "./research";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
 import { fmtUsd, fmtPct } from "./format";
+import { format } from "date-fns";
 
 export type EmailTier = "free" | "pro";
 
@@ -277,6 +280,65 @@ function watching(): { signal: string; status: string }[] {
   const { s } = reads();
   const elevated = s.watchSignals.filter((w) => w.level !== "calm");
   return (elevated.length ? elevated : s.watchSignals).slice(0, 3).map((w) => ({ signal: w.signal, status: w.status }));
+}
+
+// ── Edition content — the single serializable source of truth ────────────────
+// Drives the email AND the permanent research page/record, so they never drift.
+export function editionContent(): Edition {
+  const { s, acc, sr } = reads();
+  const cs = contextScore();
+  const obs = analystObservation();
+  const ctx = historicalContext();
+  const mh = marketHealth();
+  const conf = confidence();
+  const watch = watching();
+  const feature = editorialFeature();
+  const stars = Math.max(1, Math.min(5, Math.round(cs.score / 20)));
+
+  const take = todaysTake();
+  const one = oneThing();
+  const why = whyThisMattersToday();
+  const mem = bitcoinMemory();
+  const words = `${take} ${one} ${conf.blurb} ${conf.detail} ${ctx?.body ?? ""} ${why} ${obs.quote} ${obs.body} ${watch.map((w) => w.signal + " " + w.status).join(" ")} ${mem}`.split(/\s+/).length;
+  const readMin = Math.max(2, Math.round(words / 200));
+
+  const search = [
+    take, one, obs.quote, obs.body, ctx?.body ?? "", why, mem, feature.title, cs.label,
+    sr ? sr.band.label : "", acc.band.label, ...watch.map((w) => `${w.signal} ${w.status}`),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return {
+    edition: editionNumber(),
+    slug: format(briefDate(), "yyyy-MM-dd"),
+    dateLabel: format(briefDate(), "EEEE d MMMM yyyy"),
+    feature: { key: feature.key, day: feature.day, title: feature.title },
+    subject: dailyEmailSubject(),
+    take,
+    contextScore: { score: cs.score, label: cs.label, stars },
+    oneThing: one,
+    confidence: { level: conf.level, blurb: conf.blurb, detail: conf.detail },
+    marketHealth: mh,
+    historicalContext: ctx,
+    whyToday: why,
+    analyst: obs,
+    watching: watch,
+    memory: mem,
+    heroNarrative: featureHeroNarrative(),
+    readMin,
+    metrics: {
+      price: s.price,
+      fearGreed: sr ? sr.value : null,
+      accumulationScore: acc.score,
+      accumulationBand: acc.band.label,
+      accumulationPercentile: acc.historicalPercentile,
+      cycleDay: s.cycleDay,
+      etf: mh.find((r) => r.label === "ETF demand")?.value ?? "—",
+      sentiment: sr ? sr.band.label : "n/a",
+    },
+    search,
+  };
 }
 
 // ── Subject — curiosity-first, no formulaic prefix ───────────────────────────

@@ -12,6 +12,7 @@
     "sync": "tsx scripts/sync.ts",
     "warehouse": "tsx scripts/warehouse.ts",
     "persist-brief": "tsx scripts/persist-brief.ts",
+    "persist-edition": "tsx scripts/persist-edition.ts",
     "send-email": "tsx scripts/send-email.ts",
     "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\""
   },

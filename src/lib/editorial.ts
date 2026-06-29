@@ -4,6 +4,7 @@
 // email copy and the hero image always agree for a given day.
 
 import { selectHistoricalNarrative } from "./contentCards";
+import { briefDate } from "./briefArchive";
 
 export type FeatureKey =
   | "weekahead"
@@ -34,7 +35,7 @@ const WEEK: { key: FeatureKey; title: string }[] = [
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export function editorialFeature(): EditorialFeature {
-  const d = new Date().getUTCDay();
+  const d = briefDate().getUTCDay();
   return { day: DAY_NAMES[d], ...WEEK[d] };
 }
 
@@ -42,7 +43,7 @@ export function editorialFeature(): EditorialFeature {
 // publication ("Edition #392"). Counted in whole UTC days from launch.
 const LAUNCH = Date.UTC(2025, 5, 1); // 1 Jun 2025
 export function editionNumber(): number {
-  const today = new Date();
+  const today = briefDate();
   const days = Math.floor((Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - LAUNCH) / 86_400_000);
   return Math.max(1, days + 1);
 }
