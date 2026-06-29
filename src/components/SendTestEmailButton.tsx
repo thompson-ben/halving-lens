@@ -17,7 +17,13 @@ interface SendResult {
   error?: string;
 }
 
-export function SendTestEmailButton() {
+export function SendTestEmailButton({
+  endpoint = "/api/admin/send-brief",
+  label = "Send test email now",
+}: {
+  endpoint?: string;
+  label?: string;
+}) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SendResult | null>(null);
 
@@ -27,7 +33,7 @@ export function SendTestEmailButton() {
     try {
       const key = new URLSearchParams(window.location.search).get("key");
       const qs = `force=1${key ? `&key=${encodeURIComponent(key)}` : ""}`;
-      const res = await fetch(`/api/admin/send-brief?${qs}`, { method: "POST" });
+      const res = await fetch(`${endpoint}?${qs}`, { method: "POST" });
       setResult((await res.json()) as SendResult);
     } catch (e) {
       setResult({ ok: false, error: (e as Error).message });
@@ -55,7 +61,7 @@ export function SendTestEmailButton() {
         className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-accent text-ink-950 text-[12.5px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
       >
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-        {busy ? "Sending…" : "Send test email now"}
+        {busy ? "Sending…" : label}
       </button>
       {summary && (
         <span
