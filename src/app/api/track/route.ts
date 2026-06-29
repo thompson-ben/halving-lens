@@ -31,6 +31,11 @@ const ALLOWED = new Set([
   "copy_summary",
   "dca_change",
   "timeline_range",
+  // Morning Research Library
+  "research_view",
+  "research_search",
+  "research_filter",
+  "research_share",
 ]);
 
 // Internal / non-content paths that should never count as a viewer page view.
