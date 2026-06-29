@@ -232,3 +232,6 @@ input:focus-visible {
   color: #e4e9f0 !important;
   font-size: 12px !important;
 }
+
+/* Distraction-free landing: hide site chrome on /start (paid traffic). */
+html[data-bare="1"] .site-chrome { display: none !important; }

@@ -4,6 +4,7 @@
 
 import { sbCount, sbSelect, supabaseConfigured } from "./supabase";
 import { allEditions } from "./research";
+import { AD_SPEND } from "./data/adSpend";
 
 // ── Founder growth dashboard (/admin/analytics) ──────────────────────────────
 // A focused, fast read on what users value and where the email list grows from.
@@ -63,6 +64,14 @@ export interface GrowthDashboard {
     topSources: LabelCount[];
     topCampaigns: LabelCount[];
   };
+  growth: {
+    campaigns: { campaign: string; visitors: number; signups: number; spend: number | null; cps: number | null }[];
+    variants: { variant: string; views: number; signups: number; cvr: number | null }[];
+    referralSignups: number;
+    adSpendTotal: number;
+    avgSessionSeconds: number | null;
+    avgScroll: number | null;
+  };
   email: {
     sent: number;
     delivered: number;
@@ -113,6 +122,7 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     brief: { views: 0, avgSeconds: null, avgScroll: null },
     research: { ...editionLibrary(), views: 0, topEditions: [], topShared: [], topSearches: [], topFeatures: [] },
     landing: { views: 0, ctaClicks: 0, signups: 0, conversionRate: null, topSources: [], topCampaigns: [] },
+    growth: { campaigns: [], variants: [], referralSignups: 0, adSpendTotal: AD_SPEND.reduce((s, a) => s + a.spend, 0), avgSessionSeconds: null, avgScroll: null },
     email: { sent: 0, delivered: 0, failed: 0, deliveryRate: null, failureRate: null, recent: [] },
     trend: [],
   };
@@ -272,15 +282,69 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
   const topFeatures = tallyProp(rFilterRows, "feature");
 
   // ── /start landing conversion ─────────────────────────────────────────────
-  const [landingViewRows, landingCtaRows] = await Promise.all([
+  const [landingViewRows, landingCtaRows, engAllRows] = await Promise.all([
     sbSelect<{ props: Record<string, unknown> }[]>("events?select=props&name=eq.landing_view&limit=20000"),
     sbSelect<{ props: Record<string, unknown> }[]>("events?select=props&name=eq.landing_cta&limit=20000"),
+    sbSelect<{ props: Record<string, unknown> }[]>("events?select=props&name=eq.engagement&limit=20000"),
   ]);
+  let gSec = 0, gScroll = 0, gN = 0;
+  for (const r of engAllRows ?? []) {
+    const s = Number(r.props?.seconds);
+    if (Number.isFinite(s)) { gSec += s; gScroll += Number.isFinite(Number(r.props?.scrollPct)) ? Number(r.props?.scrollPct) : 0; gN += 1; }
+  }
   const landingViews = (landingViewRows ?? []).length;
   const landingCtas = (landingCtaRows ?? []).length;
   const landingSignups = (signupRows ?? []).filter((r) => (r.props?.source as string) === "/start").length;
   const landingTopSources = tallyProp(landingViewRows, "utm_source");
   const landingTopCampaigns = tallyProp(landingViewRows, "utm_campaign");
+
+  // Campaign cost-per-subscriber (joins attributed signups with manual ad spend).
+  const campMap = new Map<string, { visitors: number; signups: number }>();
+  for (const r of landingViewRows ?? []) {
+    const c = String(r.props?.utm_campaign ?? "");
+    if (!c) continue;
+    const e = campMap.get(c) ?? { visitors: 0, signups: 0 };
+    e.visitors += 1;
+    campMap.set(c, e);
+  }
+  for (const r of signupRows ?? []) {
+    const c = String(r.props?.utm_campaign ?? "");
+    if (!c) continue;
+    const e = campMap.get(c) ?? { visitors: 0, signups: 0 };
+    e.signups += 1;
+    campMap.set(c, e);
+  }
+  const spendByCamp = new Map(AD_SPEND.map((a) => [a.campaign, a.spend]));
+  for (const a of AD_SPEND) if (!campMap.has(a.campaign)) campMap.set(a.campaign, { visitors: 0, signups: 0 });
+  const campaigns = [...campMap.entries()]
+    .map(([campaign, v]) => {
+      const spend = spendByCamp.get(campaign) ?? null;
+      return { campaign, visitors: v.visitors, signups: v.signups, spend, cps: spend != null && v.signups > 0 ? Math.round((spend / v.signups) * 100) / 100 : null };
+    })
+    .sort((a, b) => b.signups - a.signups || b.visitors - a.visitors);
+
+  // A/B variant performance (landing headline experiment).
+  const varMap = new Map<string, { views: number; signups: number }>();
+  for (const r of landingViewRows ?? []) {
+    const v = String(r.props?.variant ?? "");
+    if (!v) continue;
+    const e = varMap.get(v) ?? { views: 0, signups: 0 };
+    e.views += 1;
+    varMap.set(v, e);
+  }
+  for (const r of signupRows ?? []) {
+    const v = String(r.props?.variant ?? "");
+    if (!v || r.props?.source !== "/start") continue;
+    const e = varMap.get(v) ?? { views: 0, signups: 0 };
+    e.signups += 1;
+    varMap.set(v, e);
+  }
+  const variants = [...varMap.entries()]
+    .map(([variant, v]) => ({ variant, views: v.views, signups: v.signups, cvr: v.views ? Math.round((v.signups / v.views) * 1000) / 10 : null }))
+    .sort((a, b) => (a.variant < b.variant ? -1 : 1));
+
+  const referralSignups = (signupRows ?? []).filter((r) => r.props?.ref).length;
+  const adSpendTotal = AD_SPEND.reduce((s, a) => s + a.spend, 0);
 
   // Accumulation engagement averages.
   let secSum = 0;
@@ -335,6 +399,7 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
       topSources: landingTopSources,
       topCampaigns: landingTopCampaigns,
     },
+    growth: { campaigns, variants, referralSignups, adSpendTotal, avgSessionSeconds: gN ? Math.round(gSec / gN) : null, avgScroll: gN ? Math.round(gScroll / gN) : null },
     email: {
       sent: emSent,
       delivered: emDelivered,
