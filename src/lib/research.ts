@@ -99,6 +99,31 @@ export function adjacentEditions(n: number): { prev: Edition | null; next: Editi
   return { prev, next };
 }
 
+// Editions grouped by calendar month (newest month first; newest edition first
+// within each). Powers the timeline view — scroll through Bitcoin history one
+// research note per day.
+export interface EditionMonth {
+  key: string; // YYYY-MM
+  label: string; // "June 2026"
+  editions: Edition[];
+}
+export function editionsByMonth(): EditionMonth[] {
+  const groups = new Map<string, Edition[]>();
+  for (const e of allEditions()) {
+    const key = e.slug.slice(0, 7);
+    const list = groups.get(key);
+    if (list) list.push(e);
+    else groups.set(key, [e]);
+  }
+  return [...groups.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([key, editions]) => {
+      const d = new Date(`${key}-01T00:00:00Z`);
+      const label = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(d);
+      return { key, label, editions };
+    });
+}
+
 // Hand-picked "related research" for an edition — best-effort, deduped.
 export function relatedEditions(e: Edition): { label: string; edition: Edition }[] {
   const others = allEditions().filter((x) => x.edition !== e.edition);

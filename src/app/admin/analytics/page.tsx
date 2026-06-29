@@ -45,6 +45,7 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
   const acc = a.accumulation;
   const email = a.email;
   const brief = a.brief;
+  const research = a.research;
 
   return (
     <Shell>
@@ -142,6 +143,34 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
           </div>
         </Panel>
       </div>
+
+      {/* Morning Research Library */}
+      <Panel title="Morning Research Library">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden mb-4">
+          <MiniStat label="Editions" value={research.totalEditions} />
+          <MiniStat label="Avg read" value={research.avgReadMin != null ? `${research.avgReadMin} min` : "—"} />
+          <MiniStat label="Library views" value={research.views} />
+          <MiniStat label="Shares" value={research.topShared.reduce((s, x) => s + x.n, 0)} />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-ink-500 mb-2">Most viewed editions</div>
+            <Bars items={research.topEditions} empty="No edition views yet." />
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-ink-500 mb-2">Most shared editions</div>
+            <Bars items={research.topShared} empty="No shares yet." />
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-ink-500 mb-2">Most searched terms</div>
+            <Bars items={research.topSearches} empty="No searches yet." />
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.14em] text-ink-500 mb-2">Most filtered features</div>
+            <Bars items={research.topFeatures} empty="No filters used yet." />
+          </div>
+        </div>
+      </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Top pages">
