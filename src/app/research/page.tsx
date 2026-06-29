@@ -1,6 +1,8 @@
 import { ResearchLibrary } from "@/components/ResearchLibrary";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { allEditions, libraryStats } from "@/lib/research";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
 export const metadata = {
   title: "Morning Research Library — halvinglens.com",
@@ -29,6 +31,11 @@ export default function ResearchLibraryPage() {
           Every edition of HalvingLens Research, permanently archived — a daily Bitcoin cycle note,
           dated and historically accurate forever. <span className="text-ink-100">The website is the evidence; the research is the thinking.</span>
         </p>
+        {stats.total > 0 && (
+          <Link href="/research/timeline" className="mt-4 inline-flex items-center gap-1.5 text-[13px] text-accent hover:text-accent-soft">
+            Read the timeline <ArrowUpRight size={14} />
+          </Link>
+        )}
       </header>
 
       {stats.total === 0 ? (
