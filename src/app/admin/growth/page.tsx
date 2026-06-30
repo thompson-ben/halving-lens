@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
 import { growthDashboard } from "@/lib/analytics";
+import { marketingHealth, type MarketingHealth, type HealthStatus } from "@/lib/marketingHealth";
 import { AdminLogin } from "@/components/AdminLogin";
 import { weeklyStats } from "@/lib/weekly";
+import { timeAgo } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Growth — halvinglens.com", robots: { index: false } };
@@ -17,19 +19,33 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
-  const a = await growthDashboard();
-  if (!a.configured)
-    return <Shell><p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql.</p></Shell>;
-
-  const g = a.growth;
-  const weeklies = weeklyStats();
-  const overallCps = g.adSpendTotal > 0 && a.landing.signups > 0 ? Math.round((g.adSpendTotal / a.landing.signups) * 100) / 100 : null;
+  const [health, a] = await Promise.all([marketingHealth(), growthDashboard()]);
 
   return (
     <Shell>
       <div className="-mt-2">
         <a href="/admin/analytics" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-accent/25 bg-accent/[0.06] text-accent text-[12.5px] hover:bg-accent/[0.1]">Full analytics →</a>
       </div>
+
+      {/* Marketing Health — the pre-flight checklist */}
+      <MarketingHealthCard h={health} />
+
+      {!a.configured ? (
+        <p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql to populate the metrics below.</p>
+      ) : (
+        <GrowthBody a={a} />
+      )}
+    </Shell>
+  );
+}
+
+function GrowthBody({ a }: { a: Awaited<ReturnType<typeof growthDashboard>> }) {
+  const g = a.growth;
+  const weeklies = weeklyStats();
+  const overallCps = g.adSpendTotal > 0 && a.landing.signups > 0 ? Math.round((g.adSpendTotal / a.landing.signups) * 100) / 100 : null;
+
+  return (
+    <>
 
       {/* KPI grid */}
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
@@ -146,7 +162,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
         Cost-per-subscriber uses manual ad spend (src/lib/data/adSpend.ts) joined with attributed signups. Email open
         rate needs Resend webhooks (not yet wired). First-party, privacy-friendly analytics.
       </p>
-    </Shell>
+    </>
   );
 }
 
@@ -183,6 +199,57 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
     <div className="card p-6">
       <h2 className="text-[12.5px] font-medium text-ink-100 mb-4 uppercase tracking-[0.16em]">{title}</h2>
       {children}
+    </div>
+  );
+}
+const DOT: Record<HealthStatus, string> = { ok: "✅", warn: "🟡", fail: "🔴" };
+const RAG: Record<string, { dot: string; cls: string }> = {
+  green: { dot: "🟢", cls: "border-signal-green/30 bg-signal-green/[0.06]" },
+  amber: { dot: "🟡", cls: "border-signal-amber/30 bg-signal-amber/[0.06]" },
+  red: { dot: "🔴", cls: "border-signal-red/30 bg-signal-red/[0.06]" },
+};
+function MarketingHealthCard({ h }: { h: MarketingHealth }) {
+  const rag = RAG[h.overall];
+  const t = h.timestamps;
+  const when = (iso: string | null) => (iso ? timeAgo(iso) : "—");
+  return (
+    <section className={`rounded-xl border ${rag.cls} p-6`}>
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
+        <div>
+          <div className="text-[10.5px] uppercase tracking-[0.22em] text-ink-400 mb-1.5">Marketing Health</div>
+          <div className="font-display text-[22px] text-ink-50">{rag.dot} {h.overallLabel}</div>
+        </div>
+        <div className="text-right">
+          <div className="font-display text-[28px] text-ink-50 tabular-nums">{h.score}<span className="text-[15px] text-ink-500"> / 10</span></div>
+          <div className="text-[10.5px] text-ink-500">checked {timeAgo(h.lastVerified)}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
+        {h.checks.map((c) => (
+          <div key={c.system} className="flex items-center gap-2 py-1.5 border-b border-white/[0.05]">
+            <span className="text-[13px]">{DOT[c.status]}</span>
+            <span className="text-[13px] text-ink-200 w-40 shrink-0">{c.system}</span>
+            <span className="text-[11.5px] text-ink-500 truncate">{c.detail}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-[11px]">
+        <LastItem label="Daily research" v={when(t.dailyResearch)} />
+        <LastItem label="Weekly research" v={when(t.weeklyResearch)} />
+        <LastItem label="Last email sent" v={when(t.emailSent)} />
+        <LastItem label="Last analytics event" v={when(t.analyticsEvent)} />
+        <LastItem label="Last visitor" v={when(t.visitor)} />
+      </div>
+    </section>
+  );
+}
+function LastItem({ label, v }: { label: string; v: string }) {
+  return (
+    <div>
+      <div className="text-ink-500 uppercase tracking-[0.12em] text-[9.5px]">{label}</div>
+      <div className="text-ink-200 mt-0.5">{v}</div>
     </div>
   );
 }
