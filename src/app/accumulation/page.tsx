@@ -203,9 +203,11 @@ export default function AccumulationPage() {
         <p className="text-[12.5px] text-ink-400 mb-4 max-w-2xl">
           What if, instead of buying a flat amount each week, an accumulator had leaned into
           historically cheaper conditions and eased off in overheated ones — or gone a step further and{" "}
-          <span className="text-ink-100">trimmed</span> the position in overheated stretches? Switch between{" "}
-          <span className="text-ink-100">Accumulate</span> and <span className="text-ink-100">Accumulate &amp; Distribute</span>{" "}
-          to see how each rule <span className="text-ink-100">would have behaved</span> on Bitcoin&apos;s full history.
+          <span className="text-ink-100">trimmed</span> the position in overheated stretches, banked the profit
+          (after tax) and redeployed it on the next dip? Switch to{" "}
+          <span className="text-ink-100">Accumulate &amp; Distribute</span> for a three-way race — DCA vs Dynamic DCA
+          vs Dynamic DCA + Distribution — and see which rule did most for{" "}
+          <span className="text-ink-100">long-term growth</span> on Bitcoin&apos;s full history.
         </p>
         <div className="card p-4 sm:p-7 relative">
           <DcaSimulatorPanel />

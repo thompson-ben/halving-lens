@@ -6,7 +6,7 @@
 // Educational backtest only: it shows how the rule WOULD have behaved on past
 // data. It is not advice and not a prediction of future results.
 
-import { accumulationSeries, overheatedRunStats, type AccumulationBandKey } from "./accumulation";
+import { accumulationSeries, overheatedRunStats, cheapRunStats, type AccumulationBandKey } from "./accumulation";
 
 export interface DcaPlanResult {
   label: string;
@@ -109,76 +109,95 @@ export function simulateDca(opts: DcaOptions = {}): DcaSimulation {
   };
 }
 
-// ── Accumulate & Distribute ──────────────────────────────────────────────────
-// A second rule that not only scales buying but also TRIMS the position in
-// historically overheated conditions. It buys when the environment is neutral or
-// below, reduces (or pauses) buying when elevated, and in the overheated band it
-// stops buying and sells a small, fixed slice of the holding each week.
+// ── Three-way comparison: DCA vs Dynamic DCA vs Dynamic DCA + Distribution ────
+// All three run over the SAME window and the SAME weekly budget, so they answer
+// one question: given long-term growth, which rule did most with the money?
 //
-// Sell sizing (the user's question — "what % should we sell?"): rather than
-// trying to call the exact top, we spread a target trim across a typical
-// overheated stretch. Historically Bitcoin has spent an AVERAGE of `avgWeeks` in
-// the overheated band per stretch, so to trim `targetSellPct` of the position
-// across a typical stretch we sell `targetSellPct / avgWeeks` of the *current*
-// holding each overheated week. A long-term core is intentionally retained.
+//   1. Standard DCA      — flat weekly buy, never sells.
+//   2. Dynamic DCA       — buy scaled by the historical band (more when cheap,
+//                          less when overheated), never sells.
+//   3. + Distribution    — same scaled buying, but in the overheated band it
+//                          stops buying and TRIMS the holding, pays capital gains
+//                          tax on the realised profit, banks the net as a cash
+//                          "war chest", then redeploys that war chest into extra
+//                          buys when Bitcoin is back in attractive-or-cheaper
+//                          territory ("buy the dip with realised profit").
 //
-// Educational backtest only — the score never says "sell"; this just shows how a
-// mechanical trim-into-strength rule WOULD have behaved on past data.
+// Sell sizing: trim `targetSellPct` spread across a typical overheated stretch,
+// i.e. targetSellPct ÷ average historical overheated weeks per week. Redeploy
+// sizing is symmetric: spend the war chest across a typical cheap stretch.
+//
+// Capital gains: a flat `taxRatePct` of each trim's PROFIT (proceeds above the
+// average-cost basis of the Bitcoin sold) is deducted before banking the cash.
+//
+// Educational backtest only — the score never says "buy" or "sell"; this shows
+// how each mechanical rule WOULD have behaved on past data. Not advice.
 
-export interface DistributePlanResult {
+export interface ScenarioResult {
+  key: "standard" | "dynamic" | "distribute";
   label: string;
-  contributed: number; // gross cash put into buys
-  proceeds: number; // gross cash realised from trims
-  netInvested: number; // contributed − proceeds
-  btc: number; // BTC still held at the end
-  btcBought: number; // total BTC ever bought (for avg cost)
-  avgCost: number; // £ per BTC across buys
-  endValue: number; // remaining BTC value + cash realised from trims
-  roiPct: number; // endValue vs gross contributed
-  sellWeeks: number; // weeks in which a trim occurred
-  valuePerThousand: number; // end portfolio value per £1,000 contributed
+  investedNew: number; // external money the saver actually contributed
+  btc: number; // BTC held at the end
+  cash: number; // leftover war-chest cash (distribution only)
+  endValue: number; // btc × endPrice + cash
+  roiPct: number; // endValue vs investedNew
+  avgCost: number; // £ per BTC acquired
+  valuePerThousand: number; // end value per £1,000 of new money
+  btcPerThousand: number; // BTC per £1,000 of new money
 }
 
-export interface DistributeSimulation {
+export interface DistributeExtra {
+  proceedsGross: number; // total cash from trims, before tax
+  taxPaid: number; // capital gains tax deducted
+  reinvested: number; // war-chest cash redeployed into extra buys
+  sellWeeks: number;
+  btcRetainedPct: number; // end BTC ÷ Dynamic DCA's end BTC (× 100)
+}
+
+export interface ThreeWaySimulation {
   from: string;
   to: string;
   weeks: number;
   endPrice: number;
   standardWeekly: number;
-  buyByBand: Record<AccumulationBandKey, number>; // contribution multiplier; overheated is 0 (sell instead)
-  targetSellPct: number; // % of the position to trim across a typical overheated stretch
-  avgOverheatedWeeks: number; // mean length of an overheated stretch (weeks)
-  weeklySellPct: number; // targetSellPct / avgOverheatedWeeks, the per-week trim
+  buyByBand: Record<AccumulationBandKey, number>;
+  targetSellPct: number;
+  taxRatePct: number;
+  avgOverheatedWeeks: number;
+  weeklySellPct: number; // targetSellPct ÷ avgOverheatedWeeks
+  avgCheapWeeks: number;
+  weeklyRedeployPct: number; // share of the war chest deployed per cheap week
   overheatedRunCount: number;
   overheatedFirstYear: string;
-  standard: DcaPlanResult;
-  distribute: DistributePlanResult;
-  extraValuePctPer1k: number; // distribute end-value-per-£ vs standard
-  btcRetainedPct: number; // distribute end BTC ÷ standard end BTC (× 100)
-  cashOutPct: number; // proceeds as a share of the end portfolio
+  standard: ScenarioResult;
+  dynamic: ScenarioResult;
+  distribute: ScenarioResult & DistributeExtra;
+  bestKey: "standard" | "dynamic" | "distribute"; // by end value per £1,000
   notes: string[];
 }
 
-export interface DistributeOptions {
+export interface ThreeWayOptions {
   standardWeekly?: number;
   buyByBand?: Record<AccumulationBandKey, number>;
   targetSellPct?: number; // default 20
+  taxRatePct?: number; // default 20
   from?: string;
   to?: string;
 }
 
-const DEFAULT_BUY: Record<AccumulationBandKey, number> = {
+const DEFAULT_BUY_LADDER: Record<AccumulationBandKey, number> = {
   deep_value: 2,
   attractive: 1.5,
   neutral: 1,
   elevated: 0.5,
-  overheated: 0, // overheated weeks sell instead of buying
+  overheated: 0.25, // Dynamic DCA buys this; Distribution sells instead
 };
 
-export function simulateAccumulateDistribute(opts: DistributeOptions = {}): DistributeSimulation {
+export function simulateThreeWay(opts: ThreeWayOptions = {}): ThreeWaySimulation {
   const standardWeekly = opts.standardWeekly ?? 100;
-  const buyByBand = opts.buyByBand ?? DEFAULT_BUY;
+  const buyByBand = opts.buyByBand ?? DEFAULT_BUY_LADDER;
   const targetSellPct = opts.targetSellPct ?? 20;
+  const taxRatePct = opts.taxRatePct ?? 20;
   const series = accumulationSeries();
 
   const defaultFrom = series.find((p) => p.ma200wMult != null)?.date ?? series[0].date;
@@ -187,66 +206,120 @@ export function simulateAccumulateDistribute(opts: DistributeOptions = {}): Dist
   const window = series.filter((p) => p.date >= from && p.date <= to);
   const endPrice = window[window.length - 1].price;
 
-  const runs = overheatedRunStats();
-  const avgOverheatedWeeks = runs.avgWeeks > 0 ? runs.avgWeeks : 1;
-  // Per-week trim, as a fraction of the current holding. Guarded to [0, 1].
+  const oRuns = overheatedRunStats();
+  const cRuns = cheapRunStats();
+  const avgOverheatedWeeks = oRuns.avgWeeks > 0 ? oRuns.avgWeeks : 1;
+  const avgCheapWeeks = cRuns.avgWeeks > 0 ? cRuns.avgWeeks : 1;
   const weeklySellFrac = Math.min(1, Math.max(0, targetSellPct / 100 / avgOverheatedWeeks));
+  // Redeploy the war chest across a typical cheap stretch (fraction of the
+  // remaining reserve each cheap week). Guarded to [0, 1].
+  const weeklyRedeployFrac = Math.min(1, Math.max(0, 1 / avgCheapWeeks));
+  const taxRate = taxRatePct / 100;
 
-  // Standard flat DCA over the same window (buy-only, never sells) — the baseline.
-  let sInvested = 0;
+  // 1. Standard flat DCA.
+  let sInv = 0;
   let sBtc = 0;
   for (const p of window) {
-    sInvested += standardWeekly;
+    sInv += standardWeekly;
     sBtc += standardWeekly / p.price;
   }
-  const standard: DcaPlanResult = {
-    label: "Standard DCA",
-    invested: Math.round(sInvested),
-    btc: sBtc,
-    avgCost: sBtc > 0 ? sInvested / sBtc : 0,
-    endValue: Math.round(sBtc * endPrice),
-    roiPct: sInvested > 0 ? Math.round(((sBtc * endPrice) / sInvested - 1) * 100) : 0,
-  };
 
-  // Accumulate & Distribute.
-  let contributed = 0;
-  let proceeds = 0;
+  // 2. Dynamic DCA — scaled buys every week (including a reduced overheated buy),
+  //    never sells.
+  let dInv = 0;
+  let dBtc = 0;
+  for (const p of window) {
+    const amt = standardWeekly * (buyByBand[p.bandKey] ?? 0);
+    if (amt > 0) {
+      dInv += amt;
+      dBtc += amt / p.price;
+    }
+  }
+
+  // 3. Dynamic DCA + Distribution — scaled buys on non-overheated weeks; trim,
+  //    tax, bank and redeploy in overheated/cheap weeks.
+  let invNew = 0; // external contributions only
   let btc = 0;
-  let btcBought = 0;
+  let basis = 0; // average-cost basis of held BTC
+  let cash = 0; // war chest (net of tax)
+  let proceedsGross = 0;
+  let taxPaid = 0;
+  let reinvested = 0;
   let sellWeeks = 0;
   for (const p of window) {
     if (p.bandKey === "overheated") {
+      // Trim into strength, realise gains, pay tax, bank the rest.
       const sellBtc = btc * weeklySellFrac;
       if (sellBtc > 0) {
+        const gross = sellBtc * p.price;
+        const costOut = btc > 0 ? basis * (sellBtc / btc) : 0;
+        const tax = Math.max(0, gross - costOut) * taxRate;
         btc -= sellBtc;
-        proceeds += sellBtc * p.price;
+        basis -= costOut;
+        proceedsGross += gross;
+        taxPaid += tax;
+        cash += gross - tax;
         sellWeeks += 1;
       }
     } else {
+      // Regular scaled buy with new money.
       const amt = standardWeekly * (buyByBand[p.bandKey] ?? 0);
       if (amt > 0) {
-        contributed += amt;
+        invNew += amt;
         btc += amt / p.price;
-        btcBought += amt / p.price;
+        basis += amt;
+      }
+      // Redeploy the war chest when Bitcoin is attractive-or-cheaper.
+      if ((p.bandKey === "deep_value" || p.bandKey === "attractive") && cash > 0) {
+        const deploy = cash * weeklyRedeployFrac;
+        if (deploy > 0) {
+          btc += deploy / p.price;
+          basis += deploy;
+          cash -= deploy;
+          reinvested += deploy;
+        }
       }
     }
   }
-  const endValue = btc * endPrice + proceeds;
-  const distribute: DistributePlanResult = {
-    label: "Accumulate & Distribute",
-    contributed: Math.round(contributed),
-    proceeds: Math.round(proceeds),
-    netInvested: Math.round(contributed - proceeds),
-    btc,
-    btcBought,
-    avgCost: btcBought > 0 ? contributed / btcBought : 0,
-    endValue: Math.round(endValue),
-    roiPct: contributed > 0 ? Math.round(((endValue / contributed) - 1) * 100) : 0,
-    sellWeeks,
-    valuePerThousand: contributed > 0 ? (endValue / contributed) * 1000 : 0,
+
+  const mk = (
+    key: ScenarioResult["key"],
+    label: string,
+    invested: number,
+    btcEnd: number,
+    cashEnd: number,
+    costOfHeldBtc: number, // total cost basis of the BTC still held
+  ): ScenarioResult => {
+    const endValue = btcEnd * endPrice + cashEnd;
+    return {
+      key,
+      label,
+      investedNew: Math.round(invested),
+      btc: btcEnd,
+      cash: Math.round(cashEnd),
+      endValue: Math.round(endValue),
+      roiPct: invested > 0 ? Math.round((endValue / invested - 1) * 100) : 0,
+      avgCost: btcEnd > 0 ? costOfHeldBtc / btcEnd : 0,
+      valuePerThousand: invested > 0 ? (endValue / invested) * 1000 : 0,
+      btcPerThousand: invested > 0 ? (btcEnd / invested) * 1000 : 0,
+    };
   };
 
-  const standardValuePerThousand = sInvested > 0 ? (sBtc * endPrice) / sInvested * 1000 : 0;
+  const standard = mk("standard", "Standard DCA", sInv, sBtc, 0, sInv);
+  const dynamic = mk("dynamic", "Dynamic DCA", dInv, dBtc, 0, dInv);
+  const distributeBase = mk("distribute", "Dynamic DCA + Distribution", invNew, btc, cash, basis);
+  const distribute: ScenarioResult & DistributeExtra = {
+    ...distributeBase,
+    proceedsGross: Math.round(proceedsGross),
+    taxPaid: Math.round(taxPaid),
+    reinvested: Math.round(reinvested),
+    sellWeeks,
+    btcRetainedPct: dBtc > 0 ? Math.round((btc / dBtc) * 100) : 0,
+  };
+
+  // Winner for long-term growth = most end value per £1,000 of new money.
+  const ranked = [standard, dynamic, distribute].sort((a, b) => b.valuePerThousand - a.valuePerThousand);
+  const bestKey = ranked[0].key;
 
   return {
     from,
@@ -256,23 +329,22 @@ export function simulateAccumulateDistribute(opts: DistributeOptions = {}): Dist
     standardWeekly,
     buyByBand,
     targetSellPct,
+    taxRatePct,
     avgOverheatedWeeks,
     weeklySellPct: weeklySellFrac * 100,
-    overheatedRunCount: runs.count,
-    overheatedFirstYear: runs.firstYear,
+    avgCheapWeeks,
+    weeklyRedeployPct: weeklyRedeployFrac * 100,
+    overheatedRunCount: oRuns.count,
+    overheatedFirstYear: oRuns.firstYear,
     standard,
+    dynamic,
     distribute,
-    extraValuePctPer1k:
-      standardValuePerThousand > 0
-        ? Math.round((distribute.valuePerThousand / standardValuePerThousand - 1) * 100)
-        : 0,
-    btcRetainedPct: sBtc > 0 ? Math.round((btc / sBtc) * 100) : 0,
-    cashOutPct: endValue > 0 ? Math.round((proceeds / endValue) * 100) : 0,
+    bestKey,
     notes: [
-      "Buys on neutral-or-below weeks, eases off when elevated, and in the overheated band stops buying and trims a fixed slice of the holding each week.",
-      "The weekly trim is target% ÷ the average historical length of an overheated stretch, so a target trim is spread across a typical stretch rather than timed to the exact top.",
-      "End value counts remaining Bitcoin plus the cash raised from trims (held, not reinvested); 'BTC retained' shows how much of a pure-hold stack is intentionally kept.",
-      "A long-term core is deliberately retained — this is not a full exit. Descriptive history only, not a forecast or advice.",
+      "All three run over the same window and weekly budget; results are compared per £1,000 of new money you contributed, so recycled profit doesn't flatter the distribution plan.",
+      "The weekly trim is target% ÷ the average historical overheated stretch; the war chest is redeployed across a typical cheap stretch. Neither tries to call the exact top or bottom.",
+      `Capital gains are modelled as a flat ${taxRatePct}% of each trim's realised profit; the net is banked and reinvested into extra buys when Bitcoin is attractive-or-cheaper.`,
+      "Selling realises tax and gives up Bitcoin that, in a long uptrend, often kept rising — so distribution can trail pure accumulation even after reinvesting. Descriptive history only, not advice.",
     ],
   };
 }

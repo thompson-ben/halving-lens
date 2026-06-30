@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ACCUMULATION_BANDS, accumulationRead, type AccumulationBandKey } from "@/lib/accumulation";
-import { simulateDca, simulateAccumulateDistribute } from "@/lib/accumulationDca";
+import { simulateDca, simulateThreeWay } from "@/lib/accumulationDca";
 import { fmtUsd } from "@/lib/format";
 import { track } from "@/lib/track";
 import { SegmentedControl } from "./SegmentedControl";
@@ -10,8 +10,10 @@ import { SegmentedControl } from "./SegmentedControl";
 // Interactive Accumulation-Index backtests over Bitcoin's full weekly history.
 // Two rules, switchable:
 //   • Accumulate — a flat weekly buy vs one that scales by the historical band.
-//   • Accumulate & Distribute — buys neutral-or-below, eases off when elevated,
-//     and TRIMS a fixed slice of the holding each week while overheated.
+//   • Accumulate & Distribute — a three-way race (DCA vs Dynamic DCA vs Dynamic
+//     DCA + Distribution) that trims in overheated conditions, pays tax on the
+//     gain, banks the cash and redeploys it into cheaper buys — then names the
+//     best rule for long-term growth.
 // Recomputed client-side from the cached score series. Descriptive history only —
 // not advice, not a forecast.
 
@@ -24,13 +26,13 @@ const PRESETS: Record<string, Record<AccumulationBandKey, number>> = {
   aggressive: { deep_value: 3, attractive: 2, neutral: 1, elevated: 0.5, overheated: 0.25 },
 };
 
-// Accumulate & Distribute presets: a buy multiplier per band (overheated = 0,
-// since that band sells instead of buying) plus a target trim % of the position
-// to spread across a typical overheated stretch.
+// Accumulate & Distribute presets: a shared buy ladder (Dynamic DCA buys the
+// overheated band; Distribution sells it instead) plus a target trim % to spread
+// across a typical overheated stretch.
 const DIST_PRESETS: Record<string, { buy: Record<AccumulationBandKey, number>; sell: number }> = {
-  conservative: { buy: { deep_value: 1.5, attractive: 1.25, neutral: 1, elevated: 0.5, overheated: 0 }, sell: 15 },
-  balanced: { buy: { deep_value: 2, attractive: 1.5, neutral: 1, elevated: 0.5, overheated: 0 }, sell: 20 },
-  aggressive: { buy: { deep_value: 3, attractive: 2, neutral: 1, elevated: 0.25, overheated: 0 }, sell: 30 },
+  conservative: { buy: { deep_value: 1.5, attractive: 1.25, neutral: 1, elevated: 0.6, overheated: 0.4 }, sell: 15 },
+  balanced: { buy: { deep_value: 2, attractive: 1.5, neutral: 1, elevated: 0.5, overheated: 0.25 }, sell: 20 },
+  aggressive: { buy: { deep_value: 3, attractive: 2, neutral: 1, elevated: 0.4, overheated: 0.2 }, sell: 30 },
 };
 
 const PRESET_OPTS = [
@@ -229,7 +231,13 @@ function AccumulateView({ base, setBase, preset, setPreset }: ViewProps) {
   );
 }
 
-// ── Accumulate & Distribute (buy + trim into overheated) ─────────────────────
+// ── Accumulate & Distribute — DCA vs Dynamic DCA vs Dynamic DCA + Distribution ─
+const SCENARIO_LABEL = {
+  standard: "Standard DCA",
+  dynamic: "Dynamic DCA",
+  distribute: "Dynamic DCA + Distribution",
+} as const;
+
 function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
   const today = accumulationRead();
   const cfg = DIST_PRESETS[preset] ?? DIST_PRESETS.balanced;
@@ -237,46 +245,69 @@ function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
   const sim = useMemo(() => {
     const weekly = Number(base);
     const c = DIST_PRESETS[preset] ?? DIST_PRESETS.balanced;
-    // The engine multiplies standardWeekly × buyByBand, so pass the multipliers.
-    return simulateAccumulateDistribute({ standardWeekly: weekly, buyByBand: c.buy, targetSellPct: c.sell });
+    return simulateThreeWay({ standardWeekly: weekly, buyByBand: c.buy, targetSellPct: c.sell });
   }, [base, preset]);
 
   const weeklySell = sim.weeklySellPct;
   const avgWeeks = sim.avgOverheatedWeeks;
+  const byKey = { standard: sim.standard, dynamic: sim.dynamic, distribute: sim.distribute };
+  const winner = byKey[sim.bestKey];
 
   return (
     <div className="space-y-6">
       <BaseControl base={base} setBase={setBase} from={sim.from} to={sim.to} weeks={sim.weeks} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <PlanCard
-          title="Standard DCA"
-          subtitle={`${fmtUsd(sim.standardWeekly)} every week · never sells`}
-          invested={sim.standard.invested}
-          btc={sim.standard.btc}
-          avgCost={sim.standard.avgCost}
-          endValue={sim.standard.endValue}
-          roiPct={sim.standard.roiPct}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <ScenarioCard
+          result={sim.standard}
+          subtitle="Flat weekly buy · never sells"
+          winner={sim.bestKey === "standard"}
         />
-        <DistributeCard sim={sim} />
+        <ScenarioCard
+          result={sim.dynamic}
+          subtitle="Scaled by band · never sells"
+          winner={sim.bestKey === "dynamic"}
+        />
+        <ScenarioCard
+          result={sim.distribute}
+          subtitle="Trims, taxes, banks & reinvests"
+          winner={sim.bestKey === "distribute"}
+          footnote={`incl. ${fmtUsd(sim.distribute.reinvested, { compact: true })} reinvested · ${fmtUsd(sim.distribute.taxPaid, { compact: true })} tax`}
+        />
       </div>
 
-      <div className="rounded-xl border border-accent/15 bg-accent/[0.04] p-4 sm:p-5 text-[13px] text-ink-300 leading-relaxed">
-        Over this window, trimming into historically overheated conditions raised{" "}
-        <span className="text-ink-50 font-medium">{fmtUsd(sim.distribute.proceeds, { compact: true })} in cash</span>{" "}
-        (about {sim.cashOutPct}% of the ending portfolio) while still holding{" "}
-        <span className="text-ink-50 font-medium">{sim.btcRetainedPct}% of a never-sell stack</span>. Per dollar
-        contributed, the rule ended{" "}
-        <span className="text-ink-50 font-medium">{sim.extraValuePctPer1k >= 0 ? "+" : ""}{sim.extraValuePctPer1k}%</span>{" "}
-        {sim.extraValuePctPer1k >= 0 ? "ahead of" : "behind"} flat DCA on total value (Bitcoin held plus cash raised).
-        This is how the rule <span className="text-ink-100">would have behaved on past data</span> — not a strategy, a
-        guarantee, or advice.
+      {/* The verdict — the answer to "which is best for long-term growth?" */}
+      <div className="rounded-xl border border-accent/25 bg-accent/[0.05] p-4 sm:p-5">
+        <div className="text-[11px] uppercase tracking-[0.16em] text-accent">Best for long-term growth · this window</div>
+        <div className="mt-1.5 text-[19px] font-display font-medium text-ink-50">
+          {SCENARIO_LABEL[sim.bestKey]} —{" "}
+          <span className="text-accent">{fmtUsd(Math.round(winner.valuePerThousand))} per $1,000 invested</span>
+        </div>
+        <p className="mt-2 text-[13px] text-ink-300 leading-relaxed">
+          Measured per $1,000 of your <span className="text-ink-100">own money</span> (so recycled profit doesn&apos;t
+          flatter distribution), <span className="text-ink-50 font-medium">{SCENARIO_LABEL[sim.bestKey]}</span> came out
+          ahead: {fmtUsd(Math.round(sim.standard.valuePerThousand))} (DCA) ·{" "}
+          {fmtUsd(Math.round(sim.dynamic.valuePerThousand))} (Dynamic) ·{" "}
+          {fmtUsd(Math.round(sim.distribute.valuePerThousand))} (Distribution).{" "}
+          {sim.bestKey === "dynamic" ? (
+            <>
+              Trimming raised <span className="text-ink-100">{fmtUsd(sim.distribute.proceedsGross, { compact: true })}</span> in
+              gains and reinvesting won most of the Bitcoin back ({sim.distribute.btcRetainedPct}% of the buy-only
+              stack), but the {sim.taxRatePct}% tax plus selling coins that kept rising in a long uptrend still left
+              distribution a step behind simply accumulating.
+            </>
+          ) : (
+            <>Distribution&apos;s realised profit and reinvestment carried it ahead over this particular window.</>
+          )}{" "}
+          The takeaway: distribution is about <span className="text-ink-100">realising profit and smoothing the ride</span>,
+          not maximising the final stack. This is how each rule would have behaved on past data — not advice.
+        </p>
       </div>
 
       {/* How the rule works — the ladder */}
       <div>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-accent">How the distribute plan works</div>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-accent">How the distribution plan works</div>
           <SegmentedControl
             aria-label="Scaling intensity"
             options={PRESET_OPTS.map((p) => ({ key: p.key, label: p.label }))}
@@ -290,12 +321,12 @@ function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
         <p className="mt-1.5 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">
           The only input is today&apos;s Accumulation Index band. You buy more when Bitcoin is historically cheap,
           ease off when it&apos;s elevated, and in the overheated band the rule stops buying and trims a small,
-          fixed slice of the holding each week. The score never says &ldquo;sell&rdquo;; this just sizes the rule.
-          Historical context, not advice.
+          fixed slice of the holding — banking the proceeds to redeploy on the next dip. The score never says
+          &ldquo;buy&rdquo; or &ldquo;sell&rdquo;; this just sizes the rule. Historical context, not advice.
         </p>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-[12.5px] min-w-[480px]">
+          <table className="w-full text-[12.5px] min-w-[520px]">
             <thead>
               <tr className="text-ink-500 text-[10.5px] uppercase tracking-[0.12em]">
                 <th className="text-left font-normal pb-2">Environment</th>
@@ -308,11 +339,14 @@ function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
               {ACCUMULATION_BANDS.map((b) => {
                 const isToday = b.key === today.band.key;
                 const isSell = b.key === "overheated";
+                const isCheap = b.key === "deep_value" || b.key === "attractive";
                 const mult = cfg.buy[b.key];
                 const action = isSell
                   ? `Trim ${weeklySell.toFixed(1)}%/wk`
                   : b.key === "elevated"
                   ? `Buy ${mult}× (reduce)`
+                  : isCheap
+                  ? `${adjustLabel(mult)} + redeploy`
                   : adjustLabel(mult);
                 return (
                   <tr key={b.key} className={`border-t border-white/[0.06] ${isToday ? "bg-accent/[0.06]" : ""}`}>
@@ -324,7 +358,7 @@ function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
                       </span>
                     </td>
                     <td className="py-2.5 text-ink-400 font-mono">{b.range[0]}–{b.range[1]}</td>
-                    <td className={`py-2.5 ${isSell ? "text-rose-300" : "text-ink-300"}`}>{action}</td>
+                    <td className={`py-2.5 ${isSell ? "text-rose-300" : isCheap ? "text-emerald-300" : "text-ink-300"}`}>{action}</td>
                     <td className={`py-2.5 text-right font-mono ${isSell ? "text-rose-300" : "text-ink-100"}`}>
                       {isSell ? `−${weeklySell.toFixed(1)}%/wk` : `${fmtUsd(Math.round(Number(base) * mult))}/wk`}
                     </td>
@@ -335,7 +369,7 @@ function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
           </table>
         </div>
 
-        {/* The sell-sizing logic — the core of this strategy */}
+        {/* The sell-sizing logic */}
         <div className="mt-4 rounded-xl border border-rose-400/15 bg-rose-400/[0.04] p-4 sm:p-5">
           <div className="text-[11px] uppercase tracking-[0.16em] text-rose-300/90">How much to sell, and why</div>
           <p className="mt-2 text-[13px] text-ink-300 leading-relaxed">
@@ -345,10 +379,25 @@ function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
             stretch — across <span className="text-ink-100">{sim.overheatedRunCount} stretches</span>
             {sim.overheatedFirstYear ? ` since ${sim.overheatedFirstYear}` : ""}. To trim a target{" "}
             <span className="text-ink-50 font-medium">{sim.targetSellPct}%</span> of the holding over a typical
-            stretch, the rule sells{" "}
+            stretch, it sells{" "}
             <span className="text-rose-200 font-medium">{weeklySell.toFixed(1)}% of the remaining position each
             overheated week</span> ({sim.targetSellPct}% ÷ {avgWeeks.toFixed(1)} weeks ≈ {weeklySell.toFixed(1)}%).
-            Buying pauses in this band, and a long-term core is intentionally kept — this is a trim, not a full exit.
+            A long-term core is intentionally kept — this is a trim, not a full exit.
+          </p>
+        </div>
+
+        {/* The reinvestment + tax logic */}
+        <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-4 sm:p-5">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-300/90">What happens to the cash</div>
+          <p className="mt-2 text-[13px] text-ink-300 leading-relaxed">
+            Every trim realises a profit, so the rule sets aside a flat{" "}
+            <span className="text-ink-50 font-medium">{sim.taxRatePct}% for capital gains</span> and banks the rest as a
+            cash war chest — <span className="text-emerald-200 font-medium">{fmtUsd(sim.distribute.reinvested, { compact: true })}</span>{" "}
+            over this window. That cash is then redeployed into extra Bitcoin when the index falls back to
+            attractive-or-cheaper, spread across a typical cheap stretch (~{sim.avgCheapWeeks.toFixed(0)} weeks,
+            about {sim.weeklyRedeployPct.toFixed(1)}% of the reserve per week). Recycling the profit is why
+            distribution still keeps <span className="text-ink-100">{sim.distribute.btcRetainedPct}%</span> of the
+            buy-only Bitcoin stack instead of bleeding it away.
           </p>
         </div>
 
@@ -360,14 +409,15 @@ function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
           ) : (
             <span className="text-accent font-medium">
               buy {cfg.buy[today.band.key]}× ({fmtUsd(Math.round(Number(base) * cfg.buy[today.band.key]))}/wk)
+              {(today.band.key === "deep_value" || today.band.key === "attractive") ? " and redeploy the war chest" : ""}
             </span>
           )}
           . The action only changes when the score crosses into a new band.
         </p>
         <p className="mt-2 text-[11px] text-ink-500 leading-relaxed max-w-2xl">
-          The multipliers and target trim are sensible illustrative defaults, not an optimised output of the
-          backtest. End value counts remaining Bitcoin plus cash raised from trims (held, not reinvested).
-          Switch presets above to see how a gentler or more aggressive trim would have changed the result.
+          The multipliers, target trim and {sim.taxRatePct}% tax rate are sensible illustrative defaults, not an
+          optimised output of the backtest or a tax calculation for any jurisdiction. End value counts Bitcoin held
+          plus any uninvested cash. Switch presets above to see how a gentler or more aggressive plan compares.
         </p>
       </div>
     </div>
@@ -415,26 +465,41 @@ function PlanCard({
   );
 }
 
-function DistributeCard({ sim }: { sim: ReturnType<typeof simulateAccumulateDistribute> }) {
-  const d = sim.distribute;
+function ScenarioCard({
+  result,
+  subtitle,
+  winner,
+  footnote,
+}: {
+  result: { label: string; investedNew: number; btc: number; endValue: number; roiPct: number; valuePerThousand: number };
+  subtitle: string;
+  winner?: boolean;
+  footnote?: string;
+}) {
   return (
-    <div className="card p-5 border-accent/30">
+    <div className={`card p-5 relative ${winner ? "border-accent/50" : ""}`}>
+      {winner && (
+        <span className="absolute -top-2 right-3 text-[9.5px] uppercase tracking-[0.14em] bg-accent text-[#15120a] font-semibold px-2 py-0.5 rounded">
+          Best growth
+        </span>
+      )}
       <div className="flex items-center justify-between gap-2 mb-3">
         <div>
-          <div className="text-[14px] font-medium text-ink-50">Accumulate &amp; Distribute</div>
-          <div className="text-[11.5px] text-ink-400">Buys low, trims into overheated</div>
+          <div className="text-[14px] font-medium text-ink-50">{result.label}</div>
+          <div className="text-[11.5px] text-ink-400">{subtitle}</div>
         </div>
-        <div className="text-[20px] font-display font-medium text-accent">
-          {d.roiPct >= 0 ? "+" : ""}
-          {d.roiPct.toLocaleString()}%
+        <div className={`text-[19px] font-display font-medium ${winner ? "text-accent" : "text-ink-100"}`}>
+          {result.roiPct >= 0 ? "+" : ""}
+          {result.roiPct.toLocaleString()}%
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12.5px]">
-        <Stat label="Contributed" value={fmtUsd(d.contributed, { compact: true })} />
-        <Stat label="Bitcoin held" value={`${d.btc.toFixed(3)} BTC`} />
-        <Stat label="Cash from trims" value={fmtUsd(d.proceeds, { compact: true })} />
-        <Stat label="End value" value={fmtUsd(d.endValue, { compact: true })} />
+        <Stat label="Your money" value={fmtUsd(result.investedNew, { compact: true })} />
+        <Stat label="Bitcoin" value={`${result.btc.toFixed(2)} BTC`} />
+        <Stat label="End value" value={fmtUsd(result.endValue, { compact: true })} />
+        <Stat label="Per $1k" value={fmtUsd(Math.round(result.valuePerThousand), { compact: true })} />
       </dl>
+      {footnote && <div className="mt-2.5 text-[10.5px] text-ink-500 leading-snug">{footnote}</div>}
     </div>
   );
 }

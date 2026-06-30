@@ -253,17 +253,17 @@ export interface OverheatedRunStats {
   ongoing: boolean; // true if the latest week is itself overheated (run still open)
 }
 
-// Run-length-encode consecutive overheated weeks (bandKey === "overheated") on
-// the point-in-time series. Used to size a distribution rule: if a typical
-// overheated stretch lasts N weeks, trimming a target % across it means selling
-// roughly target/N each week. Descriptive history only — not a forecast.
-export function overheatedRunStats(): OverheatedRunStats {
+// Run-length-encode consecutive weeks matching a predicate on the point-in-time
+// series. Used to size the distribution rule symmetrically: trim a target % over
+// a typical overheated stretch, and redeploy the war chest over a typical cheap
+// stretch. Descriptive history only — not a forecast.
+function bandRunStats(match: (p: AccumulationPoint) => boolean): OverheatedRunStats {
   const series = accumulationSeries();
   const runs: number[] = [];
   let cur = 0;
   let firstTs = 0;
   for (const p of series) {
-    if (p.bandKey === "overheated") {
+    if (match(p)) {
       if (cur === 0 && firstTs === 0) firstTs = p.ts;
       cur += 1;
     } else if (cur > 0) {
@@ -289,6 +289,17 @@ export function overheatedRunStats(): OverheatedRunStats {
     firstYear: firstTs ? new Date(firstTs).toISOString().slice(0, 4) : "",
     ongoing,
   };
+}
+
+// Average length of an overheated stretch — sizes the weekly trim (target ÷ avg).
+export function overheatedRunStats(): OverheatedRunStats {
+  return bandRunStats((p) => p.bandKey === "overheated");
+}
+
+// Average length of a "cheap" stretch (deep value or attractive, score < 40) —
+// sizes how fast the realised-profit war chest is redeployed into extra buys.
+export function cheapRunStats(): OverheatedRunStats {
+  return bandRunStats((p) => p.bandKey === "deep_value" || p.bandKey === "attractive");
 }
 
 export interface AccumulationRead {
