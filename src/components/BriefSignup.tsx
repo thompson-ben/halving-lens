@@ -98,12 +98,12 @@ export function BriefSignup({
         {done ? (
           <div className="mt-5 space-y-2.5">
             <div className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[13px]">
-              <Check size={15} /> You&apos;re on the list. Daily email delivery is coming soon.
+              <Check size={15} /> You&apos;re subscribed — check your inbox for a welcome email.
             </div>
             <p className="text-[11.5px] text-ink-400 leading-relaxed max-w-md">
-              When your first email arrives, please add{" "}
-              <span className="text-ink-200">brief@halvinglens.com</span> to your contacts — and if you
-              don&apos;t see it, check your spam or junk folder so the brief always reaches your inbox.
+              If it&apos;s not there in a minute, check your spam or junk folder and add{" "}
+              <span className="text-ink-200">brief@halvinglens.com</span> to your contacts, so the daily brief
+              always reaches your inbox.
             </p>
           </div>
         ) : (

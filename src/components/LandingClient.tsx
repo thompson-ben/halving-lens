@@ -121,11 +121,12 @@ export function StartSignup() {
     return (
       <div className="space-y-2.5">
         <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[14px]">
-          <Check size={16} /> You&apos;re in. Tomorrow&apos;s research lands in your inbox.
+          <Check size={16} /> You&apos;re in — check your inbox for a welcome email.
         </div>
         <p className="text-[12px] text-ink-400 leading-relaxed max-w-md">
-          Add <span className="text-ink-200">brief@halvinglens.com</span> to your contacts — and if it&apos;s
-          not in your inbox, check your spam or junk folder so you don&apos;t miss it.
+          If it&apos;s not in your inbox, check your spam or junk folder and add{" "}
+          <span className="text-ink-200">brief@halvinglens.com</span> to your contacts so you don&apos;t miss
+          tomorrow&apos;s research.
         </p>
       </div>
     );
