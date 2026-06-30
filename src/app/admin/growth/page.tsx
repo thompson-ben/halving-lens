@@ -24,7 +24,6 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
   const g = a.growth;
   const weeklies = weeklyStats();
   const overallCps = g.adSpendTotal > 0 && a.landing.signups > 0 ? Math.round((g.adSpendTotal / a.landing.signups) * 100) / 100 : null;
-  const winner = [...g.variants].filter((v) => v.views >= 1).sort((x, y) => (y.cvr ?? 0) - (x.cvr ?? 0))[0];
 
   return (
     <Shell>
@@ -80,21 +79,67 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
         )}
       </Panel>
 
-      {/* A/B variants */}
-      <Panel title="Landing A/B — headline experiment">
-        {g.variants.length === 0 ? (
-          <p className="text-[12.5px] text-ink-500">No landing traffic yet.</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-3 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-              <Mini label="Header" value="Views · Subs · CVR" />
-              {g.variants.map((v) => (
-                <Mini key={v.variant} label={`Variant ${v.variant.toUpperCase()}${winner && winner.variant === v.variant ? " · winning" : ""}`} value={`${v.views} · ${v.signups} · ${v.cvr != null ? v.cvr + "%" : "—"}`} />
-              ))}
+      {/* Landing Page Experiment */}
+      {(() => {
+        const totalViews = g.variants.reduce((s, v) => s + v.views, 0);
+        const ranked = [...g.variants].filter((v) => v.views > 0).sort((a, b) => (b.cvr ?? 0) - (a.cvr ?? 0));
+        const best = ranked[0];
+        const second = ranked[1];
+        const lift = best && second && (second.cvr ?? 0) > 0 ? Math.round((((best.cvr ?? 0) - (second.cvr ?? 0)) / (second.cvr ?? 1)) * 100) : null;
+        const minViews = Math.min(...g.variants.map((v) => v.views), 0);
+        const totalSubs = g.variants.reduce((s, v) => s + v.signups, 0);
+        const confidence: "LOW" | "MEDIUM" | "HIGH" =
+          minViews >= 200 && totalSubs >= 30 && (lift ?? 0) >= 20 ? "HIGH" : minViews >= 50 && totalSubs >= 10 ? "MEDIUM" : "LOW";
+        const status = confidence === "HIGH" ? "Complete" : "Running";
+        const confColor = confidence === "HIGH" ? "text-signal-green" : confidence === "MEDIUM" ? "text-signal-amber" : "text-ink-400";
+        return (
+          <Panel title="Landing Page Experiment — headline">
+            <div className="flex items-center gap-3 mb-4 text-[12px]">
+              <span className={`px-2 py-0.5 rounded-full border ${status === "Complete" ? "border-signal-green/30 text-signal-green" : "border-accent/30 text-accent"}`}>{status}</span>
+              <span className="text-ink-500">Confidence:</span>
+              <span className={confColor}>{confidence}</span>
+              {confidence === "HIGH" && best && (
+                <span className="text-ink-300">· Winner <span className="text-signal-green font-medium">Variant {best.variant.toUpperCase()}</span>{lift != null ? ` (+${lift}% conv.)` : ""}</span>
+              )}
             </div>
-            <p className="mt-2 text-[11px] text-ink-500">Winner is the highest conversion-rate variant. Add experiments in src/lib/experiments.ts.</p>
-          </>
-        )}
+            {g.variants.length === 0 ? (
+              <p className="text-[12.5px] text-ink-500">No landing traffic yet — variants populate once /start receives visitors.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[12.5px] min-w-[520px]">
+                  <thead>
+                    <tr className="text-ink-500 text-[10.5px] uppercase tracking-[0.12em]">
+                      <th className="text-left font-normal pb-2">Variant</th>
+                      <th className="text-right font-normal pb-2">Traffic</th>
+                      <th className="text-right font-normal pb-2">Visitors</th>
+                      <th className="text-right font-normal pb-2">CTA clicks</th>
+                      <th className="text-right font-normal pb-2">Subscribers</th>
+                      <th className="text-right font-normal pb-2">Conversion</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.variants.map((v) => (
+                      <tr key={v.variant} className="border-t border-white/[0.06] font-mono">
+                        <td className="py-2.5 text-ink-200">Variant {v.variant.toUpperCase()}{best && best.variant === v.variant && confidence !== "LOW" ? " ★" : ""}</td>
+                        <td className="py-2.5 text-right text-ink-400">{totalViews ? Math.round((v.views / totalViews) * 100) : 0}%</td>
+                        <td className="py-2.5 text-right text-ink-300">{v.views}</td>
+                        <td className="py-2.5 text-right text-ink-300">{v.ctaClicks}</td>
+                        <td className="py-2.5 text-right text-ink-100">{v.signups}</td>
+                        <td className="py-2.5 text-right text-accent">{v.cvr != null ? `${v.cvr}%` : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="mt-3 text-[11px] text-ink-500">Confidence is a sample-size + lift heuristic (not a formal significance test). Add experiments in src/lib/experiments.ts.</p>
+          </Panel>
+        );
+      })()}
+
+      {/* Most effective CTA */}
+      <Panel title="Most effective CTA">
+        <Bars items={g.topCTAs} empty="No CTA clicks yet." />
       </Panel>
 
       <p className="mt-6 pt-5 border-t border-white/[0.06] text-[11px] text-ink-500 max-w-2xl">
@@ -138,6 +183,25 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
     <div className="card p-6">
       <h2 className="text-[12.5px] font-medium text-ink-100 mb-4 uppercase tracking-[0.16em]">{title}</h2>
       {children}
+    </div>
+  );
+}
+function Bars({ items, empty }: { items: { label: string; n: number }[]; empty?: string }) {
+  if (!items.length) return <p className="text-[12.5px] text-ink-500">{empty ?? "No data yet."}</p>;
+  const max = Math.max(...items.map((i) => i.n), 1);
+  return (
+    <div className="space-y-2.5">
+      {items.map((i) => (
+        <div key={i.label}>
+          <div className="flex items-center justify-between text-[12px] mb-1">
+            <span className="text-ink-200 truncate mr-2 font-mono">{i.label}</span>
+            <span className="text-ink-400 tabular-nums">{i.n.toLocaleString()}</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="h-full rounded-full bg-accent/70" style={{ width: `${(i.n / max) * 100}%` }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

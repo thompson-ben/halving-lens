@@ -66,7 +66,8 @@ export interface GrowthDashboard {
   };
   growth: {
     campaigns: { campaign: string; visitors: number; signups: number; spend: number | null; cps: number | null }[];
-    variants: { variant: string; views: number; signups: number; cvr: number | null }[];
+    variants: { variant: string; views: number; ctaClicks: number; signups: number; cvr: number | null }[];
+    topCTAs: LabelCount[];
     referralSignups: number;
     adSpendTotal: number;
     avgSessionSeconds: number | null;
@@ -122,7 +123,7 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     brief: { views: 0, avgSeconds: null, avgScroll: null },
     research: { ...editionLibrary(), views: 0, topEditions: [], topShared: [], topSearches: [], topFeatures: [] },
     landing: { views: 0, ctaClicks: 0, signups: 0, conversionRate: null, topSources: [], topCampaigns: [] },
-    growth: { campaigns: [], variants: [], referralSignups: 0, adSpendTotal: AD_SPEND.reduce((s, a) => s + a.spend, 0), avgSessionSeconds: null, avgScroll: null },
+    growth: { campaigns: [], variants: [], topCTAs: [], referralSignups: 0, adSpendTotal: AD_SPEND.reduce((s, a) => s + a.spend, 0), avgSessionSeconds: null, avgScroll: null },
     email: { sent: 0, delivered: 0, failed: 0, deliveryRate: null, failureRate: null, recent: [] },
     trend: [],
   };
@@ -324,24 +325,33 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     .sort((a, b) => b.signups - a.signups || b.visitors - a.visitors);
 
   // A/B variant performance (landing headline experiment).
-  const varMap = new Map<string, { views: number; signups: number }>();
+  const varMap = new Map<string, { views: number; ctaClicks: number; signups: number }>();
+  const blank = () => ({ views: 0, ctaClicks: 0, signups: 0 });
   for (const r of landingViewRows ?? []) {
     const v = String(r.props?.variant ?? "");
     if (!v) continue;
-    const e = varMap.get(v) ?? { views: 0, signups: 0 };
+    const e = varMap.get(v) ?? blank();
     e.views += 1;
+    varMap.set(v, e);
+  }
+  for (const r of landingCtaRows ?? []) {
+    const v = String(r.props?.variant ?? "");
+    if (!v) continue;
+    const e = varMap.get(v) ?? blank();
+    e.ctaClicks += 1;
     varMap.set(v, e);
   }
   for (const r of signupRows ?? []) {
     const v = String(r.props?.variant ?? "");
     if (!v || r.props?.source !== "/start") continue;
-    const e = varMap.get(v) ?? { views: 0, signups: 0 };
+    const e = varMap.get(v) ?? blank();
     e.signups += 1;
     varMap.set(v, e);
   }
   const variants = [...varMap.entries()]
-    .map(([variant, v]) => ({ variant, views: v.views, signups: v.signups, cvr: v.views ? Math.round((v.signups / v.views) * 1000) / 10 : null }))
+    .map(([variant, v]) => ({ variant, views: v.views, ctaClicks: v.ctaClicks, signups: v.signups, cvr: v.views ? Math.round((v.signups / v.views) * 1000) / 10 : null }))
     .sort((a, b) => (a.variant < b.variant ? -1 : 1));
+  const topCTAs = tallyProp(landingCtaRows, "cta");
 
   const referralSignups = (signupRows ?? []).filter((r) => r.props?.ref).length;
   const adSpendTotal = AD_SPEND.reduce((s, a) => s + a.spend, 0);
@@ -399,7 +409,7 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
       topSources: landingTopSources,
       topCampaigns: landingTopCampaigns,
     },
-    growth: { campaigns, variants, referralSignups, adSpendTotal, avgSessionSeconds: gN ? Math.round(gSec / gN) : null, avgScroll: gN ? Math.round(gScroll / gN) : null },
+    growth: { campaigns, variants, topCTAs, referralSignups, adSpendTotal, avgSessionSeconds: gN ? Math.round(gSec / gN) : null, avgScroll: gN ? Math.round(gScroll / gN) : null },
     email: {
       sent: emSent,
       delivered: emDelivered,

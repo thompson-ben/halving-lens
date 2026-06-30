@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Mail, Check } from "lucide-react";
 import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
+import { fireLead } from "@/lib/marketing";
 
 // Real email capture for the daily brief / future alerts. POSTs to
 // /api/subscribe (validates + forwards to a configured destination). Falls back
@@ -44,6 +45,7 @@ export function BriefSignup({
         throw new Error(j.error ?? "Something went wrong.");
       }
       track("signup", { source: pathname, ...getAttribution() });
+      fireLead({ source: pathname });
       setDone(true);
     } catch (err) {
       // Don't lose the signup — stash locally and still confirm.

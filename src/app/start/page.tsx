@@ -6,11 +6,14 @@ import { sentimentRead, SENTIMENT_AVAILABLE } from "@/lib/sentiment";
 import { libraryStats } from "@/lib/research";
 import { absoluteUrl } from "@/lib/site";
 
+const DESC =
+  "Understand today's Bitcoin market in under 60 seconds. Daily research grounded in historical context — no hype, no predictions, no price targets.";
 export const metadata = {
   title: "HalvingLens — The Clearest View of the Bitcoin Cycle",
-  description:
-    "Understand today's Bitcoin market in under 60 seconds. Daily research grounded in historical context — no hype, no predictions, no price targets.",
+  description: DESC,
   alternates: { canonical: "/start" },
+  openGraph: { title: "The clearest view of the Bitcoin cycle.", description: DESC, url: "/start", type: "website" },
+  twitter: { card: "summary_large_image", title: "The clearest view of the Bitcoin cycle.", description: DESC },
 };
 
 const GOLD = "#d9b96a";
