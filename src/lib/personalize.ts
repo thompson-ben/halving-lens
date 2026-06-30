@@ -102,3 +102,33 @@ export function getStreak(): number {
 export function getVisitDayCount(): number {
   return read<string[]>(DAYS_KEY, []).length;
 }
+
+// ── Sync helpers (local ⇄ profile) ───────────────────────────────────────────
+export interface SyncState {
+  saved?: PersonalItem[];
+  recent?: PersonalItem[];
+  streakDays?: string[];
+}
+
+export function exportLocalState(): SyncState {
+  return { saved: getSaved(), recent: getRecent(), streakDays: read<string[]>(DAYS_KEY, []) };
+}
+
+// Merge a remote state into the local store (union by href, newest ts wins;
+// visit-days unioned). Used when a profile signs in on a new device.
+export function mergeLocalState(remote: SyncState): void {
+  const mergeItems = (key: string, incoming?: PersonalItem[]) => {
+    if (!incoming?.length) return;
+    const byHref = new Map<string, PersonalItem>();
+    for (const x of [...read<PersonalItem[]>(key, []), ...incoming]) {
+      const prev = byHref.get(x.href);
+      if (!prev || x.ts > prev.ts) byHref.set(x.href, x);
+    }
+    write(key, [...byHref.values()].sort((a, b) => b.ts - a.ts).slice(0, RECENT_CAP));
+  };
+  mergeItems(SAVED_KEY, remote.saved);
+  mergeItems(RECENT_KEY, remote.recent);
+  if (remote.streakDays?.length) {
+    write(DAYS_KEY, Array.from(new Set([...read<string[]>(DAYS_KEY, []), ...remote.streakDays])).sort().slice(-400));
+  }
+}

@@ -119,8 +119,10 @@ function GrowthBody({
           </div>
         </div>
         <p className="mt-3 text-[11px] text-ink-500 leading-relaxed">
-          Visitor→WAES = WAES ÷ unique visitors (7d). Measured click-bridged until magic-link auth links email and web
-          identities — at which point WAES becomes the exact opened-and-visited count.
+          Visitor→WAES = WAES ÷ unique visitors (7d).{" "}
+          {waes.basis === "linked"
+            ? "WAES is now exact — opened an email AND visited via a signed-in Profile within 7 days."
+            : "Measured click-bridged until signed-in Profiles link email and web identities, at which point WAES becomes the exact opened-and-visited count."}
         </p>
       </section>
 

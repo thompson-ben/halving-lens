@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { PageTracker } from "@/components/PageTracker";
 import { AttributionCapture } from "@/components/AttributionCapture";
+import { ProfileBeacon } from "@/components/ProfileBeacon";
 import { BareChromeSync } from "@/components/ChromeGate";
 import { MarketingScripts } from "@/components/MarketingScripts";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <PageTracker />
         <AttributionCapture />
+        <ProfileBeacon />
         <BareChromeSync />
         <MarketingScripts />
       </body>
