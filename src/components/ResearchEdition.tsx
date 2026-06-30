@@ -77,11 +77,15 @@ export function ResearchEdition({ e }: { e: Edition }) {
               <span className="text-[14px] text-ink-400">{r.label}</span>
               <span className="flex items-center gap-3">
                 <span className="text-[15px] font-medium" style={{ color: r.color }}>{r.value}</span>
-                <span className="flex gap-1">
-                  {[1, 2, 3].map((i) => (
-                    <span key={i} className="w-4 h-[5px] rounded-full" style={{ background: i <= r.strength ? r.color : "rgba(255,255,255,0.08)" }} />
-                  ))}
-                </span>
+                {r.metric ? (
+                  <span className="text-[13px] font-medium text-ink-500 tabular-nums">{r.metric}</span>
+                ) : (
+                  <span className="flex gap-1">
+                    {[1, 2, 3].map((i) => (
+                      <span key={i} className="w-4 h-[5px] rounded-full" style={{ background: i <= r.strength ? r.color : "rgba(255,255,255,0.08)" }} />
+                    ))}
+                  </span>
+                )}
               </span>
             </div>
           ))}

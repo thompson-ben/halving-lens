@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { sendEmail, resendConfigured } from "@/lib/resend";
+import { welcomeEmailHtml, welcomeEmailText, welcomeEmailSubject } from "@/lib/welcomeEmail";
+import { unsubToken } from "@/lib/emailToken";
+import { absoluteUrl } from "@/lib/site";
 
-// Email capture for the Daily Brief waitlist. Validates server-side, then
-// stores the signup in the first destination that's configured:
+// Email capture for the Daily Brief. Validates server-side, then stores the
+// signup in the first destination that's configured:
 //
 //   1. Supabase (preferred) — set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.
 //      Inserts into a `brief_subscribers` table via the PostgREST REST API
@@ -9,7 +13,10 @@ import { NextResponse } from "next/server";
 //   2. SIGNUP_WEBHOOK_URL — any JSON POST sink (Zapier, Make, Sheet webhook…).
 //   3. Logs — captured in serverless logs so a signup is never lost.
 //
-// No auth, no subscriptions, no new dependency.
+// On a genuinely NEW Supabase signup we also send an immediate welcome email
+// (same theme as the Daily Brief) — best-effort, never blocking the response.
+//
+// No auth, no new dependency.
 
 export const runtime = "nodejs";
 
@@ -21,10 +28,12 @@ interface Body {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-async function storeInSupabase(record: Record<string, unknown>): Promise<boolean> {
+type StoreResult = "created" | "duplicate" | "unavailable";
+
+async function storeInSupabase(record: Record<string, unknown>): Promise<StoreResult> {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return false;
+  if (!url || !key) return "unavailable";
   try {
     const res = await fetch(`${url}/rest/v1/brief_subscribers`, {
       method: "POST",
@@ -36,13 +45,34 @@ async function storeInSupabase(record: Record<string, unknown>): Promise<boolean
       },
       body: JSON.stringify(record),
     });
-    // 201 created, or 409 duplicate (unique email) — both mean "captured".
-    if (res.ok || res.status === 409) return true;
+    if (res.status === 409) return "duplicate"; // unique email already present
+    if (res.ok) return "created";
     console.error(`[subscribe] supabase ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    return false;
+    return "unavailable";
   } catch (e) {
     console.error(`[subscribe] supabase failed: ${(e as Error).message}`);
-    return false;
+    return "unavailable";
+  }
+}
+
+// Immediate, on-theme welcome email. Best-effort: any failure is logged, never
+// surfaced to the subscriber (their signup already succeeded).
+async function sendWelcome(email: string): Promise<void> {
+  if (!resendConfigured) return;
+  try {
+    const unsubUrl = absoluteUrl(`/api/unsubscribe?e=${encodeURIComponent(email)}&t=${unsubToken(email)}`);
+    await sendEmail({
+      to: email,
+      subject: welcomeEmailSubject(),
+      html: welcomeEmailHtml(unsubUrl),
+      text: welcomeEmailText(),
+      headers: {
+        "List-Unsubscribe": `<${unsubUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    });
+  } catch (e) {
+    console.error(`[subscribe] welcome email failed: ${(e as Error).message}`);
   }
 }
 
@@ -85,8 +115,15 @@ export async function POST(req: Request) {
   };
 
   // Try destinations in order; always succeed for the user (log as last resort).
-  const stored = (await storeInSupabase(record)) || (await storeInWebhook(record));
+  const supa = await storeInSupabase(record);
+  let stored = supa === "created" || supa === "duplicate";
+  if (!stored) stored = await storeInWebhook(record);
   if (!stored) console.log(`[subscribe] ${JSON.stringify(record)}`);
+
+  // Welcome only a confirmed-new subscriber, so resubmits don't re-send. Awaited
+  // (so it actually fires before the serverless function freezes) but guarded, so
+  // a mail failure never breaks the signup.
+  if (supa === "created") await sendWelcome(email);
 
   return NextResponse.json({ ok: true });
 }

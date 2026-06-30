@@ -18,6 +18,8 @@ import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { TrackedSection } from "@/components/TrackedSection";
 import { FeatureVote } from "@/components/FeatureVote";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { ResearchFindingCard } from "@/components/ResearchFindingCard";
+import { latestFindings } from "@/lib/findings";
 
 export default function CycleDashboardPage() {
   return (
@@ -58,6 +60,27 @@ export default function CycleDashboardPage() {
 
       {/* 3. Why check today — compact daily-habit reminder */}
       <WhyCheckToday />
+
+      {/* 3a. Original research — the publisher signal */}
+      <section>
+        <SectionHeader
+          eyebrow="Original research"
+          title="Latest Research Findings"
+          subtitle="Permanent, citable discoveries from Bitcoin's history — evidence first, conclusions second. Historical context, not prediction."
+          link={{ href: "/research/findings", label: "All research findings" }}
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {latestFindings(3).map((f) => (
+            <ResearchFindingCard key={f.id} f={f} />
+          ))}
+        </div>
+        <Link
+          href="/research/findings"
+          className="sm:hidden mt-4 inline-flex items-center gap-1.5 text-[13px] text-accent"
+        >
+          All research findings <ArrowUpRight size={14} />
+        </Link>
+      </section>
 
       {/* 3b. Accumulation Index teaser — curiosity + click-through */}
       <TrackedSection id="accumulation-index" feedback="accumulation_index">

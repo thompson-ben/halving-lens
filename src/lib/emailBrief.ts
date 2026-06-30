@@ -118,17 +118,24 @@ function confidence(): { level: "HIGH" | "MEDIUM" | "LOW"; color: string; blurb:
   const majoritySign = pos >= neg ? 1 : -1;
   const aligned = active.filter((x) => x.v === majoritySign).map((x) => x.name);
   const diverging = active.filter((x) => x.v === -majoritySign).map((x) => x.name);
+  const unanimous = aligned.length > 0 && diverging.length === 0;
+  // "Confidence" here = how much today's core signals agree with EACH OTHER, not
+  // how closely today resembles history (that's the closest-match section). The
+  // blurb must stay consistent with whether a signal actually diverges, so a HIGH
+  // reading never claims full alignment while the detail names a divergence.
   const blurb =
     level === "HIGH"
-      ? "Today's data strongly aligns with historical behaviour."
+      ? unanimous
+        ? "Today's core signals are in full agreement."
+        : "Most of today's core signals point the same way."
       : level === "MEDIUM"
-        ? "Some indicators agree, others diverge."
-        : "Historical signals are mixed.";
+        ? "Today's signals are split — some agree, some diverge."
+        : "Today's signals are pulling in different directions.";
   const detail =
     aligned.length && diverging.length
       ? `${cap(aligned.join(", "))} point the same way; ${diverging.join(", ")} diverge.`
       : aligned.length
-        ? `${cap(aligned.join(", "))} are pointing the same way.`
+        ? `${cap(aligned.join(", "))} all point the same way.`
         : "No single signal dominates today.";
   const color = level === "HIGH" ? C.green : level === "MEDIUM" ? C.gold : C.dim;
   return { level, color, blurb, detail };
@@ -137,9 +144,10 @@ function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// ── Market Health — narrative readings, not isolated numbers ──────────────────
-// strength 1–3 drives the visual bar; color carries the tone.
-function marketHealth(): { label: string; value: string; color: string; strength: number }[] {
+// ── Market Health — narrative readings, each with the concrete number behind it.
+// strength 1–3 is retained for older stored editions; new editions also carry a
+// `metric` (e.g. "15/100", "−$2.1B/wk") so the reading is a figure, not a meter.
+function marketHealth(): { label: string; value: string; color: string; strength: number; metric: string }[] {
   const { s, acc, sr, etfWk } = reads();
   const valueTone = acc.band.key === "deep_value" || acc.band.key === "attractive" ? C.green : acc.band.key === "neutral" ? C.dim : C.red;
   const valueStr = acc.band.key === "deep_value" || acc.band.key === "overheated" ? 3 : acc.band.key === "neutral" ? 1 : 2;
@@ -155,12 +163,21 @@ function marketHealth(): { label: string; value: string; color: string; strength
   const momTone = mom == null ? C.dim : mom > 1.5 ? C.green : mom < -1.5 ? C.red : C.dim;
   const momStr = mom == null ? 1 : Math.abs(mom) > 4 ? 3 : Math.abs(mom) > 1.5 ? 2 : 1;
   const sentStr = sr ? (sr.value <= 25 || sr.value >= 75 ? 3 : sr.value < 45 || sr.value >= 55 ? 2 : 1) : 1;
+
+  // Concrete reading behind each row, in its natural unit.
+  const minus = (n: number) => (n < 0 ? "−" : "+") + fmtUsd(Math.abs(n), { compact: true });
+  const valueMetric = `${acc.score}/100`;
+  const sentMetric = sr ? `${Math.round(sr.value)}/100` : "n/a";
+  const posMetric = s.heatPercentile != null ? `${s.heatPercentile}/100` : "—";
+  const etfMetric = etfWk == null ? "—" : `${minus(etfWk)}/wk`;
+  const momMetric = mom == null ? "—" : `${mom >= 0 ? "+" : ""}${mom.toFixed(1)}%`;
+
   return [
-    { label: "Historical value", value: acc.band.label.replace("Historically ", ""), color: valueTone, strength: valueStr },
-    { label: "Sentiment", value: sr ? sr.band.label : "n/a", color: sr ? SENT_HEX[sr.band.tone] ?? C.dim : C.dim, strength: sentStr },
-    { label: "Cycle position", value: posWord, color: posTone, strength: posStr },
-    { label: "ETF demand", value: etfWord, color: etfTone, strength: etfStr },
-    { label: "Momentum", value: momWord, color: momTone, strength: momStr },
+    { label: "Historical value", value: acc.band.label.replace("Historically ", ""), color: valueTone, strength: valueStr, metric: valueMetric },
+    { label: "Sentiment", value: sr ? sr.band.label : "n/a", color: sr ? SENT_HEX[sr.band.tone] ?? C.dim : C.dim, strength: sentStr, metric: sentMetric },
+    { label: "Cycle position", value: posWord, color: posTone, strength: posStr, metric: posMetric },
+    { label: "ETF demand", value: etfWord, color: etfTone, strength: etfStr, metric: etfMetric },
+    { label: "Momentum", value: momWord, color: momTone, strength: momStr, metric: momMetric },
   ];
 }
 
@@ -447,15 +464,13 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
     <div style="font:700 40px/1 ${SERIF};color:${conf.color};">${conf.level}</div>
     <div style="font:400 16px/1.55 ${SANS};color:${C.sub};margin-top:12px;">${esc(conf.blurb)} <span style="color:${C.dim};">${esc(conf.detail)}</span></div>`;
 
-  const pip = (on: boolean, color: string) =>
-    `<span style="display:inline-block;width:18px;height:5px;border-radius:3px;background:${on ? color : C.hair};margin-left:4px;vertical-align:middle;"></span>`;
   const healthRows = marketHealth()
     .map(
       (r) => `<tr>
         <td style="padding:15px 0;border-bottom:1px solid ${C.hair};font:400 15px/1.4 ${SANS};color:${C.dim};">${esc(r.label)}</td>
         <td style="padding:15px 0;border-bottom:1px solid ${C.hair};text-align:right;white-space:nowrap;">
-          <span style="font:600 16px/1.4 ${SANS};color:${r.color};vertical-align:middle;margin-right:12px;">${esc(r.value)}</span>
-          ${pip(r.strength >= 1, r.color)}${pip(r.strength >= 2, r.color)}${pip(r.strength >= 3, r.color)}
+          <span style="font:600 16px/1.4 ${SANS};color:${r.color};vertical-align:middle;">${esc(r.value)}</span>
+          <span style="font:600 14px/1.4 ${SANS};color:${C.faint};vertical-align:middle;margin-left:10px;">${esc(r.metric)}</span>
         </td>
       </tr>`,
     )
