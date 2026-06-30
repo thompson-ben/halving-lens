@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { WeeklyReport } from "@/components/WeeklyReport";
+import { ResearchHubNav } from "@/components/ResearchHubNav";
+import { RelatedResearch } from "@/components/RelatedResearch";
 import { ShareButtons } from "@/components/ShareButtons";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { latestWeekly, weeklyStats } from "@/lib/weekly";
@@ -21,6 +23,7 @@ export default function WeeklyPage() {
 
   return (
     <div className="space-y-10">
+      <ResearchHubNav active="weekly" />
       <header className="pt-2">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>HalvingLens Weekly Research</div>
@@ -52,6 +55,8 @@ export default function WeeklyPage() {
           </section>
         </>
       )}
+
+      <RelatedResearch topics={["Accumulation", "Dynamic DCA", "Fear & Greed"]} heading="Original Research Findings" limit={2} />
 
       <FeedbackWidget section="weekly_research" contentType="weekly" label="Is the weekly research useful?" />
     </div>

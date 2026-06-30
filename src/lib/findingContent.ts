@@ -60,18 +60,16 @@ export function findingInstagramCaption(f: ResearchFinding): string {
 }
 
 export function findingXThread(f: ResearchFinding): string[] {
+  // Built entirely from the finding's own fields, so it's correct for every note.
   const out: string[] = [];
   out.push(`${f.id} — ${f.title}\n\n${f.headline}\n\nA HalvingLens research note. 🧵`);
-  out.push(`The myth: ${f.myth.myth}\n\nIntuitive — but does it actually leave you with more Bitcoin over a full cycle?`);
-  out.push(
-    `We tested three mechanical rules over Bitcoin's full weekly history, same window and budget: flat DCA, Dynamic DCA (scaled by our Accumulation Index), and Distribution (trim + tax + reinvest in overheated conditions).`,
-  );
-  out.push(`The reality: ${f.myth.reality}`);
-  out.push(`Why it matters: ${f.whyThisMatters[0]} ${f.whyThisMatters[3] ?? ""}`.trim());
-  out.push(
-    `Limitations matter: few cycles, overlapping samples, a long secular uptrend, and a simplified flat tax. This is descriptive history, not a prediction or advice.`,
-  );
-  out.push(`Full note, methodology and the live evidence table:\n${url(f)}\n\nCite it as ${f.id}.`);
+  out.push(`The myth: ${f.myth.myth}`);
+  if (f.background[0]) out.push(f.background[0]);
+  out.push(`What the history shows: ${f.myth.reality}`);
+  out.push(`In short: ${f.summary}`);
+  if (f.whyThisMatters[0]) out.push(`Why it matters: ${f.whyThisMatters[0]}`);
+  out.push(`The caveats matter: ${f.limitations[0]} This is descriptive history — not a prediction or advice.`);
+  out.push(`Full note, methodology and the live evidence:\n${url(f)}\n\nCite it as ${f.id}.`);
   return out;
 }
 
@@ -86,15 +84,17 @@ export function findingLinkedin(f: ResearchFinding): string {
     `Myth: ${f.myth.myth}`,
     `Reality: ${f.myth.reality}`,
     "",
-    "Method, in brief: a point-in-time Accumulation Index drives three mechanical rules over Bitcoin's full weekly history — flat DCA, Dynamic DCA, and a Distribution variant that trims, taxes and reinvests in overheated conditions. All compared per $1,000 of new money contributed.",
+    f.methodology[0] ? `Method, in brief: ${f.methodology[0]}` : "",
     "",
-    `Important context: ${f.limitations[1]} ${f.limitations[4]}`,
+    `Important context: ${f.limitations[0]}${f.limitations[f.limitations.length - 1] ? ` ${f.limitations[f.limitations.length - 1]}` : ""}`,
     "",
     `Read the full research note (${f.id}), including methodology, limitations and a live evidence table:`,
     url(f),
     "",
     "Historical context. Not prediction. Not financial advice.",
-  ].join("\n");
+  ]
+    .filter((l) => l !== "")
+    .join("\n");
 }
 
 export function findingEmailTeaser(f: ResearchFinding): { subject: string; body: string } {

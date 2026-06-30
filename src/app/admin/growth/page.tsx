@@ -58,6 +58,7 @@ function GrowthBody({ a }: { a: Awaited<ReturnType<typeof growthDashboard>> }) {
         <Stat label="Signups · 7d" value={a.windows.signups7} />
         <Stat label="Landing conv." value={a.landing.conversionRate != null ? `${a.landing.conversionRate}%` : "—"} />
         <Stat label="Cost / sub" value={overallCps != null ? `£${overallCps}` : "—"} />
+        <Stat label="Cost / CTA click" value={g.costPerCtaClick != null ? `£${g.costPerCtaClick}` : "—"} />
         <Stat label="Avg session" value={g.avgSessionSeconds != null ? `${g.avgSessionSeconds}s` : "—"} />
         <Stat label="Avg scroll" value={g.avgScroll != null ? `${g.avgScroll}%` : "—"} />
         <Stat label="Email delivery" value={a.email.deliveryRate != null ? `${a.email.deliveryRate}%` : "—"} />

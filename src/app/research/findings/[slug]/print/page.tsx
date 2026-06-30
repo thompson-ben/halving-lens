@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { PrintControls } from "@/components/PrintControls";
 import { findingBySlug, findingSlugs } from "@/lib/findings";
 import { simulateThreeWay, DISTRIBUTION_PRESETS } from "@/lib/accumulationDca";
+import { forwardReturnByBand, pricedSentimentSeries, type SentimentBand } from "@/lib/sentiment";
 import { fmtUsd } from "@/lib/format";
 import { absoluteUrl } from "@/lib/site";
 
@@ -45,6 +46,31 @@ export default function FindingPrintPage({ params }: { params: { slug: string } 
   const cfg = DISTRIBUTION_PRESETS.balanced;
   const sim = f.evidence === "dca-threeway" ? simulateThreeWay({ standardWeekly: 100, buyByBand: cfg.buy, targetSellPct: cfg.sell }) : null;
   const rows = sim ? [sim.standard, sim.dynamic, sim.distribute] : [];
+
+  // Fear & Greed forward-return evidence (HL-R002).
+  const FEAR_ORDER: SentimentBand[] = ["extreme-fear", "fear", "neutral", "greed", "extreme-greed"];
+  const fearH = [30, 90, 365];
+  const fearData =
+    f.evidence === "fear-forward"
+      ? (() => {
+          const series = pricedSentimentSeries();
+          const m = new Map<SentimentBand, { label: string; per: Record<number, { avg: number; n: number }> }>();
+          for (const h of fearH) {
+            for (const r of forwardReturnByBand(h)) {
+              const e = m.get(r.band) ?? { label: r.label, per: {} };
+              e.per[h] = { avg: r.avgReturn, n: r.count };
+              m.set(r.band, e);
+            }
+          }
+          return {
+            rows: FEAR_ORDER.filter((b) => m.has(b)).map((b) => ({ band: b, ...m.get(b)! })),
+            fromYear: series.length ? new Date(series[0].ts).getFullYear() : 2018,
+            toYear: series.length ? new Date(series[series.length - 1].ts).getFullYear() : new Date().getUTCFullYear(),
+            n: series.length,
+          };
+        })()
+      : null;
+  const pctR = (n: number) => `${n >= 0 ? "+" : ""}${Math.round(n)}%`;
 
   return (
     <div className="print-page" style={{ background: "#fff", margin: "-40px -32px", minHeight: "100vh" }}>
@@ -111,6 +137,36 @@ export default function FindingPrintPage({ params }: { params: { slug: string } 
             </table>
             <div style={{ fontSize: 10.5, color: DIM, marginTop: 8 }}>
               {cfg.label} preset · {sim.from} → {sim.to} · per $1,000 of new money · evidence as of {sim.to}.
+            </div>
+          </>
+        )}
+        {fearData && (
+          <>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, marginTop: 8 }}>
+              <thead>
+                <tr style={{ color: DIM, textAlign: "left" }}>
+                  <th style={{ padding: "6px 0", fontWeight: 600 }}>Sentiment that day</th>
+                  <th style={{ padding: "6px 0", fontWeight: 600, textAlign: "right" }}>1 month</th>
+                  <th style={{ padding: "6px 0", fontWeight: 600, textAlign: "right" }}>3 months</th>
+                  <th style={{ padding: "6px 0", fontWeight: 600, textAlign: "right" }}>1 year</th>
+                  <th style={{ padding: "6px 0", fontWeight: 600, textAlign: "right" }}>Days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fearData.rows.map((r) => (
+                  <tr key={r.band} style={{ borderTop: `1px solid ${HAIR}` }}>
+                    <td style={{ padding: "7px 0", color: INK, fontWeight: r.band === "extreme-fear" ? 700 : 400 }}>{r.label}</td>
+                    <td style={{ padding: "7px 0", textAlign: "right", color: INK }}>{r.per[30] ? pctR(r.per[30].avg) : "—"}</td>
+                    <td style={{ padding: "7px 0", textAlign: "right", color: INK }}>{r.per[90] ? pctR(r.per[90].avg) : "—"}</td>
+                    <td style={{ padding: "7px 0", textAlign: "right", color: INK, fontWeight: 600 }}>{r.per[365] ? pctR(r.per[365].avg) : "—"}</td>
+                    <td style={{ padding: "7px 0", textAlign: "right", color: SUB }}>{(r.per[90]?.n ?? r.per[30]?.n ?? 0).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 10.5, color: DIM, marginTop: 8 }}>
+              Fear &amp; Greed Index · daily · {fearData.fromYear}–{fearData.toYear} · {fearData.n.toLocaleString()} readings
+              · average forward BTC return by band.
             </div>
           </>
         )}

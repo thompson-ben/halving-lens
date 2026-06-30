@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Star } from "lucide-react";
 import { format } from "date-fns";
 import type { ResearchFinding } from "@/lib/findings";
+import { FindingStatusBadge } from "./FindingStatusBadge";
 
 // Canonical card for a Research Finding — used on the homepage feature row and in
 // the Research Findings library. Leads with the permanent citation ID.
@@ -24,9 +25,19 @@ export function ResearchFindingCard({ f }: { f: ResearchFinding }) {
       </div>
       <h3 className="mt-3 font-display text-[18px] leading-snug text-ink-50">{f.title}</h3>
       <p className="mt-2 text-[13px] leading-relaxed text-ink-400 flex-1">{f.summary}</p>
-      <div className="mt-4 flex items-center gap-1.5 text-[12px] font-medium text-accent">
-        Read research
-        <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-accent">
+          Read research
+          <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          {f.editorsPick && (
+            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[#d9b96a]">
+              <Star className="w-3 h-3 fill-current" /> Pick
+            </span>
+          )}
+          {f.status !== "active" && <FindingStatusBadge status={f.status} />}
+        </span>
       </div>
     </Link>
   );

@@ -36,6 +36,14 @@ const ALLOWED = new Set([
   "research_search",
   "research_filter",
   "research_share",
+  // Research Findings (library + finding pages + share kit)
+  "findings_search",
+  "findings_filter",
+  "findings_sort",
+  "copy_x",
+  "copy_carousel",
+  "copy_link",
+  "copy_citation",
   // Weekly Research + /start landing
   "weekly_view",
   "weekly_share",
