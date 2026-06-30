@@ -13,6 +13,11 @@ create table if not exists public.profiles (
 
 create index if not exists profiles_referral_code_idx on public.profiles (referral_code);
 
+-- Enable Row Level Security. The app reaches Supabase only via the service_role
+-- key (which bypasses RLS), so this denies the public anon key without adding any
+-- policies — exactly what we want for a table holding emails.
+alter table public.profiles enable row level security;
+
 -- Keep updated_at fresh on writes.
 create or replace function public.touch_profiles_updated_at()
 returns trigger as $$

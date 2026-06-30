@@ -29,10 +29,9 @@ export async function POST(req: Request) {
   const token = makeProfileToken(email, MAGIC_TTL_MS);
   const next = safeNext(body.next);
   const link = absoluteUrl(`/api/profile/verify?token=${encodeURIComponent(token)}${next ? `&next=${encodeURIComponent(next)}` : ""}`);
-  try {
-    await sendEmail({ to: email, subject: profileEmailSubject(), html: profileEmailHtml(link), text: profileEmailText(link) });
-  } catch {
-    /* best-effort; never reveal failure detail */
-  }
-  return NextResponse.json({ ok: true, sent: true });
+  // sendEmail never throws (returns {ok,error}); log failures server-side so they
+  // are diagnosable, but never reveal detail to the caller.
+  const res = await sendEmail({ to: email, subject: profileEmailSubject(), html: profileEmailHtml(link), text: profileEmailText(link) });
+  if (!res.ok) console.error(`[profile/request] send failed: ${res.error ?? "unknown"}`);
+  return NextResponse.json({ ok: true, sent: res.ok });
 }
