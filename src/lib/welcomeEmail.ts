@@ -5,6 +5,7 @@
 // deliverability. Historical context, not advice.
 
 import { SITE_HOST, SITE_URL } from "./site";
+import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
 
 const C = {
   bg: "#0a0c10",
@@ -55,7 +56,7 @@ export function welcomeEmailText(): string {
   ].join("\n");
 }
 
-export function welcomeEmailHtml(unsubUrl: string): string {
+export function welcomeEmailHtml(unsubUrl: string, tracking: EmailTracking = NO_EMAIL_TRACKING): string {
   const bullets = ["A 30-second read", "What changed today", "Historical context", "What to watch next", "No hype, no predictions"];
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -124,7 +125,7 @@ export function welcomeEmailHtml(unsubUrl: string): string {
       <tr><td style="padding:22px 36px 28px;">
         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
           <td style="border-radius:10px;background:${C.gold};">
-            <a href="${SITE_URL}/brief" style="display:inline-block;padding:13px 26px;font:600 14px/1 ${SANS};color:#15120a;text-decoration:none;border-radius:10px;">Read today's brief →</a>
+            <a href="${tracking.link(`${SITE_URL}/brief`, "welcome_read_brief")}" style="display:inline-block;padding:13px 26px;font:600 14px/1 ${SANS};color:#15120a;text-decoration:none;border-radius:10px;">Read today's brief →</a>
           </td>
         </tr></table>
       </td></tr>
@@ -142,5 +143,6 @@ export function welcomeEmailHtml(unsubUrl: string): string {
     </table>
   </td></tr>
 </table>
+${tracking.openPixel}
 </body></html>`;
 }

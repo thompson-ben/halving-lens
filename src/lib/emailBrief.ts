@@ -21,6 +21,7 @@ import { editorialFeature, editionNumber, featureHeroNarrative } from "./editori
 import { briefDate } from "./briefArchive";
 import type { Edition } from "./research";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
+import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
 import { fmtUsd, fmtPct } from "./format";
 import { format } from "date-fns";
 
@@ -409,7 +410,7 @@ function section(inner: string, pad = "34px 36px"): string {
 }
 
 // ── The email ────────────────────────────────────────────────────────────────
-export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): string {
+export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracking: EmailTracking = NO_EMAIL_TRACKING): string {
   const b = buildBrief();
   const { acc, cheaper } = reads();
   const pro = tier === "pro";
@@ -519,16 +520,16 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
 
   const cta = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-      <a href="${SITE_URL}/brief" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 38px;border-radius:12px;">Continue inside HalvingLens →</a>
+      <a href="${tracking.link(`${SITE_URL}/brief`, "daily_continue")}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 38px;border-radius:12px;">Continue inside HalvingLens →</a>
     </td></tr></table>`;
 
   const archive = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
       <td style="font:400 12px/1.5 ${SANS};color:${C.faint};">
-        <a href="${SITE_URL}/brief/archive" style="color:${C.dim};text-decoration:none;">← Yesterday's edition</a>
+        <a href="${tracking.link(`${SITE_URL}/brief/archive`, "daily_yesterday")}" style="color:${C.dim};text-decoration:none;">← Yesterday's edition</a>
       </td>
       <td style="text-align:right;font:400 12px/1.5 ${SANS};">
-        <a href="${SITE_URL}/brief/archive" style="color:${C.gold};text-decoration:none;">Research archive →</a>
+        <a href="${tracking.link(`${SITE_URL}/brief/archive`, "daily_archive")}" style="color:${C.gold};text-decoration:none;">Research archive →</a>
       </td>
     </tr></table>`;
 
@@ -586,5 +587,6 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro"): strin
     </table>
   </td></tr>
 </table>
+${tracking.openPixel}
 </body></html>`;
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendEmail, resendConfigured } from "@/lib/resend";
 import { welcomeEmailHtml, welcomeEmailText, welcomeEmailSubject } from "@/lib/welcomeEmail";
 import { unsubToken } from "@/lib/emailToken";
+import { emailTracking } from "@/lib/emailTracking";
 import { absoluteUrl } from "@/lib/site";
 
 // Email capture for the Daily Brief. Validates server-side, then stores the
@@ -64,7 +65,7 @@ async function sendWelcome(email: string): Promise<void> {
     await sendEmail({
       to: email,
       subject: welcomeEmailSubject(),
-      html: welcomeEmailHtml(unsubUrl),
+      html: welcomeEmailHtml(unsubUrl, emailTracking(email, "welcome")),
       text: welcomeEmailText(),
       headers: {
         "List-Unsubscribe": `<${unsubUrl}>`,
