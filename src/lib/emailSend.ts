@@ -8,6 +8,8 @@ import { sendEmail, resendConfigured } from "./resend";
 import { dailyEmailHtml, dailyEmailText, dailyEmailSubject } from "./emailBrief";
 import { weeklyEmailHtml, weeklyEmailText, weeklyEmailSubject } from "./weeklyEmail";
 import { latestWeekly } from "./weekly";
+import { founderReport } from "./founderReport";
+import { founderReportHtml, founderReportSubject } from "./founderReportEmail";
 import { briefDate } from "./briefArchive";
 import { unsubToken } from "./emailToken";
 import { absoluteUrl } from "./site";
@@ -144,6 +146,41 @@ export async function sendWeekly(opts: { force?: boolean } = {}): Promise<SendSu
   await sbInsert("weekly_email_deliveries", { slug, subscriber_count: subs.length, emails_sent: subs.length, emails_delivered: delivered, emails_failed: failed, provider: "resend" });
 
   return { ...base, ok: true, subscriberCount: subs.length, sent: subs.length, delivered, failed };
+}
+
+// ── Founder Weekly Intelligence Report (Mondays, founder only) ───────────────
+// Sent ONLY to FOUNDER_EMAIL, never to subscribers. Monday-gated + idempotent
+// per ISO week (logged in weekly_email_deliveries under a 'founder-' slug).
+export async function sendFounderReport(opts: { force?: boolean } = {}): Promise<SendSummary & { recipient: string | null }> {
+  const date = today();
+  const recipient = process.env.FOUNDER_EMAIL || null;
+  const base = { ok: false, date, subscriberCount: 0, sent: 0, delivered: 0, failed: 0, provider: "resend", recipient };
+
+  if (!resendConfigured) return { ...base, reason: "resend_not_configured" };
+  if (!recipient) return { ...base, reason: "founder_email_not_set" };
+  // Monday = getUTCDay() 1
+  if (!opts.force && briefDate().getUTCDay() !== 1) return { ...base, ok: true, skipped: true, reason: "not_monday" };
+
+  // ISO-week idempotency key (reuses the weekly log table).
+  const d = briefDate();
+  const dd = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = dd.getUTCDay() || 7;
+  dd.setUTCDate(dd.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(dd.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((dd.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  const slug = `founder-${dd.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+
+  if (supabaseConfigured && !opts.force) {
+    const seen = await sbSelect<{ slug: string }[]>(`weekly_email_deliveries?select=slug&slug=eq.${encodeURIComponent(slug)}&limit=1`);
+    if (seen && seen.length) return { ...base, ok: true, skipped: true, reason: "already_sent_this_week" };
+  }
+
+  const report = await founderReport();
+  const res = await sendEmail({ to: recipient, subject: founderReportSubject(report), html: founderReportHtml(report), text: report.executive.join("\n") });
+  if (supabaseConfigured) {
+    await sbInsert("weekly_email_deliveries", { slug, subscriber_count: 1, emails_sent: 1, emails_delivered: res.ok ? 1 : 0, emails_failed: res.ok ? 0 : 1, provider: "resend-founder" });
+  }
+  return { ...base, ok: res.ok, sent: 1, delivered: res.ok ? 1 : 0, failed: res.ok ? 0 : 1, subscriberCount: 1, reason: res.ok ? undefined : (res.error ?? "send_failed") };
 }
 
 // Mark an email unsubscribed (used by the unsubscribe route).

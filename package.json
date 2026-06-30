@@ -16,6 +16,7 @@
     "persist-weekly": "tsx scripts/persist-weekly.ts",
     "send-email": "tsx scripts/send-email.ts",
     "send-weekly": "tsx scripts/send-weekly.ts",
+    "send-founder-report": "tsx scripts/send-founder-report.ts",
     "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\""
   },
   "dependencies": {
