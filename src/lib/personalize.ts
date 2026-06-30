@@ -74,3 +74,31 @@ export function peekLastVisit(): number | null {
 export function markVisit(): void {
   write(VISIT_KEY, Date.now());
 }
+
+// ── Visit-day log → streaks (for loyalty badges) ─────────────────────────────
+const DAYS_KEY = "hl.visitdays";
+
+export function recordVisitDay(): void {
+  if (typeof window === "undefined") return;
+  const today = new Date().toISOString().slice(0, 10);
+  const list = read<string[]>(DAYS_KEY, []);
+  if (!list.includes(today)) write(DAYS_KEY, [...list, today].slice(-400));
+}
+
+// Current consecutive-day streak ending today (inclusive).
+export function getStreak(): number {
+  const set = new Set(read<string[]>(DAYS_KEY, []));
+  let streak = 0;
+  const d = new Date();
+  for (;;) {
+    const key = d.toISOString().slice(0, 10);
+    if (!set.has(key)) break;
+    streak += 1;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+export function getVisitDayCount(): number {
+  return read<string[]>(DAYS_KEY, []).length;
+}

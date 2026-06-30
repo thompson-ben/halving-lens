@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import { DashboardPersonal } from "@/components/DashboardPersonal";
+import { DashboardBadges } from "@/components/DashboardBadges";
 import { RecordView } from "@/components/RecordView";
 import { editionContent } from "@/lib/emailBrief";
 import { accumulationRead } from "@/lib/accumulation";
@@ -59,6 +60,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Achievements */}
+      <DashboardBadges />
 
       {/* Personalised (local-first) sections */}
       <DashboardPersonal findings={findings} />

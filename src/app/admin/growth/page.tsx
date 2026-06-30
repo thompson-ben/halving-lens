@@ -1,6 +1,19 @@
 import { cookies } from "next/headers";
 import { growthDashboard } from "@/lib/analytics";
-import { emailEngagement, growthFunnel, weeklyActiveEngaged, type EmailEngagement, type FunnelStage, type WaesResult } from "@/lib/growthInsights";
+import {
+  emailEngagement,
+  growthFunnel,
+  weeklyActiveEngaged,
+  visitorToWaes,
+  growthRecommendations,
+  type EmailEngagement,
+  type FunnelStage,
+  type WaesResult,
+  type VisitorToWaes,
+  type Recommendation,
+} from "@/lib/growthInsights";
+import { experimentResults } from "@/lib/experimentAnalytics";
+import { referralAnalytics, type ReferralAnalytics } from "@/lib/referralAnalytics";
 import { marketingHealth, type MarketingHealth, type HealthStatus } from "@/lib/marketingHealth";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
@@ -21,18 +34,32 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
-  const [health, a, email, funnel, waes] = await Promise.all([
+  const [health, a, email, funnel, waes, v2w, referral, experiments] = await Promise.all([
     marketingHealth(),
     growthDashboard(),
     emailEngagement(),
     growthFunnel(),
     weeklyActiveEngaged(),
+    visitorToWaes(),
+    referralAnalytics(),
+    experimentResults(),
   ]);
+  const recommendations = growthRecommendations({
+    email,
+    waes,
+    v2w,
+    campaigns: a.growth.campaigns,
+    experiments: experiments.map((e) => ({ id: e.spec.id, significant: e.significant, bestKey: e.bestKey, controlKey: e.controlKey, liftPct: e.liftPct, confidence: e.confidence, spec: { title: e.spec.title } })),
+    referralSubscribers: referral.totalReferralSubscribers,
+    landingConversion: a.landing.conversionRate,
+  });
+  const runningExp = experiments.filter((e) => e.spec.status === "running").length;
 
   return (
     <Shell>
       <div className="-mt-2 flex items-center gap-3 flex-wrap">
         <a href="/admin/analytics" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-accent/25 bg-accent/[0.06] text-accent text-[12.5px] hover:bg-accent/[0.1]">Full analytics →</a>
+        <a href="/admin/experiments" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-white/[0.1] text-ink-300 text-[12.5px] hover:text-ink-100 hover:border-accent/30">Experiments →</a>
         <a href="/api/admin/founder-report-preview" target="_blank" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-white/[0.1] text-ink-300 text-[12.5px] hover:text-ink-100 hover:border-accent/30">Preview founder report →</a>
         <SendTestEmailButton endpoint="/api/admin/send-founder-report" label="Send founder report now" />
       </div>
@@ -43,13 +70,31 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       {!a.configured ? (
         <p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql to populate the metrics below.</p>
       ) : (
-        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} />
+        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} />
       )}
     </Shell>
   );
 }
 
-function GrowthBody({ a, email, funnel, waes }: { a: Awaited<ReturnType<typeof growthDashboard>>; email: EmailEngagement; funnel: FunnelStage[]; waes: WaesResult }) {
+function GrowthBody({
+  a,
+  email,
+  funnel,
+  waes,
+  v2w,
+  referral,
+  recommendations,
+  runningExp,
+}: {
+  a: Awaited<ReturnType<typeof growthDashboard>>;
+  email: EmailEngagement;
+  funnel: FunnelStage[];
+  waes: WaesResult;
+  v2w: VisitorToWaes;
+  referral: ReferralAnalytics;
+  recommendations: Recommendation[];
+  runningExp: number;
+}) {
   const g = a.growth;
   const weeklies = weeklyStats();
   const overallCps = g.adSpendTotal > 0 && a.landing.signups > 0 ? Math.round((g.adSpendTotal / a.landing.signups) * 100) / 100 : null;
@@ -67,16 +112,32 @@ function GrowthBody({ a, email, funnel, waes }: { a: Awaited<ReturnType<typeof g
             </div>
           </div>
           <div className="flex gap-2">
+            <Mini label="Visitor→WAES" value={v2w.current != null ? `${v2w.current}%` : "—"} />
+            <Mini label="Prev 7d" value={v2w.previous != null ? `${v2w.previous}%` : "—"} />
             <Mini label="Openers · 7d" value={waes.openers7d.toLocaleString()} />
             <Mini label="Clickers · 7d" value={waes.clickers7d.toLocaleString()} />
-            <Mini label="Returning · 7d" value={waes.returningVisitors7d.toLocaleString()} />
           </div>
         </div>
         <p className="mt-3 text-[11px] text-ink-500 leading-relaxed">
-          Measured click-bridged (an email click proves both email engagement and a site visit) until magic-link auth
-          links email and web identities — at which point this becomes the exact opened-and-visited count.
+          Visitor→WAES = WAES ÷ unique visitors (7d). Measured click-bridged until magic-link auth links email and web
+          identities — at which point WAES becomes the exact opened-and-visited count.
         </p>
       </section>
+
+      {/* Recommendations engine */}
+      <Panel title="What to do next — ranked by impact">
+        <div className="space-y-2.5">
+          {recommendations.map((r, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className={`mt-0.5 shrink-0 text-[9.5px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded ${r.impact === "high" ? "bg-signal-green/15 text-signal-green" : r.impact === "medium" ? "bg-[#d9b96a]/15 text-[#d9b96a]" : "bg-white/[0.05] text-ink-400"}`}>{r.impact}</span>
+              <div>
+                <div className="text-[13px] text-ink-100">{r.title}</div>
+                <div className="text-[12px] text-ink-400">{r.detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
 
       {/* KPI grid */}
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
@@ -184,6 +245,44 @@ function GrowthBody({ a, email, funnel, waes }: { a: Awaited<ReturnType<typeof g
             </table>
           </div>
         )}
+      </Panel>
+
+      {/* Referral leaderboard (anonymous codes) */}
+      <Panel title="Referral leaderboard">
+        {referral.referrers.length === 0 ? (
+          <p className="text-[12.5px] text-ink-500">No referral traffic yet. Subscribers&apos; links use /?ref=CODE; visitors and signups by code appear here. WAES-per-referrer and retention need the accounts system (Phase 2).</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="text-[11.5px] text-ink-400 mb-2">{referral.totalReferralSubscribers} referred subscriber(s) · {referral.totalReferralVisitors} referred visitor(s)</div>
+            <table className="w-full text-[12.5px] min-w-[420px]">
+              <thead>
+                <tr className="text-ink-500 text-[10.5px] uppercase tracking-[0.12em]">
+                  <th className="text-left font-normal pb-2">Code</th>
+                  <th className="text-right font-normal pb-2">Visitors</th>
+                  <th className="text-right font-normal pb-2">Subscribers</th>
+                  <th className="text-right font-normal pb-2">Quality score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {referral.referrers.map((r) => (
+                  <tr key={r.code} className="border-t border-white/[0.06] font-mono">
+                    <td className="py-2 text-ink-200">{r.code}</td>
+                    <td className="py-2 text-right text-ink-300">{r.visitors}</td>
+                    <td className="py-2 text-right text-ink-100">{r.signups}</td>
+                    <td className="py-2 text-right text-accent">{r.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+
+      {/* Experiments summary */}
+      <Panel title="Experiments">
+        <p className="text-[12.5px] text-ink-400">
+          {runningExp} experiment{runningExp === 1 ? "" : "s"} running. <a href="/admin/experiments" className="text-accent">Open the experiment dashboard →</a>
+        </p>
       </Panel>
 
       {/* Landing Page Experiment */}
