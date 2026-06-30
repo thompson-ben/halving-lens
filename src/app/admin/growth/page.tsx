@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { growthDashboard } from "@/lib/analytics";
 import { marketingHealth, type MarketingHealth, type HealthStatus } from "@/lib/marketingHealth";
 import { AdminLogin } from "@/components/AdminLogin";
+import { SendTestEmailButton } from "@/components/SendTestEmailButton";
 import { weeklyStats } from "@/lib/weekly";
 import { timeAgo } from "@/lib/format";
 
@@ -23,8 +24,10 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
 
   return (
     <Shell>
-      <div className="-mt-2">
+      <div className="-mt-2 flex items-center gap-3 flex-wrap">
         <a href="/admin/analytics" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-accent/25 bg-accent/[0.06] text-accent text-[12.5px] hover:bg-accent/[0.1]">Full analytics →</a>
+        <a href="/api/admin/founder-report-preview" target="_blank" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-white/[0.1] text-ink-300 text-[12.5px] hover:text-ink-100 hover:border-accent/30">Preview founder report →</a>
+        <SendTestEmailButton endpoint="/api/admin/send-founder-report" label="Send founder report now" />
       </div>
 
       {/* Marketing Health — the pre-flight checklist */}

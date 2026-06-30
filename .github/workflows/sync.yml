@@ -106,6 +106,19 @@ jobs:
           EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
 
+      - name: Send the founder weekly intelligence report (Mondays, founder only)
+        # Monday-gated + idempotent per ISO week — safe to run daily. Goes only
+        # to FOUNDER_EMAIL, never to subscribers.
+        run: npm run send-founder-report
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          FOUNDER_EMAIL: ${{ secrets.FOUNDER_EMAIL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
       - name: Commit snapshot + brief archive if changed
         run: |
           if git diff --quiet src/lib/data/snapshot.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/weeklies.ts; then
