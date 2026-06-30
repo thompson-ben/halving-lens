@@ -5,6 +5,7 @@
 import type { WeeklyReport } from "./weekly";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
 import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
+import { latestFindings } from "./findings";
 
 const C = {
   bg: "#0a0c10",
@@ -52,6 +53,7 @@ function eyebrow(t: string): string {
 
 export function weeklyEmailHtml(w: WeeklyReport, unsubUrl: string, tracking: EmailTracking = NO_EMAIL_TRACKING): string {
   const chartUrl = absoluteUrl(`/email/chart?d=${encodeURIComponent(w.generatedAt)}`);
+  const featured = latestFindings(1)[0];
   const bullets = w.executiveSummary
     .map((b) => `<tr><td style="padding:5px 0;font:400 15px/1.55 ${SANS};color:${C.sub};"><span style="color:${C.gold};">—</span>&nbsp; ${esc(b)}</td></tr>`)
     .join("");
@@ -100,6 +102,19 @@ export function weeklyEmailHtml(w: WeeklyReport, unsubUrl: string, tracking: Ema
         ${eyebrow("The week ahead")}
         <table role="presentation" width="100%">${watch}</table>
       </td></tr>
+
+      ${
+        featured
+          ? `<tr><td style="padding:6px 36px 22px;">
+        ${eyebrow("From the research library")}
+        <a href="${tracking.link(`${SITE_URL}/research/findings/${featured.slug}`, "weekly_research")}" style="display:block;text-decoration:none;border:1px solid ${C.border};border-radius:14px;padding:18px 20px;">
+          <div style="font:700 11px/1.3 ${SANS};letter-spacing:.14em;color:${C.gold};">${esc(featured.id)}</div>
+          <div style="font:500 17px/1.35 ${SERIF};color:${C.ink};margin-top:6px;">${esc(featured.title)}</div>
+          <div style="font:600 12.5px/1.3 ${SANS};color:${C.gold};margin-top:12px;">Read the research →</div>
+        </a>
+      </td></tr>`
+          : ""
+      }
 
       <tr><td style="padding:14px 36px 30px;" align="center">
         <a href="${tracking.link(`${SITE_URL}/weekly/${w.slug}`, "weekly_read_full")}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};text-decoration:none;padding:16px 36px;border-radius:12px;">Read the full weekly →</a>

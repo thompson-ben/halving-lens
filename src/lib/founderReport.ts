@@ -6,6 +6,7 @@
 
 import { sbSelect, supabaseConfigured } from "./supabase";
 import { growthDashboard } from "./analytics";
+import { emailEngagement, weeklyActiveEngaged } from "./growthInsights";
 import { marketingHealth } from "./marketingHealth";
 import { allEditions, libraryStats } from "./research";
 import { allWeeklies } from "./weekly";
@@ -47,6 +48,8 @@ export async function founderReport(): Promise<FounderReport> {
   const editions = allEditions();
   const weeklies = allWeeklies();
   const lib = libraryStats();
+  const email = await emailEngagement();
+  const waes = await weeklyActiveEngaged();
 
   // ── Windowed visitor/signup/engagement series for WoW + MoM ────────────────
   let pageRows: { path: string | null; session_id: string | null; is_new: boolean | null; created_at: string }[] = [];
@@ -125,8 +128,13 @@ export async function founderReport(): Promise<FounderReport> {
   const topResearchFeature = a.research?.topFeatures?.[0];
   const overallCps = g.adSpendTotal > 0 && a.landing.signups > 0 ? Math.round((g.adSpendTotal / a.landing.signups) * 100) / 100 : null;
 
-  // ── Section 1: Executive summary (3 bullets) ───────────────────────────────
+  const costPerEngaged = g.adSpendTotal > 0 && waes.waes > 0 ? Math.round((g.adSpendTotal / waes.waes) * 100) / 100 : null;
+
+  // ── Section 1: Executive summary (North Star first, then 3 bullets) ─────────
   const executive: string[] = [];
+  executive.push(
+    `North Star — Weekly Active Engaged Subscribers: ${waes.waes.toLocaleString()} (opened + visited in 7d; ${waes.openers7d} openers, ${waes.clickers7d} clickers).`,
+  );
   executive.push(`Visitors ${wowStr(pct(visW, visP))} (${visW.toLocaleString()} this week).`);
   executive.push(`${sgnW} new subscriber${sgnW === 1 ? "" : "s"} (${wowStr(pct(sgnW, sgnP))}); conversion ${convW.toFixed(1)}% (${wowStr(pct(Math.round(convW * 10), Math.round(convP * 10)))}).`);
   if (bestVar && varLift != null && varLift > 0) executive.push(`Landing Variant ${bestVar.variant.toUpperCase()} is the strongest converter (+${varLift}% vs next).`);
@@ -135,6 +143,7 @@ export async function founderReport(): Promise<FounderReport> {
 
   // ── Section 2: Growth ──────────────────────────────────────────────────────
   const growth: ReportRow[] = [
+    { label: "WAES (North Star)", value: waes.waes.toLocaleString(), sub: "engaged · 7d" },
     { label: "Visitors", value: visW.toLocaleString(), sub: wowStr(pct(visW, visP)) },
     { label: "Returning visitors", value: returningW.toLocaleString() },
     { label: "New subscribers", value: sgnW.toLocaleString(), sub: wowStr(pct(sgnW, sgnP)) },
@@ -152,6 +161,7 @@ export async function founderReport(): Promise<FounderReport> {
     { label: "Top CTA", value: topCTA?.label ?? "—" },
     { label: "Best cost per subscriber", value: bestCampaign?.cps != null ? `£${bestCampaign.cps} (${bestCampaign.campaign})` : "—" },
     { label: "Overall cost / subscriber", value: overallCps != null ? `£${overallCps}` : "Add ad spend to compute" },
+    { label: "Cost / engaged sub (WAES)", value: costPerEngaged != null ? `£${costPerEngaged}` : "Add ad spend to compute" },
   ];
 
   // ── Section 4: Content ─────────────────────────────────────────────────────
@@ -165,6 +175,9 @@ export async function founderReport(): Promise<FounderReport> {
 
   // ── Section 5: Behaviour ───────────────────────────────────────────────────
   const behaviour: ReportRow[] = [
+    { label: "Email open rate", value: email.openRate != null ? `${email.openRate}%` : "—", sub: "estimated" },
+    { label: "Email click-through", value: email.ctr != null ? `${email.ctr}%` : "—" },
+    { label: "Click-to-open", value: email.ctor != null ? `${email.ctor}%` : "—" },
     { label: "Avg session", value: g.avgSessionSeconds != null ? `${g.avgSessionSeconds}s` : "—" },
     { label: "Avg scroll depth", value: g.avgScroll != null ? `${g.avgScroll}%` : "—" },
     { label: "Returning share", value: visW ? `${Math.round((returningW / visW) * 100)}%` : "—" },

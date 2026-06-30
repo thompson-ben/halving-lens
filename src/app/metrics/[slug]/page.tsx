@@ -7,6 +7,7 @@ import { MetricGauge } from "@/components/MetricGauge";
 import { DataBadge } from "@/components/DataBadge";
 import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { RecordView } from "@/components/RecordView";
 import { METRICS, metricBySlug, metricTodayRead, valueAtDay, zoneFor } from "@/lib/metrics";
 import { CYCLES, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { comingSoonReason, metricCurrentCycleOnly, metricSource, metricStatus } from "@/lib/cycleIntel";
@@ -85,6 +86,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
 
   return (
     <div className="space-y-12">
+      <RecordView kind="metric" title={metric.name} href={`/metrics/${metric.slug}`} />
       <div>
         <Link
           href="/metrics"

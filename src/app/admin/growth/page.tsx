@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { growthDashboard } from "@/lib/analytics";
-import { emailEngagement, growthFunnel, type EmailEngagement, type FunnelStage } from "@/lib/growthInsights";
+import { emailEngagement, growthFunnel, weeklyActiveEngaged, type EmailEngagement, type FunnelStage, type WaesResult } from "@/lib/growthInsights";
 import { marketingHealth, type MarketingHealth, type HealthStatus } from "@/lib/marketingHealth";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
@@ -21,7 +21,13 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
-  const [health, a, email, funnel] = await Promise.all([marketingHealth(), growthDashboard(), emailEngagement(), growthFunnel()]);
+  const [health, a, email, funnel, waes] = await Promise.all([
+    marketingHealth(),
+    growthDashboard(),
+    emailEngagement(),
+    growthFunnel(),
+    weeklyActiveEngaged(),
+  ]);
 
   return (
     <Shell>
@@ -37,19 +43,40 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       {!a.configured ? (
         <p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql to populate the metrics below.</p>
       ) : (
-        <GrowthBody a={a} email={email} funnel={funnel} />
+        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} />
       )}
     </Shell>
   );
 }
 
-function GrowthBody({ a, email, funnel }: { a: Awaited<ReturnType<typeof growthDashboard>>; email: EmailEngagement; funnel: FunnelStage[] }) {
+function GrowthBody({ a, email, funnel, waes }: { a: Awaited<ReturnType<typeof growthDashboard>>; email: EmailEngagement; funnel: FunnelStage[]; waes: WaesResult }) {
   const g = a.growth;
   const weeklies = weeklyStats();
   const overallCps = g.adSpendTotal > 0 && a.landing.signups > 0 ? Math.round((g.adSpendTotal / a.landing.signups) * 100) / 100 : null;
 
   return (
     <>
+      {/* North Star — Weekly Active Engaged Subscribers */}
+      <section className="card-glow rounded-2xl p-5 sm:p-6">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent">North Star · Weekly Active Engaged Subscribers</div>
+            <div className="mt-2 font-display text-[40px] leading-none text-ink-50">{waes.waes.toLocaleString()}</div>
+            <div className="mt-2 text-[12px] text-ink-400">
+              Opened an email <span className="text-ink-500">and</span> visited the site in the last 7 days.
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Mini label="Openers · 7d" value={waes.openers7d.toLocaleString()} />
+            <Mini label="Clickers · 7d" value={waes.clickers7d.toLocaleString()} />
+            <Mini label="Returning · 7d" value={waes.returningVisitors7d.toLocaleString()} />
+          </div>
+        </div>
+        <p className="mt-3 text-[11px] text-ink-500 leading-relaxed">
+          Measured click-bridged (an email click proves both email engagement and a site visit) until magic-link auth
+          links email and web identities — at which point this becomes the exact opened-and-visited count.
+        </p>
+      </section>
 
       {/* KPI grid */}
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">

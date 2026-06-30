@@ -411,8 +411,9 @@ function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
         </p>
         <p className="mt-2 text-[11px] text-ink-500 leading-relaxed max-w-2xl">
           The multipliers, target trim and {sim.taxRatePct}% tax rate are sensible illustrative defaults, not an
-          optimised output of the backtest or a tax calculation for any jurisdiction. End value counts Bitcoin held
-          plus any uninvested cash. Switch presets above to see how a gentler or more aggressive plan compares.
+          optimised output of the backtest. The {sim.taxRatePct}% figure is an illustrative calculation only — tax
+          treatment varies by jurisdiction and individual circumstances, and nothing here constitutes tax or financial
+          advice. End value counts Bitcoin held plus any uninvested cash. Switch presets above to compare.
         </p>
       </div>
     </div>

@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 import { ResearchEdition } from "@/components/ResearchEdition";
 import { ShareButtons } from "@/components/ShareButtons";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { RecordView } from "@/components/RecordView";
+import { SaveButton } from "@/components/SaveButton";
 import { getEdition, allEditionNumbers, adjacentEditions, relatedEditions } from "@/lib/research";
 import { absoluteUrl } from "@/lib/site";
 
@@ -54,10 +56,16 @@ export default function EditionPage({ params }: { params: { n: string } }) {
   return (
     <div className="space-y-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <RecordView kind="research" title={`Edition #${e.edition} · ${e.dateLabel}`} href={`/research/${e.edition}`} />
 
-      <Link href="/research" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">
-        <ArrowLeft size={13} /> Morning Research Library
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link href="/research" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">
+          <ArrowLeft size={13} /> Morning Research Library
+        </Link>
+        <div className="no-print">
+          <SaveButton kind="research" title={`Edition #${e.edition} · ${e.dateLabel}`} href={`/research/${e.edition}`} />
+        </div>
+      </div>
 
       <ResearchEdition e={e} />
 

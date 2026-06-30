@@ -18,6 +18,7 @@ import { etfStats, ETF } from "./etf";
 import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { similarMoments } from "./similarity";
 import { editorialFeature, editionNumber, featureHeroNarrative } from "./editorial";
+import { latestFindings } from "./findings";
 import { briefDate } from "./briefArchive";
 import type { Edition } from "./research";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
@@ -533,6 +534,19 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
       </td>
     </tr></table>`;
 
+  // Featured research finding — grows awareness of the citable Research Library.
+  const featured = latestFindings(1)[0];
+  const researchBlock = featured
+    ? `
+    ${eyebrow("From the research library")}
+    <a href="${tracking.link(`${SITE_URL}/research/findings/${featured.slug}`, "daily_research")}" style="display:block;text-decoration:none;border:1px solid ${C.border};border-radius:14px;padding:18px 20px;">
+      <div style="font:700 11px/1.3 ${SANS};letter-spacing:.14em;color:${C.gold};">${esc(featured.id)}</div>
+      <div style="font:500 17px/1.35 ${SERIF};color:${C.ink};margin-top:6px;">${esc(featured.title)}</div>
+      <div style="font:400 13.5px/1.55 ${SANS};color:${C.dim};margin-top:8px;">${esc(featured.summary)}</div>
+      <div style="font:600 12.5px/1.3 ${SANS};color:${C.gold};margin-top:12px;">Read the research →</div>
+    </a>`
+    : "";
+
   // Section order with tier gating.
   // Free: Take, Hero, Market Health, CTA. Pro adds the rest.
   const rows: string[] = [];
@@ -545,6 +559,7 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
   if (pro && ctx) rows.push(section(contextBlock, "24px 36px"));
   if (pro) rows.push(section(analystBlock, "24px 36px"));
   if (pro && watchBlock) rows.push(section(watchBlock, "24px 36px"));
+  if (pro && researchBlock) rows.push(section(researchBlock, "20px 36px"));
   if (pro) rows.push(section(delightBlock, "8px 36px 4px"));
   rows.push(section(cta, "30px 36px 18px"));
   rows.push(section(archive, "6px 36px 30px"));

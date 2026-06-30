@@ -24,6 +24,7 @@ const STATIC_PATHS = [
   "/replay",
   "/metrics",
   "/learn",
+  "/privacy",
   "/price",
   "/etf",
   "/halving",

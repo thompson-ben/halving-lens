@@ -123,6 +123,51 @@ export async function emailEngagement(): Promise<EmailEngagement> {
   };
 }
 
+// ── North Star: Weekly Active Engaged Subscribers (WAES) ─────────────────────
+// Definition (target): a subscriber who BOTH opened an email AND visited the
+// site in the last 7 days. True WAES needs email-identity ↔ web-identity linkage,
+// which arrives with magic-link auth (Phase 2). Until then we report the
+// CLICK-BRIDGED measure: an email click proves email engagement AND a site visit
+// in a single action, so distinct 7-day email clickers is an honest lower bound.
+export interface WaesResult {
+  waes: number; // distinct subscribers, click-bridged, last 7 days
+  openers7d: number; // distinct subscribers who opened an email (7d)
+  clickers7d: number; // distinct subscribers who clicked an email (7d) == waes basis
+  returningVisitors7d: number; // distinct returning sessions (7d) — context
+  basis: "click-bridged" | "linked";
+}
+
+function iso7(): string {
+  return new Date(Date.now() - 7 * 86_400_000).toISOString();
+}
+
+export async function weeklyActiveEngaged(): Promise<WaesResult> {
+  const since = iso7();
+  const [opens, clicks, pages] = await Promise.all([
+    sbSelect<PropRow[]>(`events?select=props&name=eq.email_open&created_at=gte.${since}&limit=50000`),
+    sbSelect<PropRow[]>(`events?select=props&name=eq.email_click&created_at=gte.${since}&limit=50000`),
+    sbSelect<{ session_id: string | null; is_new: boolean | null }[]>(
+      `events?select=session_id,is_new&name=eq.page_view&created_at=gte.${since}&limit=50000`,
+    ),
+  ]);
+  const subSet = (rows: PropRow[] | null) => {
+    const s = new Set<string>();
+    for (const r of rows ?? []) if (r.props?.sub) s.add(String(r.props.sub));
+    return s;
+  };
+  const openers = subSet(opens);
+  const clickers = subSet(clicks);
+  const returning = new Set<string>();
+  for (const r of pages ?? []) if (r.session_id && r.is_new === false) returning.add(r.session_id);
+  return {
+    waes: clickers.size,
+    openers7d: openers.size,
+    clickers7d: clickers.size,
+    returningVisitors7d: returning.size,
+    basis: "click-bridged",
+  };
+}
+
 // ── Acquisition funnel ───────────────────────────────────────────────────────
 export interface FunnelStage {
   key: string;

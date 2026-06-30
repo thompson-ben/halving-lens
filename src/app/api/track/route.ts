@@ -44,6 +44,9 @@ const ALLOWED = new Set([
   "copy_carousel",
   "copy_link",
   "copy_citation",
+  // Personalised dashboard
+  "dashboard_view",
+  "favourite_toggle",
   // Weekly Research + /start landing
   "weekly_view",
   "weekly_share",
