@@ -47,6 +47,11 @@ export const metadata: Metadata = {
     description: "Bitcoin cycle intelligence, free. Every metric aligned to halving day zero.",
     images: ["/og"],
   },
+  // Meta (Facebook) Business domain verification — renders
+  // <meta name="facebook-domain-verification" content="…"> in <head>.
+  verification: {
+    other: { "facebook-domain-verification": "x39mdys9nqbeaicylh1lfhs2y1sq61" },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
