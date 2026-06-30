@@ -9,7 +9,8 @@ export interface EditionMarketHealth {
   label: string;
   value: string;
   color: string; // hex
-  strength: number; // 1..3
+  strength: number; // 1..3 (legacy visual meter; kept for older stored editions)
+  metric?: string; // concrete reading, e.g. "15/100", "−$2.1B/wk", "+1.1%"
 }
 
 export interface Edition {

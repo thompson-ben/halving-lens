@@ -61,7 +61,10 @@ export function WeeklyPrintView({ w }: { w: WeeklyReport }) {
             {w.marketHealth.map((r) => (
               <tr key={r.label} style={{ borderBottom: `1px solid ${HAIR}` }}>
                 <td style={{ padding: "8px 0", color: DIM }}>{r.label}</td>
-                <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 600 }}>{r.value}</td>
+                <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 600 }}>
+                  {r.value}
+                  {r.metric ? <span style={{ color: DIM, fontWeight: 500, marginLeft: 8 }}>{r.metric}</span> : null}
+                </td>
               </tr>
             ))}
           </tbody>
