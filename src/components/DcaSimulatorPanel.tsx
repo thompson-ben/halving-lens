@@ -13,14 +13,25 @@ import { SegmentedControl } from "./SegmentedControl";
 // history only — not advice, not a forecast.
 
 // Contribution multiplier per band, relative to the chosen base (more when
-// historically cheap, less when historically overheated).
-const LADDER: Record<AccumulationBandKey, number> = {
-  deep_value: 2,
-  attractive: 1.5,
-  neutral: 1,
-  elevated: 0.75,
-  overheated: 0.5,
+// historically cheap, less when historically overheated). Three illustrative
+// intensities — these are sensible defaults, NOT an optimised backtest output.
+const PRESETS: Record<string, Record<AccumulationBandKey, number>> = {
+  conservative: { deep_value: 1.5, attractive: 1.25, neutral: 1, elevated: 0.85, overheated: 0.7 },
+  balanced: { deep_value: 2, attractive: 1.5, neutral: 1, elevated: 0.75, overheated: 0.5 },
+  aggressive: { deep_value: 3, attractive: 2, neutral: 1, elevated: 0.5, overheated: 0.25 },
 };
+const PRESET_OPTS = [
+  { key: "conservative", label: "Conservative" },
+  { key: "balanced", label: "Balanced" },
+  { key: "aggressive", label: "Aggressive" },
+] as const;
+
+function adjustLabel(mult: number): string {
+  if (mult === 1) return "Buy 1× (base)";
+  if (mult === 2) return "Buy 2× (double)";
+  if (mult === 0.5) return "Buy 0.5× (half)";
+  return `Buy ${mult}×`;
+}
 
 const BASES = [
   { key: "25", label: "$25" },
@@ -29,25 +40,20 @@ const BASES = [
   { key: "200", label: "$200" },
 ] as const;
 
-const ADJUST_LABEL: Record<AccumulationBandKey, string> = {
-  deep_value: "Buy 2× (double)",
-  attractive: "Buy 1.5×",
-  neutral: "Buy 1× (base)",
-  elevated: "Buy 0.75×",
-  overheated: "Buy 0.5× (half)",
-};
-
 export function DcaSimulatorPanel() {
   const [base, setBase] = useState<string>("100");
+  const [preset, setPreset] = useState<string>("balanced");
   const today = accumulationRead();
+  const ladder = PRESETS[preset] ?? PRESETS.balanced;
 
   const sim = useMemo(() => {
     const weekly = Number(base);
+    const l = PRESETS[preset] ?? PRESETS.balanced;
     const dynamicByBand = Object.fromEntries(
-      ACCUMULATION_BANDS.map((b) => [b.key, Math.round(weekly * LADDER[b.key])]),
+      ACCUMULATION_BANDS.map((b) => [b.key, Math.round(weekly * l[b.key])]),
     ) as Record<AccumulationBandKey, number>;
     return simulateDca({ standardWeekly: weekly, dynamicByBand });
-  }, [base]);
+  }, [base, preset]);
 
   return (
     <div className="space-y-6">
@@ -99,7 +105,18 @@ export function DcaSimulatorPanel() {
 
       {/* How the rule works — the ladder */}
       <div>
-        <div className="text-[11px] uppercase tracking-[0.16em] text-accent">How the dynamic plan works</div>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-accent">How the dynamic plan works</div>
+          <SegmentedControl
+            aria-label="Scaling intensity"
+            options={PRESET_OPTS.map((p) => ({ key: p.key, label: p.label }))}
+            value={preset}
+            onChange={(k) => {
+              setPreset(k);
+              track("dca_change", { preset: k });
+            }}
+          />
+        </div>
         <p className="mt-1.5 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">
           The only input is today&apos;s Accumulation Index band. Your weekly buy scales mechanically —
           more when Bitcoin is historically cheap, less when it&apos;s historically overheated. The score
@@ -129,8 +146,8 @@ export function DcaSimulatorPanel() {
                       </span>
                     </td>
                     <td className="py-2.5 text-ink-400 font-mono">{b.range[0]}–{b.range[1]}</td>
-                    <td className="py-2.5 text-ink-300">{ADJUST_LABEL[b.key]}</td>
-                    <td className="py-2.5 text-right font-mono text-ink-100">{fmtUsd(Math.round(Number(base) * LADDER[b.key]))}/wk</td>
+                    <td className="py-2.5 text-ink-300">{adjustLabel(ladder[b.key])}</td>
+                    <td className="py-2.5 text-right font-mono text-ink-100">{fmtUsd(Math.round(Number(base) * ladder[b.key]))}/wk</td>
                   </tr>
                 );
               })}
@@ -140,9 +157,14 @@ export function DcaSimulatorPanel() {
 
         <p className="mt-3 text-[12.5px] text-ink-300 leading-relaxed">
           Right now: <span className="text-ink-50 font-medium">Accumulation Index {today.score}/100 — {today.band.label.replace("Historically ", "")}</span>,
-          so this rule would size your buy at{" "}
-          <span className="text-accent font-medium">{LADDER[today.band.key]}× ({fmtUsd(Math.round(Number(base) * LADDER[today.band.key]))}/wk)</span>.
+          so the <span className="text-ink-100">{preset}</span> rule would size your buy at{" "}
+          <span className="text-accent font-medium">{ladder[today.band.key]}× ({fmtUsd(Math.round(Number(base) * ladder[today.band.key]))}/wk)</span>.
           A change only happens when the score crosses into a new band.
+        </p>
+        <p className="mt-2 text-[11px] text-ink-500 leading-relaxed max-w-2xl">
+          The multipliers are a sensible illustrative default, not an optimised output of the backtest.
+          Switch between Conservative, Balanced and Aggressive above to see how scaling intensity would
+          have changed the result.
         </p>
       </div>
     </div>
