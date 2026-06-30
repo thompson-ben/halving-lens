@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { growthDashboard } from "@/lib/analytics";
+import { emailEngagement, growthFunnel, type EmailEngagement, type FunnelStage } from "@/lib/growthInsights";
 import { marketingHealth, type MarketingHealth, type HealthStatus } from "@/lib/marketingHealth";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
@@ -20,7 +21,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
-  const [health, a] = await Promise.all([marketingHealth(), growthDashboard()]);
+  const [health, a, email, funnel] = await Promise.all([marketingHealth(), growthDashboard(), emailEngagement(), growthFunnel()]);
 
   return (
     <Shell>
@@ -36,13 +37,13 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       {!a.configured ? (
         <p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql to populate the metrics below.</p>
       ) : (
-        <GrowthBody a={a} />
+        <GrowthBody a={a} email={email} funnel={funnel} />
       )}
     </Shell>
   );
 }
 
-function GrowthBody({ a }: { a: Awaited<ReturnType<typeof growthDashboard>> }) {
+function GrowthBody({ a, email, funnel }: { a: Awaited<ReturnType<typeof growthDashboard>>; email: EmailEngagement; funnel: FunnelStage[] }) {
   const g = a.growth;
   const weeklies = weeklyStats();
   const overallCps = g.adSpendTotal > 0 && a.landing.signups > 0 ? Math.round((g.adSpendTotal / a.landing.signups) * 100) / 100 : null;
@@ -62,10 +63,69 @@ function GrowthBody({ a }: { a: Awaited<ReturnType<typeof growthDashboard>> }) {
         <Stat label="Avg session" value={g.avgSessionSeconds != null ? `${g.avgSessionSeconds}s` : "—"} />
         <Stat label="Avg scroll" value={g.avgScroll != null ? `${g.avgScroll}%` : "—"} />
         <Stat label="Email delivery" value={a.email.deliveryRate != null ? `${a.email.deliveryRate}%` : "—"} />
+        <Stat label="Email open rate" value={email.openRate != null ? `${email.openRate}%` : "—"} />
+        <Stat label="Email CTR" value={email.ctr != null ? `${email.ctr}%` : "—"} />
+        <Stat label="Click-to-open" value={email.ctor != null ? `${email.ctor}%` : "—"} />
         <Stat label="Referral signups" value={g.referralSignups} />
         <Stat label="Morning editions" value={a.research.totalEditions} />
-        <Stat label="Weekly reports" value={weeklies.total} />
       </section>
+
+      {/* Acquisition funnel */}
+      <Panel title="Acquisition funnel">
+        <div className="space-y-2">
+          {funnel.map((s) => (
+            <div key={s.key} className="flex items-center gap-3 text-[12.5px]">
+              <div className="w-40 shrink-0 text-ink-300">{s.label}</div>
+              <div className="flex-1 h-3 rounded-full bg-white/[0.05] overflow-hidden">
+                <div className="h-full rounded-full bg-accent/70" style={{ width: `${Math.max(2, s.pctOfTop)}%` }} />
+              </div>
+              <div className="w-28 text-right font-mono text-ink-100">
+                {s.count.toLocaleString()}
+                <span className="text-ink-500"> · {s.pctOfTop}%</span>
+              </div>
+              <div className="w-20 text-right font-mono text-ink-500">{s.stepPct != null ? `${s.stepPct}%` : "—"}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[11px] text-ink-500">Last column = step conversion from the previous stage. Opens are estimated (Apple Mail Privacy Protection inflates them); clicks are confirmed.</p>
+      </Panel>
+
+      {/* Email engagement by campaign */}
+      <Panel title="Email engagement">
+        {!email.configured || email.byCampaign.length === 0 ? (
+          <p className="text-[12.5px] text-ink-500">No email opens or clicks recorded yet. They appear here once subscribers open/click tracked emails.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px] min-w-[560px]">
+              <thead>
+                <tr className="text-ink-500 text-[10.5px] uppercase tracking-[0.12em]">
+                  <th className="text-left font-normal pb-2">Campaign</th>
+                  <th className="text-right font-normal pb-2">Delivered</th>
+                  <th className="text-right font-normal pb-2">Opens</th>
+                  <th className="text-right font-normal pb-2">Clicks</th>
+                  <th className="text-right font-normal pb-2">Open rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {email.byCampaign.map((c) => (
+                  <tr key={c.campaign} className="border-t border-white/[0.06]">
+                    <td className="py-2 text-ink-200 font-mono text-[11.5px]">{c.campaign}</td>
+                    <td className="py-2 text-right font-mono text-ink-400">{c.delivered != null ? c.delivered.toLocaleString() : "—"}</td>
+                    <td className="py-2 text-right font-mono text-ink-100">{c.opens.toLocaleString()}</td>
+                    <td className="py-2 text-right font-mono text-ink-100">{c.clicks.toLocaleString()}</td>
+                    <td className="py-2 text-right font-mono text-accent">{c.openRate != null ? `${c.openRate}%` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {email.topCtas.length > 0 && (
+              <p className="mt-3 text-[11.5px] text-ink-400">
+                Most-clicked CTA: <span className="text-ink-100">{email.topCtas[0].label}</span> ({email.topCtas[0].count} clicks).
+              </p>
+            )}
+          </div>
+        )}
+      </Panel>
 
       {/* Campaign performance / CPS */}
       <Panel title="Campaign performance (cost per subscriber)">

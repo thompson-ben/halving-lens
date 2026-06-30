@@ -12,6 +12,7 @@ import { founderReport } from "./founderReport";
 import { founderReportHtml, founderReportSubject } from "./founderReportEmail";
 import { briefDate } from "./briefArchive";
 import { unsubToken } from "./emailToken";
+import { emailTracking } from "./emailTracking";
 import { absoluteUrl } from "./site";
 
 export interface SendSummary {
@@ -67,7 +68,7 @@ export async function sendDailyBrief(opts: { force?: boolean } = {}): Promise<Se
   for (const sub of subs) {
     const email = sub.email;
     const unsubUrl = absoluteUrl(`/api/unsubscribe?e=${encodeURIComponent(email)}&t=${unsubToken(email)}`);
-    const html = dailyEmailHtml(unsubUrl);
+    const html = dailyEmailHtml(unsubUrl, "pro", emailTracking(email, `daily-${date}`));
     const res = await sendEmail({
       to: email,
       subject,
@@ -134,7 +135,7 @@ export async function sendWeekly(opts: { force?: boolean } = {}): Promise<SendSu
     const res = await sendEmail({
       to: sub.email,
       subject,
-      html: weeklyEmailHtml(w, unsubUrl),
+      html: weeklyEmailHtml(w, unsubUrl, emailTracking(sub.email, `weekly-${slug}`)),
       text,
       headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
     });

@@ -4,6 +4,7 @@
 
 import type { WeeklyReport } from "./weekly";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
+import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
 
 const C = {
   bg: "#0a0c10",
@@ -49,7 +50,7 @@ function eyebrow(t: string): string {
   return `<div style="font:600 11px/1.4 ${SANS};letter-spacing:.22em;text-transform:uppercase;color:${C.gold};margin:0 0 14px;">${esc(t)}</div>`;
 }
 
-export function weeklyEmailHtml(w: WeeklyReport, unsubUrl: string): string {
+export function weeklyEmailHtml(w: WeeklyReport, unsubUrl: string, tracking: EmailTracking = NO_EMAIL_TRACKING): string {
   const chartUrl = absoluteUrl(`/email/chart?d=${encodeURIComponent(w.generatedAt)}`);
   const bullets = w.executiveSummary
     .map((b) => `<tr><td style="padding:5px 0;font:400 15px/1.55 ${SANS};color:${C.sub};"><span style="color:${C.gold};">—</span>&nbsp; ${esc(b)}</td></tr>`)
@@ -101,7 +102,7 @@ export function weeklyEmailHtml(w: WeeklyReport, unsubUrl: string): string {
       </td></tr>
 
       <tr><td style="padding:14px 36px 30px;" align="center">
-        <a href="${SITE_URL}/weekly/${w.slug}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};text-decoration:none;padding:16px 36px;border-radius:12px;">Read the full weekly →</a>
+        <a href="${tracking.link(`${SITE_URL}/weekly/${w.slug}`, "weekly_read_full")}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};text-decoration:none;padding:16px 36px;border-radius:12px;">Read the full weekly →</a>
       </td></tr>
 
       <tr><td style="padding:22px 36px 30px;border-top:1px solid ${C.hair};">
@@ -116,5 +117,6 @@ export function weeklyEmailHtml(w: WeeklyReport, unsubUrl: string): string {
     </table>
   </td></tr>
 </table>
+${tracking.openPixel}
 </body></html>`;
 }
