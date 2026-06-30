@@ -34,11 +34,19 @@ export default function DashboardPage() {
       <RecordView kind="tool" title="Your dashboard" href="/dashboard" />
 
       <header className="border-b border-white/[0.08] pb-7">
-        <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>Your HalvingLens</div>
-        <h1 className="mt-3 font-display text-[30px] lg:text-[40px] leading-[1.05] text-ink-50 tracking-tight-2">Welcome back</h1>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>Your HalvingLens</div>
+            <h1 className="mt-3 font-display text-[30px] lg:text-[40px] leading-[1.05] text-ink-50 tracking-tight-2">Welcome back</h1>
+          </div>
+          <div className="flex items-center gap-3 pt-1">
+            <Link href="/dashboard/referrals" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">Referrals <ArrowUpRight size={13} /></Link>
+            <Link href="/profile" className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft">Your Profile <ArrowUpRight size={13} /></Link>
+          </div>
+        </div>
         <p className="mt-3 text-[14px] text-ink-300 max-w-2xl">
           Your home for the cycle — today&apos;s read, what you&apos;ve been following, and what&apos;s changed since you were
-          last here. Saved privately on this device.
+          last here. Sign in to your Profile to sync across devices.
         </p>
       </header>
 

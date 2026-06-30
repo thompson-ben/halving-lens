@@ -143,12 +143,14 @@ function iso7(): string {
 
 export async function weeklyActiveEngaged(): Promise<WaesResult> {
   const since = iso7();
-  const [opens, clicks, pages] = await Promise.all([
+  const [opens, clicks, pages, visits] = await Promise.all([
     sbSelect<PropRow[]>(`events?select=props&name=eq.email_open&created_at=gte.${since}&limit=50000`),
     sbSelect<PropRow[]>(`events?select=props&name=eq.email_click&created_at=gte.${since}&limit=50000`),
     sbSelect<{ session_id: string | null; is_new: boolean | null }[]>(
       `events?select=session_id,is_new&name=eq.page_view&created_at=gte.${since}&limit=50000`,
     ),
+    // Signed-in profile visits carry the same hash as email events — the bridge.
+    sbSelect<PropRow[]>(`events?select=props&name=eq.profile_visit&created_at=gte.${since}&limit=50000`),
   ]);
   const subSet = (rows: PropRow[] | null) => {
     const s = new Set<string>();
@@ -157,14 +159,24 @@ export async function weeklyActiveEngaged(): Promise<WaesResult> {
   };
   const openers = subSet(opens);
   const clickers = subSet(clicks);
+  const visited = subSet(visits);
   const returning = new Set<string>();
   for (const r of pages ?? []) if (r.session_id && r.is_new === false) returning.add(r.session_id);
+
+  // TRUE WAES: a subscriber who BOTH engaged with email (open or click) AND
+  // visited the site (profile_visit), once identities are linked via a Profile.
+  // Falls back to the click-bridged lower bound until profiles produce visits.
+  const emailEngaged = new Set<string>([...openers, ...clickers]);
+  const trueWaes = new Set<string>();
+  for (const s of visited) if (emailEngaged.has(s)) trueWaes.add(s);
+  const linked = visited.size > 0;
+
   return {
-    waes: clickers.size,
+    waes: linked ? trueWaes.size : clickers.size,
     openers7d: openers.size,
     clickers7d: clickers.size,
     returningVisitors7d: returning.size,
-    basis: "click-bridged",
+    basis: linked ? "linked" : "click-bridged",
   };
 }
 

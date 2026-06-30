@@ -47,6 +47,9 @@ const ALLOWED = new Set([
   // Personalised dashboard
   "dashboard_view",
   "favourite_toggle",
+  // Profile (magic-link identity)
+  "profile_request",
+  "profile_signin",
   // Weekly Research + /start landing
   "weekly_view",
   "weekly_share",
