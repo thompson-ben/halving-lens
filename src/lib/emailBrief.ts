@@ -118,17 +118,24 @@ function confidence(): { level: "HIGH" | "MEDIUM" | "LOW"; color: string; blurb:
   const majoritySign = pos >= neg ? 1 : -1;
   const aligned = active.filter((x) => x.v === majoritySign).map((x) => x.name);
   const diverging = active.filter((x) => x.v === -majoritySign).map((x) => x.name);
+  const unanimous = aligned.length > 0 && diverging.length === 0;
+  // "Confidence" here = how much today's core signals agree with EACH OTHER, not
+  // how closely today resembles history (that's the closest-match section). The
+  // blurb must stay consistent with whether a signal actually diverges, so a HIGH
+  // reading never claims full alignment while the detail names a divergence.
   const blurb =
     level === "HIGH"
-      ? "Today's data strongly aligns with historical behaviour."
+      ? unanimous
+        ? "Today's core signals are in full agreement."
+        : "Most of today's core signals point the same way."
       : level === "MEDIUM"
-        ? "Some indicators agree, others diverge."
-        : "Historical signals are mixed.";
+        ? "Today's signals are split — some agree, some diverge."
+        : "Today's signals are pulling in different directions.";
   const detail =
     aligned.length && diverging.length
       ? `${cap(aligned.join(", "))} point the same way; ${diverging.join(", ")} diverge.`
       : aligned.length
-        ? `${cap(aligned.join(", "))} are pointing the same way.`
+        ? `${cap(aligned.join(", "))} all point the same way.`
         : "No single signal dominates today.";
   const color = level === "HIGH" ? C.green : level === "MEDIUM" ? C.gold : C.dim;
   return { level, color, blurb, detail };
