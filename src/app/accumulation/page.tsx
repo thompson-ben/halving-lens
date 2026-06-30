@@ -213,6 +213,13 @@ export default function AccumulationPage() {
           <DcaSimulatorPanel />
           <div className="watermark">halvinglens.com · dynamic DCA</div>
         </div>
+        <Link
+          href="/research/findings/hl-r001"
+          className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft"
+        >
+          Read the full research note — HL-R001: Does Taking Profits Beat Dynamic DCA?
+          <ArrowUpRight size={13} />
+        </Link>
       </section>
 
       {/* Share this read */}

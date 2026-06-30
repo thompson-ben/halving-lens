@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ACCUMULATION_BANDS, accumulationRead, type AccumulationBandKey } from "@/lib/accumulation";
-import { simulateDca, simulateThreeWay } from "@/lib/accumulationDca";
+import { simulateDca, simulateThreeWay, DISTRIBUTION_PRESETS } from "@/lib/accumulationDca";
 import { fmtUsd } from "@/lib/format";
 import { track } from "@/lib/track";
 import { SegmentedControl } from "./SegmentedControl";
@@ -26,14 +26,9 @@ const PRESETS: Record<string, Record<AccumulationBandKey, number>> = {
   aggressive: { deep_value: 3, attractive: 2, neutral: 1, elevated: 0.5, overheated: 0.25 },
 };
 
-// Accumulate & Distribute presets: a shared buy ladder (Dynamic DCA buys the
-// overheated band; Distribution sells it instead) plus a target trim % to spread
-// across a typical overheated stretch.
-const DIST_PRESETS: Record<string, { buy: Record<AccumulationBandKey, number>; sell: number }> = {
-  conservative: { buy: { deep_value: 1.5, attractive: 1.25, neutral: 1, elevated: 0.6, overheated: 0.4 }, sell: 15 },
-  balanced: { buy: { deep_value: 2, attractive: 1.5, neutral: 1, elevated: 0.5, overheated: 0.25 }, sell: 20 },
-  aggressive: { buy: { deep_value: 3, attractive: 2, neutral: 1, elevated: 0.4, overheated: 0.2 }, sell: 30 },
-};
+// Accumulate & Distribute presets are shared with the published HL-R001 evidence
+// table (see accumulationDca.ts) so the cited figures never drift from the tool.
+const DIST_PRESETS = DISTRIBUTION_PRESETS;
 
 const PRESET_OPTS = [
   { key: "conservative", label: "Conservative" },
@@ -240,11 +235,11 @@ const SCENARIO_LABEL = {
 
 function DistributeView({ base, setBase, preset, setPreset }: ViewProps) {
   const today = accumulationRead();
-  const cfg = DIST_PRESETS[preset] ?? DIST_PRESETS.balanced;
+  const cfg = DIST_PRESETS[preset as keyof typeof DIST_PRESETS] ?? DIST_PRESETS.balanced;
 
   const sim = useMemo(() => {
     const weekly = Number(base);
-    const c = DIST_PRESETS[preset] ?? DIST_PRESETS.balanced;
+    const c = DIST_PRESETS[preset as keyof typeof DIST_PRESETS] ?? DIST_PRESETS.balanced;
     return simulateThreeWay({ standardWeekly: weekly, buyByBand: c.buy, targetSellPct: c.sell });
   }, [base, preset]);
 

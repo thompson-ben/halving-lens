@@ -193,6 +193,21 @@ const DEFAULT_BUY_LADDER: Record<AccumulationBandKey, number> = {
   overheated: 0.25, // Dynamic DCA buys this; Distribution sells instead
 };
 
+// Shared preset ladders for the three-way comparison, used by both the
+// interactive panel and the published HL-R001 evidence table so cited figures
+// never diverge from the live tool. `buy` is the per-band multiplier (Dynamic
+// DCA buys the overheated band; Distribution sells it); `sell` is the target
+// trim % spread across a typical overheated stretch.
+export type DistributionPresetKey = "conservative" | "balanced" | "aggressive";
+export const DISTRIBUTION_PRESETS: Record<
+  DistributionPresetKey,
+  { label: string; buy: Record<AccumulationBandKey, number>; sell: number }
+> = {
+  conservative: { label: "Conservative", buy: { deep_value: 1.5, attractive: 1.25, neutral: 1, elevated: 0.6, overheated: 0.4 }, sell: 15 },
+  balanced: { label: "Balanced", buy: { deep_value: 2, attractive: 1.5, neutral: 1, elevated: 0.5, overheated: 0.25 }, sell: 20 },
+  aggressive: { label: "Aggressive", buy: { deep_value: 3, attractive: 2, neutral: 1, elevated: 0.4, overheated: 0.2 }, sell: 30 },
+};
+
 export function simulateThreeWay(opts: ThreeWayOptions = {}): ThreeWaySimulation {
   const standardWeekly = opts.standardWeekly ?? 100;
   const buyByBand = opts.buyByBand ?? DEFAULT_BUY_LADDER;
