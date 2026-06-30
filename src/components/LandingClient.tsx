@@ -16,30 +16,43 @@ const HEADLINES: Record<string, string> = {
 };
 
 // Hero with stable A/B headline + first landing_view (variant + attribution).
-export function LandingHero() {
-  const [variant, setVariant] = useState("a");
+// `source` tags the funnel (e.g. "/start" vs "/free") so each landing's
+// conversion can be measured separately. A custom `headline`/`sub` skips the
+// /start A/B (so a different landing doesn't pollute that experiment).
+export function LandingHero({
+  source = "/start",
+  headline,
+  sub,
+  eyebrow = "HalvingLens Research",
+}: {
+  source?: string;
+  headline?: string;
+  sub?: string;
+  eyebrow?: string;
+}) {
+  const [variant, setVariant] = useState(headline ? "free" : "a");
   const fired = useRef(false);
   useEffect(() => {
-    const v = assignVariant("start_headline");
+    const v = headline ? "free" : assignVariant("start_headline");
     setVariant(v);
     if (!fired.current) {
       fired.current = true;
-      track("landing_view", { variant: v, ...getAttribution() });
+      track("landing_view", { variant: v, source, ...getAttribution() });
     }
-  }, []);
+  }, [headline, source]);
 
   return (
     <section className="pt-6 text-center max-w-3xl mx-auto">
-      <div className="text-[10.5px] uppercase tracking-[0.24em] mb-5" style={{ color: GOLD }}>HalvingLens Research</div>
+      <div className="text-[10.5px] uppercase tracking-[0.24em] mb-5" style={{ color: GOLD }}>{eyebrow}</div>
       <h1 className="font-display text-[40px] sm:text-[60px] font-medium tracking-tightest text-ink-50 leading-[1.03]">
-        {HEADLINES[variant] ?? HEADLINES.a}
+        {headline ?? HEADLINES[variant] ?? HEADLINES.a}
       </h1>
       <p className="mt-6 text-[16px] sm:text-[18px] text-ink-300 leading-relaxed max-w-xl mx-auto">
-        Understand today&apos;s Bitcoin market in under 60 seconds. No hype. No predictions. Just historical context.
+        {sub ?? "Understand today's Bitcoin market in under 60 seconds. No hype. No predictions. Just historical context."}
       </p>
       <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
-        <LandingCta href="#signup" label="hero_primary" variant={variant}>Get today&apos;s free research</LandingCta>
-        <LandingCta href="/accumulation" label="hero_secondary" variant={variant} kind="secondary">Explore today&apos;s analysis</LandingCta>
+        <LandingCta href="#signup" label="hero_primary" variant={variant} source={source}>Get today&apos;s free research</LandingCta>
+        <LandingCta href="/accumulation" label="hero_secondary" variant={variant} source={source} kind="secondary">Explore today&apos;s analysis</LandingCta>
       </div>
     </section>
   );
@@ -50,12 +63,14 @@ export function LandingCta({
   label,
   kind = "primary",
   variant,
+  source = "/start",
   children,
 }: {
   href: string;
   label: string;
   kind?: "primary" | "secondary";
   variant?: string;
+  source?: string;
   children: React.ReactNode;
 }) {
   const cls =
@@ -65,7 +80,7 @@ export function LandingCta({
   return (
     <a
       href={href}
-      onClick={() => track("landing_cta", { cta: label, variant: variant ?? getVariant("start_headline"), ...getAttribution() })}
+      onClick={() => track("landing_cta", { cta: label, variant: variant ?? getVariant("start_headline"), source, ...getAttribution() })}
       className={`inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl text-[14px] font-medium transition-colors ${cls}`}
     >
       {children}
@@ -76,7 +91,7 @@ export function LandingCta({
 
 // Email capture tuned for the landing — first-touch attribution + A/B variant
 // ride along on the signup event.
-export function StartSignup() {
+export function StartSignup({ source = "/start", buttonLabel = "Get today's free research" }: { source?: string; buttonLabel?: string } = {}) {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -92,12 +107,13 @@ export function StartSignup() {
     setError(null);
     const attr = getAttribution();
     const qs = new URLSearchParams(attr).toString();
-    const source = qs ? `/start?${qs}` : "/start";
+    const srcWithAttr = qs ? `${source}?${qs}` : source;
+    const variant = source === "/start" ? getVariant("start_headline") : "free";
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source, consent: true }),
+        body: JSON.stringify({ email, source: srcWithAttr, consent: true }),
       });
       if (!res.ok) throw new Error();
     } catch {
@@ -110,8 +126,8 @@ export function StartSignup() {
         /* ignore */
       }
     } finally {
-      track("signup", { source: "/start", variant: getVariant("start_headline"), ...attr });
-      fireLead({ source: "/start", variant: getVariant("start_headline"), ...attr });
+      track("signup", { source, variant, ...attr });
+      fireLead({ source, variant, ...attr });
       setDone(true);
       setBusy(false);
     }
@@ -143,7 +159,7 @@ export function StartSignup() {
         className={`flex-1 min-w-[200px] h-12 px-4 rounded-xl bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 ${error ? "border-signal-red/50" : "border-white/[0.1]"}`}
       />
       <button type="submit" disabled={busy} className="h-12 px-6 rounded-xl bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60">
-        {busy ? "Joining…" : "Get today's free research"}
+        {busy ? "Joining…" : buttonLabel}
       </button>
       {error && <p className="w-full text-[12px] text-signal-red">{error}</p>}
     </form>

@@ -10,6 +10,8 @@ import { FearForwardEvidence } from "@/components/FearForwardEvidence";
 import { MythReality } from "@/components/MythReality";
 import { FindingShareKit } from "@/components/FindingShareKit";
 import { FindingStatusBadge } from "@/components/FindingStatusBadge";
+import { RecordView } from "@/components/RecordView";
+import { SaveButton } from "@/components/SaveButton";
 import { ResearchFindingCard } from "@/components/ResearchFindingCard";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { absoluteUrl } from "@/lib/site";
@@ -80,17 +82,21 @@ export default function FindingPage({ params }: { params: { slug: string } }) {
   return (
     <article className="max-w-3xl mx-auto">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <RecordView kind="finding" title={`${f.id} — ${f.title}`} href={`/research/findings/${f.slug}`} />
 
       <div className="flex items-center justify-between gap-3">
         <Link href="/research/findings" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">
           <ArrowLeft size={13} /> Research Findings
         </Link>
-        <Link
-          href={`/research/findings/${f.slug}/print`}
-          className="inline-flex items-center gap-1.5 text-[12px] text-ink-500 hover:text-ink-300 no-print"
-        >
-          <Printer size={13} /> Print / PDF
-        </Link>
+        <div className="flex items-center gap-2 no-print">
+          <SaveButton kind="finding" title={`${f.id} — ${f.title}`} href={`/research/findings/${f.slug}`} />
+          <Link
+            href={`/research/findings/${f.slug}/print`}
+            className="inline-flex items-center gap-1.5 text-[12px] text-ink-500 hover:text-ink-300"
+          >
+            <Printer size={13} /> Print / PDF
+          </Link>
+        </div>
       </div>
 
       {/* Masthead */}

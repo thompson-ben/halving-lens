@@ -111,7 +111,7 @@ export const FINDINGS: ResearchFinding[] = [
     limitations: [
       "Bitcoin's history contains only a handful of cycles. Weekly observations overlap and are highly autocorrelated; they are not independent samples.",
       "The entire record sits within a long secular uptrend. A rule that avoids selling is naturally favoured when the asset trends up over the measured window; a different price path could produce a different ranking.",
-      "Capital gains are modelled as a flat 20% of realised profit. This is an illustration, not a tax calculation for any jurisdiction, and ignores allowances, rates, lots and timing rules that materially affect real outcomes.",
+      "Capital gains are modelled as a flat 20% of realised profit — illustrative calculations only. Tax treatment varies by jurisdiction and individual circumstances; allowances, rates, lots and timing rules all materially change real outcomes. Nothing on HalvingLens constitutes tax or financial advice.",
       "The trim and redeployment rules are sensible illustrative defaults, not optimised parameters. Outcomes depend on the chosen window, presets and tax assumption.",
       "This is descriptive history of mechanical rules applied to past data. It is not financial advice, not a prediction, and not a statement that one approach is “best” for any individual.",
     ],
