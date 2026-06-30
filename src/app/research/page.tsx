@@ -1,4 +1,6 @@
 import { ResearchLibrary } from "@/components/ResearchLibrary";
+import { ResearchHubNav } from "@/components/ResearchHubNav";
+import { RelatedResearch } from "@/components/RelatedResearch";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { allEditions, libraryStats } from "@/lib/research";
 import Link from "next/link";
@@ -20,6 +22,7 @@ export default function ResearchLibraryPage() {
 
   return (
     <div className="space-y-12">
+      <ResearchHubNav active="morning" />
       <header className="pt-2">
         <div className="text-[10.5px] uppercase tracking-[0.22em] mb-4" style={{ color: GOLD }}>
           HalvingLens Research
@@ -55,6 +58,8 @@ export default function ResearchLibraryPage() {
           <ResearchLibrary editions={editions} />
         </>
       )}
+
+      <RelatedResearch topics={["Accumulation", "Dynamic DCA", "Fear & Greed"]} heading="Original Research Findings" limit={2} />
 
       <FeedbackWidget section="research_library" contentType="research" label="Is the research library useful?" />
     </div>

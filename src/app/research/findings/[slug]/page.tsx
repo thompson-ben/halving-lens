@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Printer } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Printer, Star } from "lucide-react";
 import type { Metadata } from "next";
 import { format } from "date-fns";
 import { findingBySlug, findingSlugs, relatedFindings } from "@/lib/findings";
 import { findingContentPack } from "@/lib/findingContent";
 import { DcaThreeWayEvidence } from "@/components/DcaThreeWayEvidence";
+import { FearForwardEvidence } from "@/components/FearForwardEvidence";
 import { MythReality } from "@/components/MythReality";
 import { FindingShareKit } from "@/components/FindingShareKit";
+import { FindingStatusBadge } from "@/components/FindingStatusBadge";
 import { ResearchFindingCard } from "@/components/ResearchFindingCard";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { absoluteUrl } from "@/lib/site";
@@ -97,10 +99,28 @@ export default function FindingPage({ params }: { params: { slug: string } }) {
           <span className="font-mono text-[12px] tracking-[0.16em]" style={{ color: GOLD }}>
             {f.id}
           </span>
-          <span className="text-[11px] text-ink-500">Research Finding · {dateLabel(f.datePublished)}</span>
+          <span className="text-[11px] text-ink-500">HalvingLens Research · {dateLabel(f.datePublished)}</span>
+          <FindingStatusBadge status={f.status} />
+          {f.editorsPick && (
+            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em]" style={{ color: GOLD }}>
+              <Star className="w-3 h-3 fill-current" /> Editor&apos;s Pick
+            </span>
+          )}
         </div>
         <h1 className="mt-3 font-display text-[30px] lg:text-[38px] leading-[1.1] text-ink-50 tracking-tight-2">{f.title}</h1>
         <p className="mt-4 text-[16px] leading-relaxed text-ink-200">{f.headline}</p>
+        {f.status === "updated" && f.lastUpdated && (
+          <p className="mt-2 text-[12px] text-ink-500">Updated {dateLabel(f.lastUpdated)} — the permanent ID {f.id} is unchanged.</p>
+        )}
+        {f.status === "superseded" && f.supersededBy && (
+          <p className="mt-2 text-[12px] text-ink-500">
+            Superseded by{" "}
+            <Link href={`/research/findings/${f.supersededBy.toLowerCase()}`} className="text-accent">
+              {f.supersededBy}
+            </Link>
+            . This note remains permanently citable as {f.id}.
+          </p>
+        )}
         <div className="mt-4 flex flex-wrap gap-1.5">
           {f.topics.map((t) => (
             <span key={t} className="px-2.5 py-1 rounded-full text-[11px] border border-white/[0.08] text-ink-400">
@@ -156,9 +176,10 @@ export default function FindingPage({ params }: { params: { slug: string } }) {
               <p key={i} className="text-[14.5px] leading-relaxed text-ink-300">{p}</p>
             ))}
           </div>
-          {f.evidence === "dca-threeway" && (
+          {f.evidence && (
             <div className="card p-5 sm:p-6 relative">
-              <DcaThreeWayEvidence presetKey="balanced" />
+              {f.evidence === "dca-threeway" && <DcaThreeWayEvidence presetKey="balanced" />}
+              {f.evidence === "fear-forward" && <FearForwardEvidence />}
               <div className="watermark">halvinglens.com · {f.id}</div>
             </div>
           )}
@@ -200,7 +221,7 @@ export default function FindingPage({ params }: { params: { slug: string } }) {
             Reference this note as <span className="font-mono" style={{ color: GOLD }}>{f.id}</span>. Permanent URL:{" "}
             <span className="text-ink-300 break-all">{url}</span>
           </p>
-          <FindingShareKit pack={pack} findingId={f.id} url={url} ogImagePath={ogImagePath} />
+          <FindingShareKit pack={pack} findingId={f.id} slug={f.slug} url={url} ogImagePath={ogImagePath} />
         </section>
 
         {/* Related research */}

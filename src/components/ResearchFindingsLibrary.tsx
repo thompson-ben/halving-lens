@@ -6,19 +6,37 @@ import { track } from "@/lib/track";
 import type { ResearchFinding, FindingTopic } from "@/lib/findings";
 import { ResearchFindingCard } from "./ResearchFindingCard";
 
-// Searchable, filterable library of every published Research Finding.
+// Searchable, filterable library of every published Research Finding. Rankings
+// (Most read / Most shared) come from real first-party analytics passed in as
+// `engagement` — no fabricated numbers; with no data yet they fall back to newest.
 
 const SORTS = [
   { key: "newest", label: "Newest" },
-  { key: "oldest", label: "Oldest" },
-  { key: "az", label: "A–Z" },
+  { key: "read", label: "Most read" },
+  { key: "shared", label: "Most shared" },
+  { key: "pick", label: "Editor's Pick" },
 ] as const;
 type SortKey = (typeof SORTS)[number]["key"];
 
-export function ResearchFindingsLibrary({ findings, topics }: { findings: ResearchFinding[]; topics: FindingTopic[] }) {
+interface Engagement {
+  views: number;
+  shares: number;
+}
+
+export function ResearchFindingsLibrary({
+  findings,
+  topics,
+  engagement = {},
+}: {
+  findings: ResearchFinding[];
+  topics: FindingTopic[];
+  engagement?: Record<string, Engagement>;
+}) {
   const [q, setQ] = useState("");
   const [topic, setTopic] = useState<FindingTopic | "all">("all");
   const [sort, setSort] = useState<SortKey>("newest");
+
+  const eng = (slug: string): Engagement => engagement[slug] ?? { views: 0, shares: 0 };
 
   const results = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -28,13 +46,16 @@ export function ResearchFindingsLibrary({ findings, topics }: { findings: Resear
       const hay = `${f.id} ${f.title} ${f.headline} ${f.summary} ${f.topics.join(" ")}`.toLowerCase();
       return hay.includes(needle);
     });
+    // Newest is the tiebreaker for every sort, so empty analytics → sensible order.
     list = [...list].sort((a, b) => {
-      if (sort === "az") return a.title.localeCompare(b.title);
-      if (sort === "oldest") return a.number - b.number;
+      if (sort === "read") return eng(b.slug).views - eng(a.slug).views || b.number - a.number;
+      if (sort === "shared") return eng(b.slug).shares - eng(a.slug).shares || b.number - a.number;
+      if (sort === "pick") return Number(!!b.editorsPick) - Number(!!a.editorsPick) || b.number - a.number;
       return b.number - a.number;
     });
     return list;
-  }, [findings, q, topic, sort]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [findings, q, topic, sort, engagement]);
 
   return (
     <div>

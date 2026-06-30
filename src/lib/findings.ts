@@ -35,7 +35,19 @@ export interface FindingMyth {
 
 // A live-data block to embed inside the "Historical Evidence" section. Keeps a
 // permanent note honest: the prose is fixed, the figures recompute from source.
-export type FindingEvidence = "dca-threeway";
+export type FindingEvidence = "dca-threeway" | "fear-forward";
+
+// Lifecycle status — the permanent Research ID never changes, but a finding's
+// standing can evolve, giving the library the feel of an institutional journal.
+export type FindingStatus = "active" | "updated" | "superseded" | "archived" | "deprecated";
+
+export const FINDING_STATUS_META: Record<FindingStatus, { label: string; tone: "green" | "gold" | "dim" }> = {
+  active: { label: "Active", tone: "green" },
+  updated: { label: "Updated", tone: "gold" },
+  superseded: { label: "Superseded", tone: "dim" },
+  archived: { label: "Archived", tone: "dim" },
+  deprecated: { label: "Deprecated", tone: "dim" },
+};
 
 export interface ResearchFinding {
   id: string; // "HL-R001" — permanent citation ID, never reused
@@ -45,6 +57,10 @@ export interface ResearchFinding {
   headline: string; // the conclusion, in one line
   summary: string; // one sentence for cards & meta description
   datePublished: string; // YYYY-MM-DD (fixed once published)
+  status: FindingStatus; // lifecycle standing (ID stays fixed regardless)
+  lastUpdated?: string; // YYYY-MM-DD, set when status becomes "updated"
+  supersededBy?: string; // HL-R id, set when status becomes "superseded"
+  editorsPick?: boolean; // surfaced in the library's "Editor's Pick" sort
   topics: FindingTopic[];
   keyConclusion: string;
   background: string[];
@@ -69,6 +85,8 @@ export const FINDINGS: ResearchFinding[] = [
     summary:
       "Across Bitcoin's full weekly history, a buy-only Dynamic DCA rule retained more Bitcoin per dollar invested than a distribution strategy that trimmed into overheated conditions — even after the distribution plan reinvested its realised profit.",
     datePublished: "2026-06-30",
+    status: "active",
+    editorsPick: true,
     topics: ["Dynamic DCA", "Distribution", "Accumulation"],
     keyConclusion:
       "Across the historical data available, and within the assumptions tested, a buy-only Dynamic DCA rule — sizing each weekly purchase by the Accumulation Index and never selling — retained the largest long-term Bitcoin position and the highest end value per dollar of new money contributed. A distribution variant that trimmed holdings in historically overheated conditions, paid tax on the realised gain, and reinvested the proceeds on later dips recovered most — but not all — of the Bitcoin it gave up. This is an observed historical outcome, not a prediction, recommendation, or claim about the future.",
@@ -113,6 +131,60 @@ export const FINDINGS: ResearchFinding[] = [
       { label: "Accumulation Index — run the three-way backtest yourself", href: "/accumulation", kind: "tool" },
       { label: "Morning Research — the daily analyst note", href: "/research", kind: "page" },
       { label: "Weekly Research — the week in context", href: "/weekly", kind: "weekly" },
+      { label: "Today's Brief", href: "/brief", kind: "brief" },
+    ],
+  },
+  {
+    id: "HL-R002",
+    slug: "hl-r002",
+    number: 2,
+    title: "Extreme Fear: Weakness, or Opportunity?",
+    headline:
+      "Since 2018, periods of extreme fear were historically followed by some of Bitcoin's strongest one-year returns — but they were not a short-term timing signal.",
+    summary:
+      "Across the Fear & Greed record (2018 onward), days of extreme fear preceded much stronger one-year average returns than days of greed — though over the following one to three months, fearful periods actually lagged greedy ones.",
+    datePublished: "2026-06-30",
+    status: "active",
+    topics: ["Sentiment", "Fear & Greed", "Drawdowns"],
+    keyConclusion:
+      "Across the available Fear & Greed record (February 2018 onward), extreme fear did not historically mark Bitcoin as “broken.” Measured one year forward, days that read extreme fear were followed by far stronger average returns (around +98%) than days of greed or extreme greed (around +66%). The effect was, however, a long-horizon one: over the following one to three months, fearful periods actually underperformed greedy ones, as short-term momentum favoured strength. So extreme fear historically looked closer to long-term opportunity than to collapse — but it rewarded patience, not instant timing. This is an observed historical pattern over roughly two and a half cycles, not a prediction, signal, or advice.",
+    background: [
+      "When the Crypto Fear & Greed Index hits “extreme fear,” the popular reading is that Bitcoin is breaking down and the trend is over. It's an emotionally intuitive conclusion — but is it what actually happened next, historically?",
+      "HalvingLens already carries the full daily Fear & Greed history alongside a dated Bitcoin price series. That lets us answer the question directly from the data: for every day in the record, what did Bitcoin do over the following month, quarter and year, grouped by how fearful or greedy that day was?",
+    ],
+    methodology: [
+      "We take every daily Fear & Greed reading from February 2018 (when the index begins) to the present and bucket it into its standard band: extreme fear (<25), fear, neutral, greed, extreme greed (75+).",
+      "For each day we measure Bitcoin's forward return 1 month, 3 months and 1 year later, using a dated weekly price series, then average those forward returns within each band.",
+      "Forward windows that run past the latest available data are excluded rather than estimated, so longer horizons rest on fewer observations and no outcome is fabricated.",
+      "This is a descriptive grouping of history, not a trading rule: it measures what followed each sentiment state on average, with no attempt to time entries or exits.",
+    ],
+    evidenceIntro: [
+      "The table below recomputes live from the Fear & Greed record, so the figures stay current. Read across the horizons — the short-term and long-term stories deliberately differ.",
+      "One year out, extreme fear was followed by the strongest average returns of any fearful or greedy state; but at one to three months, the fearful bands lagged the greedy ones. The pattern is consistent with momentum dominating the short run and mean-reversion the long run — historically, not predictively.",
+    ],
+    evidence: "fear-forward",
+    limitations: [
+      "The Fear & Greed Index only begins in February 2018, so this covers roughly two and a half cycles — it excludes 2012–2017 entirely. The sample is small for strong cross-cycle claims.",
+      "Daily observations overlap heavily and are highly autocorrelated; they are not independent samples, which inflates apparent precision.",
+      "Bitcoin's whole record sits within a long secular uptrend, so most forward returns are positive across every band — the comparison between bands is the point, not the absolute numbers.",
+      "Averages hide wide dispersion: individual extreme-fear episodes ranged from sharp rebounds to further deep drawdowns. An average is not a guarantee for any single moment.",
+      "This is descriptive history of a sentiment gauge, not a signal, a strategy, or financial advice. Past behaviour is not a guide to future results.",
+    ],
+    whyThisMatters: [
+      "It reframes a moment of maximum discomfort with evidence rather than emotion: historically, extreme fear looked more like a long-term opportunity window than proof the asset was finished.",
+      "It also guards against the opposite error — treating fear as an instant buy signal. The short-horizon numbers show fearful periods often kept falling before they recovered.",
+      "The practical value is calibration: knowing how today's sentiment has historically related to forward outcomes, over the horizon that actually matters to a long-term holder.",
+    ],
+    myth: {
+      myth: "Extreme fear means Bitcoin is broken.",
+      reality:
+        "Since 2018, days of extreme fear were followed by some of Bitcoin's strongest one-year average returns (around +98%), well ahead of greedy periods (around +66%) — though over the next one to three months they actually lagged.",
+      takeaway: "Extreme fear reflected how people felt, not whether the asset was finished — but it rewarded patience, not instant timing.",
+    },
+    related: [
+      { label: "Sentiment — the live Fear & Greed read", href: "/sentiment", kind: "tool" },
+      { label: "HL-R001 — Does Taking Profits Beat Dynamic DCA?", href: "/research/findings/hl-r001", kind: "finding" },
+      { label: "Accumulation Index — where today sits in history", href: "/accumulation", kind: "tool" },
       { label: "Today's Brief", href: "/brief", kind: "brief" },
     ],
   },

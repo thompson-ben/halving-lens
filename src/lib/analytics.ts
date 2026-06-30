@@ -70,6 +70,7 @@ export interface GrowthDashboard {
     topCTAs: LabelCount[];
     referralSignups: number;
     adSpendTotal: number;
+    costPerCtaClick: number | null;
     avgSessionSeconds: number | null;
     avgScroll: number | null;
   };
@@ -123,7 +124,7 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     brief: { views: 0, avgSeconds: null, avgScroll: null },
     research: { ...editionLibrary(), views: 0, topEditions: [], topShared: [], topSearches: [], topFeatures: [] },
     landing: { views: 0, ctaClicks: 0, signups: 0, conversionRate: null, topSources: [], topCampaigns: [] },
-    growth: { campaigns: [], variants: [], topCTAs: [], referralSignups: 0, adSpendTotal: AD_SPEND.reduce((s, a) => s + a.spend, 0), avgSessionSeconds: null, avgScroll: null },
+    growth: { campaigns: [], variants: [], topCTAs: [], referralSignups: 0, adSpendTotal: AD_SPEND.reduce((s, a) => s + a.spend, 0), costPerCtaClick: null, avgSessionSeconds: null, avgScroll: null },
     email: { sent: 0, delivered: 0, failed: 0, deliveryRate: null, failureRate: null, recent: [] },
     trend: [],
   };
@@ -355,6 +356,7 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
 
   const referralSignups = (signupRows ?? []).filter((r) => r.props?.ref).length;
   const adSpendTotal = AD_SPEND.reduce((s, a) => s + a.spend, 0);
+  const costPerCtaClick = adSpendTotal > 0 && landingCtas > 0 ? Math.round((adSpendTotal / landingCtas) * 100) / 100 : null;
 
   // Accumulation engagement averages.
   let secSum = 0;
@@ -409,7 +411,7 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
       topSources: landingTopSources,
       topCampaigns: landingTopCampaigns,
     },
-    growth: { campaigns, variants, topCTAs, referralSignups, adSpendTotal, avgSessionSeconds: gN ? Math.round(gSec / gN) : null, avgScroll: gN ? Math.round(gScroll / gN) : null },
+    growth: { campaigns, variants, topCTAs, referralSignups, adSpendTotal, costPerCtaClick, avgSessionSeconds: gN ? Math.round(gSec / gN) : null, avgScroll: gN ? Math.round(gScroll / gN) : null },
     email: {
       sent: emSent,
       delivered: emDelivered,

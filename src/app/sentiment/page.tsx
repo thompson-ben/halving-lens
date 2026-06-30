@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { PriceSentimentChart } from "@/components/PriceSentimentChart";
 import { DataBadge } from "@/components/DataBadge";
+import { RelatedResearch } from "@/components/RelatedResearch";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SENTIMENT } from "@/lib/btcData";
 import {
@@ -181,6 +182,8 @@ export default function SentimentPage() {
           </p>
         </section>
       )}
+
+      <RelatedResearch topics={["Fear & Greed", "Sentiment"]} />
 
       <FeedbackWidget section="sentiment" contentType="page" label="Was the sentiment page useful?" />
     </div>

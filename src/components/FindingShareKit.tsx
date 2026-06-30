@@ -12,11 +12,13 @@ import type { FindingContentPack } from "@/lib/findingContent";
 export function FindingShareKit({
   pack,
   findingId,
+  slug,
   url,
   ogImagePath,
 }: {
   pack: FindingContentPack;
   findingId: string;
+  slug: string;
   url: string;
   ogImagePath: string;
 }) {
@@ -37,6 +39,25 @@ export function FindingShareKit({
         >
           <ImageDown size={13} /> Download share image
         </a>
+      </div>
+
+      {/* Rendered Instagram carousel — one branded PNG per slide, no manual design */}
+      <div>
+        <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-2">Instagram carousel · {pack.instagramCarousel.length} slides</div>
+        <div className="flex flex-wrap gap-2">
+          {pack.instagramCarousel.map((s, i) => (
+            <a
+              key={i}
+              href={`/research/findings/${slug}/card/${i}`}
+              download={`halvinglens-${findingId.toLowerCase()}-${i + 1}.png`}
+              onClick={() => track("share_image", { finding: findingId, slide: i + 1 })}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-[11.5px] text-ink-300 hover:text-ink-100 hover:border-accent/30 transition-colors"
+              title={s.title}
+            >
+              <ImageDown size={12} /> {i + 1}
+            </a>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

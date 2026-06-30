@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import { ResearchFindingsLibrary } from "@/components/ResearchFindingsLibrary";
+import { ResearchHubNav } from "@/components/ResearchHubNav";
 import { MythReality } from "@/components/MythReality";
 import { BriefSignup } from "@/components/BriefSignup";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { allFindings, findingTopics, findingStats } from "@/lib/findings";
+import { findingEngagement } from "@/lib/findingsAnalytics";
 import { absoluteUrl } from "@/lib/site";
 
 const GOLD = "#d9b96a";
+
+// Rebuild engagement-driven rankings periodically (30 min) without going fully
+// dynamic — keeps the library fast while the "most read / shared" sorts refresh.
+export const revalidate = 1800;
 
 export const metadata: Metadata = {
   title: "Research Findings · HalvingLens Research",
@@ -21,10 +27,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ResearchFindingsPage() {
+export default async function ResearchFindingsPage() {
   const findings = allFindings();
   const topics = findingTopics();
   const stats = findingStats();
+  const engagement = await findingEngagement();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -44,6 +51,8 @@ export default function ResearchFindingsPage() {
   return (
     <div className="space-y-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
+      <ResearchHubNav active="findings" />
 
       {/* Masthead */}
       <header className="border-b border-white/[0.08] pb-8">
@@ -67,7 +76,7 @@ export default function ResearchFindingsPage() {
 
       {/* Library */}
       <section>
-        <ResearchFindingsLibrary findings={findings} topics={topics} />
+        <ResearchFindingsLibrary findings={findings} topics={topics} engagement={engagement} />
       </section>
 
       {/* Myth vs Reality series */}
