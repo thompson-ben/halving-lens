@@ -168,6 +168,152 @@ export async function weeklyActiveEngaged(): Promise<WaesResult> {
   };
 }
 
+// ── Visitor → WAES conversion ────────────────────────────────────────────────
+// The headline business metric: of unique visitors, how many became Weekly
+// Active Engaged Subscribers. Reported over the last 7 days vs the prior 7 days.
+export interface VisitorToWaes {
+  current: number | null; // %
+  previous: number | null; // %
+  visitors7: number;
+  waes7: number;
+  visitorsPrev7: number;
+  waesPrev7: number;
+}
+
+export async function visitorToWaes(): Promise<VisitorToWaes> {
+  const now = Date.now();
+  const d = (n: number) => new Date(now - n * 86_400_000).toISOString();
+  const [pages, clicks] = await Promise.all([
+    sbSelect<{ session_id: string | null; created_at: string }[]>(
+      `events?select=session_id,created_at&name=eq.page_view&created_at=gte.${d(14)}&limit=80000`,
+    ),
+    sbSelect<{ props: Record<string, unknown> | null; created_at: string }[]>(
+      `events?select=props,created_at&name=eq.email_click&created_at=gte.${d(14)}&limit=50000`,
+    ),
+  ]);
+  const within = (ts: string, lo: number, hi: number) => {
+    const t = Date.parse(ts);
+    return t >= now - lo * 86_400_000 && t < now - hi * 86_400_000;
+  };
+  const visitors = (lo: number, hi: number) => {
+    const s = new Set<string>();
+    for (const r of pages ?? []) if (r.session_id && within(r.created_at, lo, hi)) s.add(r.session_id);
+    return s.size;
+  };
+  const waes = (lo: number, hi: number) => {
+    const s = new Set<string>();
+    for (const r of clicks ?? []) if (r.props?.sub && within(r.created_at, lo, hi)) s.add(String(r.props.sub));
+    return s.size;
+  };
+  const v7 = visitors(7, 0), w7 = waes(7, 0), vP = visitors(14, 7), wP = waes(14, 7);
+  return {
+    visitors7: v7,
+    waes7: w7,
+    visitorsPrev7: vP,
+    waesPrev7: wP,
+    current: v7 > 0 ? Math.round((w7 / v7) * 1000) / 10 : null,
+    previous: vP > 0 ? Math.round((wP / vP) * 1000) / 10 : null,
+  };
+}
+
+// ── Recommendations engine ───────────────────────────────────────────────────
+// Rule-based, ranked by estimated business impact. Pure (operates on already-
+// fetched data) so the dashboard composes it without extra queries.
+export interface Recommendation {
+  title: string;
+  detail: string;
+  impact: "high" | "medium" | "low";
+}
+
+interface RecoInput {
+  email: EmailEngagement;
+  waes: WaesResult;
+  v2w: VisitorToWaes;
+  campaigns: { campaign: string; visitors: number; signups: number; cps: number | null }[];
+  experiments: { id: string; significant: boolean; bestKey: string | null; controlKey: string; liftPct: number | null; confidence: number | null; spec: { title: string } }[];
+  referralSubscribers: number;
+  landingConversion: number | null;
+}
+
+export function growthRecommendations(input: RecoInput): Recommendation[] {
+  const recs: Recommendation[] = [];
+  const order = { high: 0, medium: 1, low: 2 };
+
+  for (const ex of input.experiments) {
+    if (ex.significant && ex.bestKey && ex.bestKey !== ex.controlKey && (ex.liftPct ?? 0) > 0) {
+      recs.push({
+        title: `Ship the winner of “${ex.spec.title}”`,
+        detail: `Variant ${ex.bestKey.toUpperCase()} is winning by ${ex.liftPct}% at ${ex.confidence}% confidence. Make it the default and start the next test.`,
+        impact: "high",
+      });
+    } else if (ex.confidence != null && ex.confidence < 80 && ex.bestKey) {
+      recs.push({
+        title: `“${ex.spec.title}” isn't conclusive yet`,
+        detail: `Confidence is ${ex.confidence}% — keep it running and resist calling a winner until ~95%.`,
+        impact: "low",
+      });
+    }
+  }
+
+  const best = [...input.campaigns].filter((c) => c.cps != null && c.signups > 0).sort((a, b) => (a.cps ?? 1e9) - (b.cps ?? 1e9))[0];
+  const worst = [...input.campaigns].filter((c) => c.cps != null && c.signups > 0).sort((a, b) => (b.cps ?? 0) - (a.cps ?? 0))[0];
+  if (best && worst && best.campaign !== worst.campaign) {
+    recs.push({
+      title: `Shift budget toward ${best.campaign}`,
+      detail: `${best.campaign} is your most cost-efficient campaign at £${best.cps}/sub vs £${worst.cps}/sub for ${worst.campaign}.`,
+      impact: "high",
+    });
+  }
+
+  if (input.email.openRate != null && input.email.ctr != null && input.email.openRate >= 20 && input.email.ctr < 2) {
+    recs.push({
+      title: "Email opens are healthy but clicks are low",
+      detail: `Open rate ${input.email.openRate}% but CTR ${input.email.ctr}%. Test stronger CTAs / a clearer single action per email.`,
+      impact: "medium",
+    });
+  }
+  if (input.email.openRate != null && input.email.openRate < 15) {
+    recs.push({
+      title: "Email open rate is below benchmark",
+      detail: `Open rate is ${input.email.openRate}%. Test subject lines and confirm deliverability (warm-up, SPF/DKIM, spam complaints).`,
+      impact: "high",
+    });
+  }
+
+  if (input.referralSubscribers > 0) {
+    recs.push({
+      title: "Referrals are producing subscribers",
+      detail: `${input.referralSubscribers} subscriber(s) came via referral. Referred users tend to be higher quality — prioritise the referral loop.`,
+      impact: "medium",
+    });
+  }
+
+  if (input.v2w.current != null && input.v2w.previous != null) {
+    const delta = input.v2w.current - input.v2w.previous;
+    if (delta < 0) {
+      recs.push({
+        title: "Visitor → WAES conversion is falling",
+        detail: `Down from ${input.v2w.previous}% to ${input.v2w.current}% week-on-week. Check landing conversion and email engagement for the leak.`,
+        impact: "high",
+      });
+    }
+  }
+
+  if (input.landingConversion != null && input.landingConversion < 5) {
+    recs.push({
+      title: "Landing conversion has room to grow",
+      detail: `Landing converts at ${input.landingConversion}%. Run a headline / hero / CTA experiment on /free before scaling spend.`,
+      impact: "medium",
+    });
+  }
+
+  if (recs.length === 0) {
+    recs.push({ title: "Not enough data yet", detail: "Launch the Meta learning campaign and let traffic accrue — recommendations appear as signals emerge.", impact: "low" });
+  }
+
+  return recs.sort((a, b) => order[a.impact] - order[b.impact]);
+}
+
 // ── Acquisition funnel ───────────────────────────────────────────────────────
 export interface FunnelStage {
   key: string;
