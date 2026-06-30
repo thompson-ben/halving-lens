@@ -2,14 +2,22 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { METRICS } from "@/lib/metrics";
 import { STORED_BRIEFS } from "@/lib/data/briefs";
+import { allEditions } from "@/lib/research";
+import { allWeeklies } from "@/lib/weekly";
 
-// Public routes only — admin/metrics is intentionally excluded (noindex).
+// Public routes only — admin/metrics is excluded (noindex), and /start is
+// intentionally left out (paid-ad landing, kept out of organic discovery).
 const STATIC_PATHS = [
   "/",
   "/cycles",
+  "/accumulation",
+  "/similar-moments",
   "/downside-scenarios",
   "/brief",
   "/brief/archive",
+  "/research",
+  "/weekly",
+  "/weekly/archive",
   "/sentiment",
   "/replay",
   "/metrics",
@@ -48,5 +56,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.5,
   }));
 
-  return [...staticEntries, ...metricEntries, ...briefEntries];
+  const researchEntries = allEditions().map((e) => ({
+    url: `${SITE_URL}/research/${e.edition}`,
+    lastModified: new Date(e.slug),
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  }));
+
+  const weeklyEntries = allWeeklies().map((w) => ({
+    url: `${SITE_URL}/weekly/${w.slug}`,
+    lastModified: new Date(w.generatedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  return [...staticEntries, ...metricEntries, ...briefEntries, ...researchEntries, ...weeklyEntries];
 }

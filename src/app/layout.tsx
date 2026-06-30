@@ -6,6 +6,7 @@ import { TopBar } from "@/components/TopBar";
 import { PageTracker } from "@/components/PageTracker";
 import { AttributionCapture } from "@/components/AttributionCapture";
 import { BareChromeSync } from "@/components/ChromeGate";
+import { MarketingScripts } from "@/components/MarketingScripts";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PageTracker />
         <AttributionCapture />
         <BareChromeSync />
+        <MarketingScripts />
       </body>
     </html>
   );

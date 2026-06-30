@@ -5,6 +5,7 @@ import { Check, ArrowRight } from "lucide-react";
 import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
 import { assignVariant, getVariant } from "@/lib/experiments";
+import { fireLead } from "@/lib/marketing";
 
 const GOLD = "#d9b96a";
 
@@ -110,6 +111,7 @@ export function StartSignup() {
       }
     } finally {
       track("signup", { source: "/start", variant: getVariant("start_headline"), ...attr });
+      fireLead({ source: "/start", variant: getVariant("start_headline"), ...attr });
       setDone(true);
       setBusy(false);
     }
