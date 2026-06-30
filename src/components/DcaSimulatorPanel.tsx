@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
+import { ACCUMULATION_BANDS, accumulationRead, type AccumulationBandKey } from "@/lib/accumulation";
 import { simulateDca } from "@/lib/accumulationDca";
 import { fmtUsd } from "@/lib/format";
 import { track } from "@/lib/track";
@@ -29,8 +29,17 @@ const BASES = [
   { key: "200", label: "$200" },
 ] as const;
 
+const ADJUST_LABEL: Record<AccumulationBandKey, string> = {
+  deep_value: "Buy 2× (double)",
+  attractive: "Buy 1.5×",
+  neutral: "Buy 1× (base)",
+  elevated: "Buy 0.75×",
+  overheated: "Buy 0.5× (half)",
+};
+
 export function DcaSimulatorPanel() {
   const [base, setBase] = useState<string>("100");
+  const today = accumulationRead();
 
   const sim = useMemo(() => {
     const weekly = Number(base);
@@ -88,15 +97,53 @@ export function DcaSimulatorPanel() {
         <span className="text-ink-100">would have behaved on past data</span> — not a strategy, a guarantee, or advice.
       </div>
 
-      {/* Ladder legend */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-ink-400">
-        <span className="text-ink-500 uppercase tracking-[0.14em] text-[10px]">The ladder</span>
-        {ACCUMULATION_BANDS.map((b) => (
-          <span key={b.key} className="inline-flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: b.color }} />
-            {b.label.replace("Historically ", "")}: {fmtUsd(Math.round(Number(base) * LADDER[b.key]))}/wk
-          </span>
-        ))}
+      {/* How the rule works — the ladder */}
+      <div>
+        <div className="text-[11px] uppercase tracking-[0.16em] text-accent">How the dynamic plan works</div>
+        <p className="mt-1.5 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">
+          The only input is today&apos;s Accumulation Index band. Your weekly buy scales mechanically —
+          more when Bitcoin is historically cheap, less when it&apos;s historically overheated. The score
+          never says &ldquo;buy&rdquo; or &ldquo;sell&rdquo;; it just sizes a recurring buy. Historical context, not advice.
+        </p>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-[12.5px] min-w-[480px]">
+            <thead>
+              <tr className="text-ink-500 text-[10.5px] uppercase tracking-[0.12em]">
+                <th className="text-left font-normal pb-2">Environment</th>
+                <th className="text-left font-normal pb-2">Score</th>
+                <th className="text-left font-normal pb-2">Adjustment</th>
+                <th className="text-right font-normal pb-2">Weekly buy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ACCUMULATION_BANDS.map((b) => {
+                const isToday = b.key === today.band.key;
+                return (
+                  <tr key={b.key} className={`border-t border-white/[0.06] ${isToday ? "bg-accent/[0.06]" : ""}`}>
+                    <td className="py-2.5">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: b.color }} />
+                        <span className={isToday ? "text-ink-50 font-medium" : "text-ink-200"}>{b.label.replace("Historically ", "")}</span>
+                        {isToday && <span className="text-[10px] uppercase tracking-wide text-accent">· Today</span>}
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-ink-400 font-mono">{b.range[0]}–{b.range[1]}</td>
+                    <td className="py-2.5 text-ink-300">{ADJUST_LABEL[b.key]}</td>
+                    <td className="py-2.5 text-right font-mono text-ink-100">{fmtUsd(Math.round(Number(base) * LADDER[b.key]))}/wk</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-3 text-[12.5px] text-ink-300 leading-relaxed">
+          Right now: <span className="text-ink-50 font-medium">Accumulation Index {today.score}/100 — {today.band.label.replace("Historically ", "")}</span>,
+          so this rule would size your buy at{" "}
+          <span className="text-accent font-medium">{LADDER[today.band.key]}× ({fmtUsd(Math.round(Number(base) * LADDER[today.band.key]))}/wk)</span>.
+          A change only happens when the score crosses into a new band.
+        </p>
       </div>
     </div>
   );
