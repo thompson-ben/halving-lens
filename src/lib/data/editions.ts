@@ -6,6 +6,104 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 396,
+    "slug": "2026-07-01",
+    "dateLabel": "Wednesday 1 July 2026",
+    "feature": {
+      "key": "etf",
+      "day": "Wednesday",
+      "title": "ETF Watch"
+    },
+    "subject": "The crowd is fearful. History wasn't.",
+    "take": "Bitcoin remains historically cheap while sentiment sits in extreme fear.",
+    "contextScore": {
+      "score": 78,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "Bitcoin is trading cheaper than 84% of all weeks in its history, while sentiment remains in extreme fear. We have only seen conditions like this a handful of times before.",
+    "confidence": {
+      "level": "HIGH",
+      "blurb": "Most of today's core signals point the same way.",
+      "detail": "Valuation, sentiment, cycle timing point the same way; ETF flows diverge."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Deep Value",
+        "color": "#5fd0a0",
+        "strength": 3,
+        "metric": "17/100"
+      },
+      {
+        "label": "Sentiment",
+        "value": "Extreme fear",
+        "color": "#e8786f",
+        "strength": 3,
+        "metric": "11/100"
+      },
+      {
+        "label": "Cycle position",
+        "value": "Cooling",
+        "color": "#5fd0a0",
+        "strength": 3,
+        "metric": "16/100"
+      },
+      {
+        "label": "ETF demand",
+        "value": "Weak",
+        "color": "#e8786f",
+        "strength": 2,
+        "metric": "−$2.25B/wk"
+      },
+      {
+        "label": "Momentum",
+        "value": "Negative",
+        "color": "#e8786f",
+        "strength": 2,
+        "metric": "-2.7%"
+      }
+    ],
+    "historicalContext": {
+      "match": "Aug 2022",
+      "similarity": 87,
+      "body": "Today most closely resembles Aug 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a deep value valuation backdrop, with sentiment in extreme fear. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "ETF demand has altered Bitcoin's rhythm, but not investor psychology.",
+      "body": "Flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. The plumbing has changed; the behaviour running through it hasn't. Today that leaves Bitcoin cheaper than 84% of its history regardless of the tape."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      },
+      {
+        "signal": "ETF inflows accelerating",
+        "status": "Net outflows of ~$2.2B over the last 7 days"
+      },
+      {
+        "signal": "Sentiment approaching euphoric territory",
+        "status": "Deep fear — Fear & Greed at 11"
+      }
+    ],
+    "memory": "Every roughly four years, by a rule written in code, the new supply of bitcoin is cut in half.",
+    "heroNarrative": "similar",
+    "readMin": 2,
+    "metrics": {
+      "price": 58525.075361,
+      "fearGreed": 11,
+      "accumulationScore": 17,
+      "accumulationBand": "Historically Deep Value",
+      "accumulationPercentile": 16,
+      "cycleDay": 803,
+      "etf": "Weak",
+      "sentiment": "Extreme fear"
+    },
+    "search": "bitcoin remains historically cheap while sentiment sits in extreme fear. bitcoin is trading cheaper than 84% of all weeks in its history, while sentiment remains in extreme fear. we have only seen conditions like this a handful of times before. etf demand has altered bitcoin's rhythm, but not investor psychology. flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. the plumbing has changed; the behaviour running through it hasn't. today that leaves bitcoin cheaper than 84% of its history regardless of the tape. today most closely resembles aug 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a deep value valuation backdrop, with sentiment in extreme fear. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. every roughly four years, by a rule written in code, the new supply of bitcoin is cut in half. etf watch clear historical context extreme fear historically deep value divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles etf inflows accelerating net outflows of ~$2.2b over the last 7 days sentiment approaching euphoric territory deep fear — fear & greed at 11"
+  },
+  {
     "edition": 395,
     "slug": "2026-06-30",
     "dateLabel": "Tuesday 30 June 2026",
