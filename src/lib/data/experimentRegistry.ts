@@ -70,7 +70,7 @@ export const EXPERIMENTS_REGISTRY: ExperimentSpec[] = [
     rationale: "The product and funnel are fully instrumented; a small measured test is the fastest, cheapest way to learn true unit economics before committing budget.",
     owner: "Founder",
     startDate: "2026-07-01",
-    status: "planned",
+    status: "running",
     surface: "Meta ads → /free landing",
     trafficAllocation: 100,
     eventKey: "meta_learn_jul26",
