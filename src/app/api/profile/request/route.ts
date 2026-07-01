@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sendEmail, resendConfigured } from "@/lib/resend";
 import { makeProfileToken, MAGIC_TTL_MS } from "@/lib/profileToken";
+import { generateCode, storeOtp } from "@/lib/profileOtp";
 import { profileEmailHtml, profileEmailText, profileEmailSubject } from "@/lib/profileEmail";
 import { absoluteUrl } from "@/lib/site";
 
@@ -29,9 +30,19 @@ export async function POST(req: Request) {
   const token = makeProfileToken(email, MAGIC_TTL_MS);
   const next = safeNext(body.next);
   const link = absoluteUrl(`/api/profile/verify?token=${encodeURIComponent(token)}${next ? `&next=${encodeURIComponent(next)}` : ""}`);
+
+  // A 6-digit code (gateway-safe) alongside the magic link.
+  const code = generateCode();
+  await storeOtp(email, code);
+
   // sendEmail never throws (returns {ok,error}); log failures server-side so they
   // are diagnosable, but never reveal detail to the caller.
-  const res = await sendEmail({ to: email, subject: profileEmailSubject(), html: profileEmailHtml(link), text: profileEmailText(link) });
+  const res = await sendEmail({
+    to: email,
+    subject: profileEmailSubject(),
+    html: profileEmailHtml(link, code),
+    text: profileEmailText(link, code),
+  });
   if (!res.ok) console.error(`[profile/request] send failed: ${res.error ?? "unknown"}`);
   return NextResponse.json({ ok: true, sent: res.ok });
 }

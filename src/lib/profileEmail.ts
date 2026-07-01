@@ -9,19 +9,21 @@ export function profileEmailSubject(): string {
   return "Sign in to your HalvingLens Profile";
 }
 
-export function profileEmailText(link: string): string {
+export function profileEmailText(link: string, code: string): string {
   return [
     "Sign in to your HalvingLens Profile",
     "",
-    "Click the secure link below to sign in — no password needed. It expires in 1 hour and only works once.",
+    `Your sign-in code: ${code}`,
+    "Enter this code on the sign-in page. It expires in 15 minutes.",
     "",
+    "Or click this secure link (no password needed):",
     link,
     "",
     "If you didn't request this, you can safely ignore it.",
   ].join("\n");
 }
 
-export function profileEmailHtml(link: string): string {
+export function profileEmailHtml(link: string, code: string): string {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><title>${profileEmailSubject()}</title></head>
@@ -37,10 +39,18 @@ export function profileEmailHtml(link: string): string {
       <tr><td style="padding:6px 36px 8px;">
         <div style="font:600 30px/1.2 ${SERIF};color:${C.ink};letter-spacing:-0.4px;">Sign in to your Profile</div>
         <div style="font:400 16px/1.6 ${SANS};color:${C.sub};margin-top:14px;">
-          Click the button below to securely sign in to your HalvingLens Profile — no password needed.
+          Enter this code on the sign-in page — no password needed.
         </div>
       </td></tr>
-      <tr><td style="padding:22px 36px 10px;">
+      <tr><td style="padding:16px 36px 6px;">
+        <div style="font:400 11px/1.4 ${SANS};letter-spacing:.16em;text-transform:uppercase;color:${C.dim};margin-bottom:8px;">Your sign-in code</div>
+        <div style="font:700 40px/1 'Courier New',monospace;letter-spacing:.28em;color:${C.gold};">${code}</div>
+        <div style="font:400 12.5px/1.5 ${SANS};color:${C.faint};margin-top:10px;">Expires in 15 minutes.</div>
+      </td></tr>
+      <tr><td style="padding:16px 36px 6px;">
+        <div style="font:400 13px/1.5 ${SANS};color:${C.sub};">Or use the one-click link instead:</div>
+      </td></tr>
+      <tr><td style="padding:8px 36px 10px;">
         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
           <td style="border-radius:10px;background:${C.gold};">
             <a href="${link}" style="display:inline-block;padding:14px 30px;font:600 15px/1 ${SANS};color:#15120a;text-decoration:none;border-radius:10px;">Sign in securely →</a>
