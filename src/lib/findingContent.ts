@@ -7,6 +7,7 @@
 // context, not advice — the compliance voice is baked into the templates.
 
 import type { ResearchFinding } from "./findings";
+import { buildFindingSlides, type CarouselSlide as EditorialSlide } from "./findingCarousel";
 import { SITE_HOST, absoluteUrl } from "./site";
 
 export interface CarouselSlide {
@@ -29,17 +30,27 @@ function url(f: ResearchFinding): string {
   return absoluteUrl(`/research/findings/${f.slug}`);
 }
 
-// Myth vs Reality carousel — the recurring social series, reused as the spine of
-// the Instagram deck for any finding that carries a myth.
+// Text mirror of the editorial (visual) carousel, so the copy-paste caption/
+// preview stays in lockstep with the rendered image slides.
+function editorialToText(s: EditorialSlide, f: ResearchFinding): CarouselSlide {
+  switch (s.kind) {
+    case "hook":
+      return { kicker: s.id, title: s.lines.join(" "), body: "HalvingLens Research — historical context, not prediction." };
+    case "statement":
+      return { kicker: s.label, title: s.text, body: s.label === "MYTH" ? "The common assumption." : "" };
+    case "statCompare":
+      return { kicker: "The numbers", title: s.title, body: `${s.items.map((i) => `${i.label} ${i.value}`).join("  ·  ")}${s.note ? ` — ${s.note}` : ""}` };
+    case "bars":
+      return { kicker: "Evidence", title: s.title, body: s.items.map((i) => `${i.label} ${i.value}`).join(" · ") };
+    case "doDont":
+      return { kicker: "Takeaway", title: `Don't: ${s.dont}`, body: `Do: ${s.do}` };
+    case "cta":
+      return { kicker: "Read the research", title: `${s.id} on ${SITE_HOST}`, body: `${SITE_HOST}/research/findings/${f.slug}` };
+  }
+}
+
 export function findingCarousel(f: ResearchFinding): CarouselSlide[] {
-  return [
-    { kicker: f.id, title: f.title, body: "HalvingLens Research — historical context, not prediction." },
-    { kicker: "MYTH", title: f.myth.myth, body: "The common assumption." },
-    { kicker: "REALITY", title: f.myth.reality, body: "What the historical data actually showed." },
-    { kicker: "EVIDENCE", title: f.headline, body: "Tested across Bitcoin's full weekly history, within the assumptions stated." },
-    { kicker: "TAKEAWAY", title: f.myth.takeaway, body: "Match the rule to the objective." },
-    { kicker: "READ THE RESEARCH", title: `${f.id} on ${SITE_HOST}`, body: `${SITE_HOST}/research/findings/${f.slug}` },
-  ];
+  return buildFindingSlides(f).map((s) => editorialToText(s, f));
 }
 
 export function findingInstagramCaption(f: ResearchFinding): string {

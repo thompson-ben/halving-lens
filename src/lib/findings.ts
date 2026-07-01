@@ -37,6 +37,16 @@ export interface FindingMyth {
 // permanent note honest: the prose is fixed, the figures recompute from source.
 export type FindingEvidence = "dca-threeway" | "fear-forward";
 
+// Optional structured content for the editorial social carousel. The hero
+// numbers usually come live from the evidence engine; `hook` and `doDont` are
+// authored. Future findings without an evidence engine can supply `stat`
+// directly so their carousel is still visual, not paragraphs.
+export interface FindingSocial {
+  hook?: string[]; // 2–3 punchy hook lines for slide 1
+  doDont?: { dont: string; do: string };
+  stat?: { title: string; note?: string; items: { label: string; value: string; tone?: "up" | "down" | "neutral" }[] };
+}
+
 // Lifecycle status — the permanent Research ID never changes, but a finding's
 // standing can evolve, giving the library the feel of an institutional journal.
 export type FindingStatus = "active" | "updated" | "superseded" | "archived" | "deprecated";
@@ -70,6 +80,7 @@ export interface ResearchFinding {
   limitations: string[];
   whyThisMatters: string[];
   myth: FindingMyth;
+  social?: FindingSocial;
   related: FindingRelated[];
 }
 
@@ -127,6 +138,13 @@ export const FINDINGS: ResearchFinding[] = [
         "Across Bitcoin's history, a buy-only Dynamic DCA rule retained the largest long-term position. Trimming into overheated conditions raised cash and cut drawdowns, but gave up Bitcoin even after the profit was reinvested.",
       takeaway: "Profit-taking optimises for a different goal — smoother returns and realised cash — not maximum accumulation.",
     },
+    social: {
+      hook: ["Take profits", "or keep stacking?"],
+      doDont: {
+        dont: "Assume trimming into strength leaves you with more Bitcoin.",
+        do: "Match the rule to the goal — distribution smooths the ride; pure accumulation kept the most Bitcoin.",
+      },
+    },
     related: [
       { label: "Accumulation Index — run the three-way backtest yourself", href: "/accumulation", kind: "tool" },
       { label: "Morning Research — the daily analyst note", href: "/research", kind: "page" },
@@ -180,6 +198,13 @@ export const FINDINGS: ResearchFinding[] = [
       reality:
         "Since 2018, days of extreme fear were followed by some of Bitcoin's strongest one-year average returns (around +98%), well ahead of greedy periods (around +66%) — though over the next one to three months they actually lagged.",
       takeaway: "Extreme fear reflected how people felt, not whether the asset was finished — but it rewarded patience, not instant timing.",
+    },
+    social: {
+      hook: ["Extreme fear", "Weakness?", "or opportunity?"],
+      doDont: {
+        dont: "Treat extreme fear as an instant buy signal.",
+        do: "Historically it rewarded patience — the edge showed over a year, not a week.",
+      },
     },
     related: [
       { label: "Sentiment — the live Fear & Greed read", href: "/sentiment", kind: "tool" },
