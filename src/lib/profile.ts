@@ -4,12 +4,45 @@
 // one row — clean and scalable.
 
 import { cookies } from "next/headers";
-import { sbSelect, sbUpsert } from "./supabase";
+import { sbSelect, sbCount, sbUpsert } from "./supabase";
 import { readProfileToken } from "./profileToken";
 import { emailHash } from "./emailTracking";
 import { referralCode } from "./referral";
 
 export const PROFILE_COOKIE = "hl_profile";
+
+// The earliest members get a permanent "Early Supporter" badge — never awarded
+// again once the window closes. Configurable via env.
+export const EARLY_SUPPORTER_LIMIT = Number(process.env.EARLY_SUPPORTER_LIMIT) || 100;
+
+export function isFounderEmail(email: string): boolean {
+  const f = (process.env.FOUNDER_EMAIL || "").trim().toLowerCase();
+  return !!f && email.trim().toLowerCase() === f;
+}
+
+export interface MemberIdentity {
+  memberNo: number | null; // permanent sequential number (by signup order)
+  isFounder: boolean;
+  isEarlySupporter: boolean;
+}
+
+// Derives the permanent member number from signup order (count of profiles
+// created at or before this one) — stable without a schema migration, since
+// created_at never changes and only earlier members are counted.
+export async function memberIdentity(email: string): Promise<MemberIdentity> {
+  const e = email.trim().toLowerCase();
+  const founder = isFounderEmail(e);
+  const rows = await sbSelect<{ created_at: string }[]>(
+    `profiles?select=created_at&email=eq.${encodeURIComponent(e)}&limit=1`,
+  );
+  const createdAt = rows?.[0]?.created_at ?? null;
+  const memberNo = createdAt ? await sbCount("profiles", `created_at=lte.${encodeURIComponent(createdAt)}`) : null;
+  return {
+    memberNo,
+    isFounder: founder,
+    isEarlySupporter: memberNo != null && memberNo <= EARLY_SUPPORTER_LIMIT,
+  };
+}
 
 export interface ProfileState {
   saved?: { kind: string; title: string; href: string; ts: number }[];
