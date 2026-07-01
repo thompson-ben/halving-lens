@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { track } from "@/lib/track";
+import { requestMagicLink } from "@/lib/profileClient";
+import { ProfileCodeEntry } from "./ProfileCodeEntry";
 
 // "Create your HalvingLens Profile" — the magic-link request, framed as
 // unlocking a personalised experience, never as registration. Shown only when a
@@ -33,19 +35,10 @@ export function ProfilePrompt({
     }
     setBusy(true);
     setError(null);
-    try {
-      await fetch("/api/profile/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, next: next ?? (typeof window !== "undefined" ? window.location.pathname : "/dashboard") }),
-      });
-      track("profile_request", {});
-      setSent(true);
-    } catch {
-      setSent(true); // never reveal failure
-    } finally {
-      setBusy(false);
-    }
+    await requestMagicLink(email, next);
+    track("profile_request", {});
+    setSent(true);
+    setBusy(false);
   };
 
   return (
@@ -56,14 +49,9 @@ export function ProfilePrompt({
         </button>
 
         {sent ? (
-          <div className="text-center py-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[14px]">
-              <Check size={16} /> Check your inbox
-            </div>
-            <p className="mt-4 text-[13px] text-ink-400 leading-relaxed">
-              We&apos;ve sent a secure sign-in link to <span className="text-ink-200">{email}</span>. Click it to unlock
-              your HalvingLens Profile — it expires in an hour.
-            </p>
+          <div className="py-2">
+            <div className="text-[10.5px] uppercase tracking-[0.22em] text-[#d9b96a] mb-3">Almost there</div>
+            <ProfileCodeEntry email={email} next={next} />
           </div>
         ) : (
           <>

@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { track } from "@/lib/track";
+import { requestMagicLink } from "@/lib/profileClient";
+import { ProfileCodeEntry } from "./ProfileCodeEntry";
 
 // Inline "create / sign in to your HalvingLens Profile" form (non-modal), used
-// on the /profile page. Same magic-link request, framed as unlocking access.
+// on the /profile page. Emails a 6-digit code + a magic link, then lets the user
+// enter the code — which passes corporate mail gateways that block link emails.
 export function ProfileSignInForm({ next }: { next?: string }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -20,31 +23,13 @@ export function ProfileSignInForm({ next }: { next?: string }) {
     }
     setBusy(true);
     setError(null);
-    try {
-      await fetch("/api/profile/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, next: next ?? "/profile/welcome" }),
-      });
-      track("profile_request", {});
-    } catch {
-      /* never reveal */
-    } finally {
-      setSent(true);
-      setBusy(false);
-    }
+    await requestMagicLink(email, next ?? "/profile/welcome");
+    track("profile_request", {});
+    setSent(true);
+    setBusy(false);
   };
 
-  if (sent) {
-    return (
-      <div className="space-y-2.5">
-        <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[14px]">
-          <Check size={16} /> Check your inbox for a secure sign-in link.
-        </div>
-        <p className="text-[12px] text-ink-400">It expires in an hour and works once. Add brief@halvinglens.com to your contacts so it lands.</p>
-      </div>
-    );
-  }
+  if (sent) return <ProfileCodeEntry email={email} next={next ?? "/profile/welcome"} />;
 
   return (
     <form onSubmit={submit} className="space-y-2.5 max-w-md">
