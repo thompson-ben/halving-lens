@@ -48,10 +48,10 @@ export async function experimentResults(): Promise<ExperimentResult[]> {
     sbSelect<{ props: Record<string, unknown> | null }[]>("events?select=props&name=eq.landing_view&limit=50000"),
     sbSelect<{ props: Record<string, unknown> | null }[]>("events?select=props&name=eq.signup&limit=50000"),
   ]);
-  const tally = (rows: { props: Record<string, unknown> | null }[] | null, keys: string[]) => {
+  const tally = (rows: { props: Record<string, unknown> | null }[] | null, keys: string[], propKey: string) => {
     const m = new Map<string, number>();
     for (const r of rows ?? []) {
-      const v = String(r.props?.variant ?? "");
+      const v = String(r.props?.[propKey] ?? "");
       if (keys.includes(v)) m.set(v, (m.get(v) ?? 0) + 1);
     }
     return m;
@@ -59,8 +59,9 @@ export async function experimentResults(): Promise<ExperimentResult[]> {
 
   return specs.map((spec) => {
     const keys = spec.variants.map((v) => v.key);
-    const vMap = tally(views, keys);
-    const cMap = tally(signups, keys);
+    const propKey = spec.measure === "campaign" ? "utm_campaign" : "variant";
+    const vMap = tally(views, keys, propKey);
+    const cMap = tally(signups, keys, propKey);
     const results: VariantResult[] = spec.variants.map((v) => {
       const visitors = vMap.get(v.key) ?? 0;
       const conversions = cMap.get(v.key) ?? 0;

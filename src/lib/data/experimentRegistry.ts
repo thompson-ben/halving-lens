@@ -29,6 +29,10 @@ export interface ExperimentSpec {
   surface: string; // what's being tested, e.g. "/start hero headline"
   trafficAllocation: number; // % of eligible traffic, 0-100
   eventKey: string; // the `variant` value-space measured from events (matches experiments.ts key)
+  // How results are measured: "variant" = an A/B on props.variant (default);
+  // "campaign" = a channel test measured by props.utm_campaign (each variant.key
+  // is a utm_campaign name). Lift/confidence only apply to multi-variant tests.
+  measure?: "variant" | "campaign";
   variants: ExperimentVariant[];
   primaryKpi: string;
   secondaryKpis?: string[];
@@ -57,6 +61,23 @@ export const EXPERIMENTS_REGISTRY: ExperimentSpec[] = [
     ],
     primaryKpi: "Visitor → subscriber conversion",
     secondaryKpis: ["CTA click rate", "Visitor → WAES"],
+  },
+  {
+    id: "meta-learn-jul26",
+    title: "Meta learning campaign — paid acquisition to /free",
+    description: "First paid Meta test: does cold Meta traffic to /free produce engaged subscribers (WAES) at a viable cost?",
+    hypothesis: "Cold Meta traffic to /free converts to subscribers and WAES at a cost low enough to justify scaling paid acquisition.",
+    rationale: "The product and funnel are fully instrumented; a small measured test is the fastest, cheapest way to learn true unit economics before committing budget.",
+    owner: "Founder",
+    startDate: "2026-07-01",
+    status: "planned",
+    surface: "Meta ads → /free landing",
+    trafficAllocation: 100,
+    eventKey: "meta_learn_jul26",
+    measure: "campaign",
+    variants: [{ key: "meta_learn_jul26", label: "Meta → /free" }],
+    primaryKpi: "Cost per WAES",
+    secondaryKpis: ["Cost per subscriber", "Landing conversion %", "Email open rate of paid subs"],
   },
 ];
 

@@ -22,15 +22,19 @@ export interface AdSpend {
   note?: string; // optional free-text note
 }
 
-// Add real campaigns here as you run them. Kept empty until real spend exists —
-// the dashboard shows "—" for cost metrics rather than a fabricated figure.
-//
-// Example (uncomment and edit when you launch a campaign):
-// export const AD_SPEND: AdSpend[] = [
-//   { campaign: "similar_moments_launch", spend: 250, currency: "GBP", source: "meta",
-//     startDate: "2026-07-01", note: "First Meta test — Similar Moments angle" },
-// ];
-export const AD_SPEND: AdSpend[] = [];
+// Add real campaigns here as you run them. `spend` is the running total you've
+// spent so far — update it as the campaign runs and the dashboard recomputes
+// cost-per-subscriber and cost-per-WAES automatically.
+export const AD_SPEND: AdSpend[] = [
+  {
+    campaign: "meta_learn_jul26",
+    spend: 0, // ← update this to your running Meta spend (GBP) as the campaign runs
+    currency: "GBP",
+    source: "meta",
+    startDate: "2026-07-01",
+    note: "Meta learning campaign → /free. Update `spend` as it runs.",
+  },
+];
 
 // Total spend across all campaigns (single currency assumed; default GBP).
 export function adSpendTotal(): number {
