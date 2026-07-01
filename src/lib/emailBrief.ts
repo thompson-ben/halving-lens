@@ -362,18 +362,39 @@ export function editionContent(): Edition {
 
 // ── Subject — curiosity-first, no formulaic prefix ───────────────────────────
 export function dailyEmailSubject(): string {
-  const { s, acc, top, cheap, fear, greed, etfNeg, etfPos, etfWk } = reads();
-  if (cheap && fear) return "The crowd is fearful. History wasn't.";
-  if (acc.band.key === "deep_value") return "Bitcoin just entered a rare historical zone";
-  if (top && top.similarity >= 80) return `Today's market rhymes with ${top.dateLabel}`;
-  if (cheap && etfNeg) return "Historically cheap, despite the outflows";
-  if (cheap) return "Bitcoin remains historically cheap";
-  if (greed) return "The expensive comfort of conviction";
-  if (fear) return "Extreme Fear persists";
-  if (etfNeg && Math.abs(etfWk!) > 0) return "ETF outflows accelerate again";
-  if (etfPos) return "ETF demand picks up again";
-  if (s.heat === "cool") return "Bitcoin's rhythm continues to diverge";
-  return "Where Bitcoin sits in the cycle today";
+  const { s, acc, top, cheap, fear, greed, etfNeg, etfPos, etfWk, cheaper } = reads();
+  // Rotate through on-message variants by day, so a persistent market state never
+  // produces the same subject two mornings running (which reads as a duplicate
+  // and hurts opens). Deterministic per date; consecutive days differ.
+  const dayIdx = Math.floor(briefDate().getTime() / 86_400_000);
+  const pick = (v: string[]) => v[((dayIdx % v.length) + v.length) % v.length];
+
+  if (cheap && fear)
+    return pick([
+      "The crowd is fearful. History wasn't.",
+      "Extreme fear meets historically cheap Bitcoin",
+      `Cheaper than ${cheaper}% of history — while fear runs high`,
+      "When fear and value overlap",
+    ]);
+  if (acc.band.key === "deep_value")
+    return pick(["Bitcoin just entered a rare historical zone", "A historically deep-value reading today", "Deep value, by the historical record"]);
+  if (top && top.similarity >= 80)
+    return pick([`Today's market rhymes with ${top.dateLabel}`, `A familiar setup — echoes of ${top.dateLabel}`, `${top.similarity}% similar to ${top.dateLabel}`]);
+  if (cheap && etfNeg)
+    return pick(["Historically cheap, despite the outflows", "Cheap by history, even as ETFs bleed", "Low valuation meets ETF outflows"]);
+  if (cheap)
+    return pick(["Bitcoin remains historically cheap", `Still cheaper than ${cheaper}% of history`, "A low reading on the historical range"]);
+  if (greed)
+    return pick(["The expensive comfort of conviction", "Greed runs warm in the historical range", "Sentiment hot, valuation stretched"]);
+  if (fear)
+    return pick(["Extreme fear persists", "Fear holds, by the numbers", "The mood stays fearful"]);
+  if (etfNeg && Math.abs(etfWk!) > 0)
+    return pick(["ETF outflows accelerate again", "Another week of ETF outflows", "ETF demand cools further"]);
+  if (etfPos)
+    return pick(["ETF demand picks up again", "ETF inflows build again", "Fresh ETF demand this week"]);
+  if (s.heat === "cool")
+    return pick(["Bitcoin's rhythm continues to diverge", "A cool spot in the cycle", "Still one of the cooler cycle readings"]);
+  return pick(["Where Bitcoin sits in the cycle today", "Today's cycle read, in context", "The cycle, clearly"]);
 }
 
 // ── Plain-text part ──────────────────────────────────────────────────────────
