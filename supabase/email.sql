@@ -11,6 +11,11 @@ alter table public.brief_subscribers
 create index if not exists brief_subscribers_status_idx
   on public.brief_subscribers (status);
 
+-- Day-2 onboarding "showcase" email — one-time per subscriber. NULL = not yet
+-- sent; the drip (sendOnboardingShowcase) stamps this once the tour goes out.
+alter table public.brief_subscribers
+  add column if not exists showcase_sent_at timestamptz;
+
 -- 2. Per-email send log — one row per recipient per send.
 create table if not exists public.email_sends (
   id                    bigint generated always as identity primary key,

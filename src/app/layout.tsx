@@ -62,10 +62,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable} dark`}
     >
       <body className="min-h-screen bg-ink-950 text-ink-100 font-sans antialiased">
-        {/* Hide site chrome before paint on the paid landing (?nav=1 keeps it). */}
+        {/* Hide site chrome before paint on the paid landings (?nav=1 keeps it). */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=location.pathname,n=new URLSearchParams(location.search).get('nav');if(p==='/start'&&n!=='1'){document.documentElement.setAttribute('data-bare','1');}}catch(e){}})();`,
+            __html: `(function(){try{var p=location.pathname,n=new URLSearchParams(location.search).get('nav');if((p==='/start'||p==='/free')&&n!=='1'){document.documentElement.setAttribute('data-bare','1');}}catch(e){}})();`,
           }}
         />
         <div className="flex min-h-screen">
