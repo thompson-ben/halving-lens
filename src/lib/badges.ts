@@ -51,9 +51,9 @@ export const BADGES: BadgeDef[] = [
   { id: "accumulation-hunter", name: "Accumulation Hunter", description: "Studied the Accumulation Index.", category: "Product", rarity: "Common", signal: "viewedAccumulation", target: 1 },
   { id: "market-observer", name: "Market Observer", description: "Checked market sentiment.", category: "Product", rarity: "Common", signal: "viewedSentiment", target: 1 },
 
-  // Community — legacy / founding (require accounts; permanently scarce)
-  { id: "early-supporter", name: "Early Supporter", description: "Joined before the first 1,000 subscribers.", category: "Community", rarity: "Legendary", legacy: true, requiresAccount: true },
-  { id: "founding-100", name: "Founding 100", description: "One of the first 100 active members.", category: "Community", rarity: "Legendary", legacy: true, requiresAccount: true },
+  // Community — legacy / founding (permanently scarce, graded membership tiers).
+  // NB: "◆ Founder" and "◆ Early Supporter" (first 100) are IDENTITY CREDENTIALS
+  // shown on /profile (single source of truth) — deliberately not duplicated here.
   { id: "founding-500", name: "Founding 500", description: "One of the first 500 members.", category: "Community", rarity: "Epic", legacy: true, requiresAccount: true },
   { id: "founding-1000", name: "Founding 1000", description: "One of the first 1,000 members.", category: "Community", rarity: "Rare", legacy: true, requiresAccount: true },
 
