@@ -12,7 +12,12 @@ import { brandFonts } from "@/lib/ogFonts";
 // Public + dynamic so email clients can fetch it; ?d=YYYY-MM-DD busts the daily
 // image cache. Exposes only a Bitcoin chart — no auth needed.
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// Cache the image instead of cold-rendering on every request. The route ignores
+// the request (the ?d=YYYY-MM-DD is only a client-side cache-buster), so it's
+// safely cacheable — and the daily sync redeploy refreshes it each morning. This
+// matches the (reliable) static OG images; a force-dynamic cold render behind an
+// email image proxy was the cause of the broken hero image.
+export const revalidate = 21600; // 6h
 
 const SIZE = { width: 1200, height: 680 };
 const BG = "#0a0c10";
@@ -63,10 +68,17 @@ function Bar({ name, pct, value, color, strong }: { name: string; pct: number; v
   );
 }
 
-export async function GET() {
+async function renderChart() {
   const narrative = featureHeroNarrative();
   const fonts = brandFonts();
-  const opts = { ...SIZE, ...(fonts.length ? { fonts } : {}) };
+  // Cache the daily image (the ?d=YYYY-MM-DD makes each day unique) so email
+  // image proxies (Gmail / Apple Mail) and the CDN serve it reliably instead of
+  // cold-rendering on every open — the usual cause of a broken email image.
+  const opts = {
+    ...SIZE,
+    ...(fonts.length ? { fonts } : {}),
+    headers: { "Cache-Control": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800" },
+  };
 
   // ── Similar Moments hero ───────────────────────────────────────────────────
   if (narrative === "similar") {
@@ -197,4 +209,29 @@ export async function GET() {
     ),
     opts,
   );
+}
+
+// Never return a broken image: if any narrative/data edge throws, fall back to a
+// simple branded card so the email always shows something valid.
+export async function GET() {
+  try {
+    return await renderChart();
+  } catch {
+    const fonts = brandFonts();
+    return new ImageResponse(
+      (
+        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", background: BG, padding: 60, fontFamily: "Inter" }}>
+          <div style={{ display: "flex", alignItems: "center", fontSize: 22, fontWeight: 700, letterSpacing: 4, color: INK }}>
+            <div style={{ display: "flex", width: 16, height: 16, background: GOLD, transform: "rotate(45deg)", marginRight: 16 }} />
+            HALVINGLENS RESEARCH
+          </div>
+          <div style={{ display: "flex", fontFamily: "Fraunces", fontSize: 44, fontWeight: 600, color: INK, marginTop: 20, letterSpacing: -0.5 }}>
+            The clearest view of the Bitcoin cycle.
+          </div>
+          <div style={{ display: "flex", fontSize: 22, color: DIM, marginTop: 16 }}>Historical context. Not prediction.</div>
+        </div>
+      ),
+      { ...SIZE, ...(fonts.length ? { fonts } : {}), headers: { "Cache-Control": "public, max-age=300" } },
+    );
+  }
 }
