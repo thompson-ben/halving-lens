@@ -15,6 +15,7 @@ import {
 import { experimentResults } from "@/lib/experimentAnalytics";
 import { referralAnalytics, type ReferralAnalytics } from "@/lib/referralAnalytics";
 import { shareDashboard, type ShareDashboard } from "@/lib/shareAnalytics";
+import { acquisitionQuality, type AcquisitionQuality } from "@/lib/acquisitionAnalytics";
 import { marketingHealth, type MarketingHealth, type HealthStatus } from "@/lib/marketingHealth";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
@@ -35,7 +36,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
-  const [health, a, email, funnel, waes, v2w, referral, experiments, share] = await Promise.all([
+  const [health, a, email, funnel, waes, v2w, referral, experiments, share, acq] = await Promise.all([
     marketingHealth(),
     growthDashboard(),
     emailEngagement(),
@@ -45,6 +46,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
     referralAnalytics(),
     experimentResults(),
     shareDashboard(),
+    acquisitionQuality(),
   ]);
   const recommendations = growthRecommendations({
     email,
@@ -73,7 +75,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       {!a.configured ? (
         <p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql to populate the metrics below.</p>
       ) : (
-        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} share={share} />
+        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} share={share} acq={acq} />
       )}
     </Shell>
   );
@@ -89,6 +91,7 @@ function GrowthBody({
   recommendations,
   runningExp,
   share,
+  acq,
 }: {
   a: Awaited<ReturnType<typeof growthDashboard>>;
   email: EmailEngagement;
@@ -99,6 +102,7 @@ function GrowthBody({
   recommendations: Recommendation[];
   runningExp: number;
   share: ShareDashboard;
+  acq: AcquisitionQuality;
 }) {
   const g = a.growth;
   const weeklies = weeklyStats();
@@ -252,6 +256,62 @@ function GrowthBody({
             </table>
           </div>
         )}
+      </Panel>
+
+      {/* Acquisition quality — cost per engaged user, best creative, ROI */}
+      <Panel title="Acquisition quality — spend → engaged users & ROI">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden mb-5">
+          <Stat label="Total spend" value={money(acq.totalSpend, acq.currency)} />
+          <Stat label="Engaged users" value={acq.totalEngagedUsers} />
+          <Stat label="Cost / engaged user" value={acq.costPerEngagedUser != null ? money(acq.costPerEngagedUser, acq.currency) : "—"} />
+          <Stat label="Subscriber value" value={acq.subscriberValue > 0 ? money(acq.subscriberValue, acq.currency) : "unset"} />
+        </div>
+
+        {acq.campaigns.length === 0 ? (
+          <p className="text-[12.5px] text-ink-500">No campaign traffic yet. Tag ads with utm_campaign / utm_content (ad) / utm_term (adset); costs come from src/lib/data/adSpend.ts.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px] min-w-[640px]">
+              <thead>
+                <tr className="text-ink-500 text-[10.5px] uppercase tracking-[0.12em]">
+                  <th className="text-left font-normal pb-2">Campaign</th>
+                  <th className="text-right font-normal pb-2">Visitors</th>
+                  <th className="text-right font-normal pb-2">Engaged</th>
+                  <th className="text-right font-normal pb-2">Subs</th>
+                  <th className="text-right font-normal pb-2">Cost / sub</th>
+                  <th className="text-right font-normal pb-2">Cost / engaged</th>
+                  <th className="text-right font-normal pb-2">ROI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {acq.campaigns.map((c) => (
+                  <tr key={c.campaign} className="border-t border-white/[0.06] font-mono">
+                    <td className="py-2.5 text-ink-200">{c.campaign}</td>
+                    <td className="py-2.5 text-right text-ink-300">{c.visitors}</td>
+                    <td className="py-2.5 text-right text-ink-300">{c.engagedUsers}</td>
+                    <td className="py-2.5 text-right text-ink-100">{c.signups}</td>
+                    <td className="py-2.5 text-right text-ink-300">{c.cps != null ? money(c.cps, acq.currency) : "—"}</td>
+                    <td className="py-2.5 text-right text-accent">{c.cpe != null ? money(c.cpe, acq.currency) : "—"}</td>
+                    <td className={`py-2.5 text-right ${c.roiPct == null ? "text-ink-500" : c.roiPct >= 0 ? "text-signal-green" : "text-signal-red"}`}>{c.roiPct != null ? `${c.roiPct}%` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-3 text-[11px] text-ink-500">
+          Engaged user = a session that dwelled on the site (an engagement event), attributed to its campaign.
+          {acq.subscriberValue > 0 ? " ROI uses your subscriber value." : " Set SUBSCRIBER_VALUE_GBP (or src/lib/data/adSpend.ts) to unlock ROI."}
+        </p>
+      </Panel>
+
+      {/* Highest-converting creative + audience (Meta: utm_content / utm_term) */}
+      <Panel title="Highest-converting creative & audience">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DimensionTable title="Top creatives (ad · utm_content)" rows={acq.topCreatives} />
+          <DimensionTable title="Top audiences (adset · utm_term)" rows={acq.topAudiences} />
+        </div>
+        <p className="mt-3 text-[11px] text-ink-500">Ranked by signup conversion. Populate utm_content (ad name) and utm_term (adset name) on your ad links — see the recommended Meta structure.</p>
       </Panel>
 
       {/* Referral leaderboard (anonymous codes) */}
@@ -474,6 +534,42 @@ function Mini({ label, value }: { label: string; value: string }) {
     <div className="bg-[#0b0f15] px-3.5 py-3">
       <div className="text-[9.5px] uppercase tracking-[0.14em] text-ink-400">{label}</div>
       <div className="mt-1 font-mono text-[13px] text-ink-100">{value}</div>
+    </div>
+  );
+}
+function money(n: number, currency: string): string {
+  const sym = currency === "GBP" ? "£" : currency === "USD" ? "$" : currency === "EUR" ? "€" : "";
+  const v = Number.isInteger(n) ? n.toLocaleString() : n.toFixed(2);
+  return sym ? `${sym}${v}` : `${v} ${currency}`;
+}
+function DimensionTable({ title, rows }: { title: string; rows: { key: string; visitors: number; signups: number; conversionPct: number | null }[] }) {
+  return (
+    <div>
+      <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-3">{title}</div>
+      {rows.length === 0 ? (
+        <p className="text-[12px] text-ink-500">No tagged traffic yet.</p>
+      ) : (
+        <table className="w-full text-[12.5px]">
+          <thead>
+            <tr className="text-ink-500 text-[10px] uppercase tracking-[0.12em]">
+              <th className="text-left font-normal pb-2">Name</th>
+              <th className="text-right font-normal pb-2">Visitors</th>
+              <th className="text-right font-normal pb-2">Subs</th>
+              <th className="text-right font-normal pb-2">Conv.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key} className="border-t border-white/[0.06]">
+                <td className="py-1.5 text-ink-200 font-mono text-[11.5px] truncate max-w-[180px]">{r.key}</td>
+                <td className="py-1.5 text-right font-mono text-ink-300">{r.visitors}</td>
+                <td className="py-1.5 text-right font-mono text-ink-100">{r.signups}</td>
+                <td className="py-1.5 text-right font-mono text-accent">{r.conversionPct != null ? `${r.conversionPct}%` : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
