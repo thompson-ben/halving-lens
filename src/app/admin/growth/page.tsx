@@ -14,6 +14,7 @@ import {
 } from "@/lib/growthInsights";
 import { experimentResults } from "@/lib/experimentAnalytics";
 import { referralAnalytics, type ReferralAnalytics } from "@/lib/referralAnalytics";
+import { shareDashboard, type ShareDashboard } from "@/lib/shareAnalytics";
 import { marketingHealth, type MarketingHealth, type HealthStatus } from "@/lib/marketingHealth";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
@@ -34,7 +35,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
-  const [health, a, email, funnel, waes, v2w, referral, experiments] = await Promise.all([
+  const [health, a, email, funnel, waes, v2w, referral, experiments, share] = await Promise.all([
     marketingHealth(),
     growthDashboard(),
     emailEngagement(),
@@ -43,6 +44,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
     visitorToWaes(),
     referralAnalytics(),
     experimentResults(),
+    shareDashboard(),
   ]);
   const recommendations = growthRecommendations({
     email,
@@ -60,6 +62,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       <div className="-mt-2 flex items-center gap-3 flex-wrap">
         <a href="/admin/analytics" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-accent/25 bg-accent/[0.06] text-accent text-[12.5px] hover:bg-accent/[0.1]">Full analytics →</a>
         <a href="/admin/experiments" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-white/[0.1] text-ink-300 text-[12.5px] hover:text-ink-100 hover:border-accent/30">Experiments →</a>
+        <a href="/admin/campaigns" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-white/[0.1] text-ink-300 text-[12.5px] hover:text-ink-100 hover:border-accent/30">Share campaigns →</a>
         <a href="/api/admin/founder-report-preview" target="_blank" className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-white/[0.1] text-ink-300 text-[12.5px] hover:text-ink-100 hover:border-accent/30">Preview founder report →</a>
         <SendTestEmailButton endpoint="/api/admin/send-founder-report" label="Send founder report now" />
       </div>
@@ -70,7 +73,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       {!a.configured ? (
         <p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql to populate the metrics below.</p>
       ) : (
-        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} />
+        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} share={share} />
       )}
     </Shell>
   );
@@ -85,6 +88,7 @@ function GrowthBody({
   referral,
   recommendations,
   runningExp,
+  share,
 }: {
   a: Awaited<ReturnType<typeof growthDashboard>>;
   email: EmailEngagement;
@@ -94,6 +98,7 @@ function GrowthBody({
   referral: ReferralAnalytics;
   recommendations: Recommendation[];
   runningExp: number;
+  share: ShareDashboard;
 }) {
   const g = a.growth;
   const weeklies = weeklyStats();
@@ -272,6 +277,92 @@ function GrowthBody({
                     <td className="py-2 text-right text-ink-300">{r.visitors}</td>
                     <td className="py-2 text-right text-ink-100">{r.signups}</td>
                     <td className="py-2 text-right text-accent">{r.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+
+      {/* Sharing & virality */}
+      <Panel title="Sharing & virality">
+        {!share.insights.configured || share.insights.totalShares + share.insights.totalVisits === 0 ? (
+          <p className="text-[12.5px] text-ink-500">No shares yet. Tap Share on any page (or a campaign QR); shares, QR scans and short-link visits appear here.</p>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+              <Stat label="Total shares" value={share.insights.totalShares} />
+              <Stat label="QR scans" value={share.insights.totalScans} />
+              <Stat label="Short-link visits" value={share.insights.totalVisits} />
+              <Stat label="Share→visit" value={share.insights.shareToVisitPct != null ? `${share.insights.shareToVisitPct}%` : "—"} />
+              <Stat label="Shares · 24h" value={share.insights.windows.daily} />
+              <Stat label="Shares · 7d" value={share.insights.windows.weekly} />
+              <Stat label="Shares · 30d" value={share.insights.windows.monthly} />
+              <Stat label="Methods used" value={share.insights.byMethod.length} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-3">Most shared content</div>
+                {share.insights.topContent.length === 0 ? (
+                  <p className="text-[12px] text-ink-500">No content shared yet.</p>
+                ) : (
+                  <table className="w-full text-[12.5px]">
+                    <thead>
+                      <tr className="text-ink-500 text-[10px] uppercase tracking-[0.12em]">
+                        <th className="text-left font-normal pb-2">Page</th>
+                        <th className="text-right font-normal pb-2">Shares</th>
+                        <th className="text-right font-normal pb-2">Visits</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {share.insights.topContent.map((c) => (
+                        <tr key={c.slug} className="border-t border-white/[0.06]">
+                          <td className="py-1.5 text-ink-200 truncate max-w-[220px]">{c.label}</td>
+                          <td className="py-1.5 text-right font-mono text-ink-100">{c.shares}</td>
+                          <td className="py-1.5 text-right font-mono text-ink-400">{c.visits}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div>
+                <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-3">Share method popularity</div>
+                <Bars items={share.insights.byMethod.map((m) => ({ label: m.method, n: m.n }))} empty="No share actions yet." />
+              </div>
+            </div>
+          </div>
+        )}
+      </Panel>
+
+      {/* Founder share campaigns */}
+      <Panel title="Founder share campaigns">
+        <div className="mb-3">
+          <a href="/admin/campaigns" className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft">Create / manage campaigns →</a>
+        </div>
+        {share.campaigns.length === 0 ? (
+          <p className="text-[12.5px] text-ink-500">No campaigns yet. Create one for a networking event, business card or social profile — each gets its own branded QR and attribution.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px] min-w-[520px]">
+              <thead>
+                <tr className="text-ink-500 text-[10.5px] uppercase tracking-[0.12em]">
+                  <th className="text-left font-normal pb-2">Campaign</th>
+                  <th className="text-right font-normal pb-2">QR scans</th>
+                  <th className="text-right font-normal pb-2">Visits</th>
+                  <th className="text-right font-normal pb-2">Subscribers</th>
+                  <th className="text-right font-normal pb-2">Conversion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {share.campaigns.map((c) => (
+                  <tr key={c.slug} className="border-t border-white/[0.06] font-mono">
+                    <td className="py-2 text-ink-200">{c.name} <span className="text-ink-500">/r/{c.slug}</span></td>
+                    <td className="py-2 text-right text-ink-300">{c.scans}</td>
+                    <td className="py-2 text-right text-ink-300">{c.visits}</td>
+                    <td className="py-2 text-right text-ink-100">{c.subscribers}</td>
+                    <td className="py-2 text-right text-accent">{c.conversionPct != null ? `${c.conversionPct}%` : "—"}</td>
                   </tr>
                 ))}
               </tbody>

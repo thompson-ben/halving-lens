@@ -27,6 +27,7 @@ const SECTIONS: AdminSection[] = [
     emoji: "📈",
     items: [
       { label: "Growth Dashboard", href: "/admin/growth" },
+      { label: "Share campaigns", href: "/admin/campaigns" },
       { label: "Experiments", href: "/admin/experiments" },
       { label: "Funnel & WAES", href: "/admin/growth" },
       { label: "Recommendations", href: "/admin/growth" },

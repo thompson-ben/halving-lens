@@ -21,10 +21,12 @@
     "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\""
   },
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.13.3"

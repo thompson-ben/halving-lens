@@ -55,6 +55,11 @@ const ALLOWED = new Set([
   "weekly_share",
   "landing_view",
   "landing_cta",
+  // Universal share system (button + modal + QR)
+  "share_open", // Share modal opened on a page
+  "share", // a share action fired (method in props: copy|native|x|linkedin|email|qr)
+  "qr_view", // branded QR shown for a page/campaign
+  "campaign_create", // founder created a share campaign
 ]);
 
 // Internal / non-content paths that should never count as a viewer page view.
