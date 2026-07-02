@@ -6,6 +6,7 @@ import { fmtPct, fmtUsd } from "@/lib/format";
 import { HalvingCountdownMini } from "./HalvingCountdownMini";
 import { lastUpdatedShort } from "./LastUpdated";
 import { MobileNav } from "./MobileNav";
+import { ShareTrigger } from "./ShareTrigger";
 
 const PHASE_DOT: Record<string, string> = {
   blue: "bg-signal-blue",
@@ -40,6 +41,8 @@ export function TopBar() {
         <MobileStatus spot={spot} />
 
         <div className="flex items-center gap-2">
+          <ShareTrigger />
+
           <Link
             href="/price"
             title="Open the Bitcoin price chart"

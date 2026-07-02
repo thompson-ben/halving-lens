@@ -15,15 +15,18 @@
     "persist-edition": "tsx scripts/persist-edition.ts",
     "persist-weekly": "tsx scripts/persist-weekly.ts",
     "send-email": "tsx scripts/send-email.ts",
+    "send-showcase": "tsx scripts/send-showcase.ts",
     "send-weekly": "tsx scripts/send-weekly.ts",
     "send-founder-report": "tsx scripts/send-founder-report.ts",
     "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\""
   },
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.13.3"

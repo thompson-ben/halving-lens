@@ -9,7 +9,24 @@
 //   utm_source · utm_medium · utm_campaign · utm_content · utm_term · ref
 
 const KEY = "hl.attr";
-const FIELDS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "ref"] as const;
+// Full attribution surface: standard UTMs, Meta ids, referral code, and the
+// HalvingLens short-link markers (hlr = share-link slug, hlc = founder campaign)
+// injected by the /r/<slug> redirect. First-touch wins and persists through
+// signup, so every subscriber traces back to the campaign / ad / share that
+// brought them in.
+const FIELDS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "campaign_id",
+  "adset_id",
+  "ad_id",
+  "ref",
+  "hlr",
+  "hlc",
+] as const;
 
 export function captureAttribution(): void {
   if (typeof window === "undefined") return;

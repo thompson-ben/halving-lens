@@ -97,6 +97,15 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Once signed up, send them into the app (home) so they get the full site menu
+  // — the paid landings are deliberately chrome-free. They read the confirmation
+  // for a moment first; the button lets them go immediately.
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => { window.location.assign("/"); }, 3500);
+    return () => clearTimeout(t);
+  }, [done]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -135,7 +144,7 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
 
   if (done) {
     return (
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[14px]">
           <Check size={16} /> You&apos;re in — check your inbox for a welcome email.
         </div>
@@ -144,6 +153,13 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
           <span className="text-ink-200">brief@halvinglens.com</span> to your contacts so you don&apos;t miss
           tomorrow&apos;s research.
         </p>
+        <a
+          href="/"
+          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors"
+        >
+          Enter HalvingLens <ArrowRight size={16} />
+        </a>
+        <p className="text-[11px] text-ink-500">Taking you there automatically…</p>
       </div>
     );
   }

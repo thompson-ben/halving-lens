@@ -6,6 +6,7 @@
 import { sbSelect, sbInsert, sbUpdate, supabaseConfigured } from "./supabase";
 import { sendEmail, resendConfigured } from "./resend";
 import { dailyEmailHtml, dailyEmailText, dailyEmailSubject } from "./emailBrief";
+import { showcaseEmailHtml, showcaseEmailText, showcaseEmailSubject } from "./showcaseEmail";
 import { weeklyEmailHtml, weeklyEmailText, weeklyEmailSubject } from "./weeklyEmail";
 import { latestWeekly } from "./weekly";
 import { founderReport } from "./founderReport";
@@ -101,6 +102,71 @@ export async function sendDailyBrief(opts: { force?: boolean } = {}): Promise<Se
     emails_failed: failed,
     provider: "resend",
   });
+
+  return { ...base, ok: true, subscriberCount: subs.length, sent: subs.length, delivered, failed };
+}
+
+// ── Onboarding showcase email (Day 2 drip) ───────────────────────────────────
+// A one-time "where to start" tour, sent once to each subscriber a day or two
+// after they join — so it doesn't pile on with the welcome email or their first
+// daily brief. Idempotent per subscriber via brief_subscribers.showcase_sent_at
+// (run supabase/email.sql to add the column). Safe to run daily; never throws.
+const SHOWCASE_MIN_AGE_HOURS = 20; // wait ~a day before the tour lands
+
+export async function sendOnboardingShowcase(opts: { force?: boolean; limit?: number } = {}): Promise<SendSummary> {
+  const date = today();
+  const base: SendSummary = { ok: false, date, subscriberCount: 0, sent: 0, delivered: 0, failed: 0, provider: "resend" };
+
+  if (!supabaseConfigured) return { ...base, reason: "supabase_not_configured" };
+  if (!resendConfigured) return { ...base, reason: "resend_not_configured" };
+
+  const cutoff = new Date(Date.now() - SHOWCASE_MIN_AGE_HOURS * 3_600_000).toISOString();
+  const limit = opts.limit ?? 2000;
+  const ageFilter = opts.force ? "" : `&signup_at=lte.${cutoff}`;
+
+  // Eligible: active, never sent the showcase, and (unless forced) old enough.
+  // If showcase_sent_at doesn't exist yet, PostgREST errors and sbSelect returns
+  // null → we treat it as "nothing to do" so the daily job stays green.
+  const subs = await sbSelect<Subscriber[]>(
+    `brief_subscribers?select=id,email&or=(status.is.null,status.eq.active)&showcase_sent_at=is.null${ageFilter}&order=signup_at.asc&limit=${limit}`,
+  );
+  if (!subs) return { ...base, ok: true, skipped: true, reason: "no_column_or_query_failed" };
+  if (subs.length === 0) return { ...base, ok: true, skipped: true, reason: "no_eligible_subscribers" };
+
+  const subject = showcaseEmailSubject();
+  const text = showcaseEmailText();
+
+  let delivered = 0;
+  let failed = 0;
+  const logs: Record<string, unknown>[] = [];
+
+  for (const sub of subs) {
+    const unsubUrl = absoluteUrl(`/api/unsubscribe?e=${encodeURIComponent(sub.email)}&t=${unsubToken(sub.email)}`);
+    const res = await sendEmail({
+      to: sub.email,
+      subject,
+      html: showcaseEmailHtml(unsubUrl, emailTracking(sub.email, "showcase")),
+      text,
+      headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+    });
+    if (res.ok) {
+      delivered += 1;
+      // Mark sent only on success, so a transient failure retries next day.
+      await sbUpdate("brief_subscribers", `id=eq.${sub.id}`, { showcase_sent_at: new Date().toISOString() });
+    } else {
+      failed += 1;
+    }
+    logs.push({
+      date,
+      subscriber_id: sub.id,
+      email: sub.email,
+      email_status: res.ok ? "delivered" : "failed",
+      provider_message_id: res.id ?? null,
+      error: res.ok ? null : (res.error ?? "unknown").slice(0, 300),
+    });
+  }
+
+  for (let i = 0; i < logs.length; i += 500) await sbInsert("email_sends", logs.slice(i, i + 500));
 
   return { ...base, ok: true, subscriberCount: subs.length, sent: subs.length, delivered, failed };
 }

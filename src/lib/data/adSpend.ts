@@ -36,6 +36,13 @@ export const AD_SPEND: AdSpend[] = [
   },
 ];
 
+// Assumed value of one subscriber, for ROI. Left at 0 by default so ROI stays
+// blank ("—") until you set a real number — nothing is fabricated. Set this to
+// your best estimate of what a subscriber is worth (e.g. expected premium LTV,
+// or an internal value-per-engaged-reader) and the dashboard computes ROI as
+// (subscribers × value − spend) ÷ spend. Override via env without a code change.
+export const SUBSCRIBER_VALUE_GBP: number = Number(process.env.SUBSCRIBER_VALUE_GBP) || 0;
+
 // Total spend across all campaigns (single currency assumed; default GBP).
 export function adSpendTotal(): number {
   return AD_SPEND.reduce((s, a) => s + (a.spend || 0), 0);
