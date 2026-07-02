@@ -13,14 +13,17 @@ export interface RewardTier {
   badge?: string;
 }
 
-// Editable without code logic changes — just edit this list.
+// Editable without code logic changes — just edit this list. Reward badges use
+// the REFERRAL family only; "◆ Founder" and "◆ Early Supporter" are identity
+// credentials (earned by being the founder / an early member), never by
+// referring people, so they're intentionally not reward names here.
 export const REWARD_TIERS: RewardTier[] = [
-  { referrals: 1, reward: "Early Supporter badge", badge: "early-supporter" },
+  { referrals: 1, reward: "Supporter badge", badge: "referral-supporter" },
   { referrals: 3, reward: "Premium research unlock" },
   { referrals: 5, reward: "Exclusive research report" },
-  { referrals: 10, reward: "Founder badge", badge: "founder" },
+  { referrals: 10, reward: "Referral Champion badge", badge: "referral-champion" },
   { referrals: 20, reward: "One month HalvingLens Pro" },
-  { referrals: 50, reward: "Lifetime Founder status", badge: "lifetime-founder" },
+  { referrals: 50, reward: "Ambassador badge", badge: "ambassador" },
   { referrals: 100, reward: "Founding Ambassador", badge: "founding-ambassador" },
 ];
 
