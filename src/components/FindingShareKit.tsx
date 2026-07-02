@@ -1,9 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, Link2, ImageDown } from "lucide-react";
+import { Copy, Check, Link2, ImageDown, Package, RefreshCw } from "lucide-react";
 import { track } from "@/lib/track";
+import { makeZip, type ZipEntry } from "@/lib/zip";
 import type { FindingContentPack } from "@/lib/findingContent";
+
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 // Copy-paste content kit for a Research Finding: X thread, Instagram carousel +
 // caption, LinkedIn, email teaser, permanent link and the OG share image.
@@ -25,6 +37,24 @@ export function FindingShareKit({
   const xThread = pack.xThread.map((t, i) => `${i + 1}/${pack.xThread.length} ${t}`).join("\n\n———\n\n");
   const carousel = pack.instagramCarousel.map((s, i) => `Slide ${i + 1} · ${s.kicker}\n${s.title}\n${s.body}`).join("\n\n");
   const emailFull = `Subject: ${pack.emailTeaser.subject}\n\n${pack.emailTeaser.body}`;
+  const slideCount = pack.instagramCarousel.length;
+
+  const [zipping, setZipping] = useState(false);
+  const downloadAll = async () => {
+    setZipping(true);
+    try {
+      const entries: ZipEntry[] = await Promise.all(
+        Array.from({ length: slideCount }, async (_, i) => {
+          const res = await fetch(`/research/findings/${slug}/card/${i}`);
+          return { name: `halvinglens-${findingId.toLowerCase()}-${String(i + 1).padStart(2, "0")}.png`, data: new Uint8Array(await res.arrayBuffer()) };
+        }),
+      );
+      saveBlob(makeZip(entries), `halvinglens-${findingId.toLowerCase()}-carousel.zip`);
+      track("content_download_zip", { finding: findingId, slides: slideCount });
+    } finally {
+      setZipping(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -43,7 +73,17 @@ export function FindingShareKit({
 
       {/* Rendered Instagram carousel — one branded PNG per slide, no manual design */}
       <div>
-        <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-2">Instagram carousel · {pack.instagramCarousel.length} slides</div>
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">Instagram carousel · {slideCount} slides</div>
+          <button
+            onClick={downloadAll}
+            disabled={zipping}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-ink-950 text-[11.5px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
+          >
+            {zipping ? <RefreshCw size={12} className="animate-spin" /> : <Package size={12} />}
+            {zipping ? "Preparing…" : "Download all (.zip)"}
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2">
           {pack.instagramCarousel.map((s, i) => (
             <a
