@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Copy, Check, Share2, Mail, Linkedin, Download, QrCode } from "lucide-react";
 import { track } from "@/lib/track";
 import { shareSlugForPath, shortUrl, shareIntentUrl, labelForSlug, type ShareMethod } from "@/lib/shareLinks";
@@ -54,9 +55,15 @@ export function ShareModal({ path, title, onClose }: { path: string; title: stri
     }
   };
 
-  return (
+  // Render through a portal to <body>. The Share button lives inside the top bar,
+  // whose backdrop-filter makes it the containing block for position:fixed — so
+  // without a portal the "fixed inset-0" overlay anchors to the 72px top bar and
+  // renders off the top of the page instead of covering the viewport.
+  if (typeof document === "undefined") return null;
+
+  const overlay = (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -120,6 +127,8 @@ export function ShareModal({ path, title, onClose }: { path: string; title: stri
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.body);
 }
 
 function Channel({ label, icon, href, onClick }: { label: string; icon: React.ReactNode; href?: string; onClick?: () => void }) {
