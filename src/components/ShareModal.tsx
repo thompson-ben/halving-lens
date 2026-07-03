@@ -63,11 +63,11 @@ export function ShareModal({ path, title, onClose }: { path: string; title: stri
       aria-label="Share this page"
     >
       <div
-        className="w-full sm:max-w-sm bg-[#0d1016] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full sm:max-w-sm bg-[#0d1016] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92dvh] sm:max-h-[88dvh] overflow-y-auto overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+        {/* Header — sticky so Close is always reachable when the body scrolls */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-[#0d1016]">
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-[0.2em] text-ink-500">Share</div>
             <div className="text-[14px] text-ink-100 font-medium truncate">{heading}</div>
@@ -81,7 +81,7 @@ export function ShareModal({ path, title, onClose }: { path: string; title: stri
           {/* Branded QR */}
           <div className="flex flex-col items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qrSrc} alt="Scan to open this page" width={200} height={240} className="w-[196px] h-auto rounded-xl" />
+            <img src={qrSrc} alt="Scan to open this page" width={200} height={240} className="w-[150px] sm:w-[184px] h-auto rounded-xl" />
             <a
               href={`${qrSrc}&caption=${encodeURIComponent(`halvinglens.com/r/${slug}`)}`}
               download={`halvinglens-${slug}.svg`}
