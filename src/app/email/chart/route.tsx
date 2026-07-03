@@ -12,12 +12,15 @@ import { brandFonts } from "@/lib/ogFonts";
 // Public + dynamic so email clients can fetch it; ?d=YYYY-MM-DD busts the daily
 // image cache. Exposes only a Bitcoin chart — no auth needed.
 export const runtime = "nodejs";
-// Cache the image instead of cold-rendering on every request. The route ignores
-// the request (the ?d=YYYY-MM-DD is only a client-side cache-buster), so it's
-// safely cacheable — and the daily sync redeploy refreshes it each morning. This
-// matches the (reliable) static OG images; a force-dynamic cold render behind an
-// email image proxy was the cause of the broken hero image.
-export const revalidate = 21600; // 6h
+// Prerender ONCE at build time (like the research-finding card images, which
+// render reliably in the wild) and serve that static asset for every request.
+// The GET reads nothing from the request — the ?d=YYYY-MM-DD is only a client
+// cache-buster — so force-static is safe, and even a fresh ?d hits the prebuilt
+// image instead of cold-rendering. ISR/revalidate previously left the first
+// request each day (usually the email image proxy) to cold-render Satori, which
+// timed out behind Apple/Gmail proxies and showed a broken image. The daily sync
+// redeploy regenerates this with the morning's data.
+export const dynamic = "force-static";
 
 const SIZE = { width: 1200, height: 680 };
 const BG = "#0a0c10";
