@@ -452,13 +452,29 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
         ? "Today shows a clearer-than-usual parallel to Bitcoin's history."
         : "Today's historical parallel is modest — context worth noting, not leaning on.";
 
+  // Every analytical section gets one subtle "see more" deep link, so a reader
+  // who likes what they see reaches the full analysis on the site in one click.
+  // Wrapped in tracking.link so click-through feeds the email-CTR analytics.
+  const moreLink = (label: string, path: string, trackLabel: string) =>
+    `<div style="margin-top:16px;"><a href="${tracking.link(`${SITE_URL}${path}`, trackLabel)}" style="font:600 12.5px/1.35 ${SANS};letter-spacing:.02em;color:${C.gold};text-decoration:none;">${esc(label)} →</a></div>`;
+
+  // The Signature Read chart rotates by narrative — deep-link it to the matching page.
+  const heroPage =
+    ({ similar: "/similar-moments", drawdown: "/downside-scenarios", fear_greed: "/sentiment" } as Record<string, string>)[
+      featureHeroNarrative()
+    ] ?? "/accumulation";
+
   const take = `
     ${eyebrow("Today's Take")}
-    <div style="font:500 30px/1.32 ${SERIF};color:${C.ink};letter-spacing:-.3px;">${esc(todaysTake())}</div>`;
+    <div style="font:500 30px/1.32 ${SERIF};color:${C.ink};letter-spacing:-.3px;">${esc(todaysTake())}</div>
+    ${moreLink("See the full picture", "/", "daily_take")}`;
 
   const hero = `
     ${eyebrow(`Signature Read · ${feature.title}`)}
-    <img src="${chartUrl}" width="528" alt="HalvingLens Research — today's signature read" style="width:100%;height:auto;border-radius:16px;display:block;border:1px solid ${C.border};" />`;
+    <a href="${tracking.link(`${SITE_URL}${heroPage}`, "daily_hero_image")}" style="text-decoration:none;display:block;">
+      <img src="${chartUrl}" width="528" alt="HalvingLens Research — today's signature read. Tap to explore." style="width:100%;height:auto;border-radius:16px;display:block;border:1px solid ${C.border};" />
+    </a>
+    ${moreLink("Explore the full analysis", heroPage, "daily_hero")}`;
 
   const contextScoreBlock = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.border};border-radius:16px;">
@@ -470,6 +486,7 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
         <div style="font-size:20px;letter-spacing:3px;margin-top:12px;">${starStr}</div>
         <div style="font:600 16px/1.4 ${SANS};color:${C.gold};margin-top:10px;">${esc(cs.label)}</div>
         <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:14px;">Higher scores mean today's market closely resembles historically significant environments. ${esc(csRank)}</div>
+        ${moreLink("How attractive is today?", "/accumulation", "daily_context_score")}
       </td></tr>
     </table>`;
 
@@ -500,14 +517,16 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
     .join("");
   const marketHealthBlock = `
     ${eyebrow("Market Health")}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${healthRows}</table>`;
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${healthRows}</table>
+    ${moreLink("See every metric in full", "/metrics", "daily_market_health")}`;
 
   const contextBlock = ctx
     ? `
     ${eyebrow("Today's Historical Context")}
     <div style="font:500 21px/1.35 ${SERIF};color:${C.ink};">Closest match: ${esc(ctx.match)} <span style="color:${C.gold};">· ${ctx.similarity}% similar</span></div>
     <div style="font:400 16px/1.65 ${SANS};color:${C.sub};margin-top:12px;">${esc(ctx.body)}</div>
-    <div style="font:500 16px/1.55 ${SERIF};color:${C.ink};margin-top:18px;border-left:2px solid ${C.gold};padding-left:14px;">${esc(whyThisMattersToday())}</div>`
+    <div style="font:500 16px/1.55 ${SERIF};color:${C.ink};margin-top:18px;border-left:2px solid ${C.gold};padding-left:14px;">${esc(whyThisMattersToday())}</div>
+    ${moreLink("Explore similar moments", "/similar-moments", "daily_context")}`
     : "";
 
   const analystBlock = `
@@ -518,6 +537,7 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
         <div style="font:400 24px/1.4 ${SERIF};color:${C.ink};font-style:italic;">&ldquo;${esc(obs.quote)}&rdquo;</div>
         <div style="font:400 16px/1.65 ${SANS};color:${C.sub};margin-top:16px;">${esc(obs.body)}</div>
         <div style="font:600 11px/1.4 ${SANS};letter-spacing:.1em;color:${C.gold};margin-top:18px;">— HalvingLens Research</div>
+        ${moreLink("Read the latest research", "/research", "daily_analyst")}
       </td></tr>
     </table>`;
 
@@ -537,7 +557,8 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
           <div style="font:400 13.5px/1.5 ${SANS};color:${C.dim};margin-top:2px;">${esc(w.status)}</div>
         </td></tr>`,
         )
-        .join("")}</table>`
+        .join("")}</table>
+    ${moreLink("Track these on your dashboard", "/", "daily_watch")}`
     : "";
 
   const cta = `
