@@ -42,9 +42,27 @@ async function alreadySentToday(date: string): Promise<boolean> {
   return !!rows && rows.length > 0;
 }
 
-export async function sendDailyBrief(opts: { force?: boolean } = {}): Promise<SendSummary> {
+export async function sendDailyBrief(opts: { force?: boolean; testTo?: string } = {}): Promise<SendSummary> {
   const date = today();
   const base: SendSummary = { ok: false, date, subscriberCount: 0, sent: 0, delivered: 0, failed: 0, provider: "resend" };
+
+  // Test mode: send today's brief — rendered identically — to a single address
+  // (the admin) only. No subscriber list, no delivery logging, no once-per-day
+  // guard, so you can preview the real email in your inbox without emailing
+  // anyone else or affecting the day's send.
+  if (opts.testTo) {
+    if (!resendConfigured) return { ...base, reason: "resend_not_configured" };
+    const email = opts.testTo.trim().toLowerCase();
+    const unsubUrl = absoluteUrl(`/api/unsubscribe?e=${encodeURIComponent(email)}&t=${unsubToken(email)}`);
+    const res = await sendEmail({
+      to: email,
+      subject: `[TEST] ${dailyEmailSubject()}`,
+      html: dailyEmailHtml(unsubUrl, "pro", emailTracking(email, `daily-test-${date}`)),
+      text: dailyEmailText(),
+      headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+    });
+    return { ...base, ok: res.ok, subscriberCount: 1, sent: 1, delivered: res.ok ? 1 : 0, failed: res.ok ? 0 : 1, reason: res.ok ? "test_sent" : (res.error ?? "send_failed") };
+  }
 
   if (!supabaseConfigured) return { ...base, reason: "supabase_not_configured" };
   if (!resendConfigured) return { ...base, reason: "resend_not_configured" };
