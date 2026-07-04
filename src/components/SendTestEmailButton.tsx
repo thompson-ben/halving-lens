@@ -20,9 +20,11 @@ interface SendResult {
 export function SendTestEmailButton({
   endpoint = "/api/admin/send-brief",
   label = "Send test email now",
+  query = "force=1",
 }: {
   endpoint?: string;
   label?: string;
+  query?: string; // extra query for the POST, e.g. "test=1" (to me) or "force=1" (to all)
 }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SendResult | null>(null);
@@ -32,7 +34,7 @@ export function SendTestEmailButton({
     setResult(null);
     try {
       const key = new URLSearchParams(window.location.search).get("key");
-      const qs = `force=1${key ? `&key=${encodeURIComponent(key)}` : ""}`;
+      const qs = `${query}${key ? `&key=${encodeURIComponent(key)}` : ""}`;
       const res = await fetch(`${endpoint}?${qs}`, { method: "POST" });
       setResult((await res.json()) as SendResult);
     } catch (e) {
@@ -42,11 +44,13 @@ export function SendTestEmailButton({
     }
   };
 
-  const ok = result?.ok && !result.reason;
+  const ok = result?.ok && (!result.reason || result.reason === "test_sent");
   const summary = (() => {
     if (!result) return null;
+    if (result.ok && result.reason === "test_sent") return "Test sent to you — check your inbox.";
     if (result.ok && result.reason === "already_sent_today") return "Already sent today (use this to re-send).";
-    if (result.reason) return `Not sent — ${result.reason.replace(/_/g, " ")}.`;
+    if (result.error === "no_test_recipient") return "No test recipient — set FOUNDER_EMAIL.";
+    if (result.reason && result.reason !== "test_sent") return `Not sent — ${result.reason.replace(/_/g, " ")}.`;
     if (result.error) return `Failed — ${result.error}.`;
     if (result.ok)
       return `Sent ${result.sent ?? 0} · delivered ${result.delivered ?? 0} · failed ${result.failed ?? 0}.`;
