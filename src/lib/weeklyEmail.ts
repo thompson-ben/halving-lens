@@ -52,7 +52,9 @@ function eyebrow(t: string): string {
 }
 
 export function weeklyEmailHtml(w: WeeklyReport, unsubUrl: string, tracking: EmailTracking = NO_EMAIL_TRACKING): string {
-  const chartUrl = absoluteUrl(`/email/chart?d=${encodeURIComponent(w.generatedAt)}`);
+  // Dated PATH (prebuilt static) rather than a ?query. Today's date is always
+  // within the prerendered window, so the image is a warm static asset.
+  const chartUrl = absoluteUrl(`/email/chart/${new Date().toISOString().slice(0, 10)}`);
   const featured = latestFindings(1)[0];
   const bullets = w.executiveSummary
     .map((b) => `<tr><td style="padding:5px 0;font:400 15px/1.55 ${SANS};color:${C.sub};"><span style="color:${C.gold};">—</span>&nbsp; ${esc(b)}</td></tr>`)
