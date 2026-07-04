@@ -436,7 +436,7 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
   const b = buildBrief();
   const { acc, cheaper } = reads();
   const pro = tier === "pro";
-  const chartUrl = absoluteUrl(`/email/chart?d=${encodeURIComponent(new Date().toISOString().slice(0, 10))}`);
+  const chartUrl = absoluteUrl(`/email/chart/${new Date().toISOString().slice(0, 10)}`);
   const conf = confidence();
   const ctx = historicalContext();
   const watch = watching();
