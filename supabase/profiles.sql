@@ -13,6 +13,15 @@ create table if not exists public.profiles (
 
 create index if not exists profiles_referral_code_idx on public.profiles (referral_code);
 
+-- Optional public display name. When set, it replaces the anonymous handle on the
+-- referral leaderboard, the Hall of Founders and the weekly round-up. Names are
+-- case-insensitively unique; a PARTIAL index (WHERE not null) lets the many
+-- members without a name coexist while still preventing two people claiming the
+-- same name. Safe to re-run.
+alter table public.profiles add column if not exists display_name text;
+create unique index if not exists profiles_display_name_lower_idx
+  on public.profiles (lower(display_name)) where display_name is not null;
+
 -- Enable Row Level Security. The app reaches Supabase only via the service_role
 -- key (which bypasses RLS), so this denies the public anon key without adding any
 -- policies — exactly what we want for a table holding emails.

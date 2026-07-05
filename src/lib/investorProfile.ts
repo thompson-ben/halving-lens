@@ -24,6 +24,7 @@ export interface CompletionTask {
   id: string;
   label: string;
   done: boolean;
+  href?: string; // where to go to complete this (or revisit it) — makes the row a quick link
 }
 
 export interface TimelineEntry {
@@ -88,14 +89,17 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
   // ── Completion tasks (derived from real signals) ──
   const recentHrefs = new Set((state.recent ?? []).map((r) => r.href || ""));
   const visited = (pred: (h: string) => boolean) => [...recentHrefs].some(pred);
+  // Each actionable task links to the page that completes it (or is worth
+  // revisiting), so the checklist doubles as quick navigation. "Email verified"
+  // has no destination — it's just a confirmed state.
   const completionTasks: CompletionTask[] = [
     { id: "email", label: "Email verified", done: true }, // signed in ⇒ verified
-    { id: "referral", label: "Referral link created", done: !!code },
-    { id: "brief", label: "Read your first Daily Brief", done: daysActive >= 1 || briefsRead >= 1 },
-    { id: "analysis", label: "Visited today's analysis", done: visited((h) => /^\/(accumulation|cycles|brief|dashboard)/.test(h)) },
-    { id: "similar", label: "Explored Similar Moments", done: visited((h) => h.startsWith("/similar-moments")) },
-    { id: "saved", label: "Saved a piece of research", done: (state.saved ?? []).length > 0 },
-    { id: "streak7", label: "Reached a 7-day reading streak", done: streak.longest >= 7 },
+    { id: "referral", label: "Referral link created", done: !!code, href: "/dashboard/referrals" },
+    { id: "brief", label: "Read your first Daily Brief", done: daysActive >= 1 || briefsRead >= 1, href: "/brief" },
+    { id: "analysis", label: "Visited today's analysis", done: visited((h) => /^\/(accumulation|cycles|brief|dashboard)/.test(h)), href: "/dashboard" },
+    { id: "similar", label: "Explored Similar Moments", done: visited((h) => h.startsWith("/similar-moments")), href: "/similar-moments" },
+    { id: "saved", label: "Saved a piece of research", done: (state.saved ?? []).length > 0, href: "/research/findings" },
+    { id: "streak7", label: "Reached a 7-day reading streak", done: streak.longest >= 7, href: "/brief" },
   ];
   const completionPct = Math.round((completionTasks.filter((t) => t.done).length / completionTasks.length) * 100);
 

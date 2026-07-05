@@ -124,7 +124,7 @@ export default async function ReferralsPage() {
             })}
           </div>
         )}
-        <p className="mt-3 text-[11px] text-ink-500">Friendly competition — handles are anonymised, only you see &ldquo;You&rdquo;. Referrals count one per referred visitor.</p>
+        <p className="mt-3 text-[11px] text-ink-500">Friendly competition — members appear by their display name if they&apos;ve set one, otherwise an anonymous handle. Only you see &ldquo;You&rdquo;. Set yours on your <Link href="/profile" className="text-accent">profile</Link>. Referrals count one per referred visitor.</p>
       </section>
 
       <p className="text-[11px] text-ink-500 border-t border-white/[0.06] pt-5">

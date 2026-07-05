@@ -7,12 +7,14 @@
 // current member sees "You".
 
 import { sbSelect } from "./supabase";
+import { displayNamesByCode } from "./profile";
 
 export interface LeaderRow {
   rank: number;
-  handle: string; // anonymised ("Investor A1B2") or "You"
+  handle: string; // display name (if set), anonymised ("Investor A1B2"), or "You"
   referrals: number;
   isYou: boolean;
+  named: boolean; // true when the member has set a public display name
 }
 
 export interface ReferralLeaderboard {
@@ -57,9 +59,10 @@ export async function referralCountsByCode(): Promise<Map<string, number>> {
 type YouStats = { referrals: number; weekly: number; rank: number | null; weeklyRank: number | null };
 
 export async function referralLeaderboard(myCode?: string): Promise<ReferralLeaderboard> {
-  const rows = await sbSelect<SignupRow[]>(
-    "events?select=props,session_id,created_at&name=eq.signup&limit=50000",
-  );
+  const [rows, names] = await Promise.all([
+    sbSelect<SignupRow[]>("events?select=props,session_id,created_at&name=eq.signup&limit=50000"),
+    displayNamesByCode(),
+  ]);
   const emptyYou: YouStats | null = myCode ? { referrals: 0, weekly: 0, rank: null, weeklyRank: null } : null;
   if (rows == null) return { configured: false, top: [], totalReferrers: 0, you: emptyYou };
 
@@ -84,12 +87,16 @@ export async function referralLeaderboard(myCode?: string): Promise<ReferralLead
   const allRanked = rankList(all);
   const weekRanked = rankList(week);
 
-  const top: LeaderRow[] = allRanked.slice(0, 10).map((e, i) => ({
-    rank: i + 1,
-    handle: myCode && e.code === myCode ? "You" : handleFor(e.code),
-    referrals: e.n,
-    isYou: !!myCode && e.code === myCode,
-  }));
+  const top: LeaderRow[] = allRanked.slice(0, 10).map((e, i) => {
+    const name = names.get(e.code);
+    return {
+      rank: i + 1,
+      handle: myCode && e.code === myCode ? "You" : name || handleFor(e.code),
+      referrals: e.n,
+      isYou: !!myCode && e.code === myCode,
+      named: !!name,
+    };
+  });
 
   let you: YouStats | null = emptyYou;
   if (myCode) {

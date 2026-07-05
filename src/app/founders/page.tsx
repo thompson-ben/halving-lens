@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Flame, Users, Trophy } from "lucide-react";
 import { sbSelect } from "@/lib/supabase";
-import { type ProfileState } from "@/lib/profile";
+import { type ProfileState, displayNamesByCode } from "@/lib/profile";
 import { referralCode } from "@/lib/referral";
 import { referralCountsByCode } from "@/lib/referralLeaderboard";
 import { streakStats } from "@/lib/streak";
@@ -31,9 +31,10 @@ interface Row {
 
 export default async function HallOfFoundersPage() {
   const nowISO = new Date().toISOString().slice(0, 10);
-  const [rows, refCounts] = await Promise.all([
+  const [rows, refCounts, names] = await Promise.all([
     sbSelect<Row[]>(`profiles?select=email,created_at,state&order=created_at.asc&limit=${FOUNDING_MEMBER_LIMIT}`),
     referralCountsByCode(),
+    displayNamesByCode(), // best-effort; empty if the column/migration isn't there yet
   ]);
 
   const founders = (rows ?? [])
@@ -49,7 +50,7 @@ export default async function HallOfFoundersPage() {
         (streak.totalDays >= 1 ? 1 : 0) +
         (memberNo <= EARLY_SUPPORTER_LIMIT ? 1 : 0);
       const hidden = st.hideFromHall === true;
-      const name = (st.hallName || "").trim();
+      const name = (names.get(referralCode(r.email)) || st.hallName || "").trim();
       return { memberNo, joined: monthYear(r.created_at), handle: name || `Member #${memberNo}`, named: !!name, streak: streak.longest, refs, ach, hidden };
     })
     .filter((f) => !f.hidden);
