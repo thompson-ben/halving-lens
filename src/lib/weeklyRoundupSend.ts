@@ -8,7 +8,7 @@ import { roundupGeneral, roundupEmailHtml, roundupEmailSubject, type RoundupPers
 import { streakStats } from "./streak";
 import { referralCountsByCode } from "./referralLeaderboard";
 import { referralCode } from "./referral";
-import { EARLY_SUPPORTER_LIMIT, type ProfileState } from "./profile";
+import { EARLY_SUPPORTER_LIMIT, displayNamesByCode, type ProfileState } from "./profile";
 import { unsubToken } from "./emailToken";
 import { emailTracking } from "./emailTracking";
 import { absoluteUrl } from "./site";
@@ -61,10 +61,11 @@ export async function sendWeeklyRoundup(opts: { force?: boolean } = {}): Promise
   }
 
   const nowISO = now.toISOString().slice(0, 10);
-  const [subs, profiles, refCounts, general] = await Promise.all([
+  const [subs, profiles, refCounts, names, general] = await Promise.all([
     sbSelect<Subscriber[]>("brief_subscribers?select=id,email&or=(status.is.null,status.eq.active)&limit=20000"),
     sbSelect<ProfileRow[]>("profiles?select=email,created_at,state&order=created_at.asc&limit=50000"),
     referralCountsByCode(),
+    displayNamesByCode(), // best-effort; empty if the column/migration isn't there yet
     roundupGeneral(),
   ]);
 
@@ -89,6 +90,7 @@ export async function sendWeeklyRoundup(opts: { force?: boolean } = {}): Promise
       const code = referralCode(email);
       const refs = refCounts.get(code) ?? 0;
       personal = {
+        name: names.get(code) ?? null,
         streak: s.current,
         longest: s.longest,
         referrals: refs,

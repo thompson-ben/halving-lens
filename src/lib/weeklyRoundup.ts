@@ -29,6 +29,7 @@ export interface RoundupGeneral {
 }
 
 export interface RoundupPersonal {
+  name: string | null; // optional display name — personalises the greeting
   streak: number;
   longest: number;
   referrals: number;
@@ -108,7 +109,7 @@ export function roundupEmailHtml(
   const personalBlock = personal
     ? `
     <tr><td style="padding:20px 36px 8px;">
-      ${eyebrow("Your week")}
+      ${eyebrow(personal.name ? `${personal.name}'s week` : "Your week")}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.border};border-radius:14px;">
         <tr>
           ${stat("Reading streak", String(personal.streak), personal.streak === 1 ? "day" : "days")}

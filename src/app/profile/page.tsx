@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ArrowUpRight, Check, Flame, Trophy, Users, BookOpen, Sparkles, Target } from "lucide-react";
 import type { Metadata } from "next";
-import { currentProfile, getProfileState } from "@/lib/profile";
+import { currentProfile, getProfileState, getDisplayName } from "@/lib/profile";
 import { buildInvestorProfile, rewardLadder, type InvestorProfile } from "@/lib/investorProfile";
 import { ProfileSignInForm, SignOutButton } from "@/components/ProfileSignInForm";
 import { HallOptOut } from "@/components/HallOptOut";
+import { DisplayNameForm } from "@/components/DisplayNameForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ const GOLD = "#d9b96a";
 export default async function ProfilePage() {
   const p = currentProfile();
   if (!p) return <SignedOut />;
-  const state = await getProfileState(p.email);
+  const [state, displayName] = await Promise.all([getProfileState(p.email), getDisplayName(p.email)]);
   const nowISO = new Date().toISOString().slice(0, 10);
   const ip = await buildInvestorProfile(p.email, state, nowISO);
 
@@ -26,7 +27,8 @@ export default async function ProfilePage() {
     <div className="max-w-3xl mx-auto space-y-10">
       <header className="border-b border-white/[0.08] pb-6">
         <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>Your Investor Profile</div>
-        <h1 className="mt-3 font-display text-[30px] lg:text-[38px] leading-[1.1] text-ink-50 tracking-tight-2">{p.email}</h1>
+        <h1 className="mt-3 font-display text-[30px] lg:text-[38px] leading-[1.1] text-ink-50 tracking-tight-2">{displayName || p.email}</h1>
+        {displayName && <div className="mt-1 text-[13px] text-ink-500">{p.email}</div>}
         <div className="mt-3 flex items-center gap-2 flex-wrap">
           {ip.identity.isFounder && <Cred label="Founder" strong />}
           {ip.identity.isEarlySupporter ? <Cred label="Early Supporter" /> : ip.isFoundingMember ? <Cred label="Founding Member" /> : null}
@@ -42,6 +44,9 @@ export default async function ProfilePage() {
           <Link href="/dashboard/referrals" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">Referrals <ArrowUpRight size={13} /></Link>
           {ip.identity.isFounder && <Link href="/admin/growth" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">Founder Dashboard <ArrowUpRight size={13} /></Link>}
           <SignOutButton />
+        </div>
+        <div className="mt-5 max-w-md">
+          <DisplayNameForm initialName={displayName} />
         </div>
       </header>
 
