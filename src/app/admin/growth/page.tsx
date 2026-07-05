@@ -16,6 +16,7 @@ import { experimentResults } from "@/lib/experimentAnalytics";
 import { referralAnalytics, type ReferralAnalytics } from "@/lib/referralAnalytics";
 import { shareDashboard, type ShareDashboard } from "@/lib/shareAnalytics";
 import { acquisitionQuality, type AcquisitionQuality } from "@/lib/acquisitionAnalytics";
+import { retentionAnalytics, type RetentionAnalytics } from "@/lib/retentionAnalytics";
 import { marketingHealth, type MarketingHealth, type HealthStatus } from "@/lib/marketingHealth";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
@@ -36,7 +37,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
-  const [health, a, email, funnel, waes, v2w, referral, experiments, share, acq] = await Promise.all([
+  const [health, a, email, funnel, waes, v2w, referral, experiments, share, acq, ret] = await Promise.all([
     marketingHealth(),
     growthDashboard(),
     emailEngagement(),
@@ -47,6 +48,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
     experimentResults(),
     shareDashboard(),
     acquisitionQuality(),
+    retentionAnalytics(),
   ]);
   const recommendations = growthRecommendations({
     email,
@@ -75,7 +77,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { key
       {!a.configured ? (
         <p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql to populate the metrics below.</p>
       ) : (
-        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} share={share} acq={acq} />
+        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} share={share} acq={acq} ret={ret} />
       )}
     </Shell>
   );
@@ -92,6 +94,7 @@ function GrowthBody({
   runningExp,
   share,
   acq,
+  ret,
 }: {
   a: Awaited<ReturnType<typeof growthDashboard>>;
   email: EmailEngagement;
@@ -103,6 +106,7 @@ function GrowthBody({
   runningExp: number;
   share: ShareDashboard;
   acq: AcquisitionQuality;
+  ret: RetentionAnalytics;
 }) {
   const g = a.growth;
   const weeklies = weeklyStats();
@@ -134,6 +138,29 @@ function GrowthBody({
             : "Measured click-bridged until signed-in Profiles link email and web identities, at which point WAES becomes the exact opened-and-visited count."}
         </p>
       </section>
+
+      {/* Retention & habit */}
+      <Panel title="Retention & habit">
+        {!ret.configured ? (
+          <p className="text-[12.5px] text-ink-500">Supabase not configured.</p>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+              <Stat label="Members" value={ret.members} />
+              <Stat label="Founding" value={ret.foundingMembers} />
+              <Stat label="Active · 7d" value={ret.activeThisWeek} />
+              <Stat label="Avg streak" value={ret.avgCurrentStreak} />
+              <Stat label="Longest streak" value={ret.longestStreak} />
+              <Stat label="Returning · 7d" value={ret.returning7d} />
+              <Stat label="DAU" value={ret.dau} />
+            </div>
+            <div>
+              <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-3">Reading-streak distribution</div>
+              <Bars items={ret.streakDistribution.map((b) => ({ label: b.label, n: b.count }))} empty="No members with profiles yet." />
+            </div>
+          </div>
+        )}
+      </Panel>
 
       {/* Recommendations engine */}
       <Panel title="What to do next — ranked by impact">
