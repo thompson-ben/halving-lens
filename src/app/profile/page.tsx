@@ -220,12 +220,25 @@ function Completion({ ip }: { ip: InvestorProfile }) {
       </div>
       <Bar pct={ip.completion.pct} />
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-        {ip.completion.tasks.map((t) => (
-          <div key={t.id} className="flex items-center gap-2 text-[13px]">
-            <span className={`w-4 flex justify-center ${t.done ? "text-signal-green" : "text-ink-600"}`}>{t.done ? <Check size={14} /> : "○"}</span>
-            <span className={t.done ? "text-ink-300" : "text-ink-500"}>{t.label}</span>
-          </div>
-        ))}
+        {ip.completion.tasks.map((t) => {
+          const inner = (
+            <>
+              <span className={`w-4 flex justify-center shrink-0 ${t.done ? "text-signal-green" : "text-ink-600"}`}>{t.done ? <Check size={14} /> : "○"}</span>
+              <span className={t.done ? "text-ink-300" : "text-ink-500 group-hover:text-ink-200 transition-colors"}>{t.label}</span>
+              {/* An arrow nudges the tasks still to do; completed rows stay calm. */}
+              {t.href && !t.done && <ArrowUpRight size={12} className="text-ink-600 group-hover:text-ink-300 transition-colors" />}
+            </>
+          );
+          return t.href ? (
+            <Link key={t.id} href={t.href} className="group flex items-center gap-2 text-[13px]">
+              {inner}
+            </Link>
+          ) : (
+            <div key={t.id} className="flex items-center gap-2 text-[13px]">
+              {inner}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
