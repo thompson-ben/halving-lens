@@ -151,8 +151,10 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
     referral: {
       link: referralLink(email, SITE_URL),
       count,
-      leaderboardPosition: lb.you?.rank ?? null,
-      weeklyRank: lb.you?.weeklyRank ?? null,
+      // Public ranking is hidden until the community reaches its threshold — no
+      // rank is surfaced before then, so early sparsity is never exposed.
+      leaderboardPosition: lb.community.unlocked ? (lb.you?.rank ?? null) : null,
+      weeklyRank: lb.community.unlocked ? (lb.you?.weeklyRank ?? null) : null,
       rewardsUnlocked: unlocked.map((t) => t.reward),
       next: nr ? { reward: nr.tier.reward, referrals: nr.tier.referrals, remaining: nr.remaining } : null,
       progressPct,

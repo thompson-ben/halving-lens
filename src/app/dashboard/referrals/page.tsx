@@ -7,6 +7,7 @@ import { referralLeaderboard } from "@/lib/referralLeaderboard";
 import { SITE_URL } from "@/lib/site";
 import { ReferralShare } from "@/components/ReferralShare";
 import { ProfileSignInForm } from "@/components/ProfileSignInForm";
+import { CommunityLeaderboardTeaser } from "@/components/CommunityLeaderboardTeaser";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -58,12 +59,21 @@ export default async function ReferralsPage() {
         <ReferralShare link={link} />
       </section>
 
-      {/* Stats */}
+      {/* Stats — public rankings only appear once the community leaderboard has unlocked. */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
         <Stat label="Referrals" value={qualified} />
         <Stat label="Visitors referred" value={mine.visitors} />
-        <Stat label="Leaderboard" value={lb.you?.rank != null ? `#${lb.you.rank}` : "—"} />
-        <Stat label="This week" value={lb.you?.weeklyRank != null ? `#${lb.you.weeklyRank}` : "—"} />
+        {lb.community.unlocked ? (
+          <>
+            <Stat label="Leaderboard" value={lb.you?.rank != null ? `#${lb.you.rank}` : "—"} />
+            <Stat label="This week" value={lb.you?.weeklyRank != null ? `#${lb.you.weeklyRank}` : "—"} />
+          </>
+        ) : (
+          <>
+            <Stat label="Community" value={`${lb.community.memberCount}/${lb.community.threshold}`} />
+            <Stat label="To unlock" value={lb.community.remaining} />
+          </>
+        )}
       </section>
 
       {/* Rewards */}
@@ -95,37 +105,41 @@ export default async function ReferralsPage() {
         {unlocked && <p className="mt-3 text-[12px] text-signal-green">You&apos;ve unlocked: {unlocked.reward}.</p>}
       </section>
 
-      {/* Leaderboard */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>Leaderboard</div>
-          {lb.you?.rank != null && (
-            <div className="text-[11.5px] text-ink-400">
-              You&apos;re <span className="text-ink-100">#{lb.you.rank}</span> of {lb.totalReferrers}
-              {lb.you.weeklyRank != null && <span className="text-ink-500"> · #{lb.you.weeklyRank} this week</span>}
+      {/* Leaderboard — gated behind the community-size threshold. */}
+      {!lb.community.unlocked ? (
+        <CommunityLeaderboardTeaser community={lb.community} />
+      ) : (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>Leaderboard</div>
+            {lb.you?.rank != null && (
+              <div className="text-[11.5px] text-ink-400">
+                You&apos;re <span className="text-ink-100">#{lb.you.rank}</span> of {lb.totalReferrers}
+                {lb.you.weeklyRank != null && <span className="text-ink-500"> · #{lb.you.weeklyRank} this week</span>}
+              </div>
+            )}
+          </div>
+          {lb.top.length === 0 ? (
+            <p className="text-[13px] text-ink-400">No referrals yet — be the first. Share your link above.</p>
+          ) : (
+            <div className="space-y-1">
+              {lb.top.map((r) => {
+                const medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : null;
+                return (
+                  <div key={r.rank} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] ${r.isYou ? "bg-accent/[0.08] border border-accent/20 text-ink-50" : "text-ink-300"}`}>
+                    <span className="flex items-center gap-2.5">
+                      <span className="w-6 text-center font-mono text-ink-500">{medal ?? r.rank}</span>
+                      <span className={r.isYou ? "font-medium" : ""}>{r.handle}</span>
+                    </span>
+                    <span className="font-mono">{r.referrals} referral{r.referrals === 1 ? "" : "s"}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
-        </div>
-        {lb.top.length === 0 ? (
-          <p className="text-[13px] text-ink-400">No referrals yet — be the first. Share your link above.</p>
-        ) : (
-          <div className="space-y-1">
-            {lb.top.map((r) => {
-              const medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : null;
-              return (
-                <div key={r.rank} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] ${r.isYou ? "bg-accent/[0.08] border border-accent/20 text-ink-50" : "text-ink-300"}`}>
-                  <span className="flex items-center gap-2.5">
-                    <span className="w-6 text-center font-mono text-ink-500">{medal ?? r.rank}</span>
-                    <span className={r.isYou ? "font-medium" : ""}>{r.handle}</span>
-                  </span>
-                  <span className="font-mono">{r.referrals} referral{r.referrals === 1 ? "" : "s"}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <p className="mt-3 text-[11px] text-ink-500">Friendly competition — members appear by their display name if they&apos;ve set one, otherwise an anonymous handle. Only you see &ldquo;You&rdquo;. Set yours on your <Link href="/profile" className="text-accent">profile</Link>. Referrals count one per referred visitor.</p>
-      </section>
+          <p className="mt-3 text-[11px] text-ink-500">Friendly competition — members appear by their display name if they&apos;ve set one, otherwise an anonymous handle. Only you see &ldquo;You&rdquo;. Set yours on your <Link href="/profile" className="text-accent">profile</Link>. Referrals count one per referred visitor.</p>
+        </section>
+      )}
 
       <p className="text-[11px] text-ink-500 border-t border-white/[0.06] pt-5">
         Qualified (WAES) referral counts and 30-day retention finish linking as referred readers create their own

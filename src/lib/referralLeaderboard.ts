@@ -8,6 +8,7 @@
 
 import { sbSelect } from "./supabase";
 import { displayNamesByCode } from "./profile";
+import { communityMemberCount, communityStatus, type CommunityStatus } from "./community";
 
 export interface LeaderRow {
   rank: number;
@@ -22,6 +23,7 @@ export interface ReferralLeaderboard {
   top: LeaderRow[]; // top 10 all-time
   totalReferrers: number;
   you: { referrals: number; weekly: number; rank: number | null; weeklyRank: number | null } | null;
+  community: CommunityStatus; // member-count gate; public rankings hidden until unlocked
 }
 
 const WEEK_MS = 7 * 86_400_000;
@@ -59,12 +61,14 @@ export async function referralCountsByCode(): Promise<Map<string, number>> {
 type YouStats = { referrals: number; weekly: number; rank: number | null; weeklyRank: number | null };
 
 export async function referralLeaderboard(myCode?: string): Promise<ReferralLeaderboard> {
-  const [rows, names] = await Promise.all([
+  const [rows, names, memberCount] = await Promise.all([
     sbSelect<SignupRow[]>("events?select=props,session_id,created_at&name=eq.signup&limit=50000"),
     displayNamesByCode(),
+    communityMemberCount(),
   ]);
+  const community = await communityStatus(memberCount);
   const emptyYou: YouStats | null = myCode ? { referrals: 0, weekly: 0, rank: null, weeklyRank: null } : null;
-  if (rows == null) return { configured: false, top: [], totalReferrers: 0, you: emptyYou };
+  if (rows == null) return { configured: false, top: [], totalReferrers: 0, you: emptyYou, community };
 
   const now = Date.now();
   const all = new Map<string, Set<string>>();
@@ -110,5 +114,5 @@ export async function referralLeaderboard(myCode?: string): Promise<ReferralLead
     };
   }
 
-  return { configured: true, top, totalReferrers: allRanked.length, you };
+  return { configured: true, top, totalReferrers: allRanked.length, you, community };
 }

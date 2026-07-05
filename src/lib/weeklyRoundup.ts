@@ -11,6 +11,7 @@ import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { sbSelect } from "./supabase";
 import { ROUNDUP_FEATURES } from "./roundupConfig";
 import { YOUTUBE_URL, YOUTUBE_LIVE } from "./lifecycleConfig";
+import { communityStatus } from "./community";
 
 const C = {
   bg: "#0a0c10", card: "#13161d", cardHi: "#171b24", border: "#23272f", goldBorder: "#4a3f23",
@@ -26,6 +27,7 @@ export interface RoundupGeneral {
   contextLabel: string;
   fearGreed: string | null;
   mostViewed: { label: string; href: string } | null;
+  leaderboardUnlocked: boolean; // false while the community is below threshold — soften rank language
 }
 
 export interface RoundupPersonal {
@@ -70,12 +72,15 @@ export async function roundupGeneral(): Promise<RoundupGeneral> {
     if (top) mostViewed = { label: pathLabel(top[0]), href: top[0] };
   }
 
+  const community = await communityStatus();
+
   return {
     marketLine,
     contextScore: e.contextScore.score,
     contextLabel: e.contextScore.label,
     fearGreed: sr ? `${sr.value} · ${sr.band.label}` : null,
     mostViewed,
+    leaderboardUnlocked: community.unlocked,
   };
 }
 
@@ -119,7 +124,11 @@ export function roundupEmailHtml(
         </tr>
       </table>
       <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:14px;">
-        ${personal.leaderboardPosition != null ? `You're <span style="color:${C.ink};">#${personal.leaderboardPosition}</span> on the referral leaderboard. ` : ""}Keep your streak alive — read tomorrow's brief.
+        ${
+          general.leaderboardUnlocked && personal.leaderboardPosition != null
+            ? `You're <span style="color:${C.ink};">#${personal.leaderboardPosition}</span> on the referral leaderboard. `
+            : `You're among our earliest supporters — helping shape our founding community. `
+        }Keep your streak alive — read tomorrow's brief.
       </div>
       <div style="margin-top:10px;"><a href="${link("/profile", "ru_profile")}" style="font:600 12.5px/1 ${SANS};color:${C.gold};text-decoration:none;">Open your Investor Profile →</a></div>
     </td></tr>`
