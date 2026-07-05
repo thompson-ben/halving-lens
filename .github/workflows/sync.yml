@@ -144,6 +144,11 @@ jobs:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          # Onboarding sequence config (optional). LIFECYCLE_YOUTUBE_URL makes the
+          # day-4 email link the real channel; LIFECYCLE_LAUNCH sets the
+          # back-enrolment date for existing subscribers.
+          LIFECYCLE_YOUTUBE_URL: ${{ secrets.LIFECYCLE_YOUTUBE_URL }}
+          LIFECYCLE_LAUNCH: ${{ secrets.LIFECYCLE_LAUNCH }}
 
       - name: Send the weekly research email (Sundays)
         # Idempotent per ISO week and gated to Sunday — safe to run daily.
