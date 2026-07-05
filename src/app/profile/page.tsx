@@ -6,6 +6,8 @@ import { buildInvestorProfile, rewardLadder, type InvestorProfile } from "@/lib/
 import { ProfileSignInForm, SignOutButton } from "@/components/ProfileSignInForm";
 import { HallOptOut } from "@/components/HallOptOut";
 import { DisplayNameForm } from "@/components/DisplayNameForm";
+import { YouTubeSubscribe } from "@/components/YouTubeSubscribe";
+import { YOUTUBE_LIVE, YOUTUBE_URL } from "@/lib/lifecycleConfig";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -55,6 +57,12 @@ export default async function ProfilePage() {
       <ReadingStats ip={ip} />
       <Referrals ip={ip} />
       <Achievements ip={ip} />
+      {YOUTUBE_LIVE && (
+        <section>
+          <SectionLabel>Watch &amp; subscribe</SectionLabel>
+          <YouTubeSubscribe url={YOUTUBE_URL} initialSubscribed={!!state.youtubeSubscribed} />
+        </section>
+      )}
       <Completion ip={ip} />
       <JourneyTimeline ip={ip} />
     </div>
