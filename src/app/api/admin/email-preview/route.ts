@@ -3,6 +3,7 @@ import { dailyEmailHtml } from "@/lib/emailBrief";
 import { welcomeEmailHtml } from "@/lib/welcomeEmail";
 import { showcaseEmailHtml } from "@/lib/showcaseEmail";
 import { previewLifecycleStep, LIFECYCLE_STEPS } from "@/lib/lifecycleEmails";
+import { roundupGeneral, roundupEmailHtml } from "@/lib/weeklyRoundup";
 
 // Admin-only live preview of the outbound emails (the exact HTML that would be
 // sent). Gated by the dashboard key/cookie.
@@ -31,6 +32,12 @@ export async function GET(req: Request) {
     const preview = previewLifecycleStep(step);
     if (!preview) return new Response("Unknown lifecycle step", { status: 404 });
     return new Response(preview.html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  }
+
+  if (which === "roundup") {
+    const general = await roundupGeneral();
+    const personal = { streak: 12, longest: 41, referrals: 5, leaderboardPosition: 3, achievements: 6 };
+    return new Response(roundupEmailHtml(unsub, general, personal), { headers: { "Content-Type": "text/html; charset=utf-8" } });
   }
 
   const html =
