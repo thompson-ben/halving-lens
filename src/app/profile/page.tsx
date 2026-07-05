@@ -121,7 +121,10 @@ function Referrals({ ip }: { ip: InvestorProfile }) {
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
             <div className="font-display text-[34px] leading-none text-ink-50">{ip.referral.count}</div>
-            <div className="text-[12px] text-ink-500 mt-1">confirmed referral{ip.referral.count === 1 ? "" : "s"}</div>
+            <div className="text-[12px] text-ink-500 mt-1">
+              confirmed referral{ip.referral.count === 1 ? "" : "s"}
+              {ip.referral.leaderboardPosition != null && <span> · leaderboard <span className="text-ink-300">#{ip.referral.leaderboardPosition}</span></span>}
+            </div>
           </div>
           {ip.referral.next && (
             <div className="text-right">

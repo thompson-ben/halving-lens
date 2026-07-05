@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { currentProfile } from "@/lib/profile";
 import { referralLink, REWARD_TIERS, rewardFor, nextReward } from "@/lib/referral";
 import { referralAnalytics } from "@/lib/referralAnalytics";
+import { referralLeaderboard } from "@/lib/referralLeaderboard";
 import { SITE_URL } from "@/lib/site";
 import { ReferralShare } from "@/components/ReferralShare";
 import { ProfileSignInForm } from "@/components/ProfileSignInForm";
@@ -38,12 +39,11 @@ export default async function ReferralsPage() {
   }
 
   const link = referralLink(p.email, SITE_URL);
-  const analytics = await referralAnalytics();
+  const [analytics, lb] = await Promise.all([referralAnalytics(), referralLeaderboard(p.referralCode)]);
   const mine = analytics.referrers.find((r) => r.code === p.referralCode) ?? { code: p.referralCode, visitors: 0, signups: 0, score: 0 };
-  const qualified = mine.signups; // qualified-WAES referrals arrive with full identity linkage
+  const qualified = lb.you?.referrals ?? mine.signups; // session-deduped confirmed referrals
   const unlocked = rewardFor(qualified);
   const next = nextReward(qualified);
-  const myRank = analytics.referrers.findIndex((r) => r.code === p.referralCode);
 
   return (
     <div className="max-w-2xl mx-auto space-y-9">
@@ -60,10 +60,10 @@ export default async function ReferralsPage() {
 
       {/* Stats */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+        <Stat label="Referrals" value={qualified} />
         <Stat label="Visitors referred" value={mine.visitors} />
-        <Stat label="Subscribers referred" value={mine.signups} />
-        <Stat label="Quality score" value={mine.score} />
-        <Stat label="Leaderboard" value={myRank >= 0 ? `#${myRank + 1}` : "—"} />
+        <Stat label="Leaderboard" value={lb.you?.rank != null ? `#${lb.you.rank}` : "—"} />
+        <Stat label="This week" value={lb.you?.weeklyRank != null ? `#${lb.you.weeklyRank}` : "—"} />
       </section>
 
       {/* Rewards */}
@@ -97,22 +97,34 @@ export default async function ReferralsPage() {
 
       {/* Leaderboard */}
       <section>
-        <div className="text-[10.5px] uppercase tracking-[0.22em] mb-3" style={{ color: GOLD }}>Leaderboard</div>
-        {analytics.referrers.length === 0 ? (
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>Leaderboard</div>
+          {lb.you?.rank != null && (
+            <div className="text-[11.5px] text-ink-400">
+              You&apos;re <span className="text-ink-100">#{lb.you.rank}</span> of {lb.totalReferrers}
+              {lb.you.weeklyRank != null && <span className="text-ink-500"> · #{lb.you.weeklyRank} this week</span>}
+            </div>
+          )}
+        </div>
+        {lb.top.length === 0 ? (
           <p className="text-[13px] text-ink-400">No referrals yet — be the first. Share your link above.</p>
         ) : (
           <div className="space-y-1">
-            {analytics.referrers.slice(0, 10).map((r, i) => {
-              const me = r.code === p.referralCode;
+            {lb.top.map((r) => {
+              const medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : null;
               return (
-                <div key={r.code} className={`flex items-center justify-between px-3 py-2 rounded-lg text-[13px] ${me ? "bg-accent/[0.08] text-ink-50" : "text-ink-300"}`}>
-                  <span className="font-mono">#{i + 1} · {me ? "You" : r.code}</span>
-                  <span className="font-mono">{r.score} pts</span>
+                <div key={r.rank} className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] ${r.isYou ? "bg-accent/[0.08] border border-accent/20 text-ink-50" : "text-ink-300"}`}>
+                  <span className="flex items-center gap-2.5">
+                    <span className="w-6 text-center font-mono text-ink-500">{medal ?? r.rank}</span>
+                    <span className={r.isYou ? "font-medium" : ""}>{r.handle}</span>
+                  </span>
+                  <span className="font-mono">{r.referrals} referral{r.referrals === 1 ? "" : "s"}</span>
                 </div>
               );
             })}
           </div>
         )}
+        <p className="mt-3 text-[11px] text-ink-500">Friendly competition — handles are anonymised, only you see &ldquo;You&rdquo;. Referrals count one per referred visitor.</p>
       </section>
 
       <p className="text-[11px] text-ink-500 border-t border-white/[0.06] pt-5">
