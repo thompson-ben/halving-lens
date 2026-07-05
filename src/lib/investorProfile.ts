@@ -11,6 +11,7 @@ import { referralLeaderboard } from "./referralLeaderboard";
 import { entitlementsFor, isFoundingMember, FOUNDING_MEMBER_BENEFITS, type Entitlement } from "./entitlements";
 import { streakStats, type StreakStats } from "./streak";
 import { SITE_URL } from "./site";
+import { YOUTUBE_LIVE } from "./lifecycleConfig";
 
 export interface Achievement {
   id: string;
@@ -114,6 +115,10 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
     { id: "ref-1", name: "First Referral", icon: "👥", description: "Introduced your first member.", earned: count >= 1 },
     { id: "ref-5", name: "Five Referrals", icon: "👥", description: "Five members introduced.", earned: count >= 5 },
     { id: "ref-25", name: "Twenty-Five Referrals", icon: "👥", description: "A leading advocate.", earned: count >= 25 },
+    // Only offered once the channel is live — self-attested (see YouTubeSubscribe).
+    ...(YOUTUBE_LIVE
+      ? [{ id: "youtube", name: "YouTube Subscriber", icon: "📺", description: "Subscribed to the channel.", earned: state.youtubeSubscribed === true }]
+      : []),
     { id: "profile-100", name: "Profile Complete", icon: "🎯", description: "100% profile completion.", earned: completionPct >= 100 },
     { id: "early-supporter", name: "Early Supporter", icon: "🏅", description: "One of the first members.", earned: identity.isEarlySupporter },
   ];

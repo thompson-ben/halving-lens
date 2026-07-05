@@ -51,6 +51,7 @@ export interface ProfileState {
   badges?: string[]; // earned badge ids (permanent once earned)
   hideFromHall?: boolean; // opt out of the public Hall of Founders
   hallName?: string; // deprecated — superseded by the profiles.display_name column; still read as a fallback
+  youtubeSubscribed?: boolean; // self-attested "I subscribed to the YouTube channel"
   entitlements?: string[]; // granted entitlements (premium, beta, …) — see entitlements.ts
   updatedAt?: number;
 }
