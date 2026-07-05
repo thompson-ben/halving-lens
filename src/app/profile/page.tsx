@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { currentProfile, getProfileState } from "@/lib/profile";
 import { buildInvestorProfile, rewardLadder, type InvestorProfile } from "@/lib/investorProfile";
 import { ProfileSignInForm, SignOutButton } from "@/components/ProfileSignInForm";
+import { HallOptOut } from "@/components/HallOptOut";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ export default async function ProfilePage() {
         <h1 className="mt-3 font-display text-[30px] lg:text-[38px] leading-[1.1] text-ink-50 tracking-tight-2">{p.email}</h1>
         <div className="mt-3 flex items-center gap-2 flex-wrap">
           {ip.identity.isFounder && <Cred label="Founder" strong />}
-          {ip.identity.isEarlySupporter && <Cred label="Early Supporter" />}
+          {ip.identity.isEarlySupporter ? <Cred label="Early Supporter" /> : ip.isFoundingMember ? <Cred label="Founding Member" /> : null}
           {ip.identity.memberNo != null && (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-white/[0.1] text-[11px] text-ink-400 font-mono">
               Member #{ip.identity.memberNo.toLocaleString()}
@@ -45,6 +46,7 @@ export default async function ProfilePage() {
       </header>
 
       <Snapshot ip={ip} />
+      {ip.isFoundingMember && <FoundingMember ip={ip} hidden={!!state.hideFromHall} />}
       <ReadingStats ip={ip} />
       <Referrals ip={ip} />
       <Achievements ip={ip} />
@@ -77,6 +79,31 @@ function Snapshot({ ip }: { ip: InvestorProfile }) {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Founding Member ───────────────────────────────────────────────────────────
+function FoundingMember({ ip, hidden }: { ip: InvestorProfile; hidden: boolean }) {
+  return (
+    <section>
+      <SectionLabel>Founding Member</SectionLabel>
+      <div className="card p-5 sm:p-6" style={{ borderColor: "rgba(217,185,106,0.25)" }}>
+        <div className="flex items-center gap-2">
+          <span style={{ color: GOLD }}>◆</span>
+          <span className="text-[15px] font-medium text-ink-50">You&apos;re a Founding Member of HalvingLens.</span>
+        </div>
+        <p className="mt-1.5 text-[12.5px] text-ink-400">One of the earliest supporters — this status is permanent.</p>
+        <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+          {ip.foundingBenefits.map((b) => (
+            <li key={b} className="flex items-center gap-2 text-[13px] text-ink-300"><Check size={13} className="text-signal-green shrink-0" /> {b}</li>
+          ))}
+        </ul>
+        <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3 flex-wrap">
+          <Link href="/founders" className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft">Visit the Hall of Founders <ArrowUpRight size={13} /></Link>
+          <HallOptOut initialHidden={hidden} />
         </div>
       </div>
     </section>

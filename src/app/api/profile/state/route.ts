@@ -25,12 +25,16 @@ export async function PUT(req: Request) {
   }
   // Cap array sizes defensively before persisting.
   const trim = <T,>(a: T[] | undefined, n: number) => (Array.isArray(a) ? a.slice(0, n) : undefined);
-  const clean: ProfileState = {
+  const incoming: Partial<ProfileState> = {
     saved: trim(state.saved, 200),
     recent: trim(state.recent, 200),
     streakDays: trim(state.streakDays, 400),
     badges: trim(state.badges, 100),
   };
+  // Merge over existing state so server-owned fields the client doesn't send
+  // (Hall opt-out, granted entitlements) survive a sync.
+  const existing = await getProfileState(p.email);
+  const clean: ProfileState = { ...existing, ...Object.fromEntries(Object.entries(incoming).filter(([, v]) => v !== undefined)) };
   const ok = await upsertProfile(p.email, clean);
   return NextResponse.json({ ok });
 }

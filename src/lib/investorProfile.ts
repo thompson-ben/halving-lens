@@ -8,6 +8,7 @@ import { sbSelect } from "./supabase";
 import { memberIdentity, type MemberIdentity, type ProfileState } from "./profile";
 import { referralLink, rewardFor, nextReward, REWARD_TIERS } from "./referral";
 import { referralLeaderboard } from "./referralLeaderboard";
+import { entitlementsFor, isFoundingMember, FOUNDING_MEMBER_BENEFITS, type Entitlement } from "./entitlements";
 import { streakStats, type StreakStats } from "./streak";
 import { SITE_URL } from "./site";
 
@@ -36,6 +37,9 @@ export interface InvestorProfile {
   email: string;
   memberSince: string; // "July 2026"
   identity: MemberIdentity;
+  entitlements: Entitlement[];
+  isFoundingMember: boolean;
+  foundingBenefits: string[];
   streak: StreakStats;
   daysActive: number;
   briefsRead: number;
@@ -74,6 +78,9 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
   const lb = await referralLeaderboard(code);
   const count = lb.you?.referrals ?? 0;
   const unlocked = REWARD_TIERS.filter((t) => count >= t.referrals);
+
+  const entitlements = entitlementsFor({ email, memberNo: identity.memberNo, createdAt, referralRank: lb.you?.rank ?? null, stored: state.entitlements });
+  const founding = isFoundingMember(identity.memberNo, createdAt);
   const nr = nextReward(count);
   const nextMilestone = nr?.tier.referrals ?? REWARD_TIERS[REWARD_TIERS.length - 1].referrals;
   const progressPct = Math.min(100, Math.round((count / nextMilestone) * 100));
@@ -112,7 +119,8 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
 
   // ── Journey timeline ──
   const timeline: TimelineEntry[] = [];
-  timeline.push({ icon: identity.isEarlySupporter ? "◆" : "✦", label: identity.isEarlySupporter ? "Joined as an Early Supporter" : "Joined HalvingLens", date: monthYear(createdAt), done: true });
+  const joinLabel = founding ? "Joined as a Founding Member" : identity.isEarlySupporter ? "Joined as an Early Supporter" : "Joined HalvingLens";
+  timeline.push({ icon: founding || identity.isEarlySupporter ? "◆" : "✦", label: joinLabel, date: monthYear(createdAt), done: true });
   if (daysActive >= 1) timeline.push({ icon: "📖", label: "Read your first Daily Brief", done: true });
   if (completionPct >= 100) timeline.push({ icon: "🎯", label: "Completed your profile", done: true });
   if (count >= 1) timeline.push({ icon: "👥", label: "Made your first referral", done: true });
@@ -125,6 +133,9 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
     email,
     memberSince: monthYear(createdAt),
     identity,
+    entitlements: [...entitlements],
+    isFoundingMember: founding,
+    foundingBenefits: FOUNDING_MEMBER_BENEFITS,
     streak,
     daysActive,
     briefsRead,
