@@ -1,5 +1,6 @@
 import {
   Activity,
+  Award,
   BookOpen,
   Boxes,
   FlaskConical,
@@ -52,6 +53,7 @@ export const EXPLORE: readonly NavLink[] = [
   { href: "/etf", label: "ETF flow", icon: Wallet },
   { href: "/halving", label: "Next halving", icon: Hourglass },
   { href: "/miners", label: "Miners", icon: Pickaxe },
+  { href: "/founders", label: "Hall of Founders", icon: Award },
 ];
 
 // Honest placeholders — switch on once a live source is connected.

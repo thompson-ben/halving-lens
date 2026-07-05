@@ -49,6 +49,9 @@ export interface ProfileState {
   recent?: { kind: string; title: string; href: string; ts: number }[];
   streakDays?: string[]; // ISO dates visited
   badges?: string[]; // earned badge ids (permanent once earned)
+  hideFromHall?: boolean; // opt out of the public Hall of Founders
+  hallName?: string; // optional public display name for the Hall
+  entitlements?: string[]; // granted entitlements (premium, beta, …) — see entitlements.ts
   updatedAt?: number;
 }
 

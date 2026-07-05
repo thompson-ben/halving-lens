@@ -40,6 +40,20 @@ interface SignupRow {
   created_at: string;
 }
 
+// All-time referral counts per code (session-deduped) — used by the Hall of
+// Founders to show each member's referrals without N queries.
+export async function referralCountsByCode(): Promise<Map<string, number>> {
+  const rows = await sbSelect<SignupRow[]>("events?select=props,session_id,created_at&name=eq.signup&limit=50000");
+  const sessions = new Map<string, Set<string>>();
+  for (const r of rows ?? []) {
+    const code = refOf(r.props);
+    if (!code) continue;
+    const key = r.session_id || `${code}:${r.created_at}`;
+    (sessions.get(code) ?? sessions.set(code, new Set()).get(code)!).add(key);
+  }
+  return new Map([...sessions.entries()].map(([code, s]) => [code, s.size]));
+}
+
 type YouStats = { referrals: number; weekly: number; rank: number | null; weeklyRank: number | null };
 
 export async function referralLeaderboard(myCode?: string): Promise<ReferralLeaderboard> {
