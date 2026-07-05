@@ -17,14 +17,14 @@ export interface RewardTier {
 // the REFERRAL family only; "◆ Founder" and "◆ Early Supporter" are identity
 // credentials (earned by being the founder / an early member), never by
 // referring people, so they're intentionally not reward names here.
+// The referral ladder. Rewards are exclusive (access + recognition), not cash —
+// fully configurable here without touching UI. Matches the lifecycle spec.
 export const REWARD_TIERS: RewardTier[] = [
-  { referrals: 1, reward: "Supporter badge", badge: "referral-supporter" },
-  { referrals: 3, reward: "Premium research unlock" },
-  { referrals: 5, reward: "Exclusive research report" },
-  { referrals: 10, reward: "Referral Champion badge", badge: "referral-champion" },
-  { referrals: 20, reward: "One month HalvingLens Pro" },
-  { referrals: 50, reward: "Ambassador badge", badge: "ambassador" },
-  { referrals: 100, reward: "Founding Ambassador", badge: "founding-ambassador" },
+  { referrals: 3, reward: "Premium Chart Pack", badge: "referral-supporter" },
+  { referrals: 10, reward: "Weekly Market Deep Dive", badge: "referral-champion" },
+  { referrals: 25, reward: "Members Community", badge: "ambassador" },
+  { referrals: 50, reward: "One Month Premium" },
+  { referrals: 100, reward: "Founder Status · Lifetime Premium · Hall of Fame", badge: "founding-ambassador" },
 ];
 
 // Quality scoring — engagement is rewarded far above signups, so spam earns
