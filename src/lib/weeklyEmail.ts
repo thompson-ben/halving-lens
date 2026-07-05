@@ -4,7 +4,7 @@
 
 import type { WeeklyReport } from "./weekly";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
-import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
+import { type EmailTracking, NO_EMAIL_TRACKING, forHtmlAttr } from "./emailTracking";
 import { latestFindings } from "./findings";
 
 const C = {
@@ -127,7 +127,7 @@ export function weeklyEmailHtml(w: WeeklyReport, unsubUrl: string, tracking: Ema
         <div style="font:400 11px/1.7 ${SANS};color:${C.faint};margin-top:12px;">
           Historical context, not a prediction. Educational analysis — not financial advice, no price targets.<br>
           You're receiving this because you joined the ${SITE_HOST} research list.
-          <a href="${unsubUrl}" style="color:${C.dim};text-decoration:underline;">Unsubscribe</a>.
+          <a href="${forHtmlAttr(unsubUrl)}" style="color:${C.dim};text-decoration:underline;">Unsubscribe</a>.
         </div>
       </td></tr>
 

@@ -26,19 +26,30 @@ export interface EmailTracking {
   link: (targetUrl: string, cta: string) => string; // wrap a CTA href for click tracking
 }
 
+// The link()/openPixel outputs are placed straight into HTML href="" / src=""
+// attributes, so the `&` separating query params MUST be entity-escaped. Raw `&`
+// is invalid in an HTML attribute and strict clients (Outlook's Word engine,
+// some corporate mail gateways) can truncate the URL at the first `&`, which
+// silently drops the click target — the link then does nothing or lands on the
+// homepage. `&amp;` renders back to `&` in every client, so this is pure upside.
+export function forHtmlAttr(url: string): string {
+  return url.replace(/&/g, "&amp;");
+}
+
 // Build a tracking context for one recipient + campaign. `campaign` identifies
 // the specific email, e.g. "daily-2026-06-30", "weekly-2026-W27", "welcome".
 export function emailTracking(email: string, campaign: string): EmailTracking {
   const base = `e=${encodeURIComponent(email)}&t=${unsubToken(email)}&c=${encodeURIComponent(campaign)}`;
   return {
-    openPixel: `<img src="${absoluteUrl(`/api/email/open?${base}`)}" width="1" height="1" alt="" style="display:none!important;width:1px;height:1px;max-height:0;max-width:0;overflow:hidden;" />`,
+    openPixel: `<img src="${forHtmlAttr(absoluteUrl(`/api/email/open?${base}`))}" width="1" height="1" alt="" style="display:none!important;width:1px;height:1px;max-height:0;max-width:0;overflow:hidden;" />`,
     link: (targetUrl: string, cta: string) =>
-      absoluteUrl(`/api/email/click?${base}&cta=${encodeURIComponent(cta)}&u=${encodeURIComponent(targetUrl)}`),
+      forHtmlAttr(absoluteUrl(`/api/email/click?${base}&cta=${encodeURIComponent(cta)}&u=${encodeURIComponent(targetUrl)}`)),
   };
 }
 
-// No-op context for previews / admin views / when tracking isn't wanted.
+// No-op context for previews / admin views / when tracking isn't wanted. Still
+// escapes for the HTML href context it's rendered into.
 export const NO_EMAIL_TRACKING: EmailTracking = {
   openPixel: "",
-  link: (targetUrl: string) => targetUrl,
+  link: (targetUrl: string) => forHtmlAttr(targetUrl),
 };

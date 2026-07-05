@@ -5,7 +5,7 @@
 // deliverability. Historical context, not advice.
 
 import { SITE_HOST, SITE_URL } from "./site";
-import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
+import { type EmailTracking, NO_EMAIL_TRACKING, forHtmlAttr } from "./emailTracking";
 
 const C = {
   bg: "#0a0c10",
@@ -136,7 +136,7 @@ export function welcomeEmailHtml(unsubUrl: string, tracking: EmailTracking = NO_
         <div style="font:400 11px/1.7 ${SANS};color:${C.faint};margin-top:12px;">
           Historical context, not a prediction. Educational analysis — not financial advice, no price targets.<br>
           You're receiving this because you just subscribed at ${SITE_HOST}.
-          <a href="${unsubUrl}" style="color:${C.dim};text-decoration:underline;">Unsubscribe</a>.
+          <a href="${forHtmlAttr(unsubUrl)}" style="color:${C.dim};text-decoration:underline;">Unsubscribe</a>.
         </div>
       </td></tr>
 
