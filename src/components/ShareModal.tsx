@@ -12,15 +12,24 @@ import { shareSlugForPath, shortUrl, shareIntentUrl, labelForSlug, type ShareMet
 export function ShareModal({ path, title, onClose }: { path: string; title: string; onClose: () => void }) {
   const slug = shareSlugForPath(path);
   const link = shortUrl(slug);
-  const qrSrc = `/api/qr?slug=${encodeURIComponent(slug)}`;
   const heading = labelForSlug(slug);
   const [copied, setCopied] = useState(false);
+  const [refCode, setRefCode] = useState<string | null>(null);
   const canNative = typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  // Attach the signed-in member's referral code so every share earns them credit.
+  const refQ = refCode ? `&ref=${encodeURIComponent(refCode)}` : "";
+  const qrSrc = `/api/qr?slug=${encodeURIComponent(slug)}${refQ}`;
 
   // Fire once on open: the modal was opened and a QR was shown for this page.
   useEffect(() => {
     track("share_open", { slug, path });
     track("qr_view", { slug, path });
+    // Pick up the referral code if the visitor is signed in (best-effort).
+    fetch("/api/profile/me", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (d?.signedIn && d.referralCode) setRefCode(String(d.referralCode)); })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -33,11 +42,12 @@ export function ShareModal({ path, title, onClose }: { path: string; title: stri
 
   const fire = (method: ShareMethod) => track("share", { slug, path, method });
 
-  const withMethod = (m: string) => `${link}?s=${m}`;
+  const withMethod = (m: string) => `${link}?s=${m}${refQ}`;
+  const copyLink = refCode ? `${link}?ref=${encodeURIComponent(refCode)}` : link;
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(copyLink);
       fire("copy");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -123,6 +133,11 @@ export function ShareModal({ path, title, onClose }: { path: string; title: stri
           <p className="flex items-center justify-center gap-1.5 text-[11px] text-ink-500">
             <QrCode size={12} /> Scan or tap — lands on this exact page.
           </p>
+          {refCode && (
+            <p className="text-center text-[11px]" style={{ color: "#d9b96a" }}>
+              ◆ Includes your referral code — you&apos;ll be credited for anyone who joins.
+            </p>
+          )}
         </div>
       </div>
     </div>

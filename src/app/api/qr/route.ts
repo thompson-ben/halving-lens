@@ -14,8 +14,11 @@ export function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const slug = (searchParams.get("slug") || "home").slice(0, 80).replace(/[^a-zA-Z0-9._~-]/g, "");
   const framed = searchParams.get("framed") !== "0";
+  // Optional referral code — baked into the QR so an in-person scan still
+  // attributes the resulting signup to the member who shared it.
+  const ref = (searchParams.get("ref") || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 24);
   // Encode the short URL with ?s=qr so scans are attributable at the redirect.
-  const url = `${shortUrl(slug)}?s=qr`;
+  const url = `${shortUrl(slug)}?s=qr${ref ? `&ref=${ref}` : ""}`;
   const caption = searchParams.get("caption")?.slice(0, 60) ?? `${SITE_HOST}/r/${slug}`;
 
   const svg = qrSvg(url, { framed, caption, size: 640 });
