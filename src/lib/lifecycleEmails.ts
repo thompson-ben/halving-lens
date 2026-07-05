@@ -249,11 +249,21 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
     build: (ctx) => {
       const body = `
         <div style="font:400 15px/1.65 ${SANS};color:${C.sub};">
-          If HalvingLens helps you think clearly, it'll help the people you invest alongside. Share your personal link — as friends join, you unlock exclusive research and recognition.
+          If HalvingLens helps you think clearly, it'll help the people you invest alongside. As friends join, you unlock exclusive research and recognition.
         </div>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.border};border-radius:12px;margin-top:16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.goldBorder};border-radius:12px;margin-top:16px;">
           <tr><td style="padding:16px 18px;">
-            <div style="font:700 10px/1.3 ${SANS};letter-spacing:.14em;text-transform:uppercase;color:${C.gold};">Your referral link</div>
+            <div style="font:700 10px/1.3 ${SANS};letter-spacing:.14em;text-transform:uppercase;color:${C.gold};">The easiest way to share</div>
+            <div style="font:400 14.5px/1.6 ${SANS};color:${C.sub};margin-top:7px;">
+              Tap <span style="color:${C.ink};font-weight:600;">Share</span> on any page — your referral link and a scannable
+              QR code are built in automatically. Copy it, post it, or hand someone your phone to scan in person. Every join
+              is credited to you.
+            </div>
+          </td></tr>
+        </table>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.border};border-radius:12px;margin-top:12px;">
+          <tr><td style="padding:16px 18px;">
+            <div style="font:700 10px/1.3 ${SANS};letter-spacing:.14em;text-transform:uppercase;color:${C.gold};">Or share your personal link</div>
             <div style="font:600 14px/1.5 ${SANS};color:${C.ink};margin-top:6px;word-break:break-all;">${esc(ctx.referralLink)}</div>
           </td></tr>
         </table>
@@ -274,8 +284,8 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
         text: simpleText(
           "Unlock more with referrals",
           [
-            "Share your personal link — as friends join, you unlock exclusive research and recognition.",
-            `Your link: ${ctx.referralLink}`,
+            "The easiest way: tap Share on any page — your referral link and a scannable QR are built in. Copy it, post it, or hand someone your phone to scan. Every join is credited to you.",
+            `Or share your personal link: ${ctx.referralLink}`,
             "Milestones: 3 → Premium Chart Pack, 10 → Weekly Deep Dive, 25 → Members Community, 100 → Founder status.",
             `Dashboard: ${SITE_URL}/dashboard/referrals`,
           ],
