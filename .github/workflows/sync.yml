@@ -81,6 +81,42 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
+      # Deploy BEFORE sending, then warm the hero image, so email image proxies
+      # never fetch it cold. Previously the send ran first (against the previous
+      # deployment) and the image proxy's first request cold-rendered and timed
+      # out → broken hero image.
+      - name: Commit snapshot + brief archive (deploy today's build first)
+        run: |
+          if git diff --quiet src/lib/data/snapshot.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/weeklies.ts; then
+            echo "No data changes — nothing to deploy; will warm the existing deployment."
+          else
+            git config user.name "halving-lens-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add src/lib/data/snapshot.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/weeklies.ts
+            git commit -m "chore(data): refresh snapshot + brief ($(date -u +%Y-%m-%d))"
+            git push
+          fi
+
+      - name: Wait for deploy, then warm the daily hero image
+        # The emails embed /email/chart/<today>. Give Vercel time to publish the
+        # push above, then request that URL until it returns a real image — this
+        # renders + caches it in Vercel's durable cache, so Apple/Gmail's proxy
+        # gets a warm hit instead of a cold render. Non-fatal.
+        continue-on-error: true
+        run: |
+          BASE="${NEXT_PUBLIC_SITE_URL:-https://halvinglens.com}"
+          URL="${BASE%/}/email/chart/$(date -u +%Y-%m-%d)"
+          echo "Warming $URL"
+          sleep 120
+          for i in $(seq 1 15); do
+            OUT=$(curl -s -o /dev/null -w "%{http_code} %{content_type}" -A "halvinglens-warmer" "$URL" || echo "000 -")
+            echo "warm attempt $i → $OUT"
+            case "$OUT" in "200 image/"*) echo "hero image warm ✓"; break;; esac
+            sleep 20
+          done
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
       - name: Send the daily brief email
         # Sends the day's brief to active subscribers via Resend, then logs each
         # send + a daily summary to Supabase. Idempotent per day (won't double-
@@ -131,15 +167,3 @@ jobs:
           EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
           FOUNDER_EMAIL: ${{ secrets.FOUNDER_EMAIL }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
-
-      - name: Commit snapshot + brief archive if changed
-        run: |
-          if git diff --quiet src/lib/data/snapshot.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/weeklies.ts; then
-            echo "No changes — snapshot is already up to date."
-            exit 0
-          fi
-          git config user.name "halving-lens-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add src/lib/data/snapshot.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/weeklies.ts
-          git commit -m "chore(data): refresh snapshot + brief ($(date -u +%Y-%m-%d))"
-          git push
