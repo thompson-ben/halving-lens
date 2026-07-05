@@ -4,9 +4,10 @@
 // synced visit-day log, referrals from attributed signups, identity from signup
 // order. Extensible — add an achievement or completion task in the config arrays.
 
-import { sbCount, sbSelect } from "./supabase";
+import { sbSelect } from "./supabase";
 import { memberIdentity, type MemberIdentity, type ProfileState } from "./profile";
 import { referralLink, rewardFor, nextReward, REWARD_TIERS } from "./referral";
+import { referralLeaderboard } from "./referralLeaderboard";
 import { streakStats, type StreakStats } from "./streak";
 import { SITE_URL } from "./site";
 
@@ -41,6 +42,8 @@ export interface InvestorProfile {
   referral: {
     link: string;
     count: number;
+    leaderboardPosition: number | null;
+    weeklyRank: number | null;
     rewardsUnlocked: string[];
     next: { reward: string; referrals: number; remaining: number } | null;
     progressPct: number;
@@ -57,12 +60,6 @@ function monthYear(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "—" : `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-// A member's referral count = confirmed signups that carried their code.
-async function referralCount(code: string): Promise<number> {
-  const n = await sbCount("events", `name=eq.signup&props->>ref=eq.${encodeURIComponent(code)}`);
-  return n ?? 0;
-}
-
 export async function buildInvestorProfile(email: string, state: ProfileState, nowISO: string): Promise<InvestorProfile> {
   const createdRows = await sbSelect<{ created_at: string }[]>(
     `profiles?select=created_at&email=eq.${encodeURIComponent(email.toLowerCase())}&limit=1`,
@@ -74,7 +71,8 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
   const briefsRead = (state.recent ?? []).filter((r) => (r.href || "").startsWith("/brief")).length || daysActive;
 
   const code = referralLink(email).split("ref=")[1] ?? "";
-  const count = await referralCount(code);
+  const lb = await referralLeaderboard(code);
+  const count = lb.you?.referrals ?? 0;
   const unlocked = REWARD_TIERS.filter((t) => count >= t.referrals);
   const nr = nextReward(count);
   const nextMilestone = nr?.tier.referrals ?? REWARD_TIERS[REWARD_TIERS.length - 1].referrals;
@@ -133,6 +131,8 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
     referral: {
       link: referralLink(email, SITE_URL),
       count,
+      leaderboardPosition: lb.you?.rank ?? null,
+      weeklyRank: lb.you?.weeklyRank ?? null,
       rewardsUnlocked: unlocked.map((t) => t.reward),
       next: nr ? { reward: nr.tier.reward, referrals: nr.tier.referrals, remaining: nr.remaining } : null,
       progressPct,
