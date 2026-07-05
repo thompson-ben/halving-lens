@@ -131,11 +131,12 @@ jobs:
           EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
 
-      - name: Send the Day-2 onboarding showcase email
-        # One-time per subscriber, ~a day after they join. Idempotent
-        # (showcase_sent_at) and safe to run daily. Non-fatal; skips quietly if
-        # the column/secrets aren't set. Run supabase/email.sql once.
-        run: npm run send-showcase
+      - name: Send onboarding lifecycle emails
+        # Config-driven onboarding sequence. Drips one email per subscriber per
+        # run, idempotent per step (lifecycle_sends), back-enrols existing
+        # subscribers, never touches the Daily Brief. Non-fatal; skips quietly if
+        # secrets aren't set. Run supabase/lifecycle.sql once.
+        run: npm run send-lifecycle
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

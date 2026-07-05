@@ -82,8 +82,9 @@ export function welcomeEmailHtml(unsubUrl: string, tracking: EmailTracking = NO_
         <div style="font:700 11px/1.4 ${SANS};letter-spacing:.18em;text-transform:uppercase;color:${C.gold};">Subscription confirmed</div>
         <div style="font:600 34px/1.15 ${SERIF};color:${C.ink};margin-top:12px;letter-spacing:-0.5px;">You're subscribed.</div>
         <div style="font:400 16px/1.6 ${SANS};color:${C.sub};margin-top:14px;">
-          Thanks for joining HalvingLens Research. This email confirms your subscription is active — and that our mail
-          lands cleanly in your client.
+          Thanks for joining HalvingLens Research. Everything here is built to answer one question:
+          <span style="color:${C.ink};font-weight:600;">where are we in the Bitcoin cycle?</span> — with historical
+          context, never hype or price targets.
         </div>
       </td></tr>
 
@@ -122,12 +123,31 @@ export function welcomeEmailHtml(unsubUrl: string, tracking: EmailTracking = NO_
       </td></tr>
 
       <!-- CTA -->
-      <tr><td style="padding:22px 36px 28px;">
+      <tr><td style="padding:22px 36px 10px;">
         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
           <td style="border-radius:10px;background:${C.gold};">
             <a href="${tracking.link(`${SITE_URL}/brief`, "welcome_read_brief")}" style="display:inline-block;padding:13px 26px;font:600 14px/1 ${SANS};color:#15120a;text-decoration:none;border-radius:10px;">Read today's brief →</a>
           </td>
         </tr></table>
+      </td></tr>
+
+      <!-- Start exploring -->
+      <tr><td style="padding:8px 36px 28px;">
+        <div style="font:700 10.5px/1.4 ${SANS};letter-spacing:.16em;text-transform:uppercase;color:${C.dim};margin-bottom:10px;">Start exploring</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${[
+            { name: "Today's analysis", desc: "Where Bitcoin sits right now.", path: "/brief", label: "welcome_today" },
+            { name: "Daily Brief archive", desc: "Every past edition, dated and searchable.", path: "/brief/archive", label: "welcome_archive" },
+            { name: "Your Investor Profile", desc: "Reading streak, achievements and referrals.", path: "/profile", label: "welcome_profile" },
+          ]
+            .map(
+              (l) => `<tr><td style="padding:5px 0;">
+            <a href="${tracking.link(`${SITE_URL}${l.path}`, l.label)}" style="text-decoration:none;font:600 14.5px/1.4 ${SANS};color:${C.gold};">${esc(l.name)} →</a>
+            <span style="font:400 13px/1.4 ${SANS};color:${C.faint};"> &nbsp;${esc(l.desc)}</span>
+          </td></tr>`,
+            )
+            .join("")}
+        </table>
       </td></tr>
 
       <!-- Footer -->
