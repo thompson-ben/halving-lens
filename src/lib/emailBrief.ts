@@ -22,7 +22,7 @@ import { latestFindings } from "./findings";
 import { briefDate } from "./briefArchive";
 import type { Edition } from "./research";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
-import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
+import { type EmailTracking, NO_EMAIL_TRACKING, forHtmlAttr } from "./emailTracking";
 import { fmtUsd, fmtPct } from "./format";
 import { format } from "date-fns";
 
@@ -637,7 +637,7 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
         <div style="font:400 11px/1.7 ${SANS};color:${C.faint};margin-top:12px;">
           Historical context, not a prediction. Educational analysis — not financial advice, no price targets.<br>
           You're receiving this because you joined the ${SITE_HOST} daily brief.
-          <a href="${unsubUrl}" style="color:${C.dim};text-decoration:underline;">Unsubscribe</a>.
+          <a href="${forHtmlAttr(unsubUrl)}" style="color:${C.dim};text-decoration:underline;">Unsubscribe</a>.
         </div>
       </td></tr>
 
