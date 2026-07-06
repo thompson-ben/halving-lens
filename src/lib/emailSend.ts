@@ -11,6 +11,7 @@ import { weeklyEmailHtml, weeklyEmailText, weeklyEmailSubject } from "./weeklyEm
 import { latestWeekly } from "./weekly";
 import { founderReport } from "./founderReport";
 import { founderReportHtml, founderReportSubject } from "./founderReportEmail";
+import { captureMonthlySnapshot, updateRecords } from "./companyHistory";
 import { briefDate } from "./briefArchive";
 import { unsubToken } from "./emailToken";
 import { emailTracking } from "./emailTracking";
@@ -261,6 +262,10 @@ export async function sendFounderReport(opts: { force?: boolean } = {}): Promise
   }
 
   const report = await founderReport();
+  // Persist this month's snapshot + any new all-time records — the longitudinal
+  // memory that powers "Since Launch", year-over-year and the records section.
+  await captureMonthlySnapshot(report.persist.snapshot);
+  await updateRecords(report.persist.recordCandidates);
   const res = await sendEmail({ to: recipient, subject: founderReportSubject(report), html: founderReportHtml(report), text: report.executive.join("\n") });
   if (supabaseConfigured) {
     await sbInsert("weekly_email_deliveries", { slug, subscriber_count: 1, emails_sent: 1, emails_delivered: res.ok ? 1 : 0, emails_failed: res.ok ? 0 : 1, provider: "resend-founder" });
