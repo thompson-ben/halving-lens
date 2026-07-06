@@ -8,6 +8,9 @@ import { HallOptOut } from "@/components/HallOptOut";
 import { DisplayNameForm } from "@/components/DisplayNameForm";
 import { YouTubeSubscribe } from "@/components/YouTubeSubscribe";
 import { YOUTUBE_LIVE, YOUTUBE_URL } from "@/lib/lifecycleConfig";
+import { reconcileMilestones } from "@/lib/milestones";
+import { CelebrationToaster } from "@/components/CelebrationToaster";
+import { CelebrationsToggle } from "@/components/CelebrationsToggle";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -25,8 +28,14 @@ export default async function ProfilePage() {
   const nowISO = new Date().toISOString().slice(0, 10);
   const ip = await buildInvestorProfile(p.email, state, nowISO);
 
+  // Record any newly-earned milestones (once), and celebrate them unless the
+  // member has turned celebrations off.
+  const { newlyEarned } = await reconcileMilestones(p.email, state, ip.earnedMilestones, Date.now());
+  const celebrationsOn = state.celebrationsOff !== true;
+
   return (
     <div className="max-w-3xl mx-auto space-y-10">
+      {celebrationsOn && newlyEarned.length > 0 && <CelebrationToaster celebrations={newlyEarned} />}
       <header className="border-b border-white/[0.08] pb-6">
         <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>Your Investor Profile</div>
         <h1 className="mt-3 font-display text-[30px] lg:text-[38px] leading-[1.1] text-ink-50 tracking-tight-2">{displayName || p.email}</h1>
@@ -47,8 +56,9 @@ export default async function ProfilePage() {
           {ip.identity.isFounder && <Link href="/admin/growth" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">Founder Dashboard <ArrowUpRight size={13} /></Link>}
           <SignOutButton />
         </div>
-        <div className="mt-5 max-w-md">
+        <div className="mt-5 max-w-md space-y-3">
           <DisplayNameForm initialName={displayName} />
+          <CelebrationsToggle initialEnabled={celebrationsOn} />
         </div>
       </header>
 

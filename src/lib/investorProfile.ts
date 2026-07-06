@@ -57,13 +57,21 @@ export interface InvestorProfile {
   achievements: { list: Achievement[]; earnedCount: number; total: number; latest: Achievement | null; next: Achievement | null };
   completion: { pct: number; tasks: CompletionTask[] };
   timeline: TimelineEntry[];
+  earnedMilestones: string[]; // ids currently earned — reconciled for celebrations
 }
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function monthYear(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "—" : `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+// Exact date for a recorded milestone timestamp, e.g. "15 Jun 2026".
+function dayMonthYear(ms: number | undefined): string | undefined {
+  if (!ms) return undefined;
+  const d = new Date(ms);
+  return Number.isNaN(d.getTime()) ? undefined : `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 export async function buildInvestorProfile(email: string, state: ProfileState, nowISO: string): Promise<InvestorProfile> {
@@ -126,14 +134,29 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
   const earned = achievements.filter((a) => a.earned);
   const nextAch = achievements.find((a) => !a.earned) ?? null;
 
+  // Currently-earned celebration milestones (ids mirror src/lib/milestones.ts).
+  const earnedMilestones: string[] = [];
+  if (daysActive >= 1) earnedMilestones.push("first-brief");
+  if (completionPct >= 100) earnedMilestones.push("profile-complete");
+  if (streak.longest >= 7) earnedMilestones.push("streak-7");
+  if (streak.longest >= 30) earnedMilestones.push("streak-30");
+  if (count >= 1) earnedMilestones.push("first-referral");
+  if (count >= 5) earnedMilestones.push("referral-5");
+  if (founding) earnedMilestones.push("founding-member");
+  if (lb.community.unlocked) earnedMilestones.push("leaderboard-unlock");
+  if (YOUTUBE_LIVE && state.youtubeSubscribed === true) earnedMilestones.push("youtube");
+
   // ── Journey timeline ──
+  // Exact dates come from recorded milestones (see milestones.ts) once present.
+  const recordedM = state.milestones ?? {};
+  const mDate = (id: string) => dayMonthYear(recordedM[id]);
   const timeline: TimelineEntry[] = [];
   const joinLabel = founding ? "Joined as a Founding Member" : identity.isEarlySupporter ? "Joined as an Early Supporter" : "Joined HalvingLens";
   timeline.push({ icon: founding || identity.isEarlySupporter ? "◆" : "✦", label: joinLabel, date: monthYear(createdAt), done: true });
-  if (daysActive >= 1) timeline.push({ icon: "📖", label: "Read your first Daily Brief", done: true });
-  if (completionPct >= 100) timeline.push({ icon: "🎯", label: "Completed your profile", done: true });
-  if (count >= 1) timeline.push({ icon: "👥", label: "Made your first referral", done: true });
-  for (const m of [7, 30, 100]) if (streak.longest >= m) timeline.push({ icon: "🔥", label: `${m}-day reading streak`, done: true });
+  if (daysActive >= 1) timeline.push({ icon: "📖", label: "Read your first Daily Brief", done: true, date: mDate("first-brief") });
+  if (completionPct >= 100) timeline.push({ icon: "🎯", label: "Completed your profile", done: true, date: mDate("profile-complete") });
+  if (count >= 1) timeline.push({ icon: "👥", label: "Made your first referral", done: true, date: mDate("first-referral") });
+  for (const m of [7, 30, 100]) if (streak.longest >= m) timeline.push({ icon: "🔥", label: `${m}-day reading streak`, done: true, date: mDate(`streak-${m}`) });
   for (const t of unlocked) timeline.push({ icon: "🏆", label: `Unlocked ${t.reward}`, done: true });
   // Next upcoming milestone (aspirational).
   if (nextAch) timeline.push({ icon: nextAch.icon, label: `Next: ${nextAch.name}`, done: false });
@@ -162,6 +185,7 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
     achievements: { list: achievements, earnedCount: earned.length, total: achievements.length, latest: earned[earned.length - 1] ?? null, next: nextAch },
     completion: { pct: completionPct, tasks: completionTasks },
     timeline,
+    earnedMilestones,
   };
 }
 

@@ -94,6 +94,7 @@ export async function sendWeeklyRoundup(opts: { force?: boolean } = {}): Promise
         streak: s.current,
         longest: s.longest,
         referrals: refs,
+        briefsRead: (prof.state.recent ?? []).filter((r) => (r.href || "").startsWith("/brief")).length || s.totalDays,
         leaderboardPosition: rankMap.get(code) ?? null,
         achievements: achievementTally(s.longest, refs, s.totalDays, prof.memberNo),
       };
