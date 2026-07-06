@@ -11,6 +11,7 @@
 
 import { sbSelect, sbUpsert, sbInsert, sbCount, supabaseConfigured } from "./supabase";
 import { referralCountsByCode } from "./referralLeaderboard";
+import { streakStats } from "./streak";
 
 // Company launch date (UTC). Override with COMPANY_LAUNCH=YYYY-MM-DD.
 export const COMPANY_LAUNCH = process.env.COMPANY_LAUNCH || "2025-06-01";
@@ -39,7 +40,20 @@ function monthLabel(key: string): string {
 }
 
 export type SnapshotMetrics = Record<string, number>;
-export interface CompanyRecord { metric: string; label: string; value: number; unit: string; achievedOn: string }
+export interface CompanyRecord { metric: string; label: string; value: number; unit: string; achievedOn: string; detail?: string }
+
+// Longest reading streak across the whole community (in days). Powers the
+// "Longest reading streak" all-time record.
+export async function longestCommunityStreak(nowISO: string): Promise<number> {
+  if (!supabaseConfigured) return 0;
+  const rows = await sbSelect<{ state: { streakDays?: string[] } | null }[]>("profiles?select=state&limit=50000");
+  let max = 0;
+  for (const r of rows ?? []) {
+    const s = streakStats(r.state?.streakDays, nowISO);
+    if (s.longest > max) max = s.longest;
+  }
+  return max;
+}
 
 // ── Since Launch — accumulating all-time totals ──────────────────────────────
 export interface SinceLaunchRow { label: string; value: number }
@@ -141,10 +155,10 @@ export async function thisTimeLastYear(currentMetrics: SnapshotMetrics, nowMs = 
 // ── All-time records ─────────────────────────────────────────────────────────
 export async function getRecords(): Promise<CompanyRecord[]> {
   if (!supabaseConfigured) return [];
-  const rows = await sbSelect<{ metric: string; label: string; value: number; unit: string; achieved_on: string }[]>(
-    "company_records?select=metric,label,value,unit,achieved_on&order=metric.asc&limit=100",
+  const rows = await sbSelect<{ metric: string; label: string; value: number; unit: string; achieved_on: string; detail: string | null }[]>(
+    "company_records?select=metric,label,value,unit,achieved_on,detail&order=metric.asc&limit=100",
   );
-  return (rows ?? []).map((r) => ({ metric: r.metric, label: r.label, value: r.value, unit: r.unit, achievedOn: r.achieved_on }));
+  return (rows ?? []).map((r) => ({ metric: r.metric, label: r.label, value: r.value, unit: r.unit, achievedOn: r.achieved_on, detail: r.detail ?? undefined }));
 }
 
 // Merge stored records with fresh candidates, keeping the higher value — so the
@@ -169,7 +183,7 @@ export async function updateRecords(candidates: CompanyRecord[]): Promise<void> 
   for (const c of beats) {
     await sbUpsert(
       "company_records",
-      { metric: c.metric, label: c.label, value: c.value, unit: c.unit, achieved_on: c.achievedOn, updated_at: new Date().toISOString() },
+      { metric: c.metric, label: c.label, value: c.value, unit: c.unit, achieved_on: c.achievedOn, detail: c.detail ?? null, updated_at: new Date().toISOString() },
       "metric",
     );
   }

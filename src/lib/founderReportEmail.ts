@@ -56,9 +56,9 @@ function totalsRows(rows: { label: string; value: number }[]): string {
 function recordsTable(records: CompanyRecord[]): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${records
     .map((r) => `<tr>
-      <td style="padding:8px 0;font:400 14px/1.4 ${SANS};color:${C.sub};">${esc(r.label)}</td>
-      <td style="padding:8px 0;font:700 14px/1.4 ${SANS};color:${C.ink};text-align:right;white-space:nowrap;">${r.value.toLocaleString()}${esc(r.unit)}</td>
-      <td style="padding:8px 0 8px 14px;font:400 12px/1.4 ${SANS};color:${C.dim};text-align:right;white-space:nowrap;">${esc(niceDate(r.achievedOn))}</td>
+      <td style="padding:8px 0;font:400 14px/1.4 ${SANS};color:${C.sub};">${esc(r.label)}${r.detail ? `<br><span style="font:400 12px/1.4 ${SANS};color:${C.dim};">${esc(r.detail)}</span>` : ""}</td>
+      <td style="padding:8px 0;font:700 14px/1.4 ${SANS};color:${C.ink};text-align:right;white-space:nowrap;vertical-align:top;">${r.value.toLocaleString()}${esc(r.unit)}</td>
+      <td style="padding:8px 0 8px 14px;font:400 12px/1.4 ${SANS};color:${C.dim};text-align:right;white-space:nowrap;vertical-align:top;">${esc(niceDate(r.achievedOn))}</td>
     </tr>`)
     .join("")}</table>`;
 }
@@ -140,6 +140,9 @@ export function founderReportHtml(r: FounderReport): string {
         ${r.lastYear ? `${h("This time last year")}
         <div style="font:400 13px/1.5 ${SANS};color:${C.dim};margin-bottom:8px;">${esc(r.lastYear.monthLabel)} vs ${esc(r.lastYear.lastYearLabel)}.</div>
         ${yoyTable(r.lastYear.rows)}` : ""}
+
+        ${r.yoyStory && r.yoyStory.length ? `${h("Year-over-year story")}
+        ${list(r.yoyStory)}` : ""}
 
         ${h("All-time records")}
         ${r.records.length ? recordsTable(r.records) : `<div style="font:400 13.5px/1.6 ${SANS};color:${C.dim};">Records begin accumulating from launch — the first highs appear here as they're set.</div>`}
