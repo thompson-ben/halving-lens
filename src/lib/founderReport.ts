@@ -10,6 +10,10 @@ import { emailEngagement, weeklyActiveEngaged } from "./growthInsights";
 import { marketingHealth } from "./marketingHealth";
 import { allEditions, libraryStats } from "./research";
 import { allWeeklies } from "./weekly";
+import {
+  sinceLaunch, getRecords, mergeRecords, thisTimeLastYear, latestJournal,
+  type SinceLaunchRow, type CompanyRecord, type YoYRow, type SnapshotMetrics, type JournalEntry,
+} from "./companyHistory";
 
 export interface ReportRow { label: string; value: string; sub?: string }
 export interface ReportTrend { label: string; dir: "up" | "down" | "flat" }
@@ -26,6 +30,13 @@ export interface FounderReport {
   insights: string[];
   recommendations: string[];
   trends: ReportTrend[];
+  // Longitudinal / company history.
+  sinceLaunch: { days: number; rows: SinceLaunchRow[] };
+  records: CompanyRecord[]; // all-time bests (stored ∪ this period's candidates)
+  lastYear: { monthLabel: string; lastYearLabel: string; rows: YoYRow[] } | null; // null until 12mo of data
+  journal: { month: string; entry: JournalEntry } | null;
+  // Internal: figures the SEND path persists (snapshot + record highs). Ignored by previews.
+  persist: { snapshot: SnapshotMetrics; recordCandidates: CompanyRecord[] };
 }
 
 const DAY = 86_400_000;
@@ -238,6 +249,39 @@ export async function founderReport(): Promise<FounderReport> {
     const fmt = (x: Date) => x.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
     return `${fmt(d)} – ${fmt(e)}`;
   })();
+  const generatedAt = new Date(now).toISOString().slice(0, 10);
+
+  // ── Since Launch (accumulating totals) + snapshot for year-over-year ────────
+  const sl = await sinceLaunch({ totalBriefsPublished: lib.total, currentSubscribers: a.totals.subscribers }, now);
+  const snapshot: SnapshotMetrics = { ...sl.metrics, visitors_month: visM, signups_month: sgnM };
+  if (email.openRate != null) snapshot.email_open_rate = email.openRate;
+
+  // ── All-time record candidates from this period's data ─────────────────────
+  // pageRows/signupRows cover the retained window; because we persist the highs
+  // each week, the stored record accumulates the true all-time best over time.
+  const dayVisitors = new Map<string, Set<string>>();
+  for (const r of pageRows) {
+    if (!r.session_id) continue;
+    const day = r.created_at.slice(0, 10);
+    (dayVisitors.get(day) ?? dayVisitors.set(day, new Set()).get(day)!).add(r.session_id);
+  }
+  let bestDayV = { day: generatedAt, n: 0 };
+  for (const [day, s] of dayVisitors) if (s.size > bestDayV.n) bestDayV = { day, n: s.size };
+  const daySignups = new Map<string, number>();
+  for (const r of signupRows) { const day = r.created_at.slice(0, 10); daySignups.set(day, (daySignups.get(day) ?? 0) + 1); }
+  let bestDayS = { day: generatedAt, n: 0 };
+  for (const [day, n] of daySignups) if (n > bestDayS.n) bestDayS = { day, n };
+
+  const recordCandidates: CompanyRecord[] = [];
+  if (bestDayV.n > 0) recordCandidates.push({ metric: "daily_visitors", label: "Highest daily visitors", value: bestDayV.n, unit: "", achievedOn: bestDayV.day });
+  if (bestDayS.n > 0) recordCandidates.push({ metric: "daily_signups", label: "Biggest subscriber day", value: bestDayS.n, unit: "", achievedOn: bestDayS.day });
+  if (visW > 0) recordCandidates.push({ metric: "weekly_visitors", label: "Highest weekly visitors", value: visW, unit: "", achievedOn: generatedAt });
+  if (visM > 0) recordCandidates.push({ metric: "monthly_visitors", label: "Highest monthly visitors", value: visM, unit: "", achievedOn: generatedAt });
+  if (email.openRate != null) recordCandidates.push({ metric: "best_open_rate", label: "Best email open rate", value: email.openRate, unit: "%", achievedOn: generatedAt });
+
+  const records = mergeRecords(await getRecords(), recordCandidates);
+  const lastYear = await thisTimeLastYear(snapshot, now);
+  const journal = await latestJournal();
 
   return {
     weekLabel: `Week to ${new Date(now).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })} (${week})`,
@@ -258,5 +302,10 @@ export async function founderReport(): Promise<FounderReport> {
     insights,
     recommendations,
     trends,
+    sinceLaunch: { days: sl.days, rows: sl.rows },
+    records,
+    lastYear,
+    journal,
+    persist: { snapshot, recordCandidates },
   };
 }
