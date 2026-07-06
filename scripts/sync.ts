@@ -589,10 +589,21 @@ function buildCycle(
   });
 
   const samples: CycleSample[] = [];
+
+  // True cycle peak/trough at DAILY resolution. The chart samples weekly (below),
+  // but the recorded high/low MUST come from the full daily series — otherwise a
+  // peak that lands between weekly samples is understated (e.g. a ~$126k ATH
+  // recorded as the ~$122k nearest weekly close). This is the single source of
+  // truth for the cycle high used across the app (downside scenarios, rainbow, …).
   let peakPrice = 0;
   let peakDay = 0;
   let troughPrice = Infinity;
   let troughDay = 0;
+  for (let d = 0; d <= totalDays && d < daily.length; d++) {
+    const p = daily[d].price;
+    if (p > peakPrice) { peakPrice = p; peakDay = d; }
+    if (p < troughPrice) { troughPrice = p; troughDay = d; }
+  }
 
   // Compute a per-cycle rolling stats baseline for MVRV-Z. We compute the
   // running mean+std of MVRV using the global daily series, anchored at this
@@ -613,14 +624,8 @@ function buildCycle(
     const pt = daily[d];
     const gIdx = globalIdxOffset + d;
 
-    if (pt.price > peakPrice) {
-      peakPrice = pt.price;
-      peakDay = d;
-    }
-    if (pt.price < troughPrice) {
-      troughPrice = pt.price;
-      troughDay = d;
-    }
+    // (Peak/trough are computed at daily resolution above — not from these
+    // weekly samples, which would understate a between-sample high.)
 
     const ma200 = sma(prices, gIdx, 200);
     const ma365Issuance = sma(issuance, gIdx, 365);
