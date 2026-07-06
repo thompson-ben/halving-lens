@@ -105,19 +105,24 @@ export default function SentimentPage() {
               </div>
             </div>
 
-            {/* Recent change — subtle context: has it moved, or hovering here? */}
+            {/* Recent change — subtle context: has it moved, or hovering here?
+                Label on its own line; the three values sit in a fixed 3-column
+                row beneath so they never wrap (notably on mobile). */}
             {changes.length > 0 && (
-              <div className="relative z-10 mt-7 pt-5 border-t border-white/[0.06] flex items-center gap-x-6 gap-y-2 flex-wrap">
-                <span className="text-[10px] uppercase tracking-[0.18em] text-ink-500">Recent change</span>
-                {changes.map(({ label, c }) => (
-                  <span key={label} className="inline-flex items-baseline gap-1.5 tabular-nums">
-                    <span className="text-[10px] uppercase tracking-wider text-ink-500 font-mono">{label}</span>
-                    <span className={`text-[13px] font-medium ${changeTone(c!.direction)}`}>
-                      {changeArrow(c!.direction)} {c!.delta >= 0 ? "+" : ""}{c!.delta}
-                    </span>
-                  </span>
-                ))}
-                <span className="text-[10.5px] text-ink-600">points</span>
+              <div className="relative z-10 mt-7 pt-5 border-t border-white/[0.06]">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500">
+                  Recent change <span className="text-ink-600">· points</span>
+                </div>
+                <div className="mt-2.5 grid grid-cols-3 gap-2 max-w-[340px] tabular-nums">
+                  {changes.map(({ label, c }) => (
+                    <div key={label} className="flex items-baseline gap-1.5 whitespace-nowrap">
+                      <span className="text-[10px] uppercase tracking-wider text-ink-500 font-mono">{label}</span>
+                      <span className={`text-[13px] font-medium ${changeTone(c!.direction)}`}>
+                        {changeArrow(c!.direction)} {c!.delta >= 0 ? "+" : ""}{c!.delta}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             <div className="watermark">halvinglens.com · sentiment</div>
