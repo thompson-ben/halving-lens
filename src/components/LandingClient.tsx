@@ -175,7 +175,7 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
         className={`flex-1 min-w-[200px] h-12 px-4 rounded-xl bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 ${error ? "border-signal-red/50" : "border-white/[0.1]"}`}
       />
       <button type="submit" disabled={busy} className="h-12 px-6 rounded-xl bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60">
-        {busy ? "Joining…" : buttonLabel}
+        {busy ? "Subscribing…" : buttonLabel}
       </button>
       {error && <p className="w-full text-[12px] text-signal-red">{error}</p>}
     </form>
