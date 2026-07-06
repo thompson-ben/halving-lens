@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { currentProfile } from "@/lib/profile";
-import { referralLink, REWARD_TIERS, rewardFor, nextReward } from "@/lib/referral";
+import { referralLink, REWARD_TIERS, nextReward, unlockedRewards } from "@/lib/referral";
 import { referralAnalytics } from "@/lib/referralAnalytics";
 import { referralLeaderboard } from "@/lib/referralLeaderboard";
 import { SITE_URL } from "@/lib/site";
@@ -43,7 +43,7 @@ export default async function ReferralsPage() {
   const [analytics, lb] = await Promise.all([referralAnalytics(), referralLeaderboard(p.referralCode)]);
   const mine = analytics.referrers.find((r) => r.code === p.referralCode) ?? { code: p.referralCode, visitors: 0, signups: 0, score: 0 };
   const qualified = lb.you?.referrals ?? mine.signups; // session-deduped confirmed referrals
-  const unlocked = rewardFor(qualified);
+  const unlocked = unlockedRewards(qualified); // highest first, each ready to present
   const next = nextReward(qualified);
 
   return (
@@ -95,14 +95,44 @@ export default async function ReferralsPage() {
           {REWARD_TIERS.map((t) => {
             const got = qualified >= t.referrals;
             return (
-              <div key={t.referrals} className="flex items-center justify-between text-[13px] py-1.5 border-b border-white/[0.05]">
-                <span className={got ? "text-ink-100" : "text-ink-400"}>{t.referrals} · {t.reward}</span>
-                <span className={got ? "text-signal-green text-[12px]" : "text-ink-600 text-[12px]"}>{got ? "Unlocked" : "Locked"}</span>
+              <div key={t.referrals} className="py-1.5 border-b border-white/[0.05]">
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className={got ? "text-ink-100" : "text-ink-400"}>{t.referrals} · {t.reward}</span>
+                  <span className={got ? "text-signal-green text-[12px]" : "text-ink-600 text-[12px]"}>{got ? "Unlocked" : "Locked"}</span>
+                </div>
+                {t.detail && <div className="mt-0.5 text-[11px] text-ink-500 pr-16">{t.detail}</div>}
               </div>
             );
           })}
         </div>
-        {unlocked && <p className="mt-3 text-[12px] text-signal-green">You&apos;ve unlocked: {unlocked.reward}.</p>}
+
+        {/* Unlocked rewards — instant rewards link straight to the deliverable;
+            recognition rewards show the safety net (confirmed now, emailed shortly)
+            so we never leave a promise we can't honour hanging in the UI. */}
+        {unlocked.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {unlocked.map((u) =>
+              u.kind === "access" ? (
+                <Link
+                  key={u.tier.referrals}
+                  href={u.href}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-accent/25 bg-accent/[0.06] px-3.5 py-3 text-[13px] hover:border-accent/40"
+                >
+                  <span className="text-ink-100">
+                    <span className="text-signal-green">✓ {u.tier.reward} unlocked.</span> {u.label} →
+                  </span>
+                </Link>
+              ) : (
+                <div
+                  key={u.tier.referrals}
+                  className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-3 text-[12.5px] text-ink-300"
+                >
+                  <span className="text-signal-green">✓ {u.tier.reward}.</span> {u.message}
+                </div>
+              ),
+            )}
+          </div>
+        )}
       </section>
 
       {/* Leaderboard — gated behind the community-size threshold. */}

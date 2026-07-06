@@ -3,6 +3,7 @@ import { ArrowUpRight, Check, Flame, Trophy, Users, BookOpen, Sparkles, Target }
 import type { Metadata } from "next";
 import { currentProfile, getProfileState, getDisplayName } from "@/lib/profile";
 import { buildInvestorProfile, rewardLadder, type InvestorProfile } from "@/lib/investorProfile";
+import { unlockedRewards } from "@/lib/referral";
 import { ProfileSignInForm, SignOutButton } from "@/components/ProfileSignInForm";
 import { HallOptOut } from "@/components/HallOptOut";
 import { DisplayNameForm } from "@/components/DisplayNameForm";
@@ -164,6 +165,8 @@ function ReadingStats({ ip }: { ip: InvestorProfile }) {
 // ── Referrals ─────────────────────────────────────────────────────────────────
 function Referrals({ ip }: { ip: InvestorProfile }) {
   const ladder = rewardLadder(ip.referral.count);
+  // Instant rewards we can hand over right now (today: the Founder's Collection).
+  const access = unlockedRewards(ip.referral.count).filter((u) => u.kind === "access");
   return (
     <section>
       <SectionLabel>Referrals</SectionLabel>
@@ -196,6 +199,14 @@ function Referrals({ ip }: { ip: InvestorProfile }) {
             </div>
           ))}
         </div>
+        {access.map((u) => (
+          u.kind === "access" && (
+            <Link key={u.tier.referrals} href={u.href} className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-accent/25 bg-accent/[0.06] px-3.5 py-3 text-[13px] hover:border-accent/40">
+              <span className="text-ink-100"><span className="text-signal-green">✓ {u.tier.reward} unlocked.</span> {u.label}</span>
+              <ArrowUpRight size={14} className="text-accent shrink-0" />
+            </Link>
+          )
+        ))}
         <Link href="/dashboard/referrals" className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft">Open referral dashboard <ArrowUpRight size={13} /></Link>
       </div>
     </section>

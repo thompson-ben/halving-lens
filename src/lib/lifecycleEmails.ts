@@ -268,7 +268,7 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
           </td></tr>
         </table>
         <div style="font:400 13px/1.7 ${SANS};color:${C.dim};margin-top:14px;">
-          A few of the milestones: <span style="color:${C.sub};">3 → Premium Chart Pack · 10 → Weekly Deep Dive · 25 → Members Community · 100 → Founder status</span>.
+          A few of the milestones: <span style="color:${C.sub};">3 → Founder&rsquo;s Collection · 10 → Early Access · 25 → Ambassador · 100 → Hall of Fame</span>.
         </div>`;
       return {
         html: shell({
@@ -286,7 +286,7 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
           [
             "The easiest way: tap Share on any page — your referral link and a scannable QR are built in. Copy it, post it, or hand someone your phone to scan. Every join is credited to you.",
             `Or share your personal link: ${ctx.referralLink}`,
-            "Milestones: 3 → Premium Chart Pack, 10 → Weekly Deep Dive, 25 → Members Community, 100 → Founder status.",
+            "Milestones: 3 → Founder's Collection, 10 → Early Access, 25 → Ambassador, 100 → Hall of Fame.",
             `Dashboard: ${SITE_URL}/dashboard/referrals`,
           ],
           ctx,
