@@ -127,7 +127,7 @@ export function BriefSignup({
                 disabled={submitting}
                 className="h-11 px-5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
               >
-                {submitting ? "Joining…" : "Join the waitlist"}
+                {submitting ? "Subscribing…" : "Subscribe free"}
               </button>
             </div>
             <label className="flex items-start gap-2 text-[11px] text-ink-400 cursor-pointer">
@@ -155,8 +155,8 @@ export function BriefSignup({
               <span>· Unsubscribe anytime</span>
             </div>
             <p className="mt-2 text-[11px] text-ink-500">
-              Validating interest before the email product ships — you&apos;ll be first to know when
-              daily delivery and cycle alerts go live.
+              Delivered every morning. You&apos;ll get a welcome email now, then the daily brief from
+              tomorrow.
             </p>
           </>
         )}
