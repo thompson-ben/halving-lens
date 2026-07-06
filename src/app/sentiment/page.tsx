@@ -9,6 +9,7 @@ import {
   forwardReturnByBand,
   pricedSentimentSeries,
   SENTIMENT_AVAILABLE,
+  sentimentChange,
   sentimentRead,
 } from "@/lib/sentiment";
 
@@ -20,10 +21,27 @@ const TONE_TEXT: Record<string, string> = {
   teal: "text-accent",
 };
 
+// Recent change reads on the same fear→greed scale as the gauge: rising (toward
+// greed) green, falling (toward fear) red, broadly steady muted.
+function changeTone(dir: "rising" | "falling" | "flat"): string {
+  return dir === "rising" ? "text-signal-green" : dir === "falling" ? "text-signal-red" : "text-ink-400";
+}
+function changeArrow(dir: "rising" | "falling" | "flat"): string {
+  return dir === "rising" ? "↑" : dir === "falling" ? "↓" : "→";
+}
+
 export default function SentimentPage() {
   const read = SENTIMENT_AVAILABLE ? sentimentRead() : null;
   const overlay = SENTIMENT_AVAILABLE ? pricedSentimentSeries() : [];
   const returns = SENTIMENT_AVAILABLE ? forwardReturnByBand(FORWARD_HORIZON_DAYS) : [];
+  // Recent change over a day / week / month — subtle context beneath the reading.
+  const changes = SENTIMENT_AVAILABLE
+    ? ([
+        { label: "24h", c: sentimentChange(1) },
+        { label: "7d", c: sentimentChange(7) },
+        { label: "30d", c: sentimentChange(30) },
+      ] as const).filter((x) => x.c)
+    : [];
 
   return (
     <div className="space-y-12 lg:space-y-14">
@@ -86,6 +104,22 @@ export default function SentimentPage() {
                 <p className="mt-3.5 text-[14px] text-ink-300 leading-relaxed">{read.summary}</p>
               </div>
             </div>
+
+            {/* Recent change — subtle context: has it moved, or hovering here? */}
+            {changes.length > 0 && (
+              <div className="relative z-10 mt-7 pt-5 border-t border-white/[0.06] flex items-center gap-x-6 gap-y-2 flex-wrap">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-ink-500">Recent change</span>
+                {changes.map(({ label, c }) => (
+                  <span key={label} className="inline-flex items-baseline gap-1.5 tabular-nums">
+                    <span className="text-[10px] uppercase tracking-wider text-ink-500 font-mono">{label}</span>
+                    <span className={`text-[13px] font-medium ${changeTone(c!.direction)}`}>
+                      {changeArrow(c!.direction)} {c!.delta >= 0 ? "+" : ""}{c!.delta}
+                    </span>
+                  </span>
+                ))}
+                <span className="text-[10.5px] text-ink-600">points</span>
+              </div>
+            )}
             <div className="watermark">halvinglens.com · sentiment</div>
           </section>
 
