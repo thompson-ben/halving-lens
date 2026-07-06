@@ -109,7 +109,7 @@ export default function SentimentPage() {
                 Label on its own line; the three values sit in a fixed 3-column
                 row beneath so they never wrap (notably on mobile). */}
             {changes.length > 0 && (
-              <div className="relative z-10 mt-7 pt-5 border-t border-white/[0.06]">
+              <div className="relative z-10 mt-7 pt-5 mb-5 border-t border-white/[0.06]">
                 <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500">
                   Recent change <span className="text-ink-600">· points</span>
                 </div>
@@ -140,7 +140,9 @@ export default function SentimentPage() {
                 and watch how red markers tend to cluster near lows and green near tops.
               </p>
             </div>
-            <div className="card p-4 sm:p-7 relative">
+            {/* Explicit bottom padding (not the p-4/p-7 shorthand) so the wrapping
+                legend clears the absolute watermark on narrow screens. */}
+            <div className="card px-4 pt-4 pb-9 sm:px-7 sm:pt-7 relative">
               <PriceSentimentChart data={overlay} height={360} />
               <div className="watermark">halvinglens.com · fear &amp; greed</div>
             </div>
