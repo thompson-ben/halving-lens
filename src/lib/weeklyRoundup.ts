@@ -35,8 +35,20 @@ export interface RoundupPersonal {
   streak: number;
   longest: number;
   referrals: number;
+  briefsRead: number;
   leaderboardPosition: number | null;
   achievements: number;
+}
+
+// A gentle, milestone-aware progress line for the weekly note — enriches an
+// existing email, never a new one. Nudges toward the next referral milestone,
+// otherwise reflects reading progress.
+function progressLine(p: RoundupPersonal): string {
+  if (p.referrals >= 1 && p.referrals < 5) {
+    const left = 5 - p.referrals;
+    return `You're ${left} referral${left === 1 ? "" : "s"} away from Community Builder.`;
+  }
+  return `You've now read ${p.briefsRead} Daily Brief${p.briefsRead === 1 ? "" : "s"}.`;
 }
 
 // Friendly label for a content path.
@@ -130,6 +142,7 @@ export function roundupEmailHtml(
             : `You're among our earliest supporters — helping shape our founding community. `
         }Keep your streak alive — read tomorrow's brief.
       </div>
+      <div style="font:400 13px/1.6 ${SANS};color:${C.dim};margin-top:8px;">${esc(progressLine(personal))}</div>
       <div style="margin-top:10px;"><a href="${link("/profile", "ru_profile")}" style="font:600 12.5px/1 ${SANS};color:${C.gold};text-decoration:none;">Open your Investor Profile →</a></div>
     </td></tr>`
     : `

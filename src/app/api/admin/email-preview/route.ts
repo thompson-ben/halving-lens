@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
   if (which === "roundup") {
     const general = await roundupGeneral();
-    const personal = { name: "Satoshi", streak: 12, longest: 41, referrals: 5, leaderboardPosition: 3, achievements: 6 };
+    const personal = { name: "Satoshi", streak: 12, longest: 41, referrals: 5, briefsRead: 38, leaderboardPosition: 3, achievements: 6 };
     return new Response(roundupEmailHtml(unsub, general, personal), { headers: { "Content-Type": "text/html; charset=utf-8" } });
   }
 

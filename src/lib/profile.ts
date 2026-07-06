@@ -53,6 +53,8 @@ export interface ProfileState {
   hallName?: string; // deprecated — superseded by the profiles.display_name column; still read as a fallback
   youtubeSubscribed?: boolean; // self-attested "I subscribed to the YouTube channel"
   entitlements?: string[]; // granted entitlements (premium, beta, …) — see entitlements.ts
+  milestones?: Record<string, number>; // celebrated milestone id → first-earned timestamp (ms)
+  celebrationsOff?: boolean; // member disabled the milestone celebration toasts
   updatedAt?: number;
 }
 
