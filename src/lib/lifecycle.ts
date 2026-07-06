@@ -15,10 +15,20 @@ import { LIFECYCLE_LAUNCH, LIFECYCLE_CATCHUP_DAYS } from "./lifecycleConfig";
 
 const DAY = 86_400_000;
 
+// Floor a timestamp to the start of its UTC day.
+const floorToUtcDay = (ms: number): number => Math.floor(ms / DAY) * DAY;
+
 export function enrolAnchorMs(signupISO: string | null, nowMs: number): number {
   const launch = Date.parse(`${LIFECYCLE_LAUNCH}T00:00:00Z`);
-  const signup = signupISO ? Date.parse(signupISO) : nowMs;
-  return Math.max(Number.isFinite(signup) ? signup : nowMs, Number.isFinite(launch) ? launch : 0);
+  const signupRaw = signupISO ? Date.parse(signupISO) : nowMs;
+  // Anchor to the START of the signup day (UTC), not the exact moment — so
+  // dayOffset counts whole calendar days. A member who subscribes at any hour
+  // today receives the day-1 tour at the next daily send (~08:00 London
+  // tomorrow), rather than waiting a further day when they happen to sign up
+  // after the morning run. LIFECYCLE_LAUNCH is already midnight, so existing
+  // subscribers (anchored to launch) are unaffected.
+  const signup = floorToUtcDay(Number.isFinite(signupRaw) ? signupRaw : nowMs);
+  return Math.max(signup, Number.isFinite(launch) ? launch : 0);
 }
 
 // Steps this subscriber is eligible for now: enabled, not already sent, past
