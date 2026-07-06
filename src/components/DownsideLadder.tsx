@@ -91,9 +91,20 @@ export function DownsideLadder() {
                   <span className={`font-display text-[22px] sm:text-[26px] font-medium tabular-nums leading-none ${tone.price}`}>
                     {fmtUsd(level.price)}
                   </span>
-                  <span className="font-mono text-[12.5px] text-ink-400 tabular-nums">
-                    {fmtPct(level.dropPctFromCurrent, 0)}
-                  </span>
+                  {/* Drawdown rungs headline the depth FROM THE CYCLE HIGH — the value
+                      that defines the price — so %, target and copy reconcile. The
+                      distance from today's price is shown as a clearly-labelled aside.
+                      Support levels are naturally read as distance below today. */}
+                  {level.drawdownFromHighPct != null ? (
+                    <span className="font-mono text-[12.5px] tabular-nums">
+                      <span className="text-ink-200">{fmtPct(level.drawdownFromHighPct, 1)} from high</span>
+                      <span className="text-ink-500"> · {fmtPct(level.dropPctFromCurrent, 0)} from today</span>
+                    </span>
+                  ) : (
+                    <span className="font-mono text-[12.5px] text-ink-400 tabular-nums">
+                      {fmtPct(level.dropPctFromCurrent, 0)} from today
+                    </span>
+                  )}
                 </div>
               </div>
               <p className="mt-1.5 text-[12.5px] text-ink-300 leading-relaxed max-w-2xl">
@@ -129,7 +140,7 @@ export function DownsideTiers() {
             {fmtUsd(t.price, { compact: true })}
           </div>
           <div className="mt-1 font-mono text-[11px] text-ink-500 tabular-nums">
-            {fmtPct(t.dropPctFromCurrent, 0)}
+            {fmtPct(t.drawdownFromHighPct ?? t.dropPctFromCurrent, 0)} from high
           </div>
         </div>
       ))}

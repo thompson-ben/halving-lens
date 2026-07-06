@@ -45,7 +45,8 @@ export interface DownsideLevel {
   label: string;
   category: "support" | "drawdown";
   price: number;
-  dropPctFromCurrent: number; // negative = below current price
+  dropPctFromCurrent: number; // negative = below current price ("from today")
+  drawdownFromHighPct?: number; // drawdown rungs only: the depth from the cycle high that DEFINES this price
   methodology: string;
   explanation: string;
   dataQuality: DataQuality;
@@ -200,6 +201,9 @@ export function downsideScenarios(): DownsideScenarios {
     explanation: string,
   ): DownsideLevel | null => {
     if (depthPct == null || cycleHigh <= 0) return null;
+    // Single source of truth: the target is the cycle high reduced by the drawdown
+    // depth. The displayed drawdown %, the price, and the copy all derive from
+    // these two numbers, so they always reconcile: price = cycleHigh × (1 + depth/100).
     const price = cycleHigh * (1 + depthPct / 100);
     return {
       key,
@@ -207,6 +211,7 @@ export function downsideScenarios(): DownsideScenarios {
       category: "drawdown",
       price,
       dropPctFromCurrent: pct(price, currentPrice),
+      drawdownFromHighPct: depthPct,
       methodology: `Historical drawdown applied to the cycle high (${fmtSigned(depthPct)} from ${Math.round(cycleHigh).toLocaleString()})`,
       explanation,
       dataQuality: derivedFromData ? "live-derived" : "coming-soon",
