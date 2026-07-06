@@ -11,7 +11,7 @@ import { marketingHealth } from "./marketingHealth";
 import { allEditions, libraryStats } from "./research";
 import { allWeeklies } from "./weekly";
 import {
-  sinceLaunch, getRecords, mergeRecords, thisTimeLastYear, latestJournal,
+  sinceLaunch, getRecords, mergeRecords, thisTimeLastYear, latestJournal, longestCommunityStreak,
   type SinceLaunchRow, type CompanyRecord, type YoYRow, type SnapshotMetrics, type JournalEntry,
 } from "./companyHistory";
 
@@ -34,6 +34,7 @@ export interface FounderReport {
   sinceLaunch: { days: number; rows: SinceLaunchRow[] };
   records: CompanyRecord[]; // all-time bests (stored ∪ this period's candidates)
   lastYear: { monthLabel: string; lastYearLabel: string; rows: YoYRow[] } | null; // null until 12mo of data
+  yoyStory: string[] | null; // narrative summary of the year-over-year change (null until data)
   journal: { month: string; entry: JournalEntry } | null;
   // Internal: figures the SEND path persists (snapshot + record highs). Ignored by previews.
   persist: { snapshot: SnapshotMetrics; recordCandidates: CompanyRecord[] };
@@ -278,10 +279,28 @@ export async function founderReport(): Promise<FounderReport> {
   if (visW > 0) recordCandidates.push({ metric: "weekly_visitors", label: "Highest weekly visitors", value: visW, unit: "", achievedOn: generatedAt });
   if (visM > 0) recordCandidates.push({ metric: "monthly_visitors", label: "Highest monthly visitors", value: visM, unit: "", achievedOn: generatedAt });
   if (email.openRate != null) recordCandidates.push({ metric: "best_open_rate", label: "Best email open rate", value: email.openRate, unit: "%", achievedOn: generatedAt });
+  if (a.research?.topEditions?.[0]?.n) recordCandidates.push({ metric: "most_read_edition", label: "Most-read edition", value: a.research.topEditions[0].n, unit: "", achievedOn: generatedAt, detail: a.research.topEditions[0].label });
+  if (a.topPages?.[0]?.n) recordCandidates.push({ metric: "most_viewed_page", label: "Most-viewed page", value: a.topPages[0].n, unit: "", achievedOn: generatedAt, detail: a.topPages[0].label });
+  const longestStreak = await longestCommunityStreak(generatedAt);
+  if (longestStreak > 0) recordCandidates.push({ metric: "longest_streak", label: "Longest reading streak", value: longestStreak, unit: " days", achievedOn: generatedAt });
 
   const records = mergeRecords(await getRecords(), recordCandidates);
   const lastYear = await thisTimeLastYear(snapshot, now);
   const journal = await latestJournal();
+
+  // ── Year-over-year story (auto once a year of snapshots exists) ─────────────
+  let yoyStory: string[] | null = null;
+  if (lastYear) {
+    const find = (label: string) => lastYear.rows.find((r) => r.label === label);
+    const subs = find("Subscribers"), vis = find("Total page views");
+    const parts: string[] = [];
+    if (subs && subs.then > 0) parts.push(`We're ${(subs.now / subs.then).toFixed(1)}× the subscribers of a year ago (${subs.then.toLocaleString()} → ${subs.now.toLocaleString()}).`);
+    if (vis && vis.then > 0) parts.push(`Traffic is ${(vis.now / vis.then).toFixed(1)}× a year ago (${vis.then.toLocaleString()} → ${vis.now.toLocaleString()} page views).`);
+    if (topResearchFeature) parts.push(`Most-engaged research lens this year: ${topResearchFeature.label}.`);
+    if (a.research?.topEditions?.[0]) parts.push(`Best-performing content: ${a.research.topEditions[0].label}.`);
+    if (topSource) parts.push(`Strongest traffic source: ${topSource.label}.`);
+    yoyStory = parts.length ? parts : null;
+  }
 
   return {
     weekLabel: `Week to ${new Date(now).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })} (${week})`,
@@ -305,6 +324,7 @@ export async function founderReport(): Promise<FounderReport> {
     sinceLaunch: { days: sl.days, rows: sl.rows },
     records,
     lastYear,
+    yoyStory,
     journal,
     persist: { snapshot, recordCandidates },
   };

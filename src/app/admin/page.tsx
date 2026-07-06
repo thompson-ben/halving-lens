@@ -72,10 +72,10 @@ const SECTIONS: AdminSection[] = [
     emoji: "👤",
     items: [
       { label: "Weekly Report", href: "/api/admin/founder-report-preview" },
+      { label: "Founder Journal", href: "/admin/founder-journal" },
       { label: "KPIs", href: "/admin/growth" },
       { label: "Experiment History", href: "/admin/experiments" },
       { label: "Revenue", soon: true },
-      { label: "Roadmap", soon: true },
     ],
   },
   {

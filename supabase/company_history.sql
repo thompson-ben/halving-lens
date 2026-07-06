@@ -27,6 +27,9 @@ create table if not exists public.company_records (
   achieved_on  date not null,
   updated_at   timestamptz not null default now()
 );
+-- Optional context for the record (e.g. which brief was most-read). Added
+-- separately so an existing table upgrades in place. Safe to re-run.
+alter table public.company_records add column if not exists detail text;
 alter table public.company_records enable row level security;
 
 -- Founder journal — hand-written monthly reflections. A chronological journal
