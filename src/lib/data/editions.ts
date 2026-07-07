@@ -6,6 +6,100 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 402,
+    "slug": "2026-07-07",
+    "dateLabel": "Tuesday 7 July 2026",
+    "feature": {
+      "key": "similar",
+      "day": "Tuesday",
+      "title": "Similar Moments"
+    },
+    "subject": "A familiar setup — echoes of Jun 2022",
+    "take": "Bitcoin stays in one of its cheapest historical valuation regions even as ETF flows turn negative.",
+    "contextScore": {
+      "score": 75,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "Bitcoin is trading cheaper than 80% of all weeks in its history. We have only seen conditions like this a handful of times before.",
+    "confidence": {
+      "level": "HIGH",
+      "blurb": "Most of today's core signals point the same way.",
+      "detail": "Valuation, cycle timing point the same way; ETF flows diverge."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Attractive",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "20/100"
+      },
+      {
+        "label": "Sentiment",
+        "value": "Fear",
+        "color": "#e0a64f",
+        "strength": 2,
+        "metric": "27/100"
+      },
+      {
+        "label": "Cycle position",
+        "value": "Cooling",
+        "color": "#5fd0a0",
+        "strength": 3,
+        "metric": "21/100"
+      },
+      {
+        "label": "ETF demand",
+        "value": "Weak",
+        "color": "#e8786f",
+        "strength": 2,
+        "metric": "−$1.40B/wk"
+      },
+      {
+        "label": "Momentum",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "+0.7%"
+      }
+    ],
+    "historicalContext": {
+      "match": "Jun 2022",
+      "similarity": 87,
+      "body": "Today most closely resembles Jun 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "It's tempting to read negative flows as a verdict. They're usually just an echo.",
+      "body": "Flows follow price more than they lead it. Bitcoin is trading cheaper than 80% of its history regardless — and the gap between a cheap setup and a fearful tape is usually where the interesting decisions get made."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      },
+      {
+        "signal": "ETF inflows accelerating",
+        "status": "Net outflows of ~$1.4B over the last 7 days"
+      }
+    ],
+    "memory": "Every roughly four years, by a rule written in code, the new supply of bitcoin is cut in half.",
+    "heroNarrative": "similar",
+    "readMin": 2,
+    "metrics": {
+      "price": 64063.061258,
+      "fearGreed": 27,
+      "accumulationScore": 20,
+      "accumulationBand": "Historically Attractive",
+      "accumulationPercentile": 20,
+      "cycleDay": 809,
+      "etf": "Weak",
+      "sentiment": "Fear"
+    },
+    "search": "bitcoin stays in one of its cheapest historical valuation regions even as etf flows turn negative. bitcoin is trading cheaper than 80% of all weeks in its history. we have only seen conditions like this a handful of times before. it's tempting to read negative flows as a verdict. they're usually just an echo. flows follow price more than they lead it. bitcoin is trading cheaper than 80% of its history regardless — and the gap between a cheap setup and a fearful tape is usually where the interesting decisions get made. today most closely resembles jun 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. every roughly four years, by a rule written in code, the new supply of bitcoin is cut in half. similar moments clear historical context fear historically attractive divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles etf inflows accelerating net outflows of ~$1.4b over the last 7 days"
+  },
+  {
     "edition": 401,
     "slug": "2026-07-06",
     "dateLabel": "Monday 6 July 2026",
