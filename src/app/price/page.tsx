@@ -1,7 +1,7 @@
 import { BtcPriceChart } from "@/components/BtcPriceChart";
 import { CycleChartExperience } from "@/components/CycleChartExperience";
 import { DataBadge } from "@/components/DataBadge";
-import { LastUpdated } from "@/components/LastUpdated";
+import { LastUpdated, dailyCloseSource } from "@/components/LastUpdated";
 import { priceStats } from "@/lib/btcPrice";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
@@ -17,7 +17,7 @@ export default function PricePage() {
       <header className="pt-2">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">Bitcoin price</span>
-          <DataBadge status="live" source="daily close" />
+          <DataBadge status="live" source={dailyCloseSource()} />
         </div>
 
         <div className="flex items-end gap-4 flex-wrap">
