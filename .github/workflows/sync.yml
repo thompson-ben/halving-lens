@@ -5,9 +5,16 @@ name: Daily sync
 # the daily brief, content-pack cards and warehouse — refreshes each morning.
 #
 # GitHub cron is UTC-only and doesn't follow British Summer Time, so we schedule
-# at both 07:00 and 08:00 UTC and a gate job only lets the run proceed when it's
-# actually 08:00 in London (07:00 UTC in BST, 08:00 UTC in GMT) — exactly one run
-# per day at 8am London. Manual runs from the Actions tab always proceed.
+# at both 07:00 and 08:00 UTC and an in-job gate step only lets the run proceed
+# when it's actually 08:00 in London (07:00 UTC in BST, 08:00 UTC in GMT) —
+# exactly one run per day at 8am London. Manual runs always proceed.
+#
+# The gate is a STEP inside the single job (not a separate job) on purpose: a
+# separate gate job needs its own runner, and if that runner can't be acquired
+# the whole pipeline is skipped with no data refresh and no brief sent (this
+# happened on 2026-07-09). Keeping everything in one job means one runner
+# acquisition, and `timeout-minutes` guarantees a stuck run fails fast (and
+# visibly) instead of hanging for minutes and then being cancelled silently.
 
 on:
   schedule:
@@ -23,36 +30,48 @@ permissions:
   contents: write
 
 jobs:
-  gate:
-    name: Only at 08:00 Europe/London
-    runs-on: ubuntu-latest
-    outputs:
-      run: ${{ steps.check.outputs.run }}
-    steps:
-      - id: check
-        run: |
-          H=$(TZ=Europe/London date +%H)
-          echo "London hour: $H"
-          if [ "$H" = "08" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
-
   sync:
     name: Pull live snapshot
-    needs: gate
-    # Proceed only at 8am London (scheduled) or whenever triggered manually.
-    if: ${{ github.event_name == 'workflow_dispatch' || needs.gate.outputs.run == 'true' }}
     runs-on: ubuntu-latest
+    # Hard ceiling so a stuck runner/queue can never hang for many minutes and
+    # then get cancelled silently — it fails fast and surfaces a clear failure.
+    timeout-minutes: 20
     steps:
+      # Gate — decide whether this run should do the real work. Manual runs
+      # (workflow_dispatch) always proceed; scheduled runs proceed only at 08:00
+      # Europe/London. Every real step below is guarded on `steps.gate.outputs.run`,
+      # so an out-of-window scheduled run is a clean no-op success.
+      - name: Gate (only at 08:00 Europe/London; manual runs always proceed)
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual run — proceeding."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            H=$(TZ=Europe/London date +%H)
+            echo "London hour: $H"
+            if [ "$H" = "08" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+          fi
+
+      - name: Not the window — nothing to do
+        if: steps.gate.outputs.run != 'true'
+        run: echo "Not 08:00 Europe/London and not a manual run — skipping the daily sync."
+
       - uses: actions/checkout@v5
+        if: steps.gate.outputs.run == 'true'
 
       - uses: actions/setup-node@v5
+        if: steps.gate.outputs.run == 'true'
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
         run: npm ci
 
       - name: Sync live data
+        if: steps.gate.outputs.run == 'true'
         run: npm run sync
         env:
           # Full sync fetches the rate-limited on-chain source (once per day here,
@@ -64,18 +83,22 @@ jobs:
           BITCOIN_DATA_API_KEY: ${{ secrets.BITCOIN_DATA_API_KEY }}
 
       - name: Persist today's brief into the archive
+        if: steps.gate.outputs.run == 'true'
         run: npm run persist-brief
 
       - name: Persist today's edition into the Morning Research Library
+        if: steps.gate.outputs.run == 'true'
         run: npm run persist-edition
 
       - name: Persist this week's HalvingLens Weekly Research
+        if: steps.gate.outputs.run == 'true'
         run: npm run persist-weekly
 
       - name: Append today's intelligence to the historical warehouse
         # Permanently stores the day's metrics, scores, signals, narratives,
         # brief, content and state changes in Supabase. Non-fatal — skips quietly
         # if the Supabase secrets aren't set. Run supabase/warehouse.sql once.
+        if: steps.gate.outputs.run == 'true'
         run: npm run warehouse
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -86,6 +109,7 @@ jobs:
       # deployment) and the image proxy's first request cold-rendered and timed
       # out → broken hero image.
       - name: Commit snapshot + brief archive (deploy today's build first)
+        if: steps.gate.outputs.run == 'true'
         run: |
           if git diff --quiet src/lib/data/snapshot.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/weeklies.ts; then
             echo "No data changes — nothing to deploy; will warm the existing deployment."
@@ -102,6 +126,7 @@ jobs:
         # push above, then request that URL until it returns a real image — this
         # renders + caches it in Vercel's durable cache, so Apple/Gmail's proxy
         # gets a warm hit instead of a cold render. Non-fatal.
+        if: steps.gate.outputs.run == 'true'
         continue-on-error: true
         run: |
           BASE="${NEXT_PUBLIC_SITE_URL:-https://halvinglens.com}"
@@ -122,6 +147,7 @@ jobs:
         # send + a daily summary to Supabase. Idempotent per day (won't double-
         # send). Non-fatal and skips quietly if RESEND_API_KEY / Supabase aren't
         # set. Run supabase/email.sql once. Requires a verified Resend domain.
+        if: steps.gate.outputs.run == 'true'
         run: npm run send-email
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -136,6 +162,7 @@ jobs:
         # run, idempotent per step (lifecycle_sends), back-enrols existing
         # subscribers, never touches the Daily Brief. Non-fatal; skips quietly if
         # secrets aren't set. Run supabase/lifecycle.sql once.
+        if: steps.gate.outputs.run == 'true'
         run: npm run send-lifecycle
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -152,6 +179,7 @@ jobs:
 
       - name: Send the weekly research email (Sundays)
         # Idempotent per ISO week and gated to Sunday — safe to run daily.
+        if: steps.gate.outputs.run == 'true'
         run: npm run send-weekly
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -164,6 +192,7 @@ jobs:
       - name: Send the Weekly Round-up email (Sundays)
         # Personalised retention round-up. Sunday-gated + idempotent per ISO week
         # — safe to run daily. Non-fatal.
+        if: steps.gate.outputs.run == 'true'
         run: npm run send-roundup
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -177,6 +206,7 @@ jobs:
       - name: Send the founder weekly intelligence report (Mondays, founder only)
         # Monday-gated + idempotent per ISO week — safe to run daily. Goes only
         # to FOUNDER_EMAIL, never to subscribers.
+        if: steps.gate.outputs.run == 'true'
         run: npm run send-founder-report
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
