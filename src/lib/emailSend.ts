@@ -15,7 +15,7 @@ import { captureMonthlySnapshot, updateRecords } from "./companyHistory";
 import { briefDate } from "./briefArchive";
 import { unsubToken } from "./emailToken";
 import { emailTracking } from "./emailTracking";
-import { absoluteUrl } from "./site";
+import { absoluteUrl, resolveEmailImageBase } from "./site";
 
 export interface SendSummary {
   ok: boolean;
@@ -46,6 +46,11 @@ async function alreadySentToday(date: string): Promise<boolean> {
 export async function sendDailyBrief(opts: { force?: boolean; testTo?: string } = {}): Promise<SendSummary> {
   const date = today();
   const base: SendSummary = { ok: false, date, subscriberCount: 0, sent: 0, delivered: 0, failed: 0, provider: "resend" };
+
+  // Resolve the canonical (non-redirecting) host for the embedded hero image
+  // before rendering — so both the preview and the real send point the image at
+  // a host that returns a direct 200 for mail proxies. Safe no-op if unneeded.
+  await resolveEmailImageBase();
 
   // Test mode: send today's brief — rendered identically — to a single address
   // (the admin) only. No subscriber list, no delivery logging, no once-per-day

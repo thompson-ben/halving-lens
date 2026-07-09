@@ -35,7 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     # Hard ceiling so a stuck runner/queue can never hang for many minutes and
     # then get cancelled silently — it fails fast and surfaces a clear failure.
-    timeout-minutes: 20
+    # Allows for the image-warm poll + the founder-preview hold window below.
+    timeout-minutes: 30
     steps:
       # Gate — decide whether this run should do the real work. Manual runs
       # (workflow_dispatch) always proceed; scheduled runs proceed only at 08:00
@@ -121,31 +122,61 @@ jobs:
             git push
           fi
 
-      - name: Verify + warm the daily hero image (exact email URL)
-        # The emails embed /email/chart/<today>. We poll that URL EXACTLY as a mail
-        # image proxy would (no redirect-follow) and require a direct `200 image/*`.
-        # If it's a redirect (307) or anything else, the proxy shows a broken image
-        # — so we fail loudly with a diagnostic instead of shipping it silently
-        # (the 2026-07-09 incident: 15× 307, hidden by the old continue-on-error).
-        # `!cancelled()` so it still runs if an upstream data step failed. A long
-        # window gives the fresh Vercel deploy time to go live.
+      - name: Verify + warm the daily hero image
+        # The email embeds /email/chart/<today> on the CANONICAL host (the app
+        # resolves any redirect at send time — see resolveEmailImageBase). We warm
+        # that final asset by FOLLOWING redirects (-L) and requiring a real
+        # `200 image/*`; the -w code is the FINAL response, i.e. exactly what the
+        # email's image resolves to. If even the canonical host can't serve it, we
+        # fail loudly with a diagnostic instead of shipping a broken image silently
+        # (the 2026-07-09 incident was a redirect hidden by continue-on-error).
+        # `!cancelled()` so it still runs after an upstream failure; the long poll
+        # gives the fresh Vercel deploy time to go live.
         if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
         run: |
           BASE="${NEXT_PUBLIC_SITE_URL:-https://halvinglens.com}"
           URL="${BASE%/}/email/chart/$(date -u +%Y-%m-%d)"
-          echo "Checking exactly what a mail proxy fetches (no redirect-follow): $URL"
+          echo "Warming (following redirects to the canonical host): $URL"
           sleep 90
           OUT="000 -"
           for i in $(seq 1 24); do
-            OUT=$(curl -s -o /dev/null -w "%{http_code} %{content_type}" -A "halvinglens-warmer" "$URL" || echo "000 -")
+            OUT=$(curl -sL -o /dev/null -w "%{http_code} %{content_type}" -A "halvinglens-warmer" "$URL" || echo "000 -")
             echo "attempt $i → $OUT"
             case "$OUT" in "200 image/"*) echo "hero image warm ✓"; exit 0;; esac
             sleep 20
           done
-          echo "::error title=Hero image not directly servable::$URL did not return a direct '200 image/*' (last: $OUT). Mail proxies will show a broken image. Most likely NEXT_PUBLIC_SITE_URL points at a host that redirects (e.g. www <-> apex) — set the secret to the canonical domain that serves 200 with no redirect. The brief still sends (decoupled)."
+          echo "::error title=Hero image not servable::$URL never resolved to a '200 image/*' (last: $OUT). Recipients may see a broken image. Check that halvinglens.com serves /email/chart/<date> as an image. The brief still sends (decoupled)."
           exit 1
         env:
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+      - name: Preview the brief to the founder (before subscribers)
+        # Sends the fully-rendered brief to the founder only — no subscriber list,
+        # no delivery record, no once-per-day guard — so it can be eyeballed ahead
+        # of the real send. The hold below is the window to cancel this run if the
+        # preview looks wrong. Decoupled so it still runs after an upstream failure.
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
+        run: npm run send-email
+        env:
+          BRIEF_TEST_TO: ${{ secrets.FOUNDER_EMAIL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+      - name: Hold for the founder review window
+        # Time between the founder preview and the subscriber send. Cancel this run
+        # during the hold to abort the subscriber send. Override the lead time with
+        # a BRIEF_PREVIEW_LEAD_MINUTES repo variable (default 10 minutes).
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
+        run: |
+          MIN="${BRIEF_PREVIEW_LEAD_MINUTES:-10}"
+          echo "Founder preview sent — holding ${MIN} min before the subscriber send (cancel this run to abort)."
+          sleep $(( MIN * 60 ))
+        env:
+          BRIEF_PREVIEW_LEAD_MINUTES: ${{ vars.BRIEF_PREVIEW_LEAD_MINUTES }}
 
       - name: Send the daily brief email
         # Sends the day's brief to active subscribers via Resend, then logs each
