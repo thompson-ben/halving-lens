@@ -1,0 +1,84 @@
+name: Daily brief failsafe
+
+# Last line of defence for the daily brief. If the main Daily sync run fails to
+# send it (e.g. a runner is never acquired — as happened on 2026-07-09), these
+# later attempts deliver it, and if it STILL hasn't gone out they alert the
+# founder.
+#
+# Scope is deliberately narrow: it ONLY runs `send-email`, which is idempotent
+# per calendar day (it checks email_deliveries), so if the brief already went out
+# this is a silent no-op. It intentionally does NOT run the onboarding drip — that
+# must fire at most once per day, from the main run only.
+
+on:
+  schedule:
+    - cron: "0 9 * * *"  # ~10:00 London (BST) / 09:00 (GMT) — a couple of hours after the 08:00 main send
+    - cron: "0 11 * * *" # ~12:00 London (BST) / 11:00 (GMT) — second net
+  workflow_dispatch:
+
+concurrency:
+  group: sync # share the main group so a failsafe run never races the main run
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ensure-brief-sent:
+    name: Ensure the daily brief was sent
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Send the daily brief if it hasn't gone out yet (idempotent)
+        # Idempotent per day — a no-op if the main run already sent it.
+        run: npm run send-email
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+      - name: Verify delivery + alert the founder if the brief still hasn't sent
+        # Source of truth is the email_deliveries record, not script output: if
+        # there's no row for today after the retry above, the brief genuinely did
+        # not go out. Email the founder (best-effort) and fail the run so the
+        # GitHub Actions notification fires too.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          FOUNDER_EMAIL: ${{ secrets.FOUNDER_EMAIL }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Supabase not configured — cannot verify delivery; skipping."
+            exit 0
+          fi
+          TODAY=$(date -u +%F)
+          ROWS=$(curl -s -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "${SUPABASE_URL%/}/rest/v1/email_deliveries?select=date&date=eq.$TODAY&limit=1" || echo "")
+          echo "email_deliveries[$TODAY] → $ROWS"
+          if printf '%s' "$ROWS" | grep -q '"date"'; then
+            echo "✓ Daily brief is recorded as sent for $TODAY."
+            exit 0
+          fi
+          echo "::error title=Daily brief NOT sent::No email_deliveries row for $TODAY after the failsafe retry — the brief did not go out."
+          # Best-effort branded alert; never let its failure mask the red exit below.
+          if [ -n "$RESEND_API_KEY" ] && [ -n "$FOUNDER_EMAIL" ] && [ -n "$EMAIL_FROM" ]; then
+            BODY=$(printf '{"from":"%s","to":"%s","subject":"[HalvingLens] ALERT: daily brief did NOT send (%s)","text":"The daily brief has no delivery record for %s, even after the failsafe retry. Check the Daily sync and Daily brief failsafe workflow runs."}' \
+              "$EMAIL_FROM" "$FOUNDER_EMAIL" "$TODAY" "$TODAY")
+            curl -s -X POST "https://api.resend.com/emails" \
+              -H "Authorization: Bearer $RESEND_API_KEY" -H "Content-Type: application/json" \
+              --data "$BODY" >/dev/null && echo "Founder alert email sent." || echo "Founder alert email failed to send."
+          fi
+          exit 1
