@@ -121,24 +121,29 @@ jobs:
             git push
           fi
 
-      - name: Wait for deploy, then warm the daily hero image
-        # The emails embed /email/chart/<today>. Give Vercel time to publish the
-        # push above, then request that URL until it returns a real image — this
-        # renders + caches it in Vercel's durable cache, so Apple/Gmail's proxy
-        # gets a warm hit instead of a cold render. Non-fatal.
-        if: steps.gate.outputs.run == 'true'
-        continue-on-error: true
+      - name: Verify + warm the daily hero image (exact email URL)
+        # The emails embed /email/chart/<today>. We poll that URL EXACTLY as a mail
+        # image proxy would (no redirect-follow) and require a direct `200 image/*`.
+        # If it's a redirect (307) or anything else, the proxy shows a broken image
+        # — so we fail loudly with a diagnostic instead of shipping it silently
+        # (the 2026-07-09 incident: 15× 307, hidden by the old continue-on-error).
+        # `!cancelled()` so it still runs if an upstream data step failed. A long
+        # window gives the fresh Vercel deploy time to go live.
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
         run: |
           BASE="${NEXT_PUBLIC_SITE_URL:-https://halvinglens.com}"
           URL="${BASE%/}/email/chart/$(date -u +%Y-%m-%d)"
-          echo "Warming $URL"
-          sleep 120
-          for i in $(seq 1 15); do
+          echo "Checking exactly what a mail proxy fetches (no redirect-follow): $URL"
+          sleep 90
+          OUT="000 -"
+          for i in $(seq 1 24); do
             OUT=$(curl -s -o /dev/null -w "%{http_code} %{content_type}" -A "halvinglens-warmer" "$URL" || echo "000 -")
-            echo "warm attempt $i → $OUT"
-            case "$OUT" in "200 image/"*) echo "hero image warm ✓"; break;; esac
+            echo "attempt $i → $OUT"
+            case "$OUT" in "200 image/"*) echo "hero image warm ✓"; exit 0;; esac
             sleep 20
           done
+          echo "::error title=Hero image not directly servable::$URL did not return a direct '200 image/*' (last: $OUT). Mail proxies will show a broken image. Most likely NEXT_PUBLIC_SITE_URL points at a host that redirects (e.g. www <-> apex) — set the secret to the canonical domain that serves 200 with no redirect. The brief still sends (decoupled)."
+          exit 1
         env:
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
 
@@ -147,7 +152,11 @@ jobs:
         # send + a daily summary to Supabase. Idempotent per day (won't double-
         # send). Non-fatal and skips quietly if RESEND_API_KEY / Supabase aren't
         # set. Run supabase/email.sql once. Requires a verified Resend domain.
-        if: steps.gate.outputs.run == 'true'
+        # Decoupled from the data pipeline: `!cancelled()` lets the send run even
+        # if an upstream data step failed, so a refresh hiccup can never block the
+        # brief — it goes out with the last-good committed snapshot. The run still
+        # shows red if something upstream broke, so failures stay visible.
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
         run: npm run send-email
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -162,7 +171,7 @@ jobs:
         # run, idempotent per step (lifecycle_sends), back-enrols existing
         # subscribers, never touches the Daily Brief. Non-fatal; skips quietly if
         # secrets aren't set. Run supabase/lifecycle.sql once.
-        if: steps.gate.outputs.run == 'true'
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
         run: npm run send-lifecycle
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -179,7 +188,7 @@ jobs:
 
       - name: Send the weekly research email (Sundays)
         # Idempotent per ISO week and gated to Sunday — safe to run daily.
-        if: steps.gate.outputs.run == 'true'
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
         run: npm run send-weekly
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -192,7 +201,7 @@ jobs:
       - name: Send the Weekly Round-up email (Sundays)
         # Personalised retention round-up. Sunday-gated + idempotent per ISO week
         # — safe to run daily. Non-fatal.
-        if: steps.gate.outputs.run == 'true'
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
         run: npm run send-roundup
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -206,7 +215,7 @@ jobs:
       - name: Send the founder weekly intelligence report (Mondays, founder only)
         # Monday-gated + idempotent per ISO week — safe to run daily. Goes only
         # to FOUNDER_EMAIL, never to subscribers.
-        if: steps.gate.outputs.run == 'true'
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
         run: npm run send-founder-report
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
