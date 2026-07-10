@@ -21,3 +21,38 @@ export const SITE_NAME = "halvinglens.com";
 export function absoluteUrl(path = "/"): string {
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+// ── Canonical host for embedded email IMAGES ─────────────────────────────────
+// Mail image proxies (Gmail / Apple Mail) fetch an <img src> exactly once and do
+// NOT follow redirects. So if SITE_URL's host 3xx-redirects to another host
+// (e.g. apex <-> www on the CDN — invisible in a browser, which follows it), the
+// hero image silently breaks in the email. Links are unaffected (clients follow
+// redirects), so ONLY images need this.
+//
+// We resolve the redirect ONCE at send time (following it from SITE_URL) and use
+// the FINAL origin — the host that serves a direct 200 — for image URLs. If the
+// probe fails for any reason we fall back to SITE_URL, so sending never depends
+// on it. Cached for the process lifetime.
+let cachedImageBase: string | null = null;
+
+export async function resolveEmailImageBase(): Promise<string> {
+  if (cachedImageBase) return cachedImageBase;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    // A cheap host-level path — a host redirect applies to every path, so this
+    // reveals the canonical origin without downloading the image itself.
+    const res = await fetch(`${SITE_URL}/robots.txt`, { redirect: "follow", signal: ctrl.signal });
+    clearTimeout(timer);
+    cachedImageBase = new URL(res.url).origin;
+  } catch {
+    cachedImageBase = SITE_URL;
+  }
+  return cachedImageBase;
+}
+
+// Synchronous accessor for HTML builders: the resolved canonical origin once a
+// send path has probed it (see resolveEmailImageBase), otherwise SITE_URL.
+export function emailImageBase(): string {
+  return cachedImageBase ?? SITE_URL;
+}

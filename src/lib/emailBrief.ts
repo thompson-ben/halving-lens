@@ -21,7 +21,7 @@ import { editorialFeature, editionNumber, featureHeroNarrative } from "./editori
 import { latestFindings } from "./findings";
 import { briefDate } from "./briefArchive";
 import type { Edition } from "./research";
-import { SITE_URL, SITE_HOST, absoluteUrl } from "./site";
+import { SITE_URL, SITE_HOST, absoluteUrl, emailImageBase } from "./site";
 import { type EmailTracking, NO_EMAIL_TRACKING, forHtmlAttr } from "./emailTracking";
 import { fmtUsd, fmtPct } from "./format";
 import { format } from "date-fns";
@@ -436,7 +436,9 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
   const b = buildBrief();
   const { acc, cheaper } = reads();
   const pro = tier === "pro";
-  const chartUrl = absoluteUrl(`/email/chart/${new Date().toISOString().slice(0, 10)}`);
+  // Image (not a link) → must sit on the canonical, non-redirecting host so mail
+  // proxies (which don't follow redirects) render it. See resolveEmailImageBase.
+  const chartUrl = `${emailImageBase()}/email/chart/${new Date().toISOString().slice(0, 10)}`;
   const conf = confidence();
   const ctx = historicalContext();
   const watch = watching();

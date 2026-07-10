@@ -36,6 +36,27 @@ export function lastUpdatedShort(): string | null {
   return fmtShort.format(new Date(SOURCE.fetchedAt));
 }
 
+// Date only (no time), UTC — e.g. "8 Jul 2026". Used to date a "daily close"
+// label so the reader can see at a glance which close a price refers to.
+const fmtDate = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+export function lastUpdatedDate(): string | null {
+  if (!SOURCE.fetchedAt) return null;
+  return fmtDate.format(new Date(SOURCE.fetchedAt));
+}
+
+// Source label that states the price is a daily close AND which day's close it
+// is — so freshness is obvious right where the number is described.
+export function dailyCloseSource(): string {
+  const d = lastUpdatedDate();
+  return d ? `daily close · ${d}` : "daily close";
+}
+
 export function LastUpdated({
   prefix = "Updated",
   className,
