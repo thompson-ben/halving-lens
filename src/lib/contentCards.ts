@@ -16,7 +16,7 @@ import { cycleTiming, cyclePeakTroughs } from "./cycleTiming";
 import { drawdownAnalysis } from "./drawdowns";
 import { similarMoments, currentMoment } from "./similarity";
 import { priorBrief, briefDate, todaySlug } from "./briefArchive";
-import { etfStats, ETF } from "./etf";
+import { etfStats, ETF, type EtfFlowPoint } from "./etf";
 import { sentimentRead, pricedSentimentSeries, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
 import { currentSentiment } from "./sentiment";
 import { accumulationRead, ACCUMULATION_BANDS } from "./accumulation";
@@ -31,7 +31,8 @@ const TONE_HEX: Record<string, string> = {
   green: "#3ddc97",
   teal: "#5eead4",
 };
-import { CYCLES, SOURCE, TODAY_DAY_IN_CYCLE } from "./btcData";
+import { CYCLES, SOURCE, TODAY, TODAY_DAY_IN_CYCLE } from "./btcData";
+import { METRICS, zoneFor, metricTodayRead, type MetricDef } from "./metrics";
 import { fmtUsd, fmtPct } from "./format";
 
 export type CardId =
@@ -58,7 +59,25 @@ export type CardId =
   | "hist_takeaway"
   // Accumulation Index assets
   | "accumulation"
-  | "accumulation_outcomes";
+  | "accumulation_outcomes"
+  // Market Health assets (flagship pack)
+  | "market_health"
+  | "health_strengths"
+  | "health_watch"
+  | "health_history"
+  | "health_interpretation"
+  // ETF Flow assets
+  | "etf_hero"
+  | "etf_today"
+  | "etf_trend"
+  | "etf_context"
+  | "etf_why"
+  // Metric Deep Dive assets
+  | "metric_intro"
+  | "metric_definition"
+  | "metric_why"
+  | "metric_reading"
+  | "metric_history";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -98,6 +117,21 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   hist_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
   accumulation: { kicker: "Accumulation Index", name: "Accumulation Index" },
   accumulation_outcomes: { kicker: "Accumulation Index", name: "Accumulation outcomes" },
+  market_health: { kicker: "Market Health", name: "Market Health gauge" },
+  health_strengths: { kicker: "What's constructive", name: "Constructive factors" },
+  health_watch: { kicker: "What's stretched", name: "Stretched factors" },
+  health_history: { kicker: "Historical range", name: "Where today sits" },
+  health_interpretation: { kicker: "Interpretation", name: "Interpretation" },
+  etf_hero: { kicker: "Bitcoin ETF Flows", name: "ETF flows hero" },
+  etf_today: { kicker: "Today's flows", name: "Today's flows" },
+  etf_trend: { kicker: "Trend", name: "7d & 30d trend" },
+  etf_context: { kicker: "Historical context", name: "Flows vs history" },
+  etf_why: { kicker: "Why it matters", name: "Why it matters" },
+  metric_intro: { kicker: "Metric Deep Dive", name: "Metric intro" },
+  metric_definition: { kicker: "In plain English", name: "Definition" },
+  metric_why: { kicker: "Why it matters", name: "Why it matters" },
+  metric_reading: { kicker: "Current reading", name: "Current reading" },
+  metric_history: { kicker: "Historical zones", name: "Historical zones" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -323,7 +357,156 @@ export interface AccumulationOutcomesCardView {
   takeaway: string;
 }
 
+// ── Market Health assets (flagship pack) ─────────────────────────────────────
+// All derived from the existing composite cycle scorecard (cycleScorecard) — no
+// new calculations. High score = calmer / earlier-cycle; low = stretched / late.
+export interface MarketHealthCard {
+  kind: "market_health";
+  score: number; // 0-100 composite
+  label: string; // Cool / Neutral / Warm / Elevated / Euphoric
+  color: string;
+  interpretation: string;
+  factorCount: number;
+}
+export interface HealthFactorRow {
+  label: string;
+  status: string;
+  score: number;
+  explanation: string;
+}
+export interface HealthFactorsCard {
+  kind: "health_strengths" | "health_watch";
+  heading: string;
+  tone: Dir; // up (constructive) / down (stretched)
+  rows: HealthFactorRow[];
+  empty: string;
+}
+export interface HealthBand {
+  label: string;
+  color: string;
+  lo: number;
+  hi: number;
+}
+export interface HealthHistoryCard {
+  kind: "health_history";
+  score: number;
+  color: string;
+  label: string;
+  bands: HealthBand[];
+  note: string;
+}
+export interface HealthInterpretationCard {
+  kind: "health_interpretation";
+  text: string;
+}
+
+// ── ETF Flow assets ──────────────────────────────────────────────────────────
+// Aggregate US spot BTC ETF flows only (no per-issuer source today). All derived
+// from etfStats() + ETF.points and guarded on ETF.connected, so nothing is
+// fabricated when the source is offline.
+export interface EtfHeroCard {
+  kind: "etf_hero";
+  available: boolean;
+  dateLabel: string;
+  netFlow: string;
+  dir: Dir;
+  headline: string;
+  cumulative: string;
+}
+export interface EtfCompareStat {
+  label: string;
+  value: string;
+  dir: Dir;
+}
+export interface EtfTodayCard {
+  kind: "etf_today";
+  available: boolean;
+  today: string;
+  todayDir: Dir;
+  stats: EtfCompareStat[];
+}
+export interface EtfTrendCard {
+  kind: "etf_trend";
+  available: boolean;
+  week: string;
+  weekDir: Dir;
+  month: string;
+  monthDir: Dir;
+  line: ChartLine;
+  note: string;
+}
+export interface EtfBar {
+  label: string;
+  value: string;
+  pct: number;
+  color: string;
+  highlight?: boolean;
+}
+export interface EtfContextCard {
+  kind: "etf_context";
+  available: boolean;
+  bars: EtfBar[];
+  note: string;
+}
+export interface EtfWhyCard {
+  kind: "etf_why";
+  available: boolean;
+  headline: string;
+  points: string[];
+}
+
+// ── Metric Deep Dive assets ──────────────────────────────────────────────────
+// Educational, evergreen. One metric per day (deterministic rotation across the
+// existing METRICS list). All copy reuses each metric's own description / why /
+// bands / zone reads — no new explanatory text.
+export interface MetricIntroCard {
+  kind: "metric_intro";
+  name: string;
+  question: string;
+  short: string;
+  group: string;
+}
+export interface MetricTextCard {
+  kind: "metric_definition" | "metric_why";
+  heading: string;
+  text: string;
+}
+export interface MetricReadingCard {
+  kind: "metric_reading";
+  name: string;
+  value: string;
+  zoneLabel: string;
+  color: string;
+  read: string;
+}
+export interface MetricZoneRow {
+  label: string;
+  range: string;
+  color: string;
+  current: boolean;
+}
+export interface MetricHistoryCard {
+  kind: "metric_history";
+  name: string;
+  valueLabel: string;
+  rows: MetricZoneRow[];
+  note: string;
+}
+
 export type CardBody =
+  | MarketHealthCard
+  | HealthFactorsCard
+  | HealthHistoryCard
+  | HealthInterpretationCard
+  | EtfHeroCard
+  | EtfTodayCard
+  | EtfTrendCard
+  | EtfContextCard
+  | EtfWhyCard
+  | MetricIntroCard
+  | MetricTextCard
+  | MetricReadingCard
+  | MetricHistoryCard
   | HeroCard
   | ChangedCard
   | HistoryCard
@@ -843,6 +1026,67 @@ export function accumulationContentPack(): import("./brief").ContentPack {
   return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
 }
 
+// Cross-channel copy for the Market Health pack. Reuses the composite scorecard;
+// same careful framing — a condition reading, no predictions, no price targets.
+export function marketHealthContentPack(): import("./brief").ContentPack {
+  const sc = cycleScorecard();
+  const byScore = [...sc.factors].sort((a, b) => b.score - a.score);
+  const strong = byScore[0];
+  const weak = byScore[byScore.length - 1];
+  const link = `https://${SITE_HOST}`;
+  const x1 = `Bitcoin Market Health: ${sc.overall}/100 — ${sc.overallLabel}.`;
+  const xThread = [
+    `${x1}\n\nA multi-factor read of the cycle environment — cycle timing, price structure, ETF demand, sentiment and miner health, each scored 0–100. A condition reading, not a buy/sell signal.`,
+    sc.interpretation,
+    strong ? `Most constructive right now: ${strong.factor} — ${strong.status}. ${strong.explanation}` : "",
+    weak && weak !== strong ? `Watching: ${weak.factor} — ${weak.status}. ${weak.explanation}` : "",
+    `See the full breakdown → ${link}\n\nHistorical context, not a forecast. Not financial advice.`,
+  ].filter(Boolean) as string[];
+  const instagram = [
+    `Bitcoin Market Health: ${sc.overall}/100`,
+    "",
+    `${sc.overallLabel}. ${sc.interpretation}`,
+    "",
+    strong ? `Constructive → ${strong.factor} (${strong.status})` : "",
+    weak && weak !== strong ? `Watching → ${weak.factor} (${weak.status})` : "",
+    "",
+    "A multi-factor condition reading of the cycle environment — not a prediction or advice.",
+    "",
+    `Full breakdown → ${link}`,
+    "",
+    "#bitcoin #btc #crypto #bitcoinhalving #marketcycle",
+  ]
+    .filter((l, i, a) => l !== "" || a[i - 1] !== "")
+    .join("\n");
+  const linkedin = [
+    `Bitcoin Market Health: ${sc.overall}/100 — ${sc.overallLabel}.`,
+    "",
+    sc.interpretation,
+    "",
+    `Scored across ${sc.factors.length} factors — ${sc.factors.map((f) => f.factor).join(", ")} — each a 0–100 condition reading drawn from live, historically-grounded data. It describes the environment; it is never a buy or sell signal.`,
+    "",
+    `Explore the full read: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `Market Health: ${sc.overall}/100 — ${sc.overallLabel}`;
+  const emailBody = [
+    `Bitcoin's Market Health reads ${sc.overall}/100 today — ${sc.overallLabel}.`,
+    "",
+    sc.interpretation,
+    "",
+    strong ? `Most constructive: ${strong.factor} (${strong.status}).` : "",
+    weak && weak !== strong ? `Watching: ${weak.factor} (${weak.status}).` : "",
+    "",
+    `See the full multi-factor breakdown: ${link}`,
+    "",
+    "Historical context only. Past behaviour is not a forecast. Not financial advice.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
+}
+
 function accumulationOutcomesCard(): AccumulationOutcomesCardView {
   const r = accumulationRead();
   const bt = runAccumulationBacktest();
@@ -865,6 +1109,388 @@ function accumulationOutcomesCard(): AccumulationOutcomesCardView {
     takeaway:
       "In past cycles, more attractive (lower-score) conditions were followed by stronger median returns 1–2 years later. Historical context, not a forecast.",
   };
+}
+
+// ── Market Health pack (flagship) ────────────────────────────────────────────
+// Reuses cycleScorecard() wholesale — same numbers that power the Daily hero —
+// so there is zero duplicate logic. Presented with the scorecard's own honest
+// labels (Cool→Euphoric): a condition reading, never a buy/sell signal.
+function marketHealthCard(): MarketHealthCard {
+  const sc = cycleScorecard();
+  return {
+    kind: "market_health",
+    score: sc.overall,
+    label: sc.overallLabel,
+    color: SCORE_COLORS[sc.overallLabel] ?? "#5eead4",
+    interpretation: sc.interpretation,
+    factorCount: sc.factors.length,
+  };
+}
+
+// Split the scorecard's factors by their current condition score. High-scoring
+// factors read constructive (calmer/earlier-cycle); low-scoring ones read
+// stretched. No time-series needed — a point-in-time condition split.
+function healthFactorsCard(bucket: "strengths" | "watch"): HealthFactorsCard {
+  const sc = cycleScorecard();
+  const strong = sc.factors.filter((f) => f.score >= 50).sort((a, b) => b.score - a.score);
+  const weak = sc.factors.filter((f) => f.score < 50).sort((a, b) => a.score - b.score);
+  const chosen = (bucket === "strengths" ? strong : weak).slice(0, 4);
+  return {
+    kind: bucket === "strengths" ? "health_strengths" : "health_watch",
+    heading: bucket === "strengths" ? "What's constructive" : "What's stretched",
+    tone: bucket === "strengths" ? "up" : "down",
+    rows: chosen.map((f) => ({ label: f.factor, status: f.status, score: f.score, explanation: f.explanation })),
+    empty:
+      bucket === "strengths"
+        ? "No strongly constructive factors right now — conditions read mixed."
+        : "Nothing looks stretched right now — a broadly calm read.",
+  };
+}
+
+function healthHistoryCard(): HealthHistoryCard {
+  const sc = cycleScorecard();
+  return {
+    kind: "health_history",
+    score: sc.overall,
+    color: SCORE_COLORS[sc.overallLabel] ?? "#5eead4",
+    label: sc.overallLabel,
+    // The scoreBand thresholds, as a labelled 0-100 scale (see cycleSummary.scoreBand).
+    bands: [
+      { label: "Euphoric", color: SCORE_COLORS.Euphoric, lo: 0, hi: 24 },
+      { label: "Elevated", color: SCORE_COLORS.Elevated, lo: 25, hi: 39 },
+      { label: "Warm", color: SCORE_COLORS.Warm, lo: 40, hi: 54 },
+      { label: "Neutral", color: SCORE_COLORS.Neutral, lo: 55, hi: 74 },
+      { label: "Cool", color: SCORE_COLORS.Cool, lo: 75, hi: 100 },
+    ],
+    note: "Higher = calmer, earlier-cycle. Lower = stretched, late-cycle. The marker shows where today sits across the full historical range.",
+  };
+}
+
+function healthInterpretationCard(): HealthInterpretationCard {
+  const sc = cycleScorecard();
+  return { kind: "health_interpretation", text: `${sc.interpretation} Historical context, not a forecast.` };
+}
+
+// ── ETF Flow pack ─────────────────────────────────────────────────────────────
+// Reuses etfStats() + ETF.points; 30-day totals and the cumulative mini-chart are
+// derived from the same points (no new source). Per-issuer buyers/sellers are not
+// available, so slide 2 shows the largest single-day inflow/outflow instead.
+const ETF_ACCENT = "#5eead4";
+const ETF_UP = "#3ddc97";
+const ETF_DOWN = "#ff5d5d";
+
+function etfDay(p: EtfFlowPoint | null): string {
+  return p ? format(new Date(`${p.date}T00:00:00Z`), "d MMM yyyy") : "—";
+}
+function etfHeadline(n: number): string {
+  return n > 0 ? "Net inflow" : n < 0 ? "Net outflow" : "Flat";
+}
+function trailing(pts: EtfFlowPoint[], n: number): number {
+  return pts.slice(-n).reduce((s, p) => s + p.netFlow, 0);
+}
+
+function etfHeroCard(): EtfHeroCard {
+  const e = etfStats();
+  if (!ETF.connected || !e.latest) {
+    return { kind: "etf_hero", available: false, dateLabel: "—", netFlow: "—", dir: "flat", headline: "—", cumulative: "—" };
+  }
+  const n = e.latest.netFlow;
+  return {
+    kind: "etf_hero",
+    available: true,
+    dateLabel: etfDay(e.latest),
+    netFlow: signedUsd(n),
+    dir: dirOf(n),
+    headline: etfHeadline(n),
+    cumulative: `${fmtUsd(e.cumulative, { compact: true })} cumulative since launch`,
+  };
+}
+
+function etfTodayCard(): EtfTodayCard {
+  const e = etfStats();
+  if (!ETF.connected || !e.latest) {
+    return { kind: "etf_today", available: false, today: "—", todayDir: "flat", stats: [] };
+  }
+  return {
+    kind: "etf_today",
+    available: true,
+    today: signedUsd(e.latest.netFlow),
+    todayDir: dirOf(e.latest.netFlow),
+    stats: [
+      { label: `Largest inflow day · ${etfDay(e.biggestInflow)}`, value: signedUsd(e.biggestInflow?.netFlow ?? 0), dir: "up" },
+      { label: `Largest outflow day · ${etfDay(e.biggestOutflow)}`, value: signedUsd(e.biggestOutflow?.netFlow ?? 0), dir: "down" },
+    ],
+  };
+}
+
+function etfTrendCard(): EtfTrendCard {
+  const e = etfStats();
+  const pts = ETF.points;
+  if (!ETF.connected || pts.length === 0) {
+    return { kind: "etf_trend", available: false, week: "—", weekDir: "flat", month: "—", monthDir: "flat", line: { label: "", color: ETF_ACCENT, points: [] }, note: "" };
+  }
+  const week = e.trailingWeek;
+  const month = trailing(pts, 30);
+  const win = pts.slice(-120);
+  const cum = win.map((p) => p.cumulative);
+  const lo = Math.min(...cum);
+  const denom = Math.max(...cum) - lo || 1;
+  const points: [number, number][] = win.map((p, i) => [win.length > 1 ? i / (win.length - 1) : 0, (p.cumulative - lo) / denom]);
+  return {
+    kind: "etf_trend",
+    available: true,
+    week: signedUsd(week),
+    weekDir: dirOf(week),
+    month: signedUsd(month),
+    monthDir: dirOf(month),
+    line: { label: "Cumulative net flow", color: ETF_ACCENT, points },
+    note: `Cumulative net flow · last ${win.length} days`,
+  };
+}
+
+function etfContextCard(): EtfContextCard {
+  const e = etfStats();
+  const pts = ETF.points;
+  if (!ETF.connected || !e.latest || !e.biggestInflow || !e.biggestOutflow) {
+    return { kind: "etf_context", available: false, bars: [], note: "" };
+  }
+  const today = e.latest.netFlow;
+  const maxMag = Math.max(Math.abs(e.biggestInflow.netFlow), Math.abs(e.biggestOutflow.netFlow), Math.abs(today), 1);
+  const bar = (label: string, v: number, color: string, highlight = false): EtfBar => ({
+    label,
+    value: signedUsd(v),
+    pct: Math.round((Math.abs(v) / maxMag) * 100),
+    color,
+    highlight,
+  });
+  // How unusual is today, by absolute magnitude percentile across all days.
+  const absSorted = pts.map((p) => Math.abs(p.netFlow)).sort((a, b) => a - b);
+  const pctile = Math.round((absSorted.filter((v) => v <= Math.abs(today)).length / absSorted.length) * 100);
+  const note =
+    pctile >= 90
+      ? "Today is one of the largest daily flow days on record."
+      : pctile >= 70
+        ? "Today's flow is larger than usual versus history."
+        : pctile <= 25
+          ? "A quiet day for flows versus history."
+          : "Today's flow is broadly typical versus history.";
+  return {
+    kind: "etf_context",
+    available: true,
+    bars: [
+      bar("Today", today, today >= 0 ? ETF_UP : ETF_DOWN, true),
+      bar(`Largest inflow · ${etfDay(e.biggestInflow)}`, e.biggestInflow.netFlow, ETF_UP),
+      bar(`Largest outflow · ${etfDay(e.biggestOutflow)}`, e.biggestOutflow.netFlow, ETF_DOWN),
+    ],
+    note,
+  };
+}
+
+function etfWhyCard(): EtfWhyCard {
+  const e = etfStats();
+  const pts = ETF.points;
+  if (!ETF.connected || !e.latest) {
+    return { kind: "etf_why", available: false, headline: "—", points: [] };
+  }
+  const week = e.trailingWeek;
+  const month = trailing(pts, 30);
+  const headline =
+    week > 0 && month > 0
+      ? "Institutional demand is building."
+      : week > 0 && month <= 0
+        ? "Demand is picking back up."
+        : week <= 0 && month > 0
+          ? "Demand is cooling from a strong stretch."
+          : "Institutional demand is softening.";
+  return {
+    kind: "etf_why",
+    available: true,
+    headline,
+    points: [
+      `${signedUsd(week)} over the last 7 days.`,
+      `${signedUsd(month)} over the last 30 days.`,
+      `${fmtUsd(e.cumulative, { compact: true })} cumulative since spot ETFs launched.`,
+      "Spot ETF demand is the structural variable that didn't exist in prior cycles.",
+    ],
+  };
+}
+
+// Cross-channel copy for the ETF Flow pack. Aggregate flows only; same careful
+// framing — a condition reading of demand, never a prediction.
+export function etfContentPack(): import("./brief").ContentPack {
+  const e = etfStats();
+  const pts = ETF.points;
+  const today = e.latest?.netFlow ?? 0;
+  const week = e.trailingWeek;
+  const month = trailing(pts, 30);
+  const dirWord = today > 0 ? "net inflow" : today < 0 ? "net outflow" : "flat flows";
+  const cum = fmtUsd(e.cumulative, { compact: true });
+  const link = `https://${SITE_HOST}/etf`;
+  const x1 = `US spot Bitcoin ETFs: ${signedUsd(today)} ${dirWord} today.`;
+  const xThread = [
+    `${x1}\n\nWhat are institutions doing? A simple read on spot BTC ETF demand — the structural force that didn't exist in prior cycles.`,
+    `${signedUsd(week)} over the last 7 days · ${signedUsd(month)} over the last 30 days.`,
+    `Cumulative net flow since launch: ${cum}.`,
+    `See the full ETF analysis → ${link}\n\nHistorical context, not a forecast. Not financial advice.`,
+  ];
+  const instagram = [
+    `Bitcoin ETF Flows: ${signedUsd(today)} today`,
+    "",
+    `${signedUsd(week)} this week · ${signedUsd(month)} this month.`,
+    `Cumulative since launch: ${cum}.`,
+    "",
+    "What are institutions doing? Spot ETF demand is the new structural force this cycle. Historical context, not a prediction or advice.",
+    "",
+    `Full ETF analysis → ${link}`,
+    "",
+    "#bitcoin #btc #etf #crypto #institutional",
+  ].join("\n");
+  const linkedin = [
+    `US spot Bitcoin ETF flows: ${signedUsd(today)} ${dirWord} today.`,
+    "",
+    `Trailing 7 days: ${signedUsd(week)}. Trailing 30 days: ${signedUsd(month)}. Cumulative since launch: ${cum}.`,
+    "",
+    "Spot ETF demand is the defining structural variable of this Bitcoin cycle — a channel that simply didn't exist before 2024.",
+    "",
+    `Explore the full ETF flow analysis: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `ETF flows: ${signedUsd(today)} ${dirWord} today`;
+  const emailBody = [
+    `US spot Bitcoin ETFs saw ${signedUsd(today)} in ${dirWord} today.`,
+    "",
+    `That's ${signedUsd(week)} over the last 7 days and ${signedUsd(month)} over the last 30. Cumulative net flow since launch stands at ${cum}.`,
+    "",
+    `See the full ETF analysis: ${link}`,
+    "",
+    "Historical context only. Past behaviour is not a forecast. Not financial advice.",
+  ].join("\n");
+  return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
+}
+
+// ── Metric Deep Dive pack ─────────────────────────────────────────────────────
+// One metric per day, rotating deterministically through the existing METRICS
+// list so the studio and the image route always agree for a given day. Every
+// field reuses the metric's own copy + zone logic — zero new derivation.
+const ZONE_COLOR: Record<string, string> = {
+  bottom: "#5aa9ff",
+  accumulation: "#3ddc97",
+  neutral: "#9aa6b4",
+  bullish: "#3ddc97",
+  euphoria: "#f5b942",
+  top: "#ff5d5d",
+};
+const GROUP_LABEL: Record<string, string> = {
+  valuation: "Valuation",
+  cycle: "Cycle",
+  behaviour: "Behaviour",
+  miner: "Miner",
+  price: "Price",
+};
+
+function featuredMetric(): MetricDef {
+  const dayIndex = Math.floor(briefDate().getTime() / 86_400_000);
+  const i = ((dayIndex % METRICS.length) + METRICS.length) % METRICS.length;
+  return METRICS[i];
+}
+function metricNum(m: MetricDef, v: number): string {
+  return m.unit === "$"
+    ? fmtUsd(v, { compact: true })
+    : m.unit === "%"
+      ? `${v.toFixed(m.decimals)}%`
+      : `${v.toFixed(m.decimals)}${m.unit === "x" ? "×" : ""}`;
+}
+function bandEdge(m: MetricDef, n: number): string {
+  return m.unit === "$" ? fmtUsd(n, { compact: true }) : m.unit === "%" ? `${n}%` : `${n}${m.unit === "x" ? "×" : ""}`;
+}
+function bandRange(m: MetricDef, b: { min: number; max: number }): string {
+  if (b.min === -Infinity) return `below ${bandEdge(m, b.max)}`;
+  if (b.max === Infinity) return `above ${bandEdge(m, b.min)}`;
+  return `${bandEdge(m, b.min)} – ${bandEdge(m, b.max)}`;
+}
+
+function metricIntroCard(): MetricIntroCard {
+  const m = featuredMetric();
+  return { kind: "metric_intro", name: m.name, question: `What is ${m.name}?`, short: m.short, group: GROUP_LABEL[m.group] ?? m.group };
+}
+function metricDefinitionCard(): MetricTextCard {
+  return { kind: "metric_definition", heading: "In plain English", text: featuredMetric().description };
+}
+function metricWhyCard(): MetricTextCard {
+  return { kind: "metric_why", heading: "Why it matters", text: featuredMetric().why };
+}
+function metricReadingCard(): MetricReadingCard {
+  const m = featuredMetric();
+  const v = m.pick(TODAY);
+  const { zone, label } = zoneFor(m, v);
+  return { kind: "metric_reading", name: m.name, value: metricNum(m, v), zoneLabel: label, color: ZONE_COLOR[zone] ?? "#9aa6b4", read: metricTodayRead(m, v) };
+}
+function metricHistoryCard(): MetricHistoryCard {
+  const m = featuredMetric();
+  const v = m.pick(TODAY);
+  return {
+    kind: "metric_history",
+    name: m.name,
+    valueLabel: `Today: ${metricNum(m, v)}`,
+    rows: m.bands.map((b) => ({ label: b.label, range: bandRange(m, b), color: ZONE_COLOR[b.zone] ?? "#9aa6b4", current: v >= b.min && v < b.max })),
+    note: "The zones are drawn from Bitcoin's full history — where this reading has sat at past tops, bottoms and mid-cycles.",
+  };
+}
+
+// Cross-channel copy for the Metric Deep Dive pack. Educational + evergreen;
+// reuses the metric's own copy. Historical context, never a prediction.
+export function metricContentPack(): import("./brief").ContentPack {
+  const m = featuredMetric();
+  const v = m.pick(TODAY);
+  const { label } = zoneFor(m, v);
+  const num = metricNum(m, v);
+  const link = `https://${SITE_HOST}/metrics/${m.slug}`;
+  const xThread = [
+    `What is ${m.name}?\n\n${m.description}`,
+    `Why it matters: ${m.why}`,
+    `Today it reads ${num} — ${label}.`,
+    `Full explainer → ${link}\n\nEducational. Historical context, not a forecast. Not financial advice.`,
+  ];
+  const instagram = [
+    `What is ${m.name}?`,
+    "",
+    m.description,
+    "",
+    `Today: ${num} — ${label}.`,
+    "",
+    "Educational — historical context, not a prediction or advice.",
+    "",
+    `Learn more → ${link}`,
+    "",
+    "#bitcoin #btc #onchain #crypto",
+  ].join("\n");
+  const linkedin = [
+    `${m.name}: ${m.description}`,
+    "",
+    `Why it matters: ${m.why}`,
+    "",
+    `Today it reads ${num} — ${label}.`,
+    "",
+    `Full explainer: ${link}`,
+    "",
+    "Educational. Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `Metric explainer: ${m.name}`;
+  const emailBody = [
+    `What is ${m.name}?`,
+    "",
+    m.description,
+    "",
+    `Why it matters: ${m.why}`,
+    "",
+    `Today it reads ${num} — ${label}.`,
+    "",
+    `Full explainer: ${link}`,
+    "",
+    "Educational. Historical context only. Not financial advice.",
+  ].join("\n");
+  return { xPost: `What is ${m.name}? Today: ${num} — ${label}.`, xThread, instagram, linkedin, emailSubject, emailBody };
 }
 
 const BUILDERS: Record<CardId, () => CardBody> = {
@@ -890,6 +1516,21 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   hist_takeaway: histTakeawayCard,
   accumulation: accumulationCard,
   accumulation_outcomes: accumulationOutcomesCard,
+  market_health: marketHealthCard,
+  health_strengths: () => healthFactorsCard("strengths"),
+  health_watch: () => healthFactorsCard("watch"),
+  health_history: healthHistoryCard,
+  health_interpretation: healthInterpretationCard,
+  etf_hero: etfHeroCard,
+  etf_today: etfTodayCard,
+  etf_trend: etfTrendCard,
+  etf_context: etfContextCard,
+  etf_why: etfWhyCard,
+  metric_intro: metricIntroCard,
+  metric_definition: metricDefinitionCard,
+  metric_why: metricWhyCard,
+  metric_reading: metricReadingCard,
+  metric_history: metricHistoryCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -899,14 +1540,38 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar" | "accumulation";
+export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
   historical: "Historical Context Pack",
   similar: "Similar Moments Pack",
   accumulation: "Accumulation Index Pack",
+  market_health: "Market Health Pack",
+  etf: "ETF Flow Pack",
+  metric: "Metric Deep Dive Pack",
 };
+
+// The Metric Deep Dive Pack — educational, evergreen, one metric per day:
+// intro → definition → why it matters → current reading → historical zones → CTA.
+export const METRIC_PACK: CardId[] = ["metric_intro", "metric_definition", "metric_why", "metric_reading", "metric_history", "cta"];
+
+// The ETF Flow Pack — "what are institutions doing?": today's net flow → today
+// vs largest days → 7d/30d trend → historical context → why it matters → CTA.
+// Aggregate spot BTC ETF flows only (no per-issuer data source today).
+export const ETF_PACK: CardId[] = ["etf_hero", "etf_today", "etf_trend", "etf_context", "etf_why", "cta"];
+
+// The Market Health Pack — the flagship "how healthy is the market today?" read:
+// gauge → constructive factors → stretched factors → historical range →
+// interpretation → CTA. All six built from the composite cycle scorecard.
+export const MARKET_HEALTH_PACK: CardId[] = [
+  "market_health",
+  "health_strengths",
+  "health_watch",
+  "health_history",
+  "health_interpretation",
+  "cta",
+];
 
 // The Accumulation Index Pack — a focused share asset (the index card) followed
 // by the brand CTA. Instagram-ready 1080×1350 portrait, like every other card.
@@ -1016,6 +1681,9 @@ export function packOrder(packId: PackId): CardId[] {
   if (packId === "similar") return SIMILAR_PACK;
   if (packId === "historical") return selectHistoricalNarrative().order;
   if (packId === "accumulation") return ACCUMULATION_PACK;
+  if (packId === "market_health") return MARKET_HEALTH_PACK;
+  if (packId === "etf") return ETF_PACK;
+  if (packId === "metric") return METRIC_PACK;
   return CARD_ORDER;
 }
 

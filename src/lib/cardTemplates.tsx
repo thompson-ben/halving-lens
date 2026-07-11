@@ -17,10 +17,23 @@ import type {
   CycleTimingCard,
   CyclePositionCard,
   DrawdownsCard,
+  EtfHeroCard,
+  EtfTodayCard,
+  EtfTrendCard,
+  EtfContextCard,
+  EtfWhyCard,
   FearGreedCard,
   FgVsPriceCard,
+  HealthFactorsCard,
+  HealthHistoryCard,
+  HealthInterpretationCard,
   HeroCard,
   HistoryCard,
+  MarketHealthCard,
+  MetricIntroCard,
+  MetricTextCard,
+  MetricReadingCard,
+  MetricHistoryCard,
   OverlayCard,
   PeakLowCard,
   SimilarMomentsCard,
@@ -907,6 +920,255 @@ function AccumulationOutcomes({ c }: { c: AccumulationOutcomesCardView }) {
   );
 }
 
+// ── Market Health pack (flagship) ────────────────────────────────────────────
+function MarketHealth({ c }: { c: MarketHealthCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", fontSize: 26, letterSpacing: 3, color: INK_FAINT, textTransform: "uppercase", marginBottom: 12 }}>
+        Bitcoin Market Health
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 22 }}>
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 250, fontWeight: 700, letterSpacing: -6, lineHeight: 0.9, color: c.color }}>
+          {c.score}
+        </div>
+        <div style={{ display: "flex", fontSize: 46, color: INK_DIM }}>/ 100</div>
+      </div>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 68, fontWeight: 600, color: c.color, marginTop: 4 }}>{c.label}</div>
+      <div style={{ display: "flex", width: "100%", height: 22, borderRadius: 11, background: "rgba(255,255,255,0.06)", marginTop: 42 }}>
+        <div style={{ display: "flex", width: `${Math.max(2, Math.min(100, c.score))}%`, height: 22, borderRadius: 11, background: c.color }} />
+      </div>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, lineHeight: 1.4, marginTop: 40, maxWidth: 900 }}>{c.interpretation}</div>
+    </div>
+  );
+}
+
+function HealthFactors({ c }: { c: HealthFactorsCard }) {
+  const color = DIR_COLOR[c.tone];
+  const arrow = c.tone === "up" ? "▲" : "▼";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>{c.heading}</Kicker>
+      {c.rows.length === 0 ? (
+        <div style={{ display: "flex", fontSize: 40, color: INK_DIM, marginTop: 28, maxWidth: 860, lineHeight: 1.3 }}>{c.empty}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", marginTop: 22 }}>
+          {c.rows.map((r) => (
+            <div key={r.label} style={{ display: "flex", flexDirection: "column", padding: "22px 0", borderBottom: `1px solid ${HAIRLINE}` }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ display: "flex", fontSize: 30, color }}>{arrow}</div>
+                  <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color: INK }}>{r.label}</div>
+                </div>
+                <div style={{ display: "flex", fontSize: 32, fontWeight: 600, color }}>{r.status}</div>
+              </div>
+              <div style={{ display: "flex", fontSize: 24, color: INK_DIM, marginTop: 8, maxWidth: 900, lineHeight: 1.35 }}>{r.explanation}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HealthHistory({ c }: { c: HealthHistoryCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Where today sits</Kicker>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 16, marginTop: 22 }}>
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 96, fontWeight: 700, color: c.color, lineHeight: 1 }}>{c.score}</div>
+        <div style={{ display: "flex", fontSize: 34, color: INK_DIM }}>/ 100 · {c.label}</div>
+      </div>
+      {/* Labelled 0-100 band scale; the active band is highlighted. */}
+      <div style={{ display: "flex", width: "100%", marginTop: 48, borderRadius: 8, overflow: "hidden" }}>
+        {c.bands.map((b) => (
+          <div key={b.label} style={{ display: "flex", flexGrow: b.hi - b.lo + 1, height: 34, background: b.color, opacity: b.label === c.label ? 1 : 0.32 }} />
+        ))}
+      </div>
+      {/* Marker at today's score across the full 0-100 width. */}
+      <div style={{ display: "flex", position: "relative", width: "100%", height: 34, marginTop: 6 }}>
+        <div style={{ position: "absolute", left: `${Math.max(0, Math.min(100, c.score))}%`, marginLeft: -3, display: "flex", width: 6, height: 34, background: "#ffffff", borderRadius: 3 }} />
+      </div>
+      <div style={{ display: "flex", width: "100%", justifyContent: "space-between", marginTop: 8 }}>
+        {c.bands.map((b) => (
+          <div key={b.label} style={{ display: "flex", fontSize: 20, color: b.label === c.label ? INK : INK_FAINT }}>{b.label}</div>
+        ))}
+      </div>
+      <div style={{ display: "flex", fontSize: 28, color: INK_DIM, lineHeight: 1.4, marginTop: 42, maxWidth: 900 }}>{c.note}</div>
+    </div>
+  );
+}
+
+function HealthInterpretation({ c }: { c: HealthInterpretationCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Interpretation</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 54, fontWeight: 600, lineHeight: 1.3, marginTop: 30, maxWidth: 900 }}>{c.text}</div>
+    </div>
+  );
+}
+
+// ── ETF Flow pack ─────────────────────────────────────────────────────────────
+function EtfHero({ c }: { c: EtfHeroCard }) {
+  const color = c.dir === "up" ? DIR_COLOR.up : c.dir === "down" ? DIR_COLOR.down : INK;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", fontSize: 26, letterSpacing: 3, color: INK_FAINT, textTransform: "uppercase", marginBottom: 10 }}>
+        Bitcoin ETF Flows
+      </div>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 52, fontWeight: 600, color: INK, marginBottom: 34 }}>
+        Today&apos;s institutional demand
+      </div>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, marginBottom: 10 }}>{c.dateLabel} · {c.headline}</div>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 148, fontWeight: 700, letterSpacing: -4, lineHeight: 0.95, color }}>
+        {c.netFlow}
+      </div>
+      <div style={{ display: "flex", fontSize: 28, color: INK_DIM, marginTop: 28 }}>{c.cumulative}</div>
+    </div>
+  );
+}
+
+function EtfToday({ c }: { c: EtfTodayCard }) {
+  const color = c.todayDir === "up" ? DIR_COLOR.up : c.todayDir === "down" ? DIR_COLOR.down : INK;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Today&apos;s flows</Kicker>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 18, marginTop: 20 }}>
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 108, fontWeight: 700, letterSpacing: -3, lineHeight: 1, color }}>{c.today}</div>
+        <div style={{ display: "flex", fontSize: 30, color: INK_DIM }}>net today</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", marginTop: 46 }}>
+        {c.stats.map((s) => (
+          <div key={s.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 0", borderBottom: `1px solid ${HAIRLINE}` }}>
+            <div style={{ display: "flex", fontSize: 29, color: INK_DIM, maxWidth: 620 }}>{s.label}</div>
+            <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: DIR_COLOR[s.dir] }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EtfTrend({ c }: { c: EtfTrendCard }) {
+  const Stat = ({ label, value, dir }: { label: string; value: string; dir: keyof typeof DIR_COLOR }) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "50%" }}>
+      <div style={{ display: "flex", fontSize: 24, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ display: "flex", fontSize: 54, fontWeight: 700, color: DIR_COLOR[dir] }}>{value}</div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Trend</Kicker>
+      <div style={{ display: "flex", marginTop: 24, marginBottom: 32 }}>
+        <Stat label="7-day net" value={c.week} dir={c.weekDir} />
+        <Stat label="30-day net" value={c.month} dir={c.monthDir} />
+      </div>
+      <Chart lines={[c.line]} width={900} height={360} />
+      <div style={{ display: "flex", fontSize: 24, color: INK_DIM, marginTop: 18 }}>{c.note}</div>
+    </div>
+  );
+}
+
+function EtfContext({ c }: { c: EtfContextCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Historical context</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: 30, marginTop: 32, width: "100%" }}>
+        {c.bars.map((b) => (
+          <div key={b.label} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+              <div style={{ display: "flex", fontSize: 27, color: b.highlight ? INK : INK_DIM }}>{b.label}</div>
+              <div style={{ display: "flex", fontSize: 30, fontWeight: 700, color: b.color }}>{b.value}</div>
+            </div>
+            <div style={{ display: "flex", width: "100%", height: 20, background: "rgba(255,255,255,0.06)", borderRadius: 10, marginTop: 10 }}>
+              <div style={{ display: "flex", width: `${Math.max(2, Math.min(100, b.pct))}%`, height: 20, background: b.color, borderRadius: 10, opacity: b.highlight ? 1 : 0.7 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", fontSize: 30, color: ACCENT, marginTop: 44, maxWidth: 900, lineHeight: 1.35 }}>{c.note}</div>
+    </div>
+  );
+}
+
+function EtfWhy({ c }: { c: EtfWhyCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Why it matters</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 60, fontWeight: 600, lineHeight: 1.15, marginTop: 24, maxWidth: 900, color: INK }}>
+        {c.headline}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 42 }}>
+        {c.points.map((p) => (
+          <div key={p} style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", width: 10, height: 10, borderRadius: 5, background: ACCENT }} />
+            <div style={{ display: "flex", fontSize: 30, color: INK_DIM, maxWidth: 860 }}>{p}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Metric Deep Dive pack ─────────────────────────────────────────────────────
+function MetricIntro({ c }: { c: MetricIntroCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", alignSelf: "flex-start", fontSize: 22, fontWeight: 600, letterSpacing: 3, color: ACCENT, textTransform: "uppercase", border: `1px solid ${ACCENT}`, borderRadius: 8, padding: "8px 18px", marginBottom: 34 }}>
+        {c.group} metric
+      </div>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 96, fontWeight: 700, letterSpacing: -2, lineHeight: 1.02, color: INK }}>
+        {c.question}
+      </div>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, marginTop: 28 }}>A HalvingLens metric deep dive · {c.short}</div>
+    </div>
+  );
+}
+
+function MetricText({ c }: { c: MetricTextCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>{c.heading}</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 50, fontWeight: 600, lineHeight: 1.32, marginTop: 30, maxWidth: 920, color: INK }}>
+        {c.text}
+      </div>
+    </div>
+  );
+}
+
+function MetricReading({ c }: { c: MetricReadingCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>{c.name} · today</Kicker>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 20, marginTop: 22 }}>
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 190, fontWeight: 700, letterSpacing: -5, lineHeight: 0.9, color: c.color }}>{c.value}</div>
+      </div>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 56, fontWeight: 600, color: c.color, marginTop: 8 }}>{c.zoneLabel}</div>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, lineHeight: 1.4, marginTop: 38, maxWidth: 920 }}>{c.read}</div>
+    </div>
+  );
+}
+
+function MetricHistory({ c }: { c: MetricHistoryCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Historical zones · {c.valueLabel}</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", marginTop: 22 }}>
+        {c.rows.map((r) => (
+          <div key={r.label + r.range} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 0", borderBottom: `1px solid ${HAIRLINE}`, opacity: r.current ? 1 : 0.62 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ display: "flex", width: 16, height: 16, borderRadius: 8, background: r.color }} />
+              <div style={{ display: "flex", fontSize: 34, fontWeight: r.current ? 700 : 500, color: r.current ? INK : INK_DIM }}>{r.label}</div>
+              {r.current && <div style={{ display: "flex", fontSize: 20, color: ACCENT, letterSpacing: 2, textTransform: "uppercase" }}>· today</div>}
+            </div>
+            <div style={{ display: "flex", fontSize: 30, fontWeight: 600, color: r.current ? INK : INK_FAINT }}>{r.range}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", fontSize: 24, color: INK_DIM, marginTop: 30, maxWidth: 920, lineHeight: 1.35 }}>{c.note}</div>
+    </div>
+  );
+}
+
 function Unavailable({ what }: { what: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -954,6 +1216,34 @@ export function renderCard(card: Card): React.ReactElement {
         return <Accumulation c={card.body} />;
       case "accumulation_outcomes":
         return <AccumulationOutcomes c={card.body} />;
+      case "market_health":
+        return <MarketHealth c={card.body} />;
+      case "health_strengths":
+      case "health_watch":
+        return <HealthFactors c={card.body} />;
+      case "health_history":
+        return <HealthHistory c={card.body} />;
+      case "health_interpretation":
+        return <HealthInterpretation c={card.body} />;
+      case "etf_hero":
+        return card.body.available ? <EtfHero c={card.body} /> : <Unavailable what="ETF flows" />;
+      case "etf_today":
+        return card.body.available ? <EtfToday c={card.body} /> : <Unavailable what="ETF flows" />;
+      case "etf_trend":
+        return card.body.available ? <EtfTrend c={card.body} /> : <Unavailable what="ETF flow trend" />;
+      case "etf_context":
+        return card.body.available ? <EtfContext c={card.body} /> : <Unavailable what="ETF flow history" />;
+      case "etf_why":
+        return card.body.available ? <EtfWhy c={card.body} /> : <Unavailable what="ETF flows" />;
+      case "metric_intro":
+        return <MetricIntro c={card.body} />;
+      case "metric_definition":
+      case "metric_why":
+        return <MetricText c={card.body} />;
+      case "metric_reading":
+        return <MetricReading c={card.body} />;
+      case "metric_history":
+        return <MetricHistory c={card.body} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":
