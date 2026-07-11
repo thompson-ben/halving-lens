@@ -30,6 +30,10 @@ import type {
   HeroCard,
   HistoryCard,
   MarketHealthCard,
+  MetricIntroCard,
+  MetricTextCard,
+  MetricReadingCard,
+  MetricHistoryCard,
   OverlayCard,
   PeakLowCard,
   SimilarMomentsCard,
@@ -1105,6 +1109,66 @@ function EtfWhy({ c }: { c: EtfWhyCard }) {
   );
 }
 
+// ── Metric Deep Dive pack ─────────────────────────────────────────────────────
+function MetricIntro({ c }: { c: MetricIntroCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", alignSelf: "flex-start", fontSize: 22, fontWeight: 600, letterSpacing: 3, color: ACCENT, textTransform: "uppercase", border: `1px solid ${ACCENT}`, borderRadius: 8, padding: "8px 18px", marginBottom: 34 }}>
+        {c.group} metric
+      </div>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 96, fontWeight: 700, letterSpacing: -2, lineHeight: 1.02, color: INK }}>
+        {c.question}
+      </div>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, marginTop: 28 }}>A HalvingLens metric deep dive · {c.short}</div>
+    </div>
+  );
+}
+
+function MetricText({ c }: { c: MetricTextCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>{c.heading}</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 50, fontWeight: 600, lineHeight: 1.32, marginTop: 30, maxWidth: 920, color: INK }}>
+        {c.text}
+      </div>
+    </div>
+  );
+}
+
+function MetricReading({ c }: { c: MetricReadingCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>{c.name} · today</Kicker>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 20, marginTop: 22 }}>
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 190, fontWeight: 700, letterSpacing: -5, lineHeight: 0.9, color: c.color }}>{c.value}</div>
+      </div>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 56, fontWeight: 600, color: c.color, marginTop: 8 }}>{c.zoneLabel}</div>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, lineHeight: 1.4, marginTop: 38, maxWidth: 920 }}>{c.read}</div>
+    </div>
+  );
+}
+
+function MetricHistory({ c }: { c: MetricHistoryCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Historical zones · {c.valueLabel}</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", marginTop: 22 }}>
+        {c.rows.map((r) => (
+          <div key={r.label + r.range} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 0", borderBottom: `1px solid ${HAIRLINE}`, opacity: r.current ? 1 : 0.62 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ display: "flex", width: 16, height: 16, borderRadius: 8, background: r.color }} />
+              <div style={{ display: "flex", fontSize: 34, fontWeight: r.current ? 700 : 500, color: r.current ? INK : INK_DIM }}>{r.label}</div>
+              {r.current && <div style={{ display: "flex", fontSize: 20, color: ACCENT, letterSpacing: 2, textTransform: "uppercase" }}>· today</div>}
+            </div>
+            <div style={{ display: "flex", fontSize: 30, fontWeight: 600, color: r.current ? INK : INK_FAINT }}>{r.range}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", fontSize: 24, color: INK_DIM, marginTop: 30, maxWidth: 920, lineHeight: 1.35 }}>{c.note}</div>
+    </div>
+  );
+}
+
 function Unavailable({ what }: { what: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -1171,6 +1235,15 @@ export function renderCard(card: Card): React.ReactElement {
         return card.body.available ? <EtfContext c={card.body} /> : <Unavailable what="ETF flow history" />;
       case "etf_why":
         return card.body.available ? <EtfWhy c={card.body} /> : <Unavailable what="ETF flows" />;
+      case "metric_intro":
+        return <MetricIntro c={card.body} />;
+      case "metric_definition":
+      case "metric_why":
+        return <MetricText c={card.body} />;
+      case "metric_reading":
+        return <MetricReading c={card.body} />;
+      case "metric_history":
+        return <MetricHistory c={card.body} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":

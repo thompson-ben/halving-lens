@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ContentPackStudio, type StudioPack } from "@/components/ContentPackStudio";
 import { ReelStudio } from "@/components/ReelStudio";
-import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, type Deck, type PackId } from "@/lib/contentCards";
+import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, metricContentPack, type Deck, type PackId } from "@/lib/contentCards";
 import { contentPack } from "@/lib/brief";
 import { historicalContentPack, similarContentPack } from "@/lib/historicalPack";
 import { reelPackage, reelScriptText } from "@/lib/reel";
@@ -68,6 +68,7 @@ export default function ContentPackPage({ searchParams }: { searchParams: { key?
     toStudioPack("accumulation", "Generate Accumulation Index Pack", buildPack("accumulation"), accumulationContentPack()),
     toStudioPack("market_health", "Generate Market Health Pack", buildPack("market_health"), marketHealthContentPack()),
     toStudioPack("etf", "Generate ETF Flow Pack", buildPack("etf"), etfContentPack()),
+    toStudioPack("metric", "Generate Metric Deep Dive Pack", buildPack("metric"), metricContentPack()),
   ];
 
   const reel = reelPackage();

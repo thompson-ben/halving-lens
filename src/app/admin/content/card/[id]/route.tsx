@@ -35,7 +35,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             ? "market_health"
             : packParam === "etf"
               ? "etf"
-              : "daily";
+              : packParam === "metric"
+                ? "metric"
+                : "daily";
 
   const fonts = brandFonts();
   return new ImageResponse(renderCard(buildCard(id as CardId, pack)), {

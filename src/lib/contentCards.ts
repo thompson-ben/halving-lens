@@ -31,7 +31,8 @@ const TONE_HEX: Record<string, string> = {
   green: "#3ddc97",
   teal: "#5eead4",
 };
-import { CYCLES, SOURCE, TODAY_DAY_IN_CYCLE } from "./btcData";
+import { CYCLES, SOURCE, TODAY, TODAY_DAY_IN_CYCLE } from "./btcData";
+import { METRICS, zoneFor, metricTodayRead, type MetricDef } from "./metrics";
 import { fmtUsd, fmtPct } from "./format";
 
 export type CardId =
@@ -70,7 +71,13 @@ export type CardId =
   | "etf_today"
   | "etf_trend"
   | "etf_context"
-  | "etf_why";
+  | "etf_why"
+  // Metric Deep Dive assets
+  | "metric_intro"
+  | "metric_definition"
+  | "metric_why"
+  | "metric_reading"
+  | "metric_history";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -120,6 +127,11 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   etf_trend: { kicker: "Trend", name: "7d & 30d trend" },
   etf_context: { kicker: "Historical context", name: "Flows vs history" },
   etf_why: { kicker: "Why it matters", name: "Why it matters" },
+  metric_intro: { kicker: "Metric Deep Dive", name: "Metric intro" },
+  metric_definition: { kicker: "In plain English", name: "Definition" },
+  metric_why: { kicker: "Why it matters", name: "Why it matters" },
+  metric_reading: { kicker: "Current reading", name: "Current reading" },
+  metric_history: { kicker: "Historical zones", name: "Historical zones" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -443,6 +455,44 @@ export interface EtfWhyCard {
   points: string[];
 }
 
+// ── Metric Deep Dive assets ──────────────────────────────────────────────────
+// Educational, evergreen. One metric per day (deterministic rotation across the
+// existing METRICS list). All copy reuses each metric's own description / why /
+// bands / zone reads — no new explanatory text.
+export interface MetricIntroCard {
+  kind: "metric_intro";
+  name: string;
+  question: string;
+  short: string;
+  group: string;
+}
+export interface MetricTextCard {
+  kind: "metric_definition" | "metric_why";
+  heading: string;
+  text: string;
+}
+export interface MetricReadingCard {
+  kind: "metric_reading";
+  name: string;
+  value: string;
+  zoneLabel: string;
+  color: string;
+  read: string;
+}
+export interface MetricZoneRow {
+  label: string;
+  range: string;
+  color: string;
+  current: boolean;
+}
+export interface MetricHistoryCard {
+  kind: "metric_history";
+  name: string;
+  valueLabel: string;
+  rows: MetricZoneRow[];
+  note: string;
+}
+
 export type CardBody =
   | MarketHealthCard
   | HealthFactorsCard
@@ -453,6 +503,10 @@ export type CardBody =
   | EtfTrendCard
   | EtfContextCard
   | EtfWhyCard
+  | MetricIntroCard
+  | MetricTextCard
+  | MetricReadingCard
+  | MetricHistoryCard
   | HeroCard
   | ChangedCard
   | HistoryCard
@@ -1315,6 +1369,130 @@ export function etfContentPack(): import("./brief").ContentPack {
   return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
 }
 
+// ── Metric Deep Dive pack ─────────────────────────────────────────────────────
+// One metric per day, rotating deterministically through the existing METRICS
+// list so the studio and the image route always agree for a given day. Every
+// field reuses the metric's own copy + zone logic — zero new derivation.
+const ZONE_COLOR: Record<string, string> = {
+  bottom: "#5aa9ff",
+  accumulation: "#3ddc97",
+  neutral: "#9aa6b4",
+  bullish: "#3ddc97",
+  euphoria: "#f5b942",
+  top: "#ff5d5d",
+};
+const GROUP_LABEL: Record<string, string> = {
+  valuation: "Valuation",
+  cycle: "Cycle",
+  behaviour: "Behaviour",
+  miner: "Miner",
+  price: "Price",
+};
+
+function featuredMetric(): MetricDef {
+  const dayIndex = Math.floor(briefDate().getTime() / 86_400_000);
+  const i = ((dayIndex % METRICS.length) + METRICS.length) % METRICS.length;
+  return METRICS[i];
+}
+function metricNum(m: MetricDef, v: number): string {
+  return m.unit === "$"
+    ? fmtUsd(v, { compact: true })
+    : m.unit === "%"
+      ? `${v.toFixed(m.decimals)}%`
+      : `${v.toFixed(m.decimals)}${m.unit === "x" ? "×" : ""}`;
+}
+function bandEdge(m: MetricDef, n: number): string {
+  return m.unit === "$" ? fmtUsd(n, { compact: true }) : m.unit === "%" ? `${n}%` : `${n}${m.unit === "x" ? "×" : ""}`;
+}
+function bandRange(m: MetricDef, b: { min: number; max: number }): string {
+  if (b.min === -Infinity) return `below ${bandEdge(m, b.max)}`;
+  if (b.max === Infinity) return `above ${bandEdge(m, b.min)}`;
+  return `${bandEdge(m, b.min)} – ${bandEdge(m, b.max)}`;
+}
+
+function metricIntroCard(): MetricIntroCard {
+  const m = featuredMetric();
+  return { kind: "metric_intro", name: m.name, question: `What is ${m.name}?`, short: m.short, group: GROUP_LABEL[m.group] ?? m.group };
+}
+function metricDefinitionCard(): MetricTextCard {
+  return { kind: "metric_definition", heading: "In plain English", text: featuredMetric().description };
+}
+function metricWhyCard(): MetricTextCard {
+  return { kind: "metric_why", heading: "Why it matters", text: featuredMetric().why };
+}
+function metricReadingCard(): MetricReadingCard {
+  const m = featuredMetric();
+  const v = m.pick(TODAY);
+  const { zone, label } = zoneFor(m, v);
+  return { kind: "metric_reading", name: m.name, value: metricNum(m, v), zoneLabel: label, color: ZONE_COLOR[zone] ?? "#9aa6b4", read: metricTodayRead(m, v) };
+}
+function metricHistoryCard(): MetricHistoryCard {
+  const m = featuredMetric();
+  const v = m.pick(TODAY);
+  return {
+    kind: "metric_history",
+    name: m.name,
+    valueLabel: `Today: ${metricNum(m, v)}`,
+    rows: m.bands.map((b) => ({ label: b.label, range: bandRange(m, b), color: ZONE_COLOR[b.zone] ?? "#9aa6b4", current: v >= b.min && v < b.max })),
+    note: "The zones are drawn from Bitcoin's full history — where this reading has sat at past tops, bottoms and mid-cycles.",
+  };
+}
+
+// Cross-channel copy for the Metric Deep Dive pack. Educational + evergreen;
+// reuses the metric's own copy. Historical context, never a prediction.
+export function metricContentPack(): import("./brief").ContentPack {
+  const m = featuredMetric();
+  const v = m.pick(TODAY);
+  const { label } = zoneFor(m, v);
+  const num = metricNum(m, v);
+  const link = `https://${SITE_HOST}/metrics/${m.slug}`;
+  const xThread = [
+    `What is ${m.name}?\n\n${m.description}`,
+    `Why it matters: ${m.why}`,
+    `Today it reads ${num} — ${label}.`,
+    `Full explainer → ${link}\n\nEducational. Historical context, not a forecast. Not financial advice.`,
+  ];
+  const instagram = [
+    `What is ${m.name}?`,
+    "",
+    m.description,
+    "",
+    `Today: ${num} — ${label}.`,
+    "",
+    "Educational — historical context, not a prediction or advice.",
+    "",
+    `Learn more → ${link}`,
+    "",
+    "#bitcoin #btc #onchain #crypto",
+  ].join("\n");
+  const linkedin = [
+    `${m.name}: ${m.description}`,
+    "",
+    `Why it matters: ${m.why}`,
+    "",
+    `Today it reads ${num} — ${label}.`,
+    "",
+    `Full explainer: ${link}`,
+    "",
+    "Educational. Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `Metric explainer: ${m.name}`;
+  const emailBody = [
+    `What is ${m.name}?`,
+    "",
+    m.description,
+    "",
+    `Why it matters: ${m.why}`,
+    "",
+    `Today it reads ${num} — ${label}.`,
+    "",
+    `Full explainer: ${link}`,
+    "",
+    "Educational. Historical context only. Not financial advice.",
+  ].join("\n");
+  return { xPost: `What is ${m.name}? Today: ${num} — ${label}.`, xThread, instagram, linkedin, emailSubject, emailBody };
+}
+
 const BUILDERS: Record<CardId, () => CardBody> = {
   hero: heroCard,
   changed: changedCard,
@@ -1348,6 +1526,11 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   etf_trend: etfTrendCard,
   etf_context: etfContextCard,
   etf_why: etfWhyCard,
+  metric_intro: metricIntroCard,
+  metric_definition: metricDefinitionCard,
+  metric_why: metricWhyCard,
+  metric_reading: metricReadingCard,
+  metric_history: metricHistoryCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -1357,7 +1540,7 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf";
+export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
@@ -1366,7 +1549,12 @@ export const PACK_LABELS: Record<PackId, string> = {
   accumulation: "Accumulation Index Pack",
   market_health: "Market Health Pack",
   etf: "ETF Flow Pack",
+  metric: "Metric Deep Dive Pack",
 };
+
+// The Metric Deep Dive Pack — educational, evergreen, one metric per day:
+// intro → definition → why it matters → current reading → historical zones → CTA.
+export const METRIC_PACK: CardId[] = ["metric_intro", "metric_definition", "metric_why", "metric_reading", "metric_history", "cta"];
 
 // The ETF Flow Pack — "what are institutions doing?": today's net flow → today
 // vs largest days → 7d/30d trend → historical context → why it matters → CTA.
@@ -1495,6 +1683,7 @@ export function packOrder(packId: PackId): CardId[] {
   if (packId === "accumulation") return ACCUMULATION_PACK;
   if (packId === "market_health") return MARKET_HEALTH_PACK;
   if (packId === "etf") return ETF_PACK;
+  if (packId === "metric") return METRIC_PACK;
   return CARD_ORDER;
 }
 
