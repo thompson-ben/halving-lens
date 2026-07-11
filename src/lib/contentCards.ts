@@ -16,7 +16,7 @@ import { cycleTiming, cyclePeakTroughs } from "./cycleTiming";
 import { drawdownAnalysis } from "./drawdowns";
 import { similarMoments, currentMoment } from "./similarity";
 import { priorBrief, briefDate, todaySlug } from "./briefArchive";
-import { etfStats, ETF } from "./etf";
+import { etfStats, ETF, type EtfFlowPoint } from "./etf";
 import { sentimentRead, pricedSentimentSeries, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
 import { currentSentiment } from "./sentiment";
 import { accumulationRead, ACCUMULATION_BANDS } from "./accumulation";
@@ -64,7 +64,13 @@ export type CardId =
   | "health_strengths"
   | "health_watch"
   | "health_history"
-  | "health_interpretation";
+  | "health_interpretation"
+  // ETF Flow assets
+  | "etf_hero"
+  | "etf_today"
+  | "etf_trend"
+  | "etf_context"
+  | "etf_why";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -109,6 +115,11 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   health_watch: { kicker: "What's stretched", name: "Stretched factors" },
   health_history: { kicker: "Historical range", name: "Where today sits" },
   health_interpretation: { kicker: "Interpretation", name: "Interpretation" },
+  etf_hero: { kicker: "Bitcoin ETF Flows", name: "ETF flows hero" },
+  etf_today: { kicker: "Today's flows", name: "Today's flows" },
+  etf_trend: { kicker: "Trend", name: "7d & 30d trend" },
+  etf_context: { kicker: "Historical context", name: "Flows vs history" },
+  etf_why: { kicker: "Why it matters", name: "Why it matters" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -377,11 +388,71 @@ export interface HealthInterpretationCard {
   text: string;
 }
 
+// ── ETF Flow assets ──────────────────────────────────────────────────────────
+// Aggregate US spot BTC ETF flows only (no per-issuer source today). All derived
+// from etfStats() + ETF.points and guarded on ETF.connected, so nothing is
+// fabricated when the source is offline.
+export interface EtfHeroCard {
+  kind: "etf_hero";
+  available: boolean;
+  dateLabel: string;
+  netFlow: string;
+  dir: Dir;
+  headline: string;
+  cumulative: string;
+}
+export interface EtfCompareStat {
+  label: string;
+  value: string;
+  dir: Dir;
+}
+export interface EtfTodayCard {
+  kind: "etf_today";
+  available: boolean;
+  today: string;
+  todayDir: Dir;
+  stats: EtfCompareStat[];
+}
+export interface EtfTrendCard {
+  kind: "etf_trend";
+  available: boolean;
+  week: string;
+  weekDir: Dir;
+  month: string;
+  monthDir: Dir;
+  line: ChartLine;
+  note: string;
+}
+export interface EtfBar {
+  label: string;
+  value: string;
+  pct: number;
+  color: string;
+  highlight?: boolean;
+}
+export interface EtfContextCard {
+  kind: "etf_context";
+  available: boolean;
+  bars: EtfBar[];
+  note: string;
+}
+export interface EtfWhyCard {
+  kind: "etf_why";
+  available: boolean;
+  headline: string;
+  points: string[];
+}
+
 export type CardBody =
   | MarketHealthCard
   | HealthFactorsCard
   | HealthHistoryCard
   | HealthInterpretationCard
+  | EtfHeroCard
+  | EtfTodayCard
+  | EtfTrendCard
+  | EtfContextCard
+  | EtfWhyCard
   | HeroCard
   | ChangedCard
   | HistoryCard
@@ -1046,6 +1117,204 @@ function healthInterpretationCard(): HealthInterpretationCard {
   return { kind: "health_interpretation", text: `${sc.interpretation} Historical context, not a forecast.` };
 }
 
+// ── ETF Flow pack ─────────────────────────────────────────────────────────────
+// Reuses etfStats() + ETF.points; 30-day totals and the cumulative mini-chart are
+// derived from the same points (no new source). Per-issuer buyers/sellers are not
+// available, so slide 2 shows the largest single-day inflow/outflow instead.
+const ETF_ACCENT = "#5eead4";
+const ETF_UP = "#3ddc97";
+const ETF_DOWN = "#ff5d5d";
+
+function etfDay(p: EtfFlowPoint | null): string {
+  return p ? format(new Date(`${p.date}T00:00:00Z`), "d MMM yyyy") : "—";
+}
+function etfHeadline(n: number): string {
+  return n > 0 ? "Net inflow" : n < 0 ? "Net outflow" : "Flat";
+}
+function trailing(pts: EtfFlowPoint[], n: number): number {
+  return pts.slice(-n).reduce((s, p) => s + p.netFlow, 0);
+}
+
+function etfHeroCard(): EtfHeroCard {
+  const e = etfStats();
+  if (!ETF.connected || !e.latest) {
+    return { kind: "etf_hero", available: false, dateLabel: "—", netFlow: "—", dir: "flat", headline: "—", cumulative: "—" };
+  }
+  const n = e.latest.netFlow;
+  return {
+    kind: "etf_hero",
+    available: true,
+    dateLabel: etfDay(e.latest),
+    netFlow: signedUsd(n),
+    dir: dirOf(n),
+    headline: etfHeadline(n),
+    cumulative: `${fmtUsd(e.cumulative, { compact: true })} cumulative since launch`,
+  };
+}
+
+function etfTodayCard(): EtfTodayCard {
+  const e = etfStats();
+  if (!ETF.connected || !e.latest) {
+    return { kind: "etf_today", available: false, today: "—", todayDir: "flat", stats: [] };
+  }
+  return {
+    kind: "etf_today",
+    available: true,
+    today: signedUsd(e.latest.netFlow),
+    todayDir: dirOf(e.latest.netFlow),
+    stats: [
+      { label: `Largest inflow day · ${etfDay(e.biggestInflow)}`, value: signedUsd(e.biggestInflow?.netFlow ?? 0), dir: "up" },
+      { label: `Largest outflow day · ${etfDay(e.biggestOutflow)}`, value: signedUsd(e.biggestOutflow?.netFlow ?? 0), dir: "down" },
+    ],
+  };
+}
+
+function etfTrendCard(): EtfTrendCard {
+  const e = etfStats();
+  const pts = ETF.points;
+  if (!ETF.connected || pts.length === 0) {
+    return { kind: "etf_trend", available: false, week: "—", weekDir: "flat", month: "—", monthDir: "flat", line: { label: "", color: ETF_ACCENT, points: [] }, note: "" };
+  }
+  const week = e.trailingWeek;
+  const month = trailing(pts, 30);
+  const win = pts.slice(-120);
+  const cum = win.map((p) => p.cumulative);
+  const lo = Math.min(...cum);
+  const denom = Math.max(...cum) - lo || 1;
+  const points: [number, number][] = win.map((p, i) => [win.length > 1 ? i / (win.length - 1) : 0, (p.cumulative - lo) / denom]);
+  return {
+    kind: "etf_trend",
+    available: true,
+    week: signedUsd(week),
+    weekDir: dirOf(week),
+    month: signedUsd(month),
+    monthDir: dirOf(month),
+    line: { label: "Cumulative net flow", color: ETF_ACCENT, points },
+    note: `Cumulative net flow · last ${win.length} days`,
+  };
+}
+
+function etfContextCard(): EtfContextCard {
+  const e = etfStats();
+  const pts = ETF.points;
+  if (!ETF.connected || !e.latest || !e.biggestInflow || !e.biggestOutflow) {
+    return { kind: "etf_context", available: false, bars: [], note: "" };
+  }
+  const today = e.latest.netFlow;
+  const maxMag = Math.max(Math.abs(e.biggestInflow.netFlow), Math.abs(e.biggestOutflow.netFlow), Math.abs(today), 1);
+  const bar = (label: string, v: number, color: string, highlight = false): EtfBar => ({
+    label,
+    value: signedUsd(v),
+    pct: Math.round((Math.abs(v) / maxMag) * 100),
+    color,
+    highlight,
+  });
+  // How unusual is today, by absolute magnitude percentile across all days.
+  const absSorted = pts.map((p) => Math.abs(p.netFlow)).sort((a, b) => a - b);
+  const pctile = Math.round((absSorted.filter((v) => v <= Math.abs(today)).length / absSorted.length) * 100);
+  const note =
+    pctile >= 90
+      ? "Today is one of the largest daily flow days on record."
+      : pctile >= 70
+        ? "Today's flow is larger than usual versus history."
+        : pctile <= 25
+          ? "A quiet day for flows versus history."
+          : "Today's flow is broadly typical versus history.";
+  return {
+    kind: "etf_context",
+    available: true,
+    bars: [
+      bar("Today", today, today >= 0 ? ETF_UP : ETF_DOWN, true),
+      bar(`Largest inflow · ${etfDay(e.biggestInflow)}`, e.biggestInflow.netFlow, ETF_UP),
+      bar(`Largest outflow · ${etfDay(e.biggestOutflow)}`, e.biggestOutflow.netFlow, ETF_DOWN),
+    ],
+    note,
+  };
+}
+
+function etfWhyCard(): EtfWhyCard {
+  const e = etfStats();
+  const pts = ETF.points;
+  if (!ETF.connected || !e.latest) {
+    return { kind: "etf_why", available: false, headline: "—", points: [] };
+  }
+  const week = e.trailingWeek;
+  const month = trailing(pts, 30);
+  const headline =
+    week > 0 && month > 0
+      ? "Institutional demand is building."
+      : week > 0 && month <= 0
+        ? "Demand is picking back up."
+        : week <= 0 && month > 0
+          ? "Demand is cooling from a strong stretch."
+          : "Institutional demand is softening.";
+  return {
+    kind: "etf_why",
+    available: true,
+    headline,
+    points: [
+      `${signedUsd(week)} over the last 7 days.`,
+      `${signedUsd(month)} over the last 30 days.`,
+      `${fmtUsd(e.cumulative, { compact: true })} cumulative since spot ETFs launched.`,
+      "Spot ETF demand is the structural variable that didn't exist in prior cycles.",
+    ],
+  };
+}
+
+// Cross-channel copy for the ETF Flow pack. Aggregate flows only; same careful
+// framing — a condition reading of demand, never a prediction.
+export function etfContentPack(): import("./brief").ContentPack {
+  const e = etfStats();
+  const pts = ETF.points;
+  const today = e.latest?.netFlow ?? 0;
+  const week = e.trailingWeek;
+  const month = trailing(pts, 30);
+  const dirWord = today > 0 ? "net inflow" : today < 0 ? "net outflow" : "flat flows";
+  const cum = fmtUsd(e.cumulative, { compact: true });
+  const link = `https://${SITE_HOST}/etf`;
+  const x1 = `US spot Bitcoin ETFs: ${signedUsd(today)} ${dirWord} today.`;
+  const xThread = [
+    `${x1}\n\nWhat are institutions doing? A simple read on spot BTC ETF demand — the structural force that didn't exist in prior cycles.`,
+    `${signedUsd(week)} over the last 7 days · ${signedUsd(month)} over the last 30 days.`,
+    `Cumulative net flow since launch: ${cum}.`,
+    `See the full ETF analysis → ${link}\n\nHistorical context, not a forecast. Not financial advice.`,
+  ];
+  const instagram = [
+    `Bitcoin ETF Flows: ${signedUsd(today)} today`,
+    "",
+    `${signedUsd(week)} this week · ${signedUsd(month)} this month.`,
+    `Cumulative since launch: ${cum}.`,
+    "",
+    "What are institutions doing? Spot ETF demand is the new structural force this cycle. Historical context, not a prediction or advice.",
+    "",
+    `Full ETF analysis → ${link}`,
+    "",
+    "#bitcoin #btc #etf #crypto #institutional",
+  ].join("\n");
+  const linkedin = [
+    `US spot Bitcoin ETF flows: ${signedUsd(today)} ${dirWord} today.`,
+    "",
+    `Trailing 7 days: ${signedUsd(week)}. Trailing 30 days: ${signedUsd(month)}. Cumulative since launch: ${cum}.`,
+    "",
+    "Spot ETF demand is the defining structural variable of this Bitcoin cycle — a channel that simply didn't exist before 2024.",
+    "",
+    `Explore the full ETF flow analysis: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `ETF flows: ${signedUsd(today)} ${dirWord} today`;
+  const emailBody = [
+    `US spot Bitcoin ETFs saw ${signedUsd(today)} in ${dirWord} today.`,
+    "",
+    `That's ${signedUsd(week)} over the last 7 days and ${signedUsd(month)} over the last 30. Cumulative net flow since launch stands at ${cum}.`,
+    "",
+    `See the full ETF analysis: ${link}`,
+    "",
+    "Historical context only. Past behaviour is not a forecast. Not financial advice.",
+  ].join("\n");
+  return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
+}
+
 const BUILDERS: Record<CardId, () => CardBody> = {
   hero: heroCard,
   changed: changedCard,
@@ -1074,6 +1343,11 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   health_watch: () => healthFactorsCard("watch"),
   health_history: healthHistoryCard,
   health_interpretation: healthInterpretationCard,
+  etf_hero: etfHeroCard,
+  etf_today: etfTodayCard,
+  etf_trend: etfTrendCard,
+  etf_context: etfContextCard,
+  etf_why: etfWhyCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -1083,7 +1357,7 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health";
+export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
@@ -1091,7 +1365,13 @@ export const PACK_LABELS: Record<PackId, string> = {
   similar: "Similar Moments Pack",
   accumulation: "Accumulation Index Pack",
   market_health: "Market Health Pack",
+  etf: "ETF Flow Pack",
 };
+
+// The ETF Flow Pack — "what are institutions doing?": today's net flow → today
+// vs largest days → 7d/30d trend → historical context → why it matters → CTA.
+// Aggregate spot BTC ETF flows only (no per-issuer data source today).
+export const ETF_PACK: CardId[] = ["etf_hero", "etf_today", "etf_trend", "etf_context", "etf_why", "cta"];
 
 // The Market Health Pack — the flagship "how healthy is the market today?" read:
 // gauge → constructive factors → stretched factors → historical range →
@@ -1214,6 +1494,7 @@ export function packOrder(packId: PackId): CardId[] {
   if (packId === "historical") return selectHistoricalNarrative().order;
   if (packId === "accumulation") return ACCUMULATION_PACK;
   if (packId === "market_health") return MARKET_HEALTH_PACK;
+  if (packId === "etf") return ETF_PACK;
   return CARD_ORDER;
 }
 
