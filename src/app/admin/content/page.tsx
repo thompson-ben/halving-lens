@@ -8,6 +8,7 @@ import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPac
 import { contentPack } from "@/lib/brief";
 import { historicalContentPack, similarContentPack } from "@/lib/historicalPack";
 import { reelPackage, reelScriptText } from "@/lib/reel";
+import { todaysPlan, etfIsInteresting, accumulationIsInteresting } from "@/lib/contentCalendar";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -73,13 +74,56 @@ export default function ContentPackPage({ searchParams }: { searchParams: { key?
 
   const reel = reelPackage();
 
+  const plan = todaysPlan();
+  const etf = etfIsInteresting();
+  const acc = accumulationIsInteresting();
+
   return (
     <Shell>
+      <TodaysPlan plan={plan} etf={etf} acc={acc} />
       <ContentPackStudio packs={packs} />
       <div className="mt-12 pt-10 border-t border-white/[0.07]">
         <ReelStudio reel={reel} script={reelScriptText(reel)} />
       </div>
     </Shell>
+  );
+}
+
+function TodaysPlan({
+  plan,
+  etf,
+  acc,
+}: {
+  plan: ReturnType<typeof todaysPlan>;
+  etf: ReturnType<typeof etfIsInteresting>;
+  acc: ReturnType<typeof accumulationIsInteresting>;
+}) {
+  const Trigger = ({ label, check }: { label: string; check: { flagged: boolean; reason: string } }) => (
+    <div className="flex items-start gap-2.5">
+      <span className={`mt-1 inline-block w-2 h-2 rounded-full shrink-0 ${check.flagged ? "bg-signal-green" : "bg-ink-600"}`} />
+      <div className="text-[12.5px] leading-relaxed">
+        <span className="text-ink-200">{label}: </span>
+        <span className={check.flagged ? "text-signal-green" : "text-ink-500"}>{check.flagged ? "publish today" : "hold"}</span>
+        <span className="text-ink-500"> — {check.reason}</span>
+      </div>
+    </div>
+  );
+  return (
+    <div className="card-glow p-5 sm:p-6 mb-8">
+      <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-2">Today&apos;s plan · {plan.day}</div>
+      <div className="text-[18px] text-ink-50 font-medium">
+        Publish: <span className="text-accent">{plan.slot.label}</span>
+      </div>
+      <p className="mt-1 text-[13px] text-ink-400">
+        {plan.slot.note}
+        {plan.slot.packId ? " Generate it below." : " Not a studio pack — produced on its own page."}
+      </p>
+      <div className="mt-4 pt-4 border-t border-white/[0.07] space-y-2">
+        <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-1">Event-driven packs</div>
+        <Trigger label="ETF Flow" check={etf} />
+        <Trigger label="Accumulation Index" check={acc} />
+      </div>
+    </div>
   );
 }
 
