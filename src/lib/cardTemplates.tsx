@@ -19,8 +19,12 @@ import type {
   DrawdownsCard,
   FearGreedCard,
   FgVsPriceCard,
+  HealthFactorsCard,
+  HealthHistoryCard,
+  HealthInterpretationCard,
   HeroCard,
   HistoryCard,
+  MarketHealthCard,
   OverlayCard,
   PeakLowCard,
   SimilarMomentsCard,
@@ -907,6 +911,93 @@ function AccumulationOutcomes({ c }: { c: AccumulationOutcomesCardView }) {
   );
 }
 
+// ── Market Health pack (flagship) ────────────────────────────────────────────
+function MarketHealth({ c }: { c: MarketHealthCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", fontSize: 26, letterSpacing: 3, color: INK_FAINT, textTransform: "uppercase", marginBottom: 12 }}>
+        Bitcoin Market Health
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 22 }}>
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 250, fontWeight: 700, letterSpacing: -6, lineHeight: 0.9, color: c.color }}>
+          {c.score}
+        </div>
+        <div style={{ display: "flex", fontSize: 46, color: INK_DIM }}>/ 100</div>
+      </div>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 68, fontWeight: 600, color: c.color, marginTop: 4 }}>{c.label}</div>
+      <div style={{ display: "flex", width: "100%", height: 22, borderRadius: 11, background: "rgba(255,255,255,0.06)", marginTop: 42 }}>
+        <div style={{ display: "flex", width: `${Math.max(2, Math.min(100, c.score))}%`, height: 22, borderRadius: 11, background: c.color }} />
+      </div>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, lineHeight: 1.4, marginTop: 40, maxWidth: 900 }}>{c.interpretation}</div>
+    </div>
+  );
+}
+
+function HealthFactors({ c }: { c: HealthFactorsCard }) {
+  const color = DIR_COLOR[c.tone];
+  const arrow = c.tone === "up" ? "▲" : "▼";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>{c.heading}</Kicker>
+      {c.rows.length === 0 ? (
+        <div style={{ display: "flex", fontSize: 40, color: INK_DIM, marginTop: 28, maxWidth: 860, lineHeight: 1.3 }}>{c.empty}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", marginTop: 22 }}>
+          {c.rows.map((r) => (
+            <div key={r.label} style={{ display: "flex", flexDirection: "column", padding: "22px 0", borderBottom: `1px solid ${HAIRLINE}` }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ display: "flex", fontSize: 30, color }}>{arrow}</div>
+                  <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color: INK }}>{r.label}</div>
+                </div>
+                <div style={{ display: "flex", fontSize: 32, fontWeight: 600, color }}>{r.status}</div>
+              </div>
+              <div style={{ display: "flex", fontSize: 24, color: INK_DIM, marginTop: 8, maxWidth: 900, lineHeight: 1.35 }}>{r.explanation}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HealthHistory({ c }: { c: HealthHistoryCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Where today sits</Kicker>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 16, marginTop: 22 }}>
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 96, fontWeight: 700, color: c.color, lineHeight: 1 }}>{c.score}</div>
+        <div style={{ display: "flex", fontSize: 34, color: INK_DIM }}>/ 100 · {c.label}</div>
+      </div>
+      {/* Labelled 0-100 band scale; the active band is highlighted. */}
+      <div style={{ display: "flex", width: "100%", marginTop: 48, borderRadius: 8, overflow: "hidden" }}>
+        {c.bands.map((b) => (
+          <div key={b.label} style={{ display: "flex", flexGrow: b.hi - b.lo + 1, height: 34, background: b.color, opacity: b.label === c.label ? 1 : 0.32 }} />
+        ))}
+      </div>
+      {/* Marker at today's score across the full 0-100 width. */}
+      <div style={{ display: "flex", position: "relative", width: "100%", height: 34, marginTop: 6 }}>
+        <div style={{ position: "absolute", left: `${Math.max(0, Math.min(100, c.score))}%`, marginLeft: -3, display: "flex", width: 6, height: 34, background: "#ffffff", borderRadius: 3 }} />
+      </div>
+      <div style={{ display: "flex", width: "100%", justifyContent: "space-between", marginTop: 8 }}>
+        {c.bands.map((b) => (
+          <div key={b.label} style={{ display: "flex", fontSize: 20, color: b.label === c.label ? INK : INK_FAINT }}>{b.label}</div>
+        ))}
+      </div>
+      <div style={{ display: "flex", fontSize: 28, color: INK_DIM, lineHeight: 1.4, marginTop: 42, maxWidth: 900 }}>{c.note}</div>
+    </div>
+  );
+}
+
+function HealthInterpretation({ c }: { c: HealthInterpretationCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Interpretation</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 54, fontWeight: 600, lineHeight: 1.3, marginTop: 30, maxWidth: 900 }}>{c.text}</div>
+    </div>
+  );
+}
+
 function Unavailable({ what }: { what: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
@@ -954,6 +1045,15 @@ export function renderCard(card: Card): React.ReactElement {
         return <Accumulation c={card.body} />;
       case "accumulation_outcomes":
         return <AccumulationOutcomes c={card.body} />;
+      case "market_health":
+        return <MarketHealth c={card.body} />;
+      case "health_strengths":
+      case "health_watch":
+        return <HealthFactors c={card.body} />;
+      case "health_history":
+        return <HealthHistory c={card.body} />;
+      case "health_interpretation":
+        return <HealthInterpretation c={card.body} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":

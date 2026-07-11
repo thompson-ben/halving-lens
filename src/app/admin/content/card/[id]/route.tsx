@@ -31,7 +31,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         ? "similar"
         : packParam === "accumulation"
           ? "accumulation"
-          : "daily";
+          : packParam === "market_health"
+            ? "market_health"
+            : "daily";
 
   const fonts = brandFonts();
   return new ImageResponse(renderCard(buildCard(id as CardId, pack)), {

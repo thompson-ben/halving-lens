@@ -58,7 +58,13 @@ export type CardId =
   | "hist_takeaway"
   // Accumulation Index assets
   | "accumulation"
-  | "accumulation_outcomes";
+  | "accumulation_outcomes"
+  // Market Health assets (flagship pack)
+  | "market_health"
+  | "health_strengths"
+  | "health_watch"
+  | "health_history"
+  | "health_interpretation";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -98,6 +104,11 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   hist_takeaway: { kicker: "Key takeaway", name: "Key takeaway" },
   accumulation: { kicker: "Accumulation Index", name: "Accumulation Index" },
   accumulation_outcomes: { kicker: "Accumulation Index", name: "Accumulation outcomes" },
+  market_health: { kicker: "Market Health", name: "Market Health gauge" },
+  health_strengths: { kicker: "What's constructive", name: "Constructive factors" },
+  health_watch: { kicker: "What's stretched", name: "Stretched factors" },
+  health_history: { kicker: "Historical range", name: "Where today sits" },
+  health_interpretation: { kicker: "Interpretation", name: "Interpretation" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -323,7 +334,54 @@ export interface AccumulationOutcomesCardView {
   takeaway: string;
 }
 
+// ── Market Health assets (flagship pack) ─────────────────────────────────────
+// All derived from the existing composite cycle scorecard (cycleScorecard) — no
+// new calculations. High score = calmer / earlier-cycle; low = stretched / late.
+export interface MarketHealthCard {
+  kind: "market_health";
+  score: number; // 0-100 composite
+  label: string; // Cool / Neutral / Warm / Elevated / Euphoric
+  color: string;
+  interpretation: string;
+  factorCount: number;
+}
+export interface HealthFactorRow {
+  label: string;
+  status: string;
+  score: number;
+  explanation: string;
+}
+export interface HealthFactorsCard {
+  kind: "health_strengths" | "health_watch";
+  heading: string;
+  tone: Dir; // up (constructive) / down (stretched)
+  rows: HealthFactorRow[];
+  empty: string;
+}
+export interface HealthBand {
+  label: string;
+  color: string;
+  lo: number;
+  hi: number;
+}
+export interface HealthHistoryCard {
+  kind: "health_history";
+  score: number;
+  color: string;
+  label: string;
+  bands: HealthBand[];
+  note: string;
+}
+export interface HealthInterpretationCard {
+  kind: "health_interpretation";
+  text: string;
+}
+
 export type CardBody =
+  | MarketHealthCard
+  | HealthFactorsCard
+  | HealthHistoryCard
+  | HealthInterpretationCard
   | HeroCard
   | ChangedCard
   | HistoryCard
@@ -843,6 +901,67 @@ export function accumulationContentPack(): import("./brief").ContentPack {
   return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
 }
 
+// Cross-channel copy for the Market Health pack. Reuses the composite scorecard;
+// same careful framing — a condition reading, no predictions, no price targets.
+export function marketHealthContentPack(): import("./brief").ContentPack {
+  const sc = cycleScorecard();
+  const byScore = [...sc.factors].sort((a, b) => b.score - a.score);
+  const strong = byScore[0];
+  const weak = byScore[byScore.length - 1];
+  const link = `https://${SITE_HOST}`;
+  const x1 = `Bitcoin Market Health: ${sc.overall}/100 — ${sc.overallLabel}.`;
+  const xThread = [
+    `${x1}\n\nA multi-factor read of the cycle environment — cycle timing, price structure, ETF demand, sentiment and miner health, each scored 0–100. A condition reading, not a buy/sell signal.`,
+    sc.interpretation,
+    strong ? `Most constructive right now: ${strong.factor} — ${strong.status}. ${strong.explanation}` : "",
+    weak && weak !== strong ? `Watching: ${weak.factor} — ${weak.status}. ${weak.explanation}` : "",
+    `See the full breakdown → ${link}\n\nHistorical context, not a forecast. Not financial advice.`,
+  ].filter(Boolean) as string[];
+  const instagram = [
+    `Bitcoin Market Health: ${sc.overall}/100`,
+    "",
+    `${sc.overallLabel}. ${sc.interpretation}`,
+    "",
+    strong ? `Constructive → ${strong.factor} (${strong.status})` : "",
+    weak && weak !== strong ? `Watching → ${weak.factor} (${weak.status})` : "",
+    "",
+    "A multi-factor condition reading of the cycle environment — not a prediction or advice.",
+    "",
+    `Full breakdown → ${link}`,
+    "",
+    "#bitcoin #btc #crypto #bitcoinhalving #marketcycle",
+  ]
+    .filter((l, i, a) => l !== "" || a[i - 1] !== "")
+    .join("\n");
+  const linkedin = [
+    `Bitcoin Market Health: ${sc.overall}/100 — ${sc.overallLabel}.`,
+    "",
+    sc.interpretation,
+    "",
+    `Scored across ${sc.factors.length} factors — ${sc.factors.map((f) => f.factor).join(", ")} — each a 0–100 condition reading drawn from live, historically-grounded data. It describes the environment; it is never a buy or sell signal.`,
+    "",
+    `Explore the full read: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `Market Health: ${sc.overall}/100 — ${sc.overallLabel}`;
+  const emailBody = [
+    `Bitcoin's Market Health reads ${sc.overall}/100 today — ${sc.overallLabel}.`,
+    "",
+    sc.interpretation,
+    "",
+    strong ? `Most constructive: ${strong.factor} (${strong.status}).` : "",
+    weak && weak !== strong ? `Watching: ${weak.factor} (${weak.status}).` : "",
+    "",
+    `See the full multi-factor breakdown: ${link}`,
+    "",
+    "Historical context only. Past behaviour is not a forecast. Not financial advice.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody };
+}
+
 function accumulationOutcomesCard(): AccumulationOutcomesCardView {
   const r = accumulationRead();
   const bt = runAccumulationBacktest();
@@ -865,6 +984,66 @@ function accumulationOutcomesCard(): AccumulationOutcomesCardView {
     takeaway:
       "In past cycles, more attractive (lower-score) conditions were followed by stronger median returns 1–2 years later. Historical context, not a forecast.",
   };
+}
+
+// ── Market Health pack (flagship) ────────────────────────────────────────────
+// Reuses cycleScorecard() wholesale — same numbers that power the Daily hero —
+// so there is zero duplicate logic. Presented with the scorecard's own honest
+// labels (Cool→Euphoric): a condition reading, never a buy/sell signal.
+function marketHealthCard(): MarketHealthCard {
+  const sc = cycleScorecard();
+  return {
+    kind: "market_health",
+    score: sc.overall,
+    label: sc.overallLabel,
+    color: SCORE_COLORS[sc.overallLabel] ?? "#5eead4",
+    interpretation: sc.interpretation,
+    factorCount: sc.factors.length,
+  };
+}
+
+// Split the scorecard's factors by their current condition score. High-scoring
+// factors read constructive (calmer/earlier-cycle); low-scoring ones read
+// stretched. No time-series needed — a point-in-time condition split.
+function healthFactorsCard(bucket: "strengths" | "watch"): HealthFactorsCard {
+  const sc = cycleScorecard();
+  const strong = sc.factors.filter((f) => f.score >= 50).sort((a, b) => b.score - a.score);
+  const weak = sc.factors.filter((f) => f.score < 50).sort((a, b) => a.score - b.score);
+  const chosen = (bucket === "strengths" ? strong : weak).slice(0, 4);
+  return {
+    kind: bucket === "strengths" ? "health_strengths" : "health_watch",
+    heading: bucket === "strengths" ? "What's constructive" : "What's stretched",
+    tone: bucket === "strengths" ? "up" : "down",
+    rows: chosen.map((f) => ({ label: f.factor, status: f.status, score: f.score, explanation: f.explanation })),
+    empty:
+      bucket === "strengths"
+        ? "No strongly constructive factors right now — conditions read mixed."
+        : "Nothing looks stretched right now — a broadly calm read.",
+  };
+}
+
+function healthHistoryCard(): HealthHistoryCard {
+  const sc = cycleScorecard();
+  return {
+    kind: "health_history",
+    score: sc.overall,
+    color: SCORE_COLORS[sc.overallLabel] ?? "#5eead4",
+    label: sc.overallLabel,
+    // The scoreBand thresholds, as a labelled 0-100 scale (see cycleSummary.scoreBand).
+    bands: [
+      { label: "Euphoric", color: SCORE_COLORS.Euphoric, lo: 0, hi: 24 },
+      { label: "Elevated", color: SCORE_COLORS.Elevated, lo: 25, hi: 39 },
+      { label: "Warm", color: SCORE_COLORS.Warm, lo: 40, hi: 54 },
+      { label: "Neutral", color: SCORE_COLORS.Neutral, lo: 55, hi: 74 },
+      { label: "Cool", color: SCORE_COLORS.Cool, lo: 75, hi: 100 },
+    ],
+    note: "Higher = calmer, earlier-cycle. Lower = stretched, late-cycle. The marker shows where today sits across the full historical range.",
+  };
+}
+
+function healthInterpretationCard(): HealthInterpretationCard {
+  const sc = cycleScorecard();
+  return { kind: "health_interpretation", text: `${sc.interpretation} Historical context, not a forecast.` };
 }
 
 const BUILDERS: Record<CardId, () => CardBody> = {
@@ -890,6 +1069,11 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   hist_takeaway: histTakeawayCard,
   accumulation: accumulationCard,
   accumulation_outcomes: accumulationOutcomesCard,
+  market_health: marketHealthCard,
+  health_strengths: () => healthFactorsCard("strengths"),
+  health_watch: () => healthFactorsCard("watch"),
+  health_history: healthHistoryCard,
+  health_interpretation: healthInterpretationCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -899,14 +1083,27 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar" | "accumulation";
+export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
   historical: "Historical Context Pack",
   similar: "Similar Moments Pack",
   accumulation: "Accumulation Index Pack",
+  market_health: "Market Health Pack",
 };
+
+// The Market Health Pack — the flagship "how healthy is the market today?" read:
+// gauge → constructive factors → stretched factors → historical range →
+// interpretation → CTA. All six built from the composite cycle scorecard.
+export const MARKET_HEALTH_PACK: CardId[] = [
+  "market_health",
+  "health_strengths",
+  "health_watch",
+  "health_history",
+  "health_interpretation",
+  "cta",
+];
 
 // The Accumulation Index Pack — a focused share asset (the index card) followed
 // by the brand CTA. Instagram-ready 1080×1350 portrait, like every other card.
@@ -1016,6 +1213,7 @@ export function packOrder(packId: PackId): CardId[] {
   if (packId === "similar") return SIMILAR_PACK;
   if (packId === "historical") return selectHistoricalNarrative().order;
   if (packId === "accumulation") return ACCUMULATION_PACK;
+  if (packId === "market_health") return MARKET_HEALTH_PACK;
   return CARD_ORDER;
 }
 
