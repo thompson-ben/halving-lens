@@ -5,6 +5,8 @@ import {
   Boxes,
   FlaskConical,
   Gauge,
+  HeartPulse,
+  Landmark,
   LayoutDashboard,
   History,
   Hourglass,
@@ -18,7 +20,6 @@ import {
   Sparkles,
   Sprout,
   TrendingDown,
-  Wallet,
   Waves,
   type LucideIcon,
 } from "lucide-react";
@@ -36,6 +37,8 @@ export const PRIMARY: readonly NavLink[] = [
   { href: "/cycles", label: "Cycle comparison", icon: Layers },
   { href: "/similar-moments", label: "Similar moments", icon: History },
   { href: "/accumulation", label: "Accumulation index", icon: Sprout },
+  { href: "/market-health", label: "Market Health", icon: HeartPulse },
+  { href: "/etf", label: "ETF Flows", icon: Landmark },
   { href: "/downside-scenarios", label: "Downside scenarios", icon: TrendingDown },
   { href: "/brief", label: "Daily brief", icon: Newspaper },
   { href: "/research", label: "Morning Research", icon: Library },
@@ -50,7 +53,6 @@ export const PRIMARY: readonly NavLink[] = [
 // Real, data-backed extra pages.
 export const EXPLORE: readonly NavLink[] = [
   { href: "/price", label: "Bitcoin price", icon: LineChart },
-  { href: "/etf", label: "ETF flow", icon: Wallet },
   { href: "/halving", label: "Next halving", icon: Hourglass },
   { href: "/miners", label: "Miners", icon: Pickaxe },
   { href: "/founders", label: "Hall of Founders", icon: Award },

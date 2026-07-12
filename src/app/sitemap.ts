@@ -12,6 +12,7 @@ const STATIC_PATHS = [
   "/",
   "/cycles",
   "/accumulation",
+  "/market-health",
   "/similar-moments",
   "/downside-scenarios",
   "/brief",
