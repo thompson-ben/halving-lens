@@ -4,6 +4,7 @@ import { welcomeEmailHtml, welcomeEmailText, welcomeEmailSubject } from "@/lib/w
 import { unsubToken } from "@/lib/emailToken";
 import { emailTracking } from "@/lib/emailTracking";
 import { absoluteUrl } from "@/lib/site";
+import { rateLimitAll, clientIp } from "@/lib/rateLimit";
 
 // Email capture for the Daily Brief. Validates server-side, then stores the
 // signup in the first destination that's configured:
@@ -106,6 +107,16 @@ export async function POST(req: Request) {
   const email = (body.email ?? "").trim().toLowerCase();
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ ok: false, error: "Please enter a valid email." }, { status: 400 });
+  }
+
+  // A new signup can trigger a welcome email, so throttle per-IP and per-email
+  // to prevent signup spam / using the endpoint to email-bomb an address.
+  const ok = await rateLimitAll([
+    { key: `sub:ip:${clientIp(req)}`, limit: 12, windowSec: 3600 },
+    { key: `sub:email:${email}`, limit: 3, windowSec: 3600 },
+  ]);
+  if (!ok) {
+    return NextResponse.json({ ok: false, error: "Too many attempts. Please try again shortly." }, { status: 429 });
   }
 
   const record = {

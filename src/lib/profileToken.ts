@@ -1,21 +1,20 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { signingSecret } from "./signingSecret";
 
 // Stateless, signed identity tokens for the HalvingLens Profile (magic-link).
 // A token carries the email + an expiry, signed with HMAC — no server session
 // store needed. The same format is used for the short-lived magic link (≈1h)
 // and the long-lived session cookie (≈1y). Tampering or expiry → rejected.
-
-const SECRET =
-  process.env.EMAIL_SECRET ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.ANALYTICS_DASHBOARD_KEY ||
-  "halvinglens-dev-secret";
+//
+// The secret is resolved fail-closed (see signingSecret): in production a
+// missing secret throws rather than falling back to a known dev literal, so
+// tokens can never be forged with a guessable key.
 
 export const MAGIC_TTL_MS = 60 * 60 * 1000; // 1 hour
 export const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
 
 function sign(payload: string): string {
-  return createHmac("sha256", SECRET).update(payload).digest("base64url");
+  return createHmac("sha256", signingSecret()).update(payload).digest("base64url");
 }
 
 function safeEq(a: string, b: string): boolean {
@@ -46,7 +45,16 @@ export function readProfileToken(token: string | undefined | null): string | nul
   }
   const [email, expStr] = payload.split("|");
   if (!email || !expStr) return null;
-  if (!safeEq(sig, sign(payload))) return null;
+  // If the secret is misconfigured (signingSecret throws in prod), treat the
+  // token as invalid — the visitor is simply logged out, rather than every page
+  // 500-ing. Issuing a token (makeProfileToken) still throws loudly.
+  let expected: string;
+  try {
+    expected = sign(payload);
+  } catch {
+    return null;
+  }
+  if (!safeEq(sig, expected)) return null;
   if (!Number(expStr) || Number(expStr) < Date.now()) return null;
   return email;
 }
