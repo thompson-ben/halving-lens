@@ -1,25 +1,22 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomInt, timingSafeEqual } from "crypto";
 import { sbSelect, sbUpsert, sbUpdate } from "./supabase";
+import { signingSecret } from "./signingSecret";
 
 // One-time sign-in codes for the HalvingLens Profile. Only a hash is stored;
 // codes expire (15 min) and lock after too many attempts. This is the
-// gateway-safe alternative to the magic link (no scannable URL).
-
-const SECRET =
-  process.env.EMAIL_SECRET ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.ANALYTICS_DASHBOARD_KEY ||
-  "halvinglens-dev-secret";
+// gateway-safe alternative to the magic link (no scannable URL). The secret is
+// resolved fail-closed (see signingSecret) — a missing prod secret throws
+// rather than hashing with a guessable dev literal.
 
 const TTL_MIN = 15;
 const MAX_ATTEMPTS = 6;
 
 export function generateCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000)); // 6 digits, no leading zero
+  return String(randomInt(100000, 1000000)); // cryptographically-random 6-digit code
 }
 
 function codeHash(email: string, code: string): string {
-  return createHmac("sha256", SECRET).update(`${email.trim().toLowerCase()}|${code.trim()}`).digest("hex");
+  return createHmac("sha256", signingSecret()).update(`${email.trim().toLowerCase()}|${code.trim()}`).digest("hex");
 }
 
 function hashEq(a: string, b: string): boolean {

@@ -4,6 +4,7 @@ import { makeProfileToken, MAGIC_TTL_MS } from "@/lib/profileToken";
 import { generateCode, storeOtp } from "@/lib/profileOtp";
 import { profileEmailHtml, profileEmailText, profileEmailSubject } from "@/lib/profileEmail";
 import { absoluteUrl } from "@/lib/site";
+import { rateLimitAll, clientIp } from "@/lib/rateLimit";
 
 // Request a magic sign-in link for a HalvingLens Profile. Always returns ok
 // (never reveals whether an address exists). Sends a one-hour, single-use link.
@@ -25,6 +26,20 @@ export async function POST(req: Request) {
   }
   const email = (body.email ?? "").trim().toLowerCase();
   if (!EMAIL_RE.test(email)) return NextResponse.json({ ok: false, error: "Please enter a valid email." }, { status: 400 });
+
+  // Throttle before sending: each request fires a sign-in email, so cap per-IP
+  // and per-email to stop email-bombing a victim / running up send cost.
+  const ok = await rateLimitAll([
+    { key: `otp:ip:${clientIp(req)}`, limit: 8, windowSec: 900 },
+    { key: `otp:email:${email}`, limit: 4, windowSec: 900 },
+  ]);
+  if (!ok) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Please wait a few minutes and try again." },
+      { status: 429 },
+    );
+  }
+
   if (!resendConfigured) return NextResponse.json({ ok: true, sent: false });
 
   const token = makeProfileToken(email, MAGIC_TTL_MS);
