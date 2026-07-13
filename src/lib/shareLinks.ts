@@ -26,6 +26,8 @@ export const CANONICAL_ALIASES: Record<string, string> = {
   cycles: "/cycles",
   "similar-moments": "/similar-moments",
   accumulation: "/accumulation",
+  "market-health": "/market-health",
+  "etf-flows": "/etf",
   downside: "/downside-scenarios",
   brief: "/brief",
   research: "/research",
