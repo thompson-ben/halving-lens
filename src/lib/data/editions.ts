@@ -6,6 +6,100 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 409,
+    "slug": "2026-07-14",
+    "dateLabel": "Tuesday 14 July 2026",
+    "feature": {
+      "key": "similar",
+      "day": "Tuesday",
+      "title": "Similar Moments"
+    },
+    "subject": "The crowd is fearful. History wasn't.",
+    "take": "Bitcoin remains historically cheap while sentiment sits in extreme fear.",
+    "contextScore": {
+      "score": 72,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "Bitcoin is trading cheaper than 77% of all weeks in its history, while sentiment remains in extreme fear. We have only seen conditions like this a handful of times before.",
+    "confidence": {
+      "level": "HIGH",
+      "blurb": "Most of today's core signals point the same way.",
+      "detail": "Valuation, sentiment point the same way; ETF flows diverge."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Attractive",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "22/100"
+      },
+      {
+        "label": "Sentiment",
+        "value": "Extreme fear",
+        "color": "#e8786f",
+        "strength": 3,
+        "metric": "22/100"
+      },
+      {
+        "label": "Cycle position",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "25/100"
+      },
+      {
+        "label": "ETF demand",
+        "value": "Weak",
+        "color": "#e8786f",
+        "strength": 2,
+        "metric": "−$5.54M/wk"
+      },
+      {
+        "label": "Momentum",
+        "value": "Negative",
+        "color": "#e8786f",
+        "strength": 2,
+        "metric": "-2.6%"
+      }
+    ],
+    "historicalContext": {
+      "match": "Jun 2022",
+      "similarity": 87,
+      "body": "Today most closely resembles Jun 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop, with sentiment in extreme fear. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "The crowd usually notices value only after fear has disappeared.",
+      "body": "Today fear and opportunity occupy the same room: Bitcoin sits cheaper than 77% of its history while sentiment is at its most fearful. History doesn't repeat — but it rarely leaves these conditions on the table for long."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      },
+      {
+        "signal": "Sentiment approaching euphoric territory",
+        "status": "Deep fear — Fear & Greed at 22"
+      }
+    ],
+    "memory": "Bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far.",
+    "heroNarrative": "similar",
+    "readMin": 2,
+    "metrics": {
+      "price": 62126.532372,
+      "fearGreed": 22,
+      "accumulationScore": 22,
+      "accumulationBand": "Historically Attractive",
+      "accumulationPercentile": 23,
+      "cycleDay": 816,
+      "etf": "Weak",
+      "sentiment": "Extreme fear"
+    },
+    "search": "bitcoin remains historically cheap while sentiment sits in extreme fear. bitcoin is trading cheaper than 77% of all weeks in its history, while sentiment remains in extreme fear. we have only seen conditions like this a handful of times before. the crowd usually notices value only after fear has disappeared. today fear and opportunity occupy the same room: bitcoin sits cheaper than 77% of its history while sentiment is at its most fearful. history doesn't repeat — but it rarely leaves these conditions on the table for long. today most closely resembles jun 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop, with sentiment in extreme fear. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far. similar moments clear historical context extreme fear historically attractive divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles sentiment approaching euphoric territory deep fear — fear & greed at 22"
+  },
+  {
     "edition": 408,
     "slug": "2026-07-13",
     "dateLabel": "Monday 13 July 2026",
