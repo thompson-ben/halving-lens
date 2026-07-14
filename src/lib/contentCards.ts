@@ -25,6 +25,7 @@ import { SITE_HOST } from "./site";
 import { latestWeekly } from "./weekly";
 import { STORED_BRIEFS } from "./data/briefs";
 import type { StoredBrief } from "./brief";
+import { selectChartOfWeek } from "./chartOfWeek";
 
 // Fear & Greed band → hex, matching the standard palette.
 const TONE_HEX: Record<string, string> = {
@@ -90,7 +91,11 @@ export type CardId =
   | "week_cover"
   | "week_snapshot"
   | "week_changed"
-  | "week_context";
+  | "week_context"
+  // Chart of the Week assets
+  | "cotw_why"
+  | "cotw_context"
+  | "cotw_takeaway";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -153,6 +158,9 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   week_snapshot: { kicker: "Market snapshot", name: "Market snapshot" },
   week_changed: { kicker: "What changed this week", name: "What changed this week" },
   week_context: { kicker: "Historical context", name: "Historical context" },
+  cotw_why: { kicker: "Why this chart", name: "Why this chart" },
+  cotw_context: { kicker: "Historical context", name: "Historical context" },
+  cotw_takeaway: { kicker: "The takeaway", name: "Key takeaway" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -565,6 +573,22 @@ export interface WeekContextCard {
   items: CyclesObservation[];
 }
 
+// ── Chart of the Week assets ─────────────────────────────────────────────────
+export interface CotwWhyCard {
+  kind: "cotw_why";
+  title: string;
+  points: string[];
+}
+export interface CotwContextCard {
+  kind: "cotw_context";
+  heading: string;
+  text: string;
+}
+export interface CotwTakeawayCard {
+  kind: "cotw_takeaway";
+  text: string;
+}
+
 export type CardBody =
   | MarketHealthCard
   | HealthFactorsCard
@@ -606,7 +630,10 @@ export type CardBody =
   | WeekCoverCard
   | WeekSnapshotCard
   | WeekChangedCard
-  | WeekContextCard;
+  | WeekContextCard
+  | CotwWhyCard
+  | CotwContextCard
+  | CotwTakeawayCard;
 
 export interface Card {
   id: CardId;
@@ -1863,6 +1890,89 @@ export function cyclesContentPack(): import("./brief").ContentPack {
   return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody, storyCaption, youtubeCommunity };
 }
 
+// ── Chart of the Week builders ───────────────────────────────────────────────
+// All three text slides read from the same deterministic pick, so they stay in
+// lockstep with whichever chart leads the carousel.
+function cotwWhyCard(): CotwWhyCard {
+  const p = selectChartOfWeek();
+  return { kind: "cotw_why", title: p.title, points: p.why };
+}
+function cotwContextCard(): CotwContextCard {
+  const p = selectChartOfWeek();
+  return { kind: "cotw_context", heading: "Why it matters", text: p.context };
+}
+function cotwTakeawayCard(): CotwTakeawayCard {
+  const p = selectChartOfWeek();
+  return { kind: "cotw_takeaway", text: p.takeaway };
+}
+
+// Cross-channel copy for Chart of the Week — the auto-selected "one chart worth
+// looking at this week". Same framing: historical context, no predictions.
+export function chartOfWeekContentPack(): import("./brief").ContentPack {
+  const p = selectChartOfWeek();
+  const link = `https://${SITE_HOST}${p.link}`;
+  const why = p.why.map((w) => `• ${w}`);
+
+  const x1 = `Chart of the Week: ${p.title}. Historical context, not a prediction.`;
+  const xThread = [
+    `📈 Chart of the Week\n\n${p.title}.\n\nWhy this one, and what history actually says 🧵`,
+    p.why.join("\n\n"),
+    `${p.context}`,
+    `${p.takeaway}\n\nSee the live chart: ${link}`,
+  ];
+  const instagram = [
+    "Chart of the Week",
+    "",
+    `${p.title}`,
+    "",
+    why.join("\n"),
+    "",
+    p.takeaway,
+    "",
+    `See the live chart → ${link}`,
+    "",
+    "Historical context, not a prediction. #bitcoin #btc #bitcoincycle #crypto",
+  ].join("\n");
+  const linkedin = [
+    `Chart of the Week — ${p.title}.`,
+    "",
+    p.why.join("\n\n"),
+    "",
+    p.context,
+    "",
+    p.takeaway,
+    "",
+    `Explore the live chart: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `Chart of the Week — ${p.title}`;
+  const emailBody = [
+    `This week's chart: ${p.title}.`,
+    "",
+    why.join("\n"),
+    "",
+    p.context,
+    "",
+    p.takeaway,
+    "",
+    `See the live, interactive chart: ${link}`,
+    "",
+    "Historical context only. Past behaviour is not a forecast. Not financial advice.",
+  ].join("\n");
+  const storyCaption = `Chart of the Week\n${p.title}\n${link}`;
+  const youtubeCommunity = [
+    `📈 Chart of the Week — ${p.title}`,
+    "",
+    p.why[0],
+    "",
+    `Live chart (free): ${link}`,
+    "",
+    "Historical context, not a prediction.",
+  ].join("\n");
+  return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody, storyCaption, youtubeCommunity };
+}
+
 const BUILDERS: Record<CardId, () => CardBody> = {
   hero: heroCard,
   changed: changedCard,
@@ -1909,6 +2019,9 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   week_snapshot: weekSnapshotCard,
   week_changed: weekChangedCard,
   week_context: weekContextCard,
+  cotw_why: cotwWhyCard,
+  cotw_context: cotwContextCard,
+  cotw_takeaway: cotwTakeawayCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -1918,7 +2031,7 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric" | "cycles" | "week";
+export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric" | "cycles" | "week" | "chart_week";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
@@ -1930,6 +2043,7 @@ export const PACK_LABELS: Record<PackId, string> = {
   metric: "Metric Deep Dive Pack",
   cycles: "Every Cycle Compared",
   week: "This Week in the Bitcoin Cycle",
+  chart_week: "Chart of the Week",
 };
 
 // This Week in the Bitcoin Cycle — the flagship Sunday publication. The chart
@@ -1939,6 +2053,15 @@ export const PACK_LABELS: Record<PackId, string> = {
 export function weekPackOrder(): CardId[] {
   const chart = selectHistoricalNarrative().order[0];
   return ["week_cover", "week_snapshot", "week_changed", "week_context", chart, "watch", "cta"];
+}
+
+// Chart of the Week — a focused 5-slide carousel that leads with the single
+// most interesting chart this week (auto-selected, founder-overridable via
+// CHART_OF_WEEK_OVERRIDE), then why it's the chart, the historical context and
+// the one-line takeaway, closing on the brand CTA. The lead chart slide's
+// kicker is rebranded to "Chart of the week" in buildCard.
+export function chartWeekPackOrder(): CardId[] {
+  return [selectChartOfWeek().chartCard, "cotw_why", "cotw_context", "cotw_takeaway", "cta"];
 }
 
 // Every Cycle Compared — the signature "where is Bitcoin vs every previous
@@ -2089,17 +2212,21 @@ export function packOrder(packId: PackId): CardId[] {
   if (packId === "metric") return METRIC_PACK;
   if (packId === "cycles") return CYCLES_PACK;
   if (packId === "week") return weekPackOrder();
+  if (packId === "chart_week") return chartWeekPackOrder();
   return CARD_ORDER;
 }
 
 export function buildCard(id: CardId, packId: PackId = "daily"): Card {
   const order = packOrder(packId);
   const index = order.indexOf(id);
+  // Chart of the Week rebrands its lead chart slide's kicker so the carousel
+  // reads "Chart of the week" regardless of which chart was auto-selected.
+  const kicker = packId === "chart_week" && index === 0 ? "Chart of the week" : CARD_LABELS[id].kicker;
   return {
     id,
     index: index >= 0 ? index + 1 : 1,
     total: order.length,
-    kicker: CARD_LABELS[id].kicker,
+    kicker,
     body: BUILDERS[id](),
   };
 }
