@@ -11,7 +11,7 @@
 
 import { format } from "date-fns";
 import { cycleSummary, cycleScorecard, HEAT_LABEL } from "./cycleSummary";
-import { priorCyclesAtSameDay, currentGainFromHalving, whatHappenedNext } from "./cycleIntel";
+import { priorCyclesAtSameDay, currentGainFromHalving, whatHappenedNext, cycleDivergence } from "./cycleIntel";
 import { cycleTiming, cyclePeakTroughs } from "./cycleTiming";
 import { drawdownAnalysis } from "./drawdowns";
 import { similarMoments, currentMoment } from "./similarity";
@@ -31,7 +31,7 @@ const TONE_HEX: Record<string, string> = {
   green: "#3ddc97",
   teal: "#5eead4",
 };
-import { CYCLES, SOURCE, TODAY, TODAY_DAY_IN_CYCLE } from "./btcData";
+import { CYCLES, SOURCE, TODAY, TODAY_DAY_IN_CYCLE, CURRENT_CYCLE } from "./btcData";
 import { METRICS, zoneFor, metricTodayRead, type MetricDef } from "./metrics";
 import { fmtUsd, fmtPct } from "./format";
 
@@ -77,7 +77,12 @@ export type CardId =
   | "metric_definition"
   | "metric_why"
   | "metric_reading"
-  | "metric_history";
+  | "metric_history"
+  // Every Cycle Compared assets
+  | "cycles_position"
+  | "cycles_similarities"
+  | "cycles_differences"
+  | "cycles_context";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -132,6 +137,10 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   metric_why: { kicker: "Why it matters", name: "Why it matters" },
   metric_reading: { kicker: "Current reading", name: "Current reading" },
   metric_history: { kicker: "Historical zones", name: "Historical zones" },
+  cycles_position: { kicker: "Where Bitcoin sits today", name: "Current position" },
+  cycles_similarities: { kicker: "Biggest similarities", name: "Biggest similarities" },
+  cycles_differences: { kicker: "Biggest differences", name: "Biggest differences" },
+  cycles_context: { kicker: "Historical context", name: "History tells us / doesn't" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -206,6 +215,7 @@ export interface OverlayCard {
   available: boolean;
   lines: ChartLine[];
   yTicks: { label: string; frac: number }[]; // log multiple gridlines
+  today?: { x: number; y: number }; // 0..1 marker for the current cycle's position now
 }
 export interface CycleTimingCard {
   kind: "cycle_timing";
@@ -493,6 +503,35 @@ export interface MetricHistoryCard {
   note: string;
 }
 
+// ── Every Cycle Compared assets ──────────────────────────────────────────────
+export interface CyclesStat {
+  label: string;
+  value: string;
+  tone?: "accent" | "green" | "amber" | "red" | "default";
+}
+export interface CyclesPositionCard {
+  kind: "cycles_position";
+  subtitle: string;
+  stats: CyclesStat[];
+}
+export interface CyclesObservation {
+  label: string;
+  detail: string;
+}
+export interface CyclesSimilaritiesCard {
+  kind: "cycles_similarities";
+  items: CyclesObservation[];
+}
+export interface CyclesDifferencesCard {
+  kind: "cycles_differences";
+  items: CyclesObservation[];
+}
+export interface CyclesContextCard {
+  kind: "cycles_context";
+  tells: string;
+  doesnt: string;
+}
+
 export type CardBody =
   | MarketHealthCard
   | HealthFactorsCard
@@ -526,7 +565,11 @@ export type CardBody =
   | SimilarTop3Card
   | SimilarContextCard
   | AccumulationCardView
-  | AccumulationOutcomesCardView;
+  | AccumulationOutcomesCardView
+  | CyclesPositionCard
+  | CyclesSimilaritiesCard
+  | CyclesDifferencesCard
+  | CyclesContextCard;
 
 export interface Card {
   id: CardId;
@@ -723,8 +766,17 @@ function overlayCard(): OverlayCard {
     const m = 10 ** e;
     yTicks.push({ label: `${m}×`, frac: (e - lLo) / (lHi - lLo || 1) });
   }
+  // "You are here" — the current cycle's position right now, normalised to the
+  // same axes so the template can drop a marker on the chart.
+  const base5 = CURRENT_CYCLE.samples[0]?.price || 1;
+  const todayMult = TODAY.price / base5;
+  const today =
+    Number.isFinite(todayMult) && todayMult > 0
+      ? { x: Math.min(1, TODAY_DAY_IN_CYCLE / maxDay), y: Math.min(1, Math.max(0, yFrac(todayMult))) }
+      : undefined;
+
   void MS;
-  return { kind: "cycle_overlay", available: true, lines, yTicks };
+  return { kind: "cycle_overlay", available: true, lines, yTicks, today };
 }
 
 // ── When could the current cycle top & bottom? ───────────────────────────────
@@ -1493,6 +1545,158 @@ export function metricContentPack(): import("./brief").ContentPack {
   return { xPost: `What is ${m.name}? Today: ${num} — ${label}.`, xThread, instagram, linkedin, emailSubject, emailBody };
 }
 
+// ── Every Cycle Compared builders ────────────────────────────────────────────
+function cyclesPositionCard(): CyclesPositionCard {
+  const s = cycleSummary();
+  const gainMult = 1 + currentGainFromHalving() / 100;
+  const sc = cycleScorecard();
+  const dd = Math.round(s.drawdownFromAth);
+  return {
+    kind: "cycles_position",
+    subtitle: `Where the 2024 cycle sits today — day ${s.cycleDay}, ${s.progressPct}% through the four-year rhythm.`,
+    stats: [
+      { label: "Cycle day", value: `Day ${s.cycleDay}` },
+      { label: "Through cycle", value: `${s.progressPct}%` },
+      { label: "Since halving", value: `${gainMult.toFixed(1)}×` },
+      { label: "From cycle high", value: `${dd > 0 ? "+" : ""}${dd}%`, tone: dd < 0 ? "red" : "default" },
+      ...(s.heatPercentile != null ? [{ label: "Heat percentile", value: `${s.heatPercentile}th`, tone: "amber" as const }] : []),
+      { label: "Market Health", value: `${sc.overall}/100 · ${sc.overallLabel}` },
+    ],
+  };
+}
+
+function cyclesSimilaritiesCard(): CyclesSimilaritiesCard {
+  const div = cycleDivergence();
+  const top = similarMoments(1)[0];
+  const dd = drawdownAnalysis();
+  const items: CyclesObservation[] = [];
+  items.push({
+    label: div.cooler ? "A cooler pace than history" : div.later ? "Running later than history" : "Broadly tracking history",
+    detail: div.keyInsight,
+  });
+  if (top) {
+    items.push({
+      label: `Most resembles ${top.dateLabel}`,
+      detail: `Today's mix of cycle position, drawdown and heat is a ${top.similarity}% match to ${top.dateLabel}.`,
+    });
+  }
+  if (dd.available) {
+    const cur = Math.abs(dd.current);
+    const avg = Math.abs(dd.avgAtStage);
+    const rel = cur < avg - 3 ? "shallower than" : cur > avg + 3 ? "deeper than" : "in line with";
+    items.push({
+      label: "Drawdown depth",
+      detail: `At day ${dd.cycleDay}, this cycle's ${Math.round(cur)}% drawdown from the high is ${rel} the ${Math.round(avg)}% prior cycles averaged at the same stage.`,
+    });
+  }
+  return { kind: "cycles_similarities", items: items.slice(0, 3) };
+}
+
+function cyclesDifferencesCard(): CyclesDifferencesCard {
+  const div = cycleDivergence();
+  const items: CyclesObservation[] = [];
+  if (ETF.connected) {
+    const wk = etfStats().trailingWeek;
+    items.push({
+      label: "Spot ETF demand",
+      detail: `US spot Bitcoin ETFs — a regulated buyer that didn't exist in 2012, 2016 or 2020 (recent flow ${wk >= 0 ? "positive" : "negative"} at ${fmtUsd(Math.abs(wk), { compact: true })}/wk).`,
+    });
+  } else {
+    items.push({
+      label: "Spot ETF demand",
+      detail: "US spot Bitcoin ETFs launched in 2024 — a regulated, at-scale buyer that simply didn't exist in prior cycles.",
+    });
+  }
+  items.push({
+    label: div.cooler ? "A flatter, cooler path" : "A different price path",
+    detail: div.cooler
+      ? "So far this cycle has been flatter and cooler than the classic four-year pattern — a candidate effect of steady structural demand."
+      : div.summary,
+  });
+  items.push({
+    label: "Different market structure",
+    detail: "Regulated, institutional access at scale changes who is buying and how — a structural difference from every prior cycle.",
+  });
+  return { kind: "cycles_differences", items: items.slice(0, 3) };
+}
+
+function cyclesContextCard(): CyclesContextCard {
+  const s = cycleSummary();
+  return {
+    kind: "cycles_context",
+    tells: s.support || s.summary,
+    doesnt:
+      "History can't tell you when — or whether — the pattern repeats. Only three completed cycles exist, and the ETF era is a genuine new variable. This is context, never a forecast.",
+  };
+}
+
+// Cross-channel copy for Every Cycle Compared — the signature carousel. Same
+// careful framing: historical context, no predictions, no price targets.
+export function cyclesContentPack(): import("./brief").ContentPack {
+  const s = cycleSummary();
+  const div = cycleDivergence();
+  const top = similarMoments(1)[0];
+  const gainMult = (1 + currentGainFromHalving() / 100).toFixed(1);
+  const link = `https://${SITE_HOST}/cycles`;
+  const pace = div.cooler ? "cooler and flatter than" : div.later ? "later than" : "broadly in line with";
+  const matchClause = top ? ` Today most resembles ${top.dateLabel} (${top.similarity}% match).` : "";
+
+  const x1 = `Where is Bitcoin vs every previous cycle? Day ${s.cycleDay}, ${gainMult}× since the halving — ${pace} the 2012, 2016 and 2020 cycles at this stage.`;
+  const xThread = [
+    `${x1}\n\nEvery completed Bitcoin cycle, lined up from its halving, with today marked. Historical context — not a forecast.`,
+    `Position: day ${s.cycleDay} (${s.progressPct}% through), ${gainMult}× since the halving${s.heatPercentile != null ? `, heat around the ${s.heatPercentile}th percentile of history` : ""}.${matchClause}`,
+    `What's the same: the four-year rhythm still rhymes — pace, drawdown depth and recovery echo prior cycles.\n\nWhat's different: spot ETF demand is a regulated, at-scale buyer that didn't exist before 2024.`,
+    `What history tells us: where we sit versus the past. What it can't: when — or whether — the pattern repeats. Only three completed cycles exist.\n\nSee the full overlay: ${link}`,
+  ];
+  const instagram = [
+    "Every Cycle Compared — where is Bitcoin today?",
+    "",
+    `Day ${s.cycleDay}, ${gainMult}× since the 2024 halving — ${pace} previous cycles at the same stage.${matchClause}`,
+    "",
+    "Every completed cycle lined up from its halving, with today marked. Spot ETF demand is the new variable that could break the pattern. Historical context, not a prediction.",
+    "",
+    `See the full comparison → ${link}`,
+    "",
+    "#bitcoin #btc #crypto #bitcoinhalving #bitcoincycle",
+  ].join("\n");
+  const linkedin = [
+    "Where does Bitcoin sit versus every previous cycle?",
+    "",
+    `At day ${s.cycleDay} (${s.progressPct}% through the four-year rhythm), Bitcoin is ${gainMult}× its halving price — ${pace} the 2012, 2016 and 2020 cycles at the same stage.${matchClause}`,
+    "",
+    div.summary,
+    "",
+    "The genuinely new variable is spot ETF demand — a regulated, at-scale buyer absent from every prior cycle. History frames where we are; it can't tell us when or whether the pattern repeats.",
+    "",
+    `Explore the full multi-cycle overlay: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `Where is Bitcoin vs every previous cycle?`;
+  const emailBody = [
+    `At day ${s.cycleDay} of the 2024 cycle (${s.progressPct}% through), Bitcoin is ${gainMult}× its halving price — ${pace} previous cycles at the same stage.${matchClause}`,
+    "",
+    div.summary,
+    "",
+    "What's different this time is spot ETF demand — a structural buyer that didn't exist in prior cycles. History shows where we sit; it can't tell us when, or whether, the pattern repeats.",
+    "",
+    `See every cycle lined up from its halving, with today marked: ${link}`,
+    "",
+    "Historical context only. Past behaviour is not a forecast. Not financial advice.",
+  ].join("\n");
+  const storyCaption = `Where is Bitcoin vs every previous cycle?\nDay ${s.cycleDay} · ${gainMult}× since halving\n${link}`;
+  const youtubeCommunity = [
+    `📊 Every Cycle Compared — where is Bitcoin today?`,
+    "",
+    `Day ${s.cycleDay}, ${gainMult}× since the halving, ${pace} previous cycles.${matchClause}`,
+    "",
+    `Full multi-cycle overlay (free): ${link}`,
+    "",
+    "Historical context, not a prediction.",
+  ].join("\n");
+  return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody, storyCaption, youtubeCommunity };
+}
+
 const BUILDERS: Record<CardId, () => CardBody> = {
   hero: heroCard,
   changed: changedCard,
@@ -1531,6 +1735,10 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   metric_why: metricWhyCard,
   metric_reading: metricReadingCard,
   metric_history: metricHistoryCard,
+  cycles_position: cyclesPositionCard,
+  cycles_similarities: cyclesSimilaritiesCard,
+  cycles_differences: cyclesDifferencesCard,
+  cycles_context: cyclesContextCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -1540,7 +1748,7 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric";
+export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric" | "cycles";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
@@ -1550,7 +1758,22 @@ export const PACK_LABELS: Record<PackId, string> = {
   market_health: "Market Health Pack",
   etf: "ETF Flow Pack",
   metric: "Metric Deep Dive Pack",
+  cycles: "Every Cycle Compared",
 };
+
+// Every Cycle Compared — the signature "where is Bitcoin vs every previous
+// cycle?" carousel. Leads with the multi-cycle overlay (today marked), then the
+// current position, similarities, differences, correction profile and the
+// history-tells-us / doesn't context, closing on the brand CTA.
+export const CYCLES_PACK: CardId[] = [
+  "cycle_overlay",
+  "cycles_position",
+  "cycles_similarities",
+  "cycles_differences",
+  "drawdowns",
+  "cycles_context",
+  "cta",
+];
 
 // The Metric Deep Dive Pack — educational, evergreen, one metric per day:
 // intro → definition → why it matters → current reading → historical zones → CTA.
@@ -1684,6 +1907,7 @@ export function packOrder(packId: PackId): CardId[] {
   if (packId === "market_health") return MARKET_HEALTH_PACK;
   if (packId === "etf") return ETF_PACK;
   if (packId === "metric") return METRIC_PACK;
+  if (packId === "cycles") return CYCLES_PACK;
   return CARD_ORDER;
 }
 

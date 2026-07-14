@@ -15,6 +15,8 @@ export interface StudioCopy {
   thread: string;
   linkedin: string;
   email: string;
+  story?: string;
+  youtube?: string;
 }
 export interface StudioPack {
   id: string; // "daily" | "historical"
@@ -274,6 +276,8 @@ export function ContentPackStudio({ packs }: { packs: StudioPack[] }) {
           <CopyBlock label="X thread" text={copy.thread} event="copy_thread" />
           <CopyBlock label="LinkedIn post" text={copy.linkedin} event="copy_linkedin" />
           <CopyBlock label="Email summary" text={copy.email} event="copy_email" />
+          {copy.story && <CopyBlock label="Story caption" text={copy.story} event="copy_summary" />}
+          {copy.youtube && <CopyBlock label="YouTube Community post" text={copy.youtube} event="copy_post" />}
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ContentPackStudio, type StudioPack } from "@/components/ContentPackStudio";
 import { ReelStudio } from "@/components/ReelStudio";
-import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, metricContentPack, type Deck, type PackId } from "@/lib/contentCards";
+import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, metricContentPack, cyclesContentPack, type Deck, type PackId } from "@/lib/contentCards";
 import { contentPack } from "@/lib/brief";
 import { historicalContentPack, similarContentPack } from "@/lib/historicalPack";
 import { reelPackage, reelScriptText } from "@/lib/reel";
@@ -59,10 +59,13 @@ export default function ContentPackPage({ searchParams }: { searchParams: { key?
       thread: content.xThread.join("\n\n"),
       linkedin: content.linkedin,
       email: `Subject: ${content.emailSubject}\n\n${content.emailBody}`,
+      ...(content.storyCaption ? { story: content.storyCaption } : {}),
+      ...(content.youtubeCommunity ? { youtube: content.youtubeCommunity } : {}),
     },
   });
 
   const packs: StudioPack[] = [
+    toStudioPack("cycles", "Generate Every Cycle Compared", buildPack("cycles"), cyclesContentPack()),
     toStudioPack("daily", "Generate Daily Brief Pack", buildPack("daily"), contentPack()),
     toStudioPack("historical", "Generate Historical Context Pack", buildPack("historical"), historicalContentPack()),
     toStudioPack("similar", "Generate Similar Moments Pack", buildPack("similar"), similarContentPack()),
