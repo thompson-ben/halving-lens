@@ -11,6 +11,10 @@ import type {
   AccumulationCardView,
   AccumulationOutcomesCardView,
   Card,
+  CyclesPositionCard,
+  CyclesSimilaritiesCard,
+  CyclesDifferencesCard,
+  CyclesContextCard,
   ChangedCard,
   ChartLine,
   CtaCard,
@@ -309,11 +313,13 @@ function Cta({ c }: { c: CtaCard }) {
 function Chart({
   lines,
   yTicks,
+  today,
   width = 900,
   height = 520,
 }: {
   lines: ChartLine[];
   yTicks?: { label: string; frac: number }[];
+  today?: { x: number; y: number };
   width?: number;
   height?: number;
 }) {
@@ -338,6 +344,13 @@ function Chart({
       {lines.map((l, i) => (
         <polyline key={`l${i}`} points={toPts(l.points)} fill="none" stroke={l.color} strokeWidth={3.5} />
       ))}
+      {/* "You are here" — a vertical guide + dot at today's position. */}
+      {today && (
+        <>
+          <line x1={today.x * width} y1={0} x2={today.x * width} y2={height} stroke="rgba(255,255,255,0.5)" strokeWidth={2} />
+          <circle cx={today.x * width} cy={(1 - today.y) * height} r={11} fill="#ffffff" stroke="#070a0f" strokeWidth={4} />
+        </>
+      )}
     </svg>
   );
 }
@@ -367,8 +380,72 @@ function Overlay({ c }: { c: OverlayCard }) {
         Price as a multiple of the halving price · log scale
         {c.yTicks.length ? ` · gridlines ${c.yTicks.map((t) => t.label).join(", ")}` : ""} · days since halving →
       </div>
-      <Chart lines={c.lines} yTicks={c.yTicks} />
-      <Legend items={c.lines.map((l) => ({ label: l.label, color: l.color }))} />
+      <Chart lines={c.lines} yTicks={c.yTicks} today={c.today} />
+      <Legend items={[...c.lines.map((l) => ({ label: l.label, color: l.color })), ...(c.today ? [{ label: "Today", color: "#ffffff" }] : [])]} />
+    </div>
+  );
+}
+
+// ── Every Cycle Compared: current position stat grid ─────────────────────────
+const CYCLES_TONE: Record<string, string> = { accent: ACCENT, green: "#3ddc97", amber: "#f5b942", red: "#ff5d5d", default: INK };
+function CyclesPosition({ c }: { c: CyclesPositionCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Where Bitcoin sits today</Kicker>
+      <div style={{ display: "flex", fontSize: 30, color: INK_DIM, marginTop: 14, marginBottom: 30, maxWidth: 900, lineHeight: 1.3 }}>
+        {c.subtitle}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap" }}>
+        {c.stats.map((st) => (
+          <div key={st.label} style={{ display: "flex", flexDirection: "column", gap: 10, width: "50%", marginBottom: 40 }}>
+            <div style={{ display: "flex", fontSize: 22, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>{st.label}</div>
+            <div style={{ display: "flex", fontSize: 52, fontWeight: 700, color: CYCLES_TONE[st.tone ?? "default"] }}>{st.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Every Cycle Compared: observation lists (similarities / differences) ─────
+function ObservationList({ kicker, title, items }: { kicker: string; title: string; items: { label: string; detail: string }[] }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>{kicker}</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 48, fontWeight: 700, color: INK, marginTop: 14, marginBottom: 30, lineHeight: 1.1 }}>
+        {title}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+        {items.map((it, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, borderLeft: `5px solid ${ACCENT}`, paddingLeft: 26 }}>
+            <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: INK }}>{it.label}</div>
+            <div style={{ display: "flex", fontSize: 26, color: INK_DIM, lineHeight: 1.35, maxWidth: 860 }}>{it.detail}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function CyclesSimilarities({ c }: { c: CyclesSimilaritiesCard }) {
+  return <ObservationList kicker="Biggest similarities" title="How this cycle rhymes with history" items={c.items} />;
+}
+function CyclesDifferences({ c }: { c: CyclesDifferencesCard }) {
+  return <ObservationList kicker="Biggest differences" title="What makes this cycle different" items={c.items} />;
+}
+
+// ── Every Cycle Compared: history tells us / doesn't ─────────────────────────
+function CyclesContext({ c }: { c: CyclesContextCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Historical context</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 26, marginBottom: 30 }}>
+        <div style={{ display: "flex", fontSize: 24, letterSpacing: 2, color: "#3ddc97", textTransform: "uppercase" }}>What history tells us</div>
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 42, fontWeight: 600, color: INK, lineHeight: 1.25, maxWidth: 900 }}>{c.tells}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", fontSize: 24, letterSpacing: 2, color: "#f5b942", textTransform: "uppercase" }}>What it can&apos;t</div>
+        <div style={{ display: "flex", fontSize: 30, color: INK_DIM, lineHeight: 1.35, maxWidth: 900 }}>{c.doesnt}</div>
+      </div>
     </div>
   );
 }
@@ -1244,6 +1321,14 @@ export function renderCard(card: Card): React.ReactElement {
         return <MetricReading c={card.body} />;
       case "metric_history":
         return <MetricHistory c={card.body} />;
+      case "cycles_position":
+        return <CyclesPosition c={card.body} />;
+      case "cycles_similarities":
+        return <CyclesSimilarities c={card.body} />;
+      case "cycles_differences":
+        return <CyclesDifferences c={card.body} />;
+      case "cycles_context":
+        return <CyclesContext c={card.body} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":

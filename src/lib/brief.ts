@@ -173,6 +173,8 @@ export interface ContentPack {
   linkedin: string;
   emailSubject: string;
   emailBody: string;
+  storyCaption?: string; // short Instagram / X story overlay caption
+  youtubeCommunity?: string; // YouTube Community tab post
 }
 
 export function contentPack(
