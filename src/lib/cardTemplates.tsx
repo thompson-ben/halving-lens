@@ -15,6 +15,10 @@ import type {
   CyclesSimilaritiesCard,
   CyclesDifferencesCard,
   CyclesContextCard,
+  WeekCoverCard,
+  WeekSnapshotCard,
+  WeekChangedCard,
+  WeekContextCard,
   ChangedCard,
   ChartLine,
   CtaCard,
@@ -445,6 +449,68 @@ function CyclesContext({ c }: { c: CyclesContextCard }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", fontSize: 24, letterSpacing: 2, color: "#f5b942", textTransform: "uppercase" }}>What it can&apos;t</div>
         <div style={{ display: "flex", fontSize: 30, color: INK_DIM, lineHeight: 1.35, maxWidth: 900 }}>{c.doesnt}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── This Week in the Bitcoin Cycle: cover ────────────────────────────────────
+function WeekCover({ c }: { c: WeekCoverCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", fontSize: 26, letterSpacing: 3, color: ACCENT, textTransform: "uppercase" }}>
+        {c.edition != null ? `Weekly · Edition ${c.edition}` : "Weekly edition"}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", fontFamily: DISPLAY, fontSize: 92, fontWeight: 700, letterSpacing: -2, lineHeight: 1.02, marginTop: 24 }}>
+        <div style={{ display: "flex" }}>This Week</div>
+        <div style={{ display: "flex" }}>in the</div>
+        <div style={{ display: "flex", color: ACCENT }}>Bitcoin Cycle</div>
+      </div>
+      <div style={{ display: "flex", fontSize: 34, color: INK_DIM, marginTop: 40 }}>Week ending {c.weekEnding}</div>
+      <div style={{ display: "flex", fontSize: 24, color: INK_FAINT, marginTop: 12 }}>Where the market stands — historical context, not prediction.</div>
+    </div>
+  );
+}
+
+// ── This Week: market snapshot (dashboard grid) ──────────────────────────────
+function WeekSnapshot({ c }: { c: WeekSnapshotCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Market snapshot</Kicker>
+      <div style={{ display: "flex", flexWrap: "wrap", marginTop: 24 }}>
+        {c.stats.map((st) => (
+          <div key={st.label} style={{ display: "flex", flexDirection: "column", gap: 8, width: "50%", marginBottom: 34 }}>
+            <div style={{ display: "flex", fontSize: 21, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>{st.label}</div>
+            <div style={{ display: "flex", fontSize: 46, fontWeight: 700, color: CYCLES_TONE[st.tone ?? "default"] }}>{st.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── This Week: what changed this week ────────────────────────────────────────
+function WeekChanged({ c }: { c: WeekChangedCard }) {
+  if (!c.available) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+        <Kicker>What changed this week</Kicker>
+        <div style={{ display: "flex", fontSize: 44, fontWeight: 600, marginTop: 24, maxWidth: 820, lineHeight: 1.25 }}>
+          Not enough archived history yet — weekly changes fill in as the daily brief accumulates.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>What changed this week</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: 28, marginTop: 28 }}>
+        {c.items.map((it, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, borderLeft: `5px solid ${DIR_COLOR[it.dir]}`, paddingLeft: 26 }}>
+            <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: INK }}>{it.label}</div>
+            <div style={{ display: "flex", fontSize: 27, color: INK_DIM, lineHeight: 1.35, maxWidth: 860 }}>{it.detail}</div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1329,6 +1395,14 @@ export function renderCard(card: Card): React.ReactElement {
         return <CyclesDifferences c={card.body} />;
       case "cycles_context":
         return <CyclesContext c={card.body} />;
+      case "week_cover":
+        return <WeekCover c={card.body} />;
+      case "week_snapshot":
+        return <WeekSnapshot c={card.body} />;
+      case "week_changed":
+        return <WeekChanged c={card.body} />;
+      case "week_context":
+        return <ObservationList kicker="Historical context" title="Where this week sits in history" items={card.body.items} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":

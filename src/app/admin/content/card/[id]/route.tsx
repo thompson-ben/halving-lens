@@ -39,7 +39,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
                 ? "metric"
                 : packParam === "cycles"
                   ? "cycles"
-                  : "daily";
+                  : packParam === "week"
+                    ? "week"
+                    : "daily";
 
   const fonts = brandFonts();
   return new ImageResponse(renderCard(buildCard(id as CardId, pack)), {
