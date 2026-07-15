@@ -41,7 +41,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
                   ? "cycles"
                   : packParam === "week"
                     ? "week"
-                    : "daily";
+                    : packParam === "chart_week"
+                      ? "chart_week"
+                      : "daily";
 
   const fonts = brandFonts();
   return new ImageResponse(renderCard(buildCard(id as CardId, pack)), {

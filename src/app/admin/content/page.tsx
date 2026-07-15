@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ContentPackStudio, type StudioPack } from "@/components/ContentPackStudio";
 import { ReelStudio } from "@/components/ReelStudio";
-import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, metricContentPack, cyclesContentPack, weekContentPack, type Deck, type PackId } from "@/lib/contentCards";
+import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, metricContentPack, cyclesContentPack, weekContentPack, chartOfWeekContentPack, type Deck, type PackId } from "@/lib/contentCards";
 import { contentPack } from "@/lib/brief";
 import { historicalContentPack, similarContentPack } from "@/lib/historicalPack";
 import { reelPackage, reelScriptText } from "@/lib/reel";
@@ -66,6 +66,7 @@ export default function ContentPackPage({ searchParams }: { searchParams: { key?
 
   const packs: StudioPack[] = [
     toStudioPack("week", "Generate This Week in the Bitcoin Cycle", buildPack("week"), weekContentPack()),
+    toStudioPack("chart_week", "Generate Chart of the Week", buildPack("chart_week"), chartOfWeekContentPack()),
     toStudioPack("cycles", "Generate Every Cycle Compared", buildPack("cycles"), cyclesContentPack()),
     toStudioPack("daily", "Generate Daily Brief Pack", buildPack("daily"), contentPack()),
     toStudioPack("historical", "Generate Historical Context Pack", buildPack("historical"), historicalContentPack()),

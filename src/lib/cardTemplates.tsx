@@ -19,6 +19,9 @@ import type {
   WeekSnapshotCard,
   WeekChangedCard,
   WeekContextCard,
+  CotwWhyCard,
+  CotwContextCard,
+  CotwTakeawayCard,
   ChangedCard,
   ChartLine,
   CtaCard,
@@ -511,6 +514,50 @@ function WeekChanged({ c }: { c: WeekChangedCard }) {
             <div style={{ display: "flex", fontSize: 27, color: INK_DIM, lineHeight: 1.35, maxWidth: 860 }}>{it.detail}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Chart of the Week: why this chart ────────────────────────────────────────
+function CotwWhy({ c }: { c: CotwWhyCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>Why this chart</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 52, fontWeight: 700, color: INK, marginTop: 14, marginBottom: 34, lineHeight: 1.08, maxWidth: 920 }}>
+        {c.title}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+        {c.points.map((pt, i) => (
+          <div key={i} style={{ display: "flex", gap: 22, alignItems: "flex-start" }}>
+            <div style={{ display: "flex", width: 14, height: 14, borderRadius: 7, background: ACCENT, marginTop: 12, flexShrink: 0 }} />
+            <div style={{ display: "flex", fontSize: 30, color: INK_DIM, lineHeight: 1.4, maxWidth: 880 }}>{pt}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Chart of the Week: historical context ────────────────────────────────────
+function CotwContext({ c }: { c: CotwContextCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>{c.heading}</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 42, fontWeight: 500, color: INK, marginTop: 30, lineHeight: 1.32, maxWidth: 920 }}>
+        {c.text}
+      </div>
+    </div>
+  );
+}
+
+// ── Chart of the Week: the one-line takeaway ─────────────────────────────────
+function CotwTakeaway({ c }: { c: CotwTakeawayCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <Kicker>The takeaway</Kicker>
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 54, fontWeight: 600, lineHeight: 1.3, marginTop: 30, maxWidth: 900 }}>
+        {c.text}
       </div>
     </div>
   );
@@ -1403,6 +1450,12 @@ export function renderCard(card: Card): React.ReactElement {
         return <WeekChanged c={card.body} />;
       case "week_context":
         return <ObservationList kicker="Historical context" title="Where this week sits in history" items={card.body.items} />;
+      case "cotw_why":
+        return <CotwWhy c={card.body} />;
+      case "cotw_context":
+        return <CotwContext c={card.body} />;
+      case "cotw_takeaway":
+        return <CotwTakeaway c={card.body} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":
