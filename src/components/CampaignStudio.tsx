@@ -24,11 +24,9 @@ export interface CampaignRow {
 export function CampaignStudio({
   options,
   initial,
-  adminKey,
 }: {
   options: DestOption[];
   initial: CampaignRow[];
-  adminKey?: string;
 }) {
   const [name, setName] = useState("");
   const [destination, setDestination] = useState(options[0]?.path ?? "/");
@@ -46,10 +44,11 @@ export function CampaignStudio({
     setBusy(true);
     setError(null);
     try {
+      // Auth rides on the httpOnly admin cookie (sent automatically same-origin).
       const res = await fetch("/api/admin/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), destination, slug: slug.trim() || undefined, key: adminKey }),
+        body: JSON.stringify({ name: name.trim(), destination, slug: slug.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {

@@ -1,7 +1,7 @@
-import { cookies } from "next/headers";
 import { AdminLogin } from "@/components/AdminLogin";
 import { experimentResults, type ExperimentResult } from "@/lib/experimentAnalytics";
 import type { ExperimentStatus } from "@/lib/data/experimentRegistry";
+import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Experiments — halvinglens.com", robots: { index: false } };
@@ -13,11 +13,8 @@ const STATUS_TONE: Record<ExperimentStatus, string> = {
   cancelled: "text-ink-500 border-white/[0.1] bg-white/[0.02]",
 };
 
-export default async function ExperimentsPage({ searchParams }: { searchParams: { key?: string } }) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const authed = !!expected && (cookieKey === expected || searchParams.key === expected);
-  if (!authed) return <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>;
+export default async function ExperimentsPage() {
+  if (!isAdmin()) return <Shell>{adminConfigured() ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>;
 
   const results = await experimentResults();
   const completed = results.filter((r) => r.spec.status === "completed");

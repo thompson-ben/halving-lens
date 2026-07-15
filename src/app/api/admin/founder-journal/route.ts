@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { addJournalEntry, captureMonthlySnapshot, monthKey, type JournalEntry, type SnapshotMetrics } from "@/lib/companyHistory";
+import { isAdmin } from "@/lib/adminAuth";
 
 // Admin-only: record a Founder Reflection journal entry for a month, and/or log
 // manual metrics that have no automatic source yet (e.g. social followers,
@@ -12,10 +12,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const urlKey = new URL(req.url).searchParams.get("key");
-  if (!expected || (cookieKey !== expected && urlKey !== expected)) {
+  if (!isAdmin()) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

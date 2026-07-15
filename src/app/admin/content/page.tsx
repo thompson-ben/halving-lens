@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { ArrowLeft } from "lucide-react";
 import { AdminLogin } from "@/components/AdminLogin";
+import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 import { ContentPackStudio, type StudioPack } from "@/components/ContentPackStudio";
 import { ReelStudio } from "@/components/ReelStudio";
 import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, metricContentPack, cyclesContentPack, weekContentPack, chartOfWeekContentPack, type Deck, type PackId } from "@/lib/contentCards";
@@ -19,10 +19,8 @@ export const metadata = {
 // Admin-only Daily Content Pack studio: one-click branded carousel cards + copy
 // blocks, all generated from today's Daily Brief. Auth via the metrics dashboard
 // session cookie (or ?key= match). Noindex, unlinked from public nav.
-export default function ContentPackPage({ searchParams }: { searchParams: { key?: string } }) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-
-  if (!expected) {
+export default function ContentPackPage() {
+  if (!adminConfigured()) {
     return (
       <Shell>
         <p className="text-[14px] text-ink-300 max-w-xl leading-relaxed">
@@ -33,9 +31,7 @@ export default function ContentPackPage({ searchParams }: { searchParams: { key?
     );
   }
 
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const authed = cookieKey === expected || searchParams.key === expected;
-  if (!authed) {
+  if (!isAdmin()) {
     return (
       <Shell>
         <AdminLogin />

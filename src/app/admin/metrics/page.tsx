@@ -1,24 +1,18 @@
-import { cookies } from "next/headers";
 import { analyticsSummary, type SectionFeedback } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ExcludeToggle } from "@/components/ExcludeToggle";
 import { ResetStatsButton } from "@/components/ResetStatsButton";
 import { timeAgo } from "@/lib/format";
+import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Internal metrics — halvinglens.com", robots: { index: false } };
 
-// Lightweight internal PM dashboard. Auth via a session cookie (set by a
-// password box) OR a ?key= match against ANALYTICS_DASHBOARD_KEY. Noindex,
-// unlinked. Reads first-party Supabase analytics.
-export default async function AdminMetricsPage({
-  searchParams,
-}: {
-  searchParams: { key?: string };
-}) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-
-  if (!expected) {
+// Lightweight internal PM dashboard. Auth via the admin session cookie (set by
+// the password box, POST /api/admin-login). Noindex, unlinked. Reads
+// first-party Supabase analytics.
+export default async function AdminMetricsPage() {
+  if (!adminConfigured()) {
     return (
       <Shell>
         <p className="text-[14px] text-ink-300 max-w-xl leading-relaxed">
@@ -29,9 +23,7 @@ export default async function AdminMetricsPage({
     );
   }
 
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const authed = cookieKey === expected || searchParams.key === expected;
-  if (!authed) {
+  if (!isAdmin()) {
     return (
       <Shell>
         <AdminLogin />

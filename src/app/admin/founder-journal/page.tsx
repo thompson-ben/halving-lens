@@ -1,21 +1,17 @@
-import { cookies } from "next/headers";
 import { AdminLogin } from "@/components/AdminLogin";
 import { FounderJournalForm } from "@/components/FounderJournalForm";
 import { latestJournal } from "@/lib/companyHistory";
+import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Founder Journal — halvinglens.com", robots: { index: false } };
 
 // Admin-only page to write the monthly Founder Reflection and log manual metrics.
-export default async function FounderJournalPage({ searchParams }: { searchParams: { key?: string } }) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const authed = !!expected && (cookieKey === expected || searchParams.key === expected);
-
-  if (!authed) {
+export default async function FounderJournalPage() {
+  if (!isAdmin()) {
     return (
       <div className="max-w-xl mx-auto px-5 py-10">
-        {expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}
+        {adminConfigured() ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}
       </div>
     );
   }

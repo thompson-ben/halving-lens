@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { ArrowUpRight } from "lucide-react";
 import { AdminLogin } from "@/components/AdminLogin";
+import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin — halvinglens.com", robots: { index: false } };
@@ -91,13 +91,10 @@ const SECTIONS: AdminSection[] = [
   },
 ];
 
-export default function AdminHub({ searchParams }: { searchParams: { key?: string } }) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const authed = !!expected && (cookieKey === expected || searchParams.key === expected);
-  if (!authed)
+export default function AdminHub() {
+  if (!isAdmin())
     return (
-      <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
+      <Shell>{adminConfigured() ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
   return (
