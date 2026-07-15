@@ -48,8 +48,8 @@ export function FounderJournalForm({ latest }: { latest: { month: string; entry:
         setBusy(false);
         return;
       }
-      const key = new URLSearchParams(window.location.search).get("key");
-      const res = await fetch(`/api/admin/founder-journal${key ? `?key=${encodeURIComponent(key)}` : ""}`, {
+      // Auth rides on the httpOnly admin cookie (sent automatically same-origin).
+      const res = await fetch(`/api/admin/founder-journal`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ month, entry: cleanEntry, metrics: cleanMetrics }),

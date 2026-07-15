@@ -5,8 +5,8 @@ import { Mail, Loader2, Check, AlertTriangle } from "lucide-react";
 
 // One-click "send today's brief now" for the admin dashboard. POSTs to the
 // existing send route with force=1 (bypasses the once-per-day guard) and shows
-// the result inline — no curl/console needed. Auth rides on the admin cookie;
-// if the page was opened with ?key=, that's forwarded too.
+// the result inline — no curl/console needed. Auth rides on the httpOnly admin
+// cookie, sent automatically with the same-origin request.
 interface SendResult {
   ok?: boolean;
   reason?: string;
@@ -33,9 +33,8 @@ export function SendTestEmailButton({
     setBusy(true);
     setResult(null);
     try {
-      const key = new URLSearchParams(window.location.search).get("key");
-      const qs = `${query}${key ? `&key=${encodeURIComponent(key)}` : ""}`;
-      const res = await fetch(`${endpoint}?${qs}`, { method: "POST" });
+      // Auth rides on the httpOnly admin cookie (sent automatically same-origin).
+      const res = await fetch(`${endpoint}?${query}`, { method: "POST" });
       setResult((await res.json()) as SendResult);
     } catch (e) {
       setResult({ ok: false, error: (e as Error).message });

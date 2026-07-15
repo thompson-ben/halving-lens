@@ -1,9 +1,9 @@
-import { cookies } from "next/headers";
 import { AdminLogin } from "@/components/AdminLogin";
 import { CampaignStudio, type DestOption, type CampaignRow } from "@/components/CampaignStudio";
 import { shareDashboard } from "@/lib/shareAnalytics";
 import { PRIMARY, EXPLORE } from "@/components/navItems";
 import { allFindings } from "@/lib/findings";
+import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Share campaigns — halvinglens.com", robots: { index: false } };
@@ -11,12 +11,9 @@ export const metadata = { title: "Share campaigns — halvinglens.com", robots: 
 // Founder-only: create named share campaigns (branded short link + QR) for
 // business cards, events, social profiles and printed marketing — each with its
 // own attribution and analytics.
-export default async function CampaignsPage({ searchParams }: { searchParams: { key?: string } }) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const authed = !!expected && (cookieKey === expected || searchParams.key === expected);
-  if (!authed)
-    return <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>;
+export default async function CampaignsPage() {
+  if (!isAdmin())
+    return <Shell>{adminConfigured() ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>;
 
   const { campaigns } = await shareDashboard();
   const rows: CampaignRow[] = campaigns.map((c) => ({
@@ -38,7 +35,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: { 
 
   return (
     <Shell>
-      <CampaignStudio options={options} initial={rows} adminKey={searchParams.key} />
+      <CampaignStudio options={options} initial={rows} />
     </Shell>
   );
 }

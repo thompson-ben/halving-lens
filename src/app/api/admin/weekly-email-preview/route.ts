@@ -1,16 +1,13 @@
-import { cookies } from "next/headers";
 import { weeklyEmailHtml } from "@/lib/weeklyEmail";
 import { latestWeekly } from "@/lib/weekly";
+import { isAdmin } from "@/lib/adminAuth";
 
 // Admin-only live preview of the weekly research email.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const urlKey = new URL(req.url).searchParams.get("key");
-  if (!expected || (cookieKey !== expected && urlKey !== expected)) {
+export async function GET() {
+  if (!isAdmin()) {
     return new Response("Unauthorized", { status: 401 });
   }
   const w = latestWeekly();

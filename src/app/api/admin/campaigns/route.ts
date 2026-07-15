@@ -1,37 +1,28 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createCampaign } from "@/lib/shareCampaigns";
 import { currentProfile, isFounderEmail } from "@/lib/profile";
+import { isAdmin } from "@/lib/adminAuth";
 
 // Founder-only: create a named share campaign (branded short link + QR). Gated by
-// the dashboard key/cookie, same as the Founder Dashboard.
+// the admin session cookie, same as the Founder Dashboard.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function authed(req: Request, bodyKey?: string): boolean {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  if (!expected) return false;
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const urlKey = new URL(req.url).searchParams.get("key");
-  return cookieKey === expected || urlKey === expected || bodyKey === expected;
-}
 
 interface Body {
   name?: string;
   slug?: string;
   destination?: string;
   notes?: string;
-  key?: string;
 }
 
 export async function POST(req: Request) {
+  if (!isAdmin()) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   let body: Body;
   try {
     body = (await req.json()) as Body;
   } catch {
     return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
   }
-  if (!authed(req, body.key)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
   const name = (body.name ?? "").trim();
   const destination = (body.destination ?? "/").trim();

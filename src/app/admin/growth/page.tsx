@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import { growthDashboard } from "@/lib/analytics";
+import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 import {
   emailEngagement,
   growthFunnel,
@@ -28,13 +28,10 @@ export const metadata = { title: "Growth — halvinglens.com", robots: { index: 
 
 // The Monday-morning operating dashboard: only the metrics that matter for
 // growth — visitors, conversion, cost-per-subscriber, campaigns, A/B winner.
-export default async function GrowthPage({ searchParams }: { searchParams: { key?: string } }) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const authed = !!expected && (cookieKey === expected || searchParams.key === expected);
-  if (!authed)
+export default async function GrowthPage() {
+  if (!isAdmin())
     return (
-      <Shell>{expected ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
+      <Shell>{adminConfigured() ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
   const [health, a, email, funnel, waes, v2w, referral, experiments, share, acq, ret] = await Promise.all([

@@ -1,17 +1,16 @@
-import { cookies } from "next/headers";
 import { growthDashboard, type LabelCount } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
+import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Growth analytics — halvinglens.com", robots: { index: false } };
 
-// Founder growth dashboard. Admin-only (same cookie/key as /admin/metrics).
+// Founder growth dashboard. Admin-only (same session cookie as /admin/metrics).
 // Focused on product learning: what users value, what they share, and where the
 // email list grows from. Reads first-party Supabase analytics.
-export default async function AdminAnalyticsPage({ searchParams }: { searchParams: { key?: string } }) {
-  const expected = process.env.ANALYTICS_DASHBOARD_KEY;
-  if (!expected) {
+export default async function AdminAnalyticsPage() {
+  if (!adminConfigured()) {
     return (
       <Shell>
         <p className="text-[14px] text-ink-300 max-w-xl leading-relaxed">
@@ -20,9 +19,7 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
       </Shell>
     );
   }
-  const cookieKey = cookies().get("hl_admin")?.value;
-  const authed = cookieKey === expected || searchParams.key === expected;
-  if (!authed) {
+  if (!isAdmin()) {
     return (
       <Shell>
         <AdminLogin />
