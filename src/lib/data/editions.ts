@@ -6,6 +6,100 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 410,
+    "slug": "2026-07-15",
+    "dateLabel": "Wednesday 15 July 2026",
+    "feature": {
+      "key": "etf",
+      "day": "Wednesday",
+      "title": "ETF Watch"
+    },
+    "subject": "Extreme fear meets historically cheap Bitcoin",
+    "take": "Bitcoin remains historically cheap while sentiment sits in fear.",
+    "contextScore": {
+      "score": 72,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "Bitcoin is trading cheaper than 77% of all weeks in its history, while sentiment remains in fear. We have only seen conditions like this a handful of times before.",
+    "confidence": {
+      "level": "HIGH",
+      "blurb": "Most of today's core signals point the same way.",
+      "detail": "Valuation, sentiment point the same way; ETF flows diverge."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Attractive",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "22/100"
+      },
+      {
+        "label": "Sentiment",
+        "value": "Fear",
+        "color": "#e0a64f",
+        "strength": 3,
+        "metric": "25/100"
+      },
+      {
+        "label": "Cycle position",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "25/100"
+      },
+      {
+        "label": "ETF demand",
+        "value": "Weak",
+        "color": "#e8786f",
+        "strength": 2,
+        "metric": "−$46.18M/wk"
+      },
+      {
+        "label": "Momentum",
+        "value": "Positive",
+        "color": "#5fd0a0",
+        "strength": 3,
+        "metric": "+4.5%"
+      }
+    ],
+    "historicalContext": {
+      "match": "Jun 2022",
+      "similarity": 87,
+      "body": "Today most closely resembles Jun 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop, with sentiment in fear. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "ETF demand has altered Bitcoin's rhythm, but not investor psychology.",
+      "body": "Flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. The plumbing has changed; the behaviour running through it hasn't. Today that leaves Bitcoin cheaper than 77% of its history regardless of the tape."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      },
+      {
+        "signal": "Sentiment approaching euphoric territory",
+        "status": "Deep fear — Fear & Greed at 25"
+      }
+    ],
+    "memory": "Its 200-week moving average has never closed a full cycle below where that cycle began.",
+    "heroNarrative": "similar",
+    "readMin": 2,
+    "metrics": {
+      "price": 64934.442603,
+      "fearGreed": 25,
+      "accumulationScore": 22,
+      "accumulationBand": "Historically Attractive",
+      "accumulationPercentile": 23,
+      "cycleDay": 817,
+      "etf": "Weak",
+      "sentiment": "Fear"
+    },
+    "search": "bitcoin remains historically cheap while sentiment sits in fear. bitcoin is trading cheaper than 77% of all weeks in its history, while sentiment remains in fear. we have only seen conditions like this a handful of times before. etf demand has altered bitcoin's rhythm, but not investor psychology. flows tend to follow price more than they lead it, which is why reading them as a verdict so often misleads. the plumbing has changed; the behaviour running through it hasn't. today that leaves bitcoin cheaper than 77% of its history regardless of the tape. today most closely resembles jun 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop, with sentiment in fear. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. its 200-week moving average has never closed a full cycle below where that cycle began. etf watch clear historical context fear historically attractive divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles sentiment approaching euphoric territory deep fear — fear & greed at 25"
+  },
+  {
     "edition": 409,
     "slug": "2026-07-14",
     "dateLabel": "Tuesday 14 July 2026",
