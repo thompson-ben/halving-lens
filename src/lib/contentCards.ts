@@ -9,8 +9,8 @@
 // Careful language throughout — historical context, no hype, no predictions, no
 // price targets. Every number traces to the live brief; nothing is fabricated.
 
-import { format } from "date-fns";
-import { cycleSummary, cycleScorecard, HEAT_LABEL } from "./cycleSummary";
+import { format, subDays } from "date-fns";
+import { cycleSummary, cycleScorecard, HEAT_LABEL, whatChanged } from "./cycleSummary";
 import { priorCyclesAtSameDay, currentGainFromHalving, whatHappenedNext, cycleDivergence } from "./cycleIntel";
 import { cycleTiming, cyclePeakTroughs } from "./cycleTiming";
 import { drawdownAnalysis } from "./drawdowns";
@@ -22,6 +22,9 @@ import { currentSentiment } from "./sentiment";
 import { accumulationRead, ACCUMULATION_BANDS } from "./accumulation";
 import { runAccumulationBacktest } from "./accumulationBacktest";
 import { SITE_HOST } from "./site";
+import { latestWeekly } from "./weekly";
+import { STORED_BRIEFS } from "./data/briefs";
+import type { StoredBrief } from "./brief";
 
 // Fear & Greed band → hex, matching the standard palette.
 const TONE_HEX: Record<string, string> = {
@@ -82,7 +85,12 @@ export type CardId =
   | "cycles_position"
   | "cycles_similarities"
   | "cycles_differences"
-  | "cycles_context";
+  | "cycles_context"
+  // This Week in the Bitcoin Cycle assets
+  | "week_cover"
+  | "week_snapshot"
+  | "week_changed"
+  | "week_context";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -141,6 +149,10 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   cycles_similarities: { kicker: "Biggest similarities", name: "Biggest similarities" },
   cycles_differences: { kicker: "Biggest differences", name: "Biggest differences" },
   cycles_context: { kicker: "Historical context", name: "History tells us / doesn't" },
+  week_cover: { kicker: "This week in the Bitcoin cycle", name: "Weekly cover" },
+  week_snapshot: { kicker: "Market snapshot", name: "Market snapshot" },
+  week_changed: { kicker: "What changed this week", name: "What changed this week" },
+  week_context: { kicker: "Historical context", name: "Historical context" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -532,6 +544,27 @@ export interface CyclesContextCard {
   doesnt: string;
 }
 
+// ── This Week in the Bitcoin Cycle assets ────────────────────────────────────
+export interface WeekCoverCard {
+  kind: "week_cover";
+  weekEnding: string;
+  edition: number | null;
+}
+export interface WeekSnapshotCard {
+  kind: "week_snapshot";
+  stats: CyclesStat[];
+}
+export interface WeekChangedCard {
+  kind: "week_changed";
+  available: boolean;
+  sinceLabel: string | null;
+  items: { label: string; detail: string; dir: Dir }[];
+}
+export interface WeekContextCard {
+  kind: "week_context";
+  items: CyclesObservation[];
+}
+
 export type CardBody =
   | MarketHealthCard
   | HealthFactorsCard
@@ -569,7 +602,11 @@ export type CardBody =
   | CyclesPositionCard
   | CyclesSimilaritiesCard
   | CyclesDifferencesCard
-  | CyclesContextCard;
+  | CyclesContextCard
+  | WeekCoverCard
+  | WeekSnapshotCard
+  | WeekChangedCard
+  | WeekContextCard;
 
 export interface Card {
   id: CardId;
@@ -1630,6 +1667,135 @@ function cyclesContextCard(): CyclesContextCard {
   };
 }
 
+// ── This Week in the Bitcoin Cycle builders ──────────────────────────────────
+// The most recent stored brief on or before `daysAgo` days ago — the week-over-
+// week base. Degrades to null when the archive doesn't reach back that far.
+function briefFromDaysAgo(daysAgo: number): StoredBrief | null {
+  const target = format(subDays(briefDate(), daysAgo), "yyyy-MM-dd");
+  const earlier = STORED_BRIEFS.filter((b) => b.slug <= target).sort((a, b) => (a.slug < b.slug ? 1 : -1));
+  return earlier[0] ?? null;
+}
+
+function weekCoverCard(): WeekCoverCard {
+  return { kind: "week_cover", weekEnding: format(briefDate(), "d MMMM yyyy"), edition: latestWeekly()?.edition ?? null };
+}
+
+function weekSnapshotCard(): WeekSnapshotCard {
+  const s = cycleSummary();
+  const sc = cycleScorecard();
+  const sr = SENTIMENT_AVAILABLE ? sentimentRead() : null;
+  const acc = accumulationRead();
+  const wk = briefFromDaysAgo(7);
+  const weekPct = wk && wk.price > 0 ? (s.price / wk.price - 1) * 100 : null;
+  const etfWk = ETF.connected ? etfStats().trailingWeek : null;
+  const stats: CyclesStat[] = [
+    { label: "BTC price", value: fmtUsd(s.price) },
+    { label: "This week", value: weekPct != null ? `${weekPct >= 0 ? "+" : ""}${weekPct.toFixed(1)}%` : "—", tone: weekPct == null ? "default" : weekPct >= 0 ? "green" : "red" },
+    { label: "Cycle day", value: `Day ${s.cycleDay}` },
+    { label: "Market Health", value: `${sc.overall}/100` },
+    { label: "Sentiment", value: sr ? `${sr.value} · ${sr.band.label}` : "—" },
+    { label: "ETF (7d net)", value: etfWk != null ? `${etfWk >= 0 ? "+" : "−"}${fmtUsd(Math.abs(etfWk), { compact: true })}` : "—", tone: etfWk == null ? "default" : etfWk >= 0 ? "green" : "red" },
+    { label: "Accumulation", value: `${acc.score}/100` },
+  ];
+  return { kind: "week_snapshot", stats };
+}
+
+function weekChangedCard(): WeekChangedCard {
+  const wc = whatChanged(briefFromDaysAgo(7));
+  if (!wc.available) return { kind: "week_changed", available: false, sinceLabel: null, items: [] };
+  const rank: Record<string, number> = { elevated: 0, watch: 1, calm: 2 };
+  const items = [...wc.items]
+    .sort((a, b) => (rank[a.level] ?? 3) - (rank[b.level] ?? 3))
+    .slice(0, 3)
+    .map((it) => ({ label: it.area, detail: it.summary, dir: it.direction as Dir }));
+  return { kind: "week_changed", available: true, sinceLabel: wc.sinceDate, items };
+}
+
+function weekContextCard(): WeekContextCard {
+  const s = cycleSummary();
+  const acc = accumulationRead();
+  const top = similarMoments(1)[0];
+  const dd = drawdownAnalysis();
+  const items: CyclesObservation[] = [];
+  if (top) items.push({ label: `Closest to ${top.dateLabel}`, detail: `Today is a ${top.similarity}% match to ${top.dateLabel} by cycle position, drawdown and heat.` });
+  items.push({ label: "Value backdrop", detail: `Accumulation Index ${acc.score}/100 — more attractive than ${100 - acc.historicalPercentile}% of all weeks since 2012.` });
+  if (s.heatPercentile != null) items.push({ label: "Heat vs history", detail: `Price heat sits around the ${s.heatPercentile}th percentile of its historical range.` });
+  if (dd.available && items.length < 3) items.push({ label: "Correction depth", detail: `${Math.round(Math.abs(dd.current))}% below the cycle high — ${Math.abs(dd.current) < Math.abs(dd.avgAtStage) ? "shallower than" : "around"} the average at this stage.` });
+  return { kind: "week_context", items: items.slice(0, 3) };
+}
+
+// Cross-channel copy for This Week in the Bitcoin Cycle — the flagship Sunday
+// publication. Historical context, no predictions.
+export function weekContentPack(): import("./brief").ContentPack {
+  const s = cycleSummary();
+  const sc = cycleScorecard();
+  const wk = briefFromDaysAgo(7);
+  const weekPct = wk && wk.price > 0 ? (s.price / wk.price - 1) * 100 : null;
+  const weekMove = weekPct != null ? `${weekPct >= 0 ? "up" : "down"} ${Math.abs(weekPct).toFixed(1)}% on the week` : "little changed on the week";
+  const changed = whatChanged(briefFromDaysAgo(7));
+  const rank: Record<string, number> = { elevated: 0, watch: 1, calm: 2 };
+  const top3 = changed.available
+    ? [...changed.items].sort((a, b) => (rank[a.level] ?? 3) - (rank[b.level] ?? 3)).slice(0, 3).map((i) => `• ${i.summary}`)
+    : [];
+  const ending = format(briefDate(), "d MMMM yyyy");
+  const link = `https://${SITE_HOST}/weekly`;
+
+  const x1 = `This Week in the Bitcoin Cycle — week ending ${ending}. BTC ${fmtUsd(s.price)}, ${weekMove}. Market Health ${sc.overall}/100 (${sc.overallLabel}). Day ${s.cycleDay} of the cycle.`;
+  const xThread = [
+    `${x1}\n\nWhere the market stands at the end of the week — historical context, not prediction.`,
+    top3.length ? `What changed this week:\n${top3.join("\n")}` : "A quiet week — no major shifts in the cycle read.",
+    `Cycle day ${s.cycleDay} · ${s.progressPct}% through · Market Health ${sc.overall}/100.\n\nFull weekly report: ${link}`,
+  ];
+  const instagram = [
+    "This Week in the Bitcoin Cycle",
+    `Week ending ${ending}`,
+    "",
+    `BTC ${fmtUsd(s.price)} · ${weekMove} · Market Health ${sc.overall}/100 · Day ${s.cycleDay} of the cycle.`,
+    "",
+    top3.length ? `What changed this week:\n${top3.join("\n")}` : "A quiet week for the cycle read.",
+    "",
+    `Full weekly report → ${link}`,
+    "",
+    "Historical context, not a prediction. #bitcoin #btc #bitcoincycle #crypto",
+  ].join("\n");
+  const linkedin = [
+    `This Week in the Bitcoin Cycle — week ending ${ending}.`,
+    "",
+    `Bitcoin closed the week at ${fmtUsd(s.price)}, ${weekMove}. Market Health reads ${sc.overall}/100 (${sc.overallLabel}), at day ${s.cycleDay} of the cycle (${s.progressPct}% through).`,
+    "",
+    top3.length ? `What changed this week:\n${top3.join("\n")}` : "A quiet week — the cycle read held steady.",
+    "",
+    `Read the full weekly report: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `This Week in the Bitcoin Cycle — ${ending}`;
+  const emailBody = [
+    `Where the Bitcoin market stands at the end of the week (ending ${ending}):`,
+    "",
+    `• BTC ${fmtUsd(s.price)} (${weekMove})`,
+    `• Market Health ${sc.overall}/100 — ${sc.overallLabel}`,
+    `• Cycle day ${s.cycleDay} (${s.progressPct}% through)`,
+    "",
+    top3.length ? `What changed this week:\n${top3.join("\n")}` : "A quiet week for the cycle read.",
+    "",
+    `Read the full weekly report: ${link}`,
+    "",
+    "Historical context only. Past behaviour is not a forecast. Not financial advice.",
+  ].join("\n");
+  const storyCaption = `This Week in the Bitcoin Cycle\nWeek ending ${ending}\nBTC ${fmtUsd(s.price)} · Health ${sc.overall}/100\n${link}`;
+  const youtubeCommunity = [
+    `🗓️ This Week in the Bitcoin Cycle — week ending ${ending}`,
+    "",
+    `BTC ${fmtUsd(s.price)}, ${weekMove}. Market Health ${sc.overall}/100. Day ${s.cycleDay} of the cycle.`,
+    "",
+    `Full weekly report (free): ${link}`,
+    "",
+    "Historical context, not a prediction.",
+  ].join("\n");
+  return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody, storyCaption, youtubeCommunity };
+}
+
 // Cross-channel copy for Every Cycle Compared — the signature carousel. Same
 // careful framing: historical context, no predictions, no price targets.
 export function cyclesContentPack(): import("./brief").ContentPack {
@@ -1739,6 +1905,10 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   cycles_similarities: cyclesSimilaritiesCard,
   cycles_differences: cyclesDifferencesCard,
   cycles_context: cyclesContextCard,
+  week_cover: weekCoverCard,
+  week_snapshot: weekSnapshotCard,
+  week_changed: weekChangedCard,
+  week_context: weekContextCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -1748,7 +1918,7 @@ const BUILDERS: Record<CardId, () => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric" | "cycles";
+export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric" | "cycles" | "week";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
@@ -1759,7 +1929,17 @@ export const PACK_LABELS: Record<PackId, string> = {
   etf: "ETF Flow Pack",
   metric: "Metric Deep Dive Pack",
   cycles: "Every Cycle Compared",
+  week: "This Week in the Bitcoin Cycle",
 };
+
+// This Week in the Bitcoin Cycle — the flagship Sunday publication. The chart
+// slide reuses whichever chart the live narrative selector deems strongest this
+// week (the same deterministic pick the Historical pack leads with), so it's a
+// real "chart of the week" without a separate ranker (that arrives with pack 3).
+export function weekPackOrder(): CardId[] {
+  const chart = selectHistoricalNarrative().order[0];
+  return ["week_cover", "week_snapshot", "week_changed", "week_context", chart, "watch", "cta"];
+}
 
 // Every Cycle Compared — the signature "where is Bitcoin vs every previous
 // cycle?" carousel. Leads with the multi-cycle overlay (today marked), then the
@@ -1908,6 +2088,7 @@ export function packOrder(packId: PackId): CardId[] {
   if (packId === "etf") return ETF_PACK;
   if (packId === "metric") return METRIC_PACK;
   if (packId === "cycles") return CYCLES_PACK;
+  if (packId === "week") return weekPackOrder();
   return CARD_ORDER;
 }
 
