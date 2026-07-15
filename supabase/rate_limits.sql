@@ -11,5 +11,10 @@ create table if not exists rate_limits (
   window_start timestamptz not null default now()
 );
 
+-- Defense-in-depth: the app reaches Supabase only via the service_role key
+-- (which bypasses RLS), so enabling RLS with no policies denies every other
+-- role (anon / authenticated / public) by default. Idempotent. See rls.sql.
+alter table public.rate_limits enable row level security;
+
 -- Optional periodic prune (rows self-reset on next hit, so this is just hygiene):
 --   delete from rate_limits where window_start < now() - interval '1 day';
