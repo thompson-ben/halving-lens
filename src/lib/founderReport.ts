@@ -5,7 +5,7 @@
 // plus week-on-week / month-on-month windows. Rule-based, evidence-driven.
 
 import { sbSelect, supabaseConfigured } from "./supabase";
-import { growthDashboard } from "./analytics";
+import { growthDashboard, subscriberStats } from "./analytics";
 import { emailEngagement, weeklyActiveEngaged } from "./growthInsights";
 import { marketingHealth } from "./marketingHealth";
 import { allEditions, libraryStats } from "./research";
@@ -62,6 +62,7 @@ export async function founderReport(): Promise<FounderReport> {
   const lib = libraryStats();
   const email = await emailEngagement();
   const waes = await weeklyActiveEngaged();
+  const subs = await subscriberStats();
 
   // ── Windowed visitor/signup/engagement series for WoW + MoM ────────────────
   let pageRows: { path: string | null; session_id: string | null; is_new: boolean | null; created_at: string }[] = [];
@@ -148,7 +149,7 @@ export async function founderReport(): Promise<FounderReport> {
     `North Star — Weekly Active Engaged Subscribers: ${waes.waes.toLocaleString()} (opened + visited in 7d; ${waes.openers7d} openers, ${waes.clickers7d} clickers).`,
   );
   executive.push(`Visitors ${wowStr(pct(visW, visP))} (${visW.toLocaleString()} this week).`);
-  executive.push(`${sgnW} new subscriber${sgnW === 1 ? "" : "s"} (${wowStr(pct(sgnW, sgnP))}); conversion ${convW.toFixed(1)}% (${wowStr(pct(Math.round(convW * 10), Math.round(convP * 10)))}).`);
+  executive.push(`${sgnW} new signup${sgnW === 1 ? "" : "s"} (${wowStr(pct(sgnW, sgnP))}); conversion ${convW.toFixed(1)}% (${wowStr(pct(Math.round(convW * 10), Math.round(convP * 10)))}).`);
   if (bestVar && varLift != null && varLift > 0) executive.push(`Landing Variant ${bestVar.variant.toUpperCase()} is the strongest converter (+${varLift}% vs next).`);
   else if (bestCampaign) executive.push(`${bestCampaign.campaign} is the most cost-efficient campaign${bestCampaign.cps != null ? ` at £${bestCampaign.cps}/sub` : ""}.`);
   else executive.push(`Marketing Health is ${health.overallLabel.toLowerCase()} (${health.score}/10).`);
@@ -158,11 +159,11 @@ export async function founderReport(): Promise<FounderReport> {
     { label: "WAES (North Star)", value: waes.waes.toLocaleString(), sub: "engaged · 7d" },
     { label: "Visitors", value: visW.toLocaleString(), sub: wowStr(pct(visW, visP)) },
     { label: "Returning visitors", value: returningW.toLocaleString() },
-    { label: "New subscribers", value: sgnW.toLocaleString(), sub: wowStr(pct(sgnW, sgnP)) },
-    { label: "Conversion (visitor→sub)", value: `${convW.toFixed(1)}%`, sub: wowStr(pct(Math.round(convW * 10), Math.round(convP * 10))) },
-    { label: "Total subscribers", value: a.totals.subscribers != null ? a.totals.subscribers.toLocaleString() : "—" },
+    { label: "New signups", value: sgnW.toLocaleString(), sub: wowStr(pct(sgnW, sgnP)) },
+    { label: "Visitor conversion", value: `${convW.toFixed(1)}%`, sub: wowStr(pct(Math.round(convW * 10), Math.round(convP * 10))) },
+    { label: "Active subscribers", value: subs.active != null ? subs.active.toLocaleString() : a.totals.subscribers != null ? a.totals.subscribers.toLocaleString() : "—" },
     { label: "Visitors · month", value: visM.toLocaleString(), sub: `${wowStr(pct(visM, visMp)).replace("WoW", "MoM")}` },
-    { label: "New subscribers · month", value: sgnM.toLocaleString(), sub: `${wowStr(pct(sgnM, sgnMp)).replace("WoW", "MoM")}` },
+    { label: "New signups · month", value: sgnM.toLocaleString(), sub: `${wowStr(pct(sgnM, sgnMp)).replace("WoW", "MoM")}` },
   ];
 
   // ── Section 3: Marketing ───────────────────────────────────────────────────
@@ -238,7 +239,7 @@ export async function founderReport(): Promise<FounderReport> {
   // ── Section 10: Trends ─────────────────────────────────────────────────────
   const trends: ReportTrend[] = [
     { label: "Traffic", dir: dir(visW, visP) },
-    { label: "Subscribers", dir: dir(sgnW, sgnP) },
+    { label: "Signups", dir: dir(sgnW, sgnP) },
     { label: "Conversion", dir: dir(convW, convP) },
     { label: "Session duration", dir: dir(sessW, sessP) },
     { label: "Research library usage", dir: dir(libW, libP) },

@@ -1,4 +1,4 @@
-import { growthDashboard, type LabelCount } from "@/lib/analytics";
+import { growthDashboard, subscriberStats, type LabelCount } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
@@ -27,7 +27,7 @@ export default async function AdminAnalyticsPage() {
     );
   }
 
-  const a = await growthDashboard();
+  const [a, subs] = await Promise.all([growthDashboard(), subscriberStats()]);
   if (!a.configured) {
     return (
       <Shell>
@@ -61,8 +61,8 @@ export default async function AdminAnalyticsPage() {
         <Stat label="Page views" value={a.totals.pageViews} />
         <Stat label="Visitors" value={a.totals.visitors} />
         <Stat label="Returning" value={a.totals.returning} />
-        <Stat label="Signups" value={a.totals.signups} />
-        <Stat label="Subscribers" value={a.totals.subscribers} />
+        <Stat label="Total signups" value={a.totals.signups} />
+        <Stat label="Active subscribers" value={subs.active ?? a.totals.subscribers} />
         <Stat label="Views · 7d" value={a.windows.views7} />
       </section>
 

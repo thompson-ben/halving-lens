@@ -433,6 +433,30 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
   };
 }
 
+// ── Subscriber lifecycle (active vs unsubscribed) ────────────────────────────
+// Active = brief_subscribers whose status is 'active' OR legacy null — the exact
+// filter the send pipeline uses (emailSend.ts: or=(status.is.null,status.eq.active)).
+// Unsubscribe rate = unsubscribed / total. Returns nulls when Supabase is
+// unconfigured (never throws).
+export interface SubscriberStats {
+  total: number | null;
+  active: number | null;
+  unsubscribed: number | null;
+  unsubscribeRate: number | null; // %
+}
+
+export async function subscriberStats(): Promise<SubscriberStats> {
+  if (!supabaseConfigured) return { total: null, active: null, unsubscribed: null, unsubscribeRate: null };
+  const [total, active, unsubscribed] = await Promise.all([
+    sbCount("brief_subscribers"),
+    sbCount("brief_subscribers", "or=(status.is.null,status.eq.active)"),
+    sbCount("brief_subscribers", "status=eq.unsubscribed"),
+  ]);
+  const unsubscribeRate =
+    total && total > 0 && unsubscribed != null ? Math.round((unsubscribed / total) * 1000) / 10 : null;
+  return { total, active, unsubscribed, unsubscribeRate };
+}
+
 export interface AnalyticsSummary {
   configured: boolean;
   totals: {

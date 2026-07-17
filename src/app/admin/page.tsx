@@ -49,6 +49,7 @@ const SECTIONS: AdminSection[] = [
     title: "Analytics",
     emoji: "📊",
     items: [
+      { label: "Executive summary", href: "/admin/executive" },
       { label: "Website Analytics", href: "/admin/analytics" },
       { label: "Email Analytics", href: "/admin/growth" },
       { label: "Campaign Analytics", href: "/admin/growth" },
