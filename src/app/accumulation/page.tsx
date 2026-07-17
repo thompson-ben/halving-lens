@@ -11,6 +11,8 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { BriefSignup } from "@/components/BriefSignup";
 import { AccumulationShare } from "@/components/AccumulationShare";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
+import { PresenterMode } from "@/components/PresenterMode";
+import { PresenterTalkingPoints, type TalkingPoint } from "@/components/PresenterTalkingPoints";
 import { accumulationRead, accumulationSeries, ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
 import { runAccumulationBacktest } from "@/lib/accumulationBacktest";
 import { accumulationContentPack } from "@/lib/contentCards";
@@ -26,7 +28,8 @@ export const metadata = {
 const DISCLAIMER =
   "The Accumulation Index is educational historical context only. It is not financial advice, not a prediction, and not a buy or sell signal. Every reading describes how conditions compare with Bitcoin's own history — past behaviour is never a guarantee of future results.";
 
-export default function AccumulationPage() {
+export default function AccumulationPage({ searchParams }: { searchParams: { presenter?: string } }) {
+  const presenter = searchParams?.presenter === "true";
   const read = accumulationRead();
   const timeline = accumulationSeries().map((p) => ({
     ts: p.ts,
@@ -36,6 +39,32 @@ export default function AccumulationPage() {
   }));
   const bt = runAccumulationBacktest();
   const cheaperThan = 100 - read.historicalPercentile;
+
+  // Deterministic presenter running order, straight from the live reading.
+  const btBand = bt.bands.find((b) => b.key === read.band.key);
+  const med = (y: number) => btBand?.horizons.find((h) => h.years === y)?.median ?? null;
+  const h1 = med(1);
+  const h4 = med(4);
+  const sign = (n: number) => `${n >= 0 ? "+" : ""}${n}%`;
+  const talkingPoints: TalkingPoint[] = presenter
+    ? [
+        { label: "Reading", text: `${read.score} out of 100 — ${read.band.label.toLowerCase()}.` },
+        {
+          label: "How rare",
+          text: `Only ${read.historicalPercentile}% of Bitcoin's history has been cheaper by this price-only methodology — today is more attractive than ${cheaperThan}% of all weeks since 2012.`,
+        },
+        { label: "Why", text: read.reasoning },
+        ...(h1 != null || h4 != null
+          ? [
+              {
+                label: "What followed historically",
+                text: `From comparable readings, Bitcoin's median change was ${h1 != null ? `${sign(h1)} a year later` : "—"}${h4 != null ? `, ${sign(h4)} after four years` : ""}. Evidence from prior cycles, not a forecast.`,
+              },
+            ]
+          : []),
+        { label: "Guardrail", text: "Educational historical context — not financial advice, not a prediction, not a buy or sell signal." },
+      ]
+    : [];
 
   // Share copy — short, paste-anywhere summary + per-channel versions.
   const pack = accumulationContentPack();
@@ -50,16 +79,19 @@ export default function AccumulationPage() {
   ].join("\n");
 
   return (
-    <div className="space-y-12">
+    <div className={presenter ? "presenter-stage space-y-10 max-w-5xl mx-auto" : "space-y-12"}>
+      {presenter && <PresenterMode page="Accumulation Index" />}
       <header className="pt-2">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">Accumulation intelligence</span>
+          <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
+            {presenter ? "Accumulation Index — Presenter Mode" : "Accumulation intelligence"}
+          </span>
           <DataBadge status="live-derived" source="derived from price history" />
         </div>
-        <h1 className="font-display text-[34px] sm:text-[44px] font-medium tracking-tightest text-ink-50 leading-[1.05]">
+        <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.05] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[44px]"}`}>
           Bitcoin Accumulation Index
         </h1>
-        <p className="mt-4 text-[14.5px] text-ink-300 leading-relaxed max-w-2xl">
+        <p className={`mt-4 text-ink-300 leading-relaxed max-w-2xl ${presenter ? "text-[18px]" : "text-[14.5px]"}`}>
           Historically, how attractive was it to accumulate Bitcoin when conditions looked like
           today? This index scores the environment from{" "}
           <span className="text-ink-100">deep value to overheated</span> using only real,
@@ -72,6 +104,8 @@ export default function AccumulationPage() {
       </header>
 
       <WhatsChanged metric={metricChange("accumulation")} />
+
+      {presenter && <PresenterTalkingPoints title="Accumulation Index" points={talkingPoints} />}
 
       {/* Hero — today's reading */}
       <section className="card-glow p-6 sm:p-8">
@@ -288,7 +322,7 @@ export default function AccumulationPage() {
         </Link>
       </section>
 
-      <FlagshipJourney current="accumulation" />
+      {!presenter && <FlagshipJourney current="accumulation" />}
 
       <div className="rounded-xl border border-accent/15 bg-accent/[0.04] p-5 sm:p-6">
         <div className="flex items-start gap-3">

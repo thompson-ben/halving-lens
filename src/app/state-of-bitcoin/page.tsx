@@ -4,7 +4,7 @@ import { DataBadge } from "@/components/DataBadge";
 import { ShareTrigger } from "@/components/ShareTrigger";
 import { TrackedLink } from "@/components/TrackedLink";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
-import { SnapshotPresenterMode } from "@/components/SnapshotPresenterMode";
+import { PresenterMode } from "@/components/PresenterMode";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
 import { snapshotWhatChanged, snapshotContext, snapshotWatchItems, snapshotCyclePosition } from "@/lib/snapshot";
@@ -153,8 +153,8 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   const c7p = price.changes.find((c) => c.period === 7);
 
   return (
-    <div className={presenter ? "space-y-10 max-w-5xl mx-auto" : "space-y-12 lg:space-y-14"}>
-      {presenter && <SnapshotPresenterMode />}
+    <div className={presenter ? "presenter-stage space-y-10 max-w-5xl mx-auto" : "space-y-12 lg:space-y-14"}>
+      {presenter && <PresenterMode page="The State of Bitcoin" />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       {/* ── Hero ── */}
