@@ -43,7 +43,7 @@ export interface HistoricalBear {
 export interface DownsideLevel {
   key: string;
   label: string;
-  category: "support" | "drawdown";
+  category: "support" | "drawdown" | "correction";
   price: number;
   dropPctFromCurrent: number; // negative = below current price ("from today")
   drawdownFromHighPct?: number; // drawdown rungs only: the depth from the cycle high that DEFINES this price
@@ -70,6 +70,10 @@ export interface DownsideScenarios {
   mildPct: number | null;
   averagePct: number | null;
   severePct: number | null;
+  // Median intra-bull correction depth (a normal dip WITHIN a bull market,
+  // shallower than a full cyclical bear) and how many such episodes it's from.
+  bullDipPct: number | null;
+  bullDipCount: number;
   derivedFromData: boolean; // true if bear depths came from the live history
   // The scenario ladder, ordered by price descending (highest → lowest).
   levels: DownsideLevel[];
@@ -117,6 +121,33 @@ function majorBears(series: { ts: number; price: number }[]): HistoricalBear[] {
 
 function pct(level: number, current: number): number {
   return current > 0 ? (level / current - 1) * 100 : 0;
+}
+
+// Intra-bull corrections: drawdown episodes shallower than the cycle-bear floor —
+// the normal dips within a bull market, not cycle-ending bears. Returns depths
+// (negative %), most severe first. Separated the same way as majorBears.
+function intraBullCorrections(series: { ts: number; price: number }[]): number[] {
+  let runMax = 0;
+  let cur: number | null = null;
+  const eps: number[] = [];
+  for (const p of series) {
+    runMax = Math.max(runMax, p.price);
+    const dd = (p.price / runMax - 1) * 100;
+    if (dd < -10) {
+      if (cur == null || dd < cur) cur = dd;
+    } else if (cur != null) {
+      eps.push(cur);
+      cur = null;
+    }
+  }
+  if (cur != null) eps.push(cur);
+  return eps.filter((d) => d > CYCLE_BEAR_FLOOR).sort((a, b) => a - b);
+}
+
+function median(sorted: number[]): number | null {
+  const n = sorted.length;
+  if (!n) return null;
+  return n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
 }
 
 // Long-term logarithmic regression of price vs time (the Bitcoin "power-law"
@@ -194,6 +225,11 @@ export function downsideScenarios(): DownsideScenarios {
   const mildPct = depths.length ? depths[depths.length - 1] : null;
   const averagePct = depths.length ? depths.reduce((a, b) => a + b, 0) / depths.length : null;
 
+  // Typical bull-market correction — the median intra-bull dip, applied from
+  // TODAY's price (a normal pullback from here, distinct from a full bear).
+  const bullCorrections = intraBullCorrections(series);
+  const bullDipPct = median(bullCorrections);
+
   const drawdownLevel = (
     key: string,
     label: string,
@@ -219,6 +255,18 @@ export function downsideScenarios(): DownsideScenarios {
   };
 
   const levels: (DownsideLevel | null)[] = [
+    bullDipPct != null
+      ? {
+          key: "bull-dip",
+          label: "Typical bull-market correction",
+          category: "correction",
+          price: currentPrice * (1 + bullDipPct / 100),
+          dropPctFromCurrent: bullDipPct,
+          methodology: `Median intra-bull correction (${fmtSigned(bullDipPct)}) applied from today's price`,
+          explanation: `The typical dip WITHIN a Bitcoin bull market — the median of ${bullCorrections.length} historical corrections shallower than a full cyclical bear — applied from today's price. A normal pullback, distinct from a cycle-ending bear market.`,
+          dataQuality: "live-derived",
+        }
+      : null,
     priorCycleHigh != null
       ? {
           key: "prior-cycle-high",
@@ -314,6 +362,8 @@ export function downsideScenarios(): DownsideScenarios {
     mildPct,
     averagePct,
     severePct,
+    bullDipPct,
+    bullDipCount: bullCorrections.length,
     derivedFromData,
     levels: ordered,
     methodologyVersion: METHODOLOGY_VERSION,

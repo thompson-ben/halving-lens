@@ -28,9 +28,13 @@ export function HistoricalRange({ up, down }: { up: UpsideScenarios; down: Downs
   if (up.conservativePrice != null && up.conservativeMult != null) upRungs.push({ kind: "up", label: "Conservative historical continuation", price: up.conservativePrice, pctFromToday: (up.conservativeMult - 1) * 100 });
 
   const ddLevels = down.levels.filter((l) => l.category === "drawdown");
-  const byKey = (k: string) => ddLevels.find((l) => l.key === k);
+  const byKey = (k: string) => down.levels.find((l) => l.key === k);
   const downRungs: Rung[] = [];
-  for (const [key, label] of [["mild", "Mild historical correction"], ["average", "Typical historical correction"], ["severe", "Severe historical correction"]] as const) {
+  // Shallowest first: a typical bull-market dip (from today), then the deeper
+  // cyclical-bear scenarios (from the cycle high).
+  const dip = byKey("bull-dip");
+  if (dip) downRungs.push({ kind: "down", label: "Typical bull-market dip", price: dip.price, pctFromToday: dip.dropPctFromCurrent });
+  for (const [key, label] of [["mild", "Mild historical bear"], ["average", "Average historical bear"], ["severe", "Severe historical bear"]] as const) {
     const lvl = byKey(key);
     if (lvl) downRungs.push({ kind: "down", label, price: lvl.price, pctFromToday: lvl.dropPctFromCurrent });
   }
