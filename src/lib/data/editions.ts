@@ -6,6 +6,96 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 412,
+    "slug": "2026-07-17",
+    "dateLabel": "Friday 17 July 2026",
+    "feature": {
+      "key": "weekly_close",
+      "day": "Friday",
+      "title": "Weekly Close"
+    },
+    "subject": "87% similar to Jun 2022",
+    "take": "Bitcoin stays in one of its cheapest historical valuation regions even as ETF flows turn negative.",
+    "contextScore": {
+      "score": 72,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "Bitcoin is trading cheaper than 77% of all weeks in its history. We have only seen conditions like this a handful of times before.",
+    "confidence": {
+      "level": "MEDIUM",
+      "blurb": "Today's signals are split — some agree, some diverge.",
+      "detail": "Valuation point the same way; ETF flows diverge."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Attractive",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "22/100"
+      },
+      {
+        "label": "Sentiment",
+        "value": "Fear",
+        "color": "#e0a64f",
+        "strength": 2,
+        "metric": "27/100"
+      },
+      {
+        "label": "Cycle position",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "25/100"
+      },
+      {
+        "label": "ETF demand",
+        "value": "Weak",
+        "color": "#e8786f",
+        "strength": 2,
+        "metric": "−$146.34M/wk"
+      },
+      {
+        "label": "Momentum",
+        "value": "Negative",
+        "color": "#e8786f",
+        "strength": 2,
+        "metric": "-1.5%"
+      }
+    ],
+    "historicalContext": {
+      "match": "Jun 2022",
+      "similarity": 87,
+      "body": "Today most closely resembles Jun 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "A week's close is a data point. A cycle's position is the story.",
+      "body": "It's tempting to let Friday's candle set the mood for the weekend. But a single close rarely changes where we sit in the larger arc — and that position, not the print, is what history actually speaks to."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      }
+    ],
+    "memory": "The word “HODL” began life as a typo in a 2013 Bitcoin forum post.",
+    "heroNarrative": "similar",
+    "readMin": 2,
+    "metrics": {
+      "price": 63780.141743,
+      "fearGreed": 27,
+      "accumulationScore": 22,
+      "accumulationBand": "Historically Attractive",
+      "accumulationPercentile": 23,
+      "cycleDay": 819,
+      "etf": "Weak",
+      "sentiment": "Fear"
+    },
+    "search": "bitcoin stays in one of its cheapest historical valuation regions even as etf flows turn negative. bitcoin is trading cheaper than 77% of all weeks in its history. we have only seen conditions like this a handful of times before. a week's close is a data point. a cycle's position is the story. it's tempting to let friday's candle set the mood for the weekend. but a single close rarely changes where we sit in the larger arc — and that position, not the print, is what history actually speaks to. today most closely resembles jun 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. the word “hodl” began life as a typo in a 2013 bitcoin forum post. weekly close clear historical context fear historically attractive divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles"
+  },
+  {
     "edition": 411,
     "slug": "2026-07-16",
     "dateLabel": "Thursday 16 July 2026",
