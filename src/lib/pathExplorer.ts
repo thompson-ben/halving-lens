@@ -41,14 +41,34 @@ export interface DiminishingReturns {
   note: string;
 }
 
+export interface EnvelopePoint {
+  day: number; // forward offset
+  lo: number; // lowest of the prior cycles at this offset (rebased %)
+  mid: number; // median
+  hi: number; // highest
+}
+
 export interface PathExplorer {
   available: boolean;
   currentPrice: number;
   cycleDay: number;
   windowDays: number;
+  leadInDays: number; // how far back the current-cycle lead-in reaches
+  current: { points: PathPoint[] }; // the current cycle's real recent path, ending at today (100%)
   paths: CyclePath[];
+  envelope: EnvelopePoint[]; // min/median/max band across the prior cycles (real data, n=3)
+  divergenceDay: number | null; // offset where the prior paths first spread apart materially
+  agreementSpread: number | null; // band width (hi−lo, pp) around the +6-month mark
+  stillClimbing: number; // prior cycles not yet past their peak from this point
   diminishing: DiminishingReturns;
   generatedAt: string | null;
+}
+
+const LEAD_IN_DAYS = 168; // ~24 weeks of current-cycle context before today
+
+function median(sorted: number[]): number {
+  const n = sorted.length;
+  return n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
 }
 
 function nearestSample(c: Cycle, day: number): CycleSample {
@@ -106,6 +126,39 @@ export function pathExplorer(): PathExplorer {
     });
   }
 
+  // Current cycle's real recent path, rebased to 100% at today — the bright
+  // lead-in that anchors the eye at "you are here".
+  const curBase = nearestSample(CURRENT_CYCLE, equivDay).price;
+  const curPoints: PathPoint[] = [];
+  for (const s of CURRENT_CYCLE.samples) {
+    const off = s.day - equivDay;
+    if (off < -LEAD_IN_DAYS || off > 0 || s.price <= 0) continue;
+    curPoints.push({ day: off, pct: (s.price / curBase) * 100 });
+  }
+  if (!curPoints.some((p) => p.day === 0)) curPoints.push({ day: 0, pct: 100 });
+  curPoints.sort((a, b) => a.day - b.day);
+
+  // Historical envelope — the real min / median / max of the prior cycles at each
+  // forward step. Not modelled: just the range the three real paths occupied.
+  const envelope: EnvelopePoint[] = [];
+  for (let off = 0; off <= WINDOW_DAYS; off += 7) {
+    const vals: number[] = [];
+    for (const c of priors) {
+      const at = nearestSample(c, equivDay);
+      if (at.price <= 0) continue;
+      const v = pctAtOffset(c, at.day, at.price, off);
+      if (v != null) vals.push(v);
+    }
+    if (vals.length >= 2) {
+      const sorted = [...vals].sort((a, b) => a - b);
+      envelope.push({ day: off, lo: sorted[0], hi: sorted[sorted.length - 1], mid: median(sorted) });
+    }
+  }
+  const divergenceDay = envelope.find((e) => e.hi - e.lo > 20)?.day ?? null;
+  const near180 = envelope.reduce<EnvelopePoint | null>((best, e) => (best == null || Math.abs(e.day - 182) < Math.abs(best.day - 182) ? e : best), null);
+  const agreementSpread = near180 ? Math.round(near180.hi - near180.lo) : null;
+  const stillClimbing = paths.filter((p) => !p.pastPeak).length;
+
   // Diminishing returns — measured, not assumed. Total cycle return = each
   // completed cycle's peak price ÷ its halving-day price.
   const completed = priors.filter((c) => c.samples.length > 2 && c.samples[0].price > 0);
@@ -125,7 +178,13 @@ export function pathExplorer(): PathExplorer {
     currentPrice,
     cycleDay: equivDay,
     windowDays: WINDOW_DAYS,
+    leadInDays: LEAD_IN_DAYS,
+    current: { points: curPoints },
     paths,
+    envelope,
+    divergenceDay,
+    agreementSpread,
+    stillClimbing,
     diminishing: { observed, perCycle, decayRatios, note },
     generatedAt: SPOT ? new Date(SPOT.ts).toISOString() : null,
   };
