@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
@@ -23,6 +23,11 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+// Browser UI tint (mobile address bar, PWA) — the brand ink ground.
+export const viewport: Viewport = {
+  themeColor: "#05070a",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -33,6 +38,7 @@ export const metadata: Metadata = {
     "Every Bitcoin cycle metric, aligned to halving day zero, across all four cycles. Free.",
   alternates: { canonical: "/" },
   applicationName: SITE_NAME,
+  manifest: "/manifest.webmanifest",
   openGraph: {
     siteName: SITE_NAME,
     url: SITE_URL,
