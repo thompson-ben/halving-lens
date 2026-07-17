@@ -17,15 +17,39 @@ import { fmtUsd } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Bitcoin Market Snapshot — where the cycle stands today — halvinglens.com",
+  title: "The State of Bitcoin | HalvingLens",
   description:
-    "The current state of the Bitcoin cycle in one screen: price, Market Health, sentiment, accumulation conditions, ETF demand and cycle position — plus what changed this week and how today compares with history. Historical context, not prediction.",
-  alternates: { canonical: "https://halvinglens.com/snapshot" },
+    "Daily Bitcoin market analysis showing what changed today, why it matters, and how today's market compares with previous Bitcoin cycles.",
+  alternates: { canonical: "https://halvinglens.com/state-of-bitcoin" },
   openGraph: {
-    title: "Bitcoin Market Snapshot — halvinglens.com",
-    description: "Where Bitcoin stands right now, what changed over the past week, and where today sits in history.",
-    url: "https://halvinglens.com/snapshot",
+    title: "The State of Bitcoin | HalvingLens",
+    description: "Everything that changed in Bitcoin today, why it matters, and how today's market compares with history.",
+    url: "https://halvinglens.com/state-of-bitcoin",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The State of Bitcoin | HalvingLens",
+    description: "Everything that changed in Bitcoin today, why it matters, and how today's market compares with history.",
+  },
+};
+
+// WebPage + breadcrumb structured data, so search engines index the page under
+// its new, descriptive name. Descriptive only — no ratings or claims.
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "The State of Bitcoin",
+  description:
+    "Daily Bitcoin market analysis showing what changed today, why it matters, and how today's market compares with previous Bitcoin cycles.",
+  url: "https://halvinglens.com/state-of-bitcoin",
+  isPartOf: { "@type": "WebSite", name: "HalvingLens", url: "https://halvinglens.com" },
+  breadcrumb: {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "HalvingLens", item: "https://halvinglens.com" },
+      { "@type": "ListItem", position: 2, name: "The State of Bitcoin", item: "https://halvinglens.com/state-of-bitcoin" },
+    ],
   },
 };
 
@@ -86,7 +110,7 @@ function MetricCard({ m }: { m: MetricChange }) {
   const c1 = m.changes.find((c) => c.period === 1);
   const c7 = m.changes.find((c) => c.period === 7);
   return (
-    <TrackedLink href={METRIC_DEST[m.id] ?? "/snapshot"} event="snapshot_card_click" props={{ metric: m.id }} className="card card-interactive p-4 sm:p-5 flex flex-col">
+    <TrackedLink href={METRIC_DEST[m.id] ?? "/state-of-bitcoin"} event="snapshot_card_click" props={{ metric: m.id }} className="card card-interactive p-4 sm:p-5 flex flex-col">
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">{m.name}</span>
         {m.band && <span className="text-[10.5px] px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-300">{m.band.label}</span>}
@@ -128,19 +152,22 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   return (
     <div className={presenter ? "space-y-10 max-w-5xl mx-auto" : "space-y-12 lg:space-y-14"}>
       {presenter && <SnapshotPresenterMode />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       {/* ── Hero ── */}
       <header className="pt-2">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">Market Snapshot</span>
-          <DataBadge status={DATA_STATUS[SOURCE.mode] ?? "live-derived"} source={`Snapshot as of ${asOf}`} />
+          <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
+            {presenter ? "The State of Bitcoin — Presenter Mode" : "Daily Bitcoin market analysis"}
+          </span>
+          <DataBadge status={DATA_STATUS[SOURCE.mode] ?? "live-derived"} source={`As of ${asOf}`} />
           {!presenter && <ShareTrigger />}
         </div>
         <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.04] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[42px] lg:text-[54px]"}`}>
-          Bitcoin Market Snapshot
+          The State of Bitcoin
         </h1>
         <p className={`mt-4 text-ink-300 max-w-2xl leading-relaxed ${presenter ? "text-[18px]" : "text-[15px] lg:text-[15.5px]"}`}>
-          The current state of the Bitcoin cycle, what changed and where today sits in history.
+          Everything that changed in Bitcoin today, why it matters, and how today&rsquo;s market compares with history.
         </p>
 
         {/* Hero stat strip */}
@@ -159,7 +186,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           <ol className="space-y-3 text-[15px] text-ink-200 leading-snug">
             <li><span className="text-ink-500">Opening — </span>{episode.opening}</li>
             <li>
-              <span className="text-ink-500">Snapshot — </span>
+              <span className="text-ink-500">Market state — </span>
               <ul className="mt-1 space-y-1 text-[14px] text-ink-300">
                 {episode.scoreboard.map((l, i) => (
                   <li key={i}>• {l}</li>
@@ -295,7 +322,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
       {presenter ? (
         <div className="pt-4">
-          <Link href="/snapshot" className="text-[12px] text-ink-500 hover:text-ink-300">
+          <Link href="/state-of-bitcoin" className="text-[12px] text-ink-500 hover:text-ink-300">
             ← Exit presenter mode
           </Link>
         </div>

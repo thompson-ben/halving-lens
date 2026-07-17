@@ -22,7 +22,8 @@ import { SITE_URL } from "./site";
 // Stable over time — treat these as canonical URLs; don't renumber them.
 export const CANONICAL_ALIASES: Record<string, string> = {
   home: "/",
-  snapshot: "/snapshot",
+  "state-of-bitcoin": "/state-of-bitcoin",
+  snapshot: "/state-of-bitcoin", // legacy alias — keeps old /r/snapshot short links working
   dashboard: "/dashboard",
   cycles: "/cycles",
   "similar-moments": "/similar-moments",

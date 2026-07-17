@@ -6,7 +6,7 @@ import { fmtUsd } from "@/lib/format";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const dynamic = "force-dynamic";
-export const alt = "Bitcoin Market Snapshot — where the cycle stands today — halvinglens.com";
+export const alt = "The State of Bitcoin — what changed today and how it compares with history — halvinglens.com";
 
 // Social share card for /snapshot. og:image is read by X, LinkedIn, Facebook,
 // Discord and Telegram, so this one asset covers all of them. Same live numbers
@@ -43,12 +43,12 @@ export default async function Image() {
             <div style={{ width: 18, height: 18, borderRadius: 9, background: "#5eead4" }} />
             <div style={{ display: "flex", fontSize: 26, color: "#e4e9f0", fontWeight: 600 }}>halvinglens.com</div>
           </div>
-          <div style={{ display: "flex", fontSize: 22, color: "#6f7c8e", letterSpacing: 3 }}>MARKET SNAPSHOT</div>
+          <div style={{ display: "flex", fontSize: 22, color: "#6f7c8e", letterSpacing: 3 }}>THE STATE OF BITCOIN</div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", fontSize: 66, color: "#f3f6fa", fontWeight: 700, lineHeight: 1.05, letterSpacing: -1 }}>
-            Bitcoin Market Snapshot
+            The State of Bitcoin
           </div>
           <div style={{ display: "flex", fontSize: 27, color: "#8893a4" }}>
             Day {s.cycleDay} of the cycle · {fmtUsd(s.price)} · historical context, not prediction.

@@ -1,6 +1,6 @@
 // "Documenting the Bitcoin Cycle" — episode prep, assembled entirely from the
 // shared snapshot aggregators and metric-change service. Because it reuses the
-// exact same computed numbers and commentary as the /snapshot dashboard, the
+// exact same computed numbers and commentary as The State of Bitcoin page, the
 // weekly episode, the social packs and the website can never quote different
 // weekly figures (PART 11 — the website is the single source of truth).
 //
@@ -61,7 +61,7 @@ export function episodeBriefText(): string {
   lines.push("1. OPENING");
   lines.push(b.opening);
   lines.push("");
-  lines.push("2. MARKET SNAPSHOT");
+  lines.push("2. THE STATE OF BITCOIN");
   b.scoreboard.forEach((l) => lines.push(`• ${l}`));
   lines.push("");
   lines.push("3. WHAT CHANGED THIS WEEK");

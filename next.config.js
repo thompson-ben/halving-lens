@@ -55,6 +55,14 @@ const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  async redirects() {
+    return [
+      // "Snapshot" was renamed to "The State of Bitcoin". Permanent (308) so the
+      // old URL keeps its SEO equity and never breaks; query strings (e.g.
+      // ?presenter=true) are preserved automatically.
+      { source: "/snapshot", destination: "/state-of-bitcoin", permanent: true },
+    ];
+  },
 };
 
 module.exports = nextConfig;

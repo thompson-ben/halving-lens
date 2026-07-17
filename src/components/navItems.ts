@@ -3,7 +3,6 @@ import {
   Award,
   BookOpen,
   Boxes,
-  Camera,
   FlaskConical,
   Gauge,
   HeartPulse,
@@ -17,6 +16,7 @@ import {
   Newspaper,
   Pickaxe,
   Play,
+  Radar,
   ScrollText,
   Sparkles,
   Sprout,
@@ -34,7 +34,7 @@ export interface NavLink {
 // Core cycle journeys.
 export const PRIMARY: readonly NavLink[] = [
   { href: "/", label: "Cycle dashboard", icon: Gauge },
-  { href: "/snapshot", label: "Market snapshot", icon: Camera },
+  { href: "/state-of-bitcoin", label: "The State of Bitcoin", icon: Radar },
   { href: "/dashboard", label: "Your dashboard", icon: LayoutDashboard },
   { href: "/cycles", label: "Cycle comparison", icon: Layers },
   { href: "/similar-moments", label: "Similar moments", icon: History },
