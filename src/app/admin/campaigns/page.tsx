@@ -1,7 +1,7 @@
 import { AdminLogin } from "@/components/AdminLogin";
 import { CampaignStudio, type DestOption, type CampaignRow } from "@/components/CampaignStudio";
 import { shareDashboard } from "@/lib/shareAnalytics";
-import { PRIMARY, EXPLORE } from "@/components/navItems";
+import { FLAGSHIP, PRIMARY, EXPLORE } from "@/components/navItems";
 import { allFindings } from "@/lib/findings";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
@@ -28,6 +28,7 @@ export default async function CampaignsPage() {
 
   // Destination options — the pages a campaign can point at.
   const options: DestOption[] = [
+    ...FLAGSHIP.map((n) => ({ label: n.label, path: n.href })),
     ...PRIMARY.map((n) => ({ label: n.label, path: n.href })),
     ...EXPLORE.map((n) => ({ label: n.label, path: n.href })),
     ...allFindings().map((f) => ({ label: `${f.id} — ${f.title}`.slice(0, 60), path: `/research/findings/${f.slug}` })),

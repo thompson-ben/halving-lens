@@ -31,17 +31,23 @@ export interface NavLink {
   icon: LucideIcon;
 }
 
+// The three flagship experiences — the daily-return story: what changed today,
+// how attractive conditions are vs history, and the full historical range from
+// here. Surfaced first, on their own, so they stand out.
+export const FLAGSHIP: readonly NavLink[] = [
+  { href: "/state-of-bitcoin", label: "The State of Bitcoin", icon: Radar },
+  { href: "/accumulation", label: "Accumulation Index", icon: Sprout },
+  { href: "/historical-price-paths", label: "Historical Price Paths", icon: TrendingDown },
+];
+
 // Core cycle journeys.
 export const PRIMARY: readonly NavLink[] = [
   { href: "/", label: "Cycle dashboard", icon: Gauge },
-  { href: "/state-of-bitcoin", label: "The State of Bitcoin", icon: Radar },
   { href: "/dashboard", label: "Your dashboard", icon: LayoutDashboard },
   { href: "/cycles", label: "Cycle comparison", icon: Layers },
   { href: "/similar-moments", label: "Similar moments", icon: History },
-  { href: "/accumulation", label: "Accumulation index", icon: Sprout },
   { href: "/market-health", label: "Market Health", icon: HeartPulse },
   { href: "/etf", label: "ETF Flows", icon: Landmark },
-  { href: "/historical-price-paths", label: "Historical price paths", icon: TrendingDown },
   { href: "/brief", label: "Daily brief", icon: Newspaper },
   { href: "/research", label: "Morning Research", icon: Library },
   { href: "/research/findings", label: "Research findings", icon: FlaskConical },
