@@ -5,6 +5,8 @@ import { DownsideChart } from "@/components/DownsideChart";
 import { HistoricalRange } from "@/components/HistoricalRange";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
+import { PresenterMode } from "@/components/PresenterMode";
+import { PresenterTalkingPoints, type TalkingPoint } from "@/components/PresenterTalkingPoints";
 import { DataBadge } from "@/components/DataBadge";
 import { WhatsChanged } from "@/components/WhatsChanged";
 import { metricChange } from "@/lib/metricChange";
@@ -41,25 +43,58 @@ const JSON_LD = {
   isPartOf: { "@type": "WebSite", name: "HalvingLens", url: "https://halvinglens.com" },
 };
 
-export default function HistoricalPricePathsPage() {
+export default function HistoricalPricePathsPage({ searchParams }: { searchParams: { presenter?: string } }) {
+  const presenter = searchParams?.presenter === "true";
   const d = downsideScenarios();
   const up = upsideScenarios();
   const explorer = pathExplorer();
 
+  // Deterministic presenter running order, straight from the live engine.
+  const severe = d.levels.filter((l) => l.category === "drawdown").slice(-1)[0]?.price ?? null;
+  const strong = up.strongPrice;
+  const stillClimbing = explorer.paths.filter((p) => !p.pastPeak).length;
+  const talkingPoints: TalkingPoint[] = presenter
+    ? [
+        { label: "Where we are", text: `Day ${explorer.cycleDay} of the current cycle, rebased to 100% at today.` },
+        {
+          label: "Still climbing from here",
+          text: `${stillClimbing} of ${explorer.paths.length} completed cycles were still rising toward their peak at this stage; the rest had already topped.`,
+        },
+        ...(explorer.diminishing.observed
+          ? [
+              {
+                label: "Diminishing returns",
+                text: `Each completed cycle's peak return was smaller than the last (${explorer.diminishing.perCycle.map((c) => `${Math.round(c.totalReturnMult)}×`).join(" → ")}). A historical observation, not a law.`,
+              },
+            ]
+          : []),
+        ...(severe != null && strong != null
+          ? [
+              {
+                label: "The full range from here",
+                text: `History spans from about ${fmtUsd(severe, { compact: true })} on the downside to ${fmtUsd(strong, { compact: true })} on the upside, from today's ${fmtUsd(up.currentPrice, { compact: true })}. Historical paths, not price targets.`,
+              },
+            ]
+          : []),
+        { label: "Guardrail", text: "These are not forecasts. History never repeats exactly — educational context, not advice." },
+      ]
+    : [];
+
   return (
-    <div className="space-y-10">
+    <div className={presenter ? "presenter-stage space-y-10 max-w-5xl mx-auto" : "space-y-10"}>
+      {presenter && <PresenterMode page="Historical Price Paths" />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <header className="pt-2">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
-            The historical range of outcomes
+            {presenter ? "Historical Price Paths — Presenter Mode" : "The historical range of outcomes"}
           </span>
           <DataBadge status="live-derived" source="derived from price history" />
         </div>
-        <h1 className="font-display text-[34px] sm:text-[44px] font-medium tracking-tightest text-ink-50 leading-[1.05]">
+        <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.05] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[44px]"}`}>
           Historical Price Paths
         </h1>
-        <p className="mt-4 text-[14.5px] text-ink-300 leading-relaxed max-w-2xl">
+        <p className={`mt-4 text-ink-300 leading-relaxed max-w-2xl ${presenter ? "text-[18px]" : "text-[14.5px]"}`}>
           From today&rsquo;s point in the cycle, how far have previous Bitcoin halving cycles gone — both up and down?
           This maps the full historical range of outcomes, drawn only from how prior cycles behaved. It is historical
           context — <span className="text-ink-100">not a prediction, not a price target</span>, and not advice.
@@ -68,6 +103,8 @@ export default function HistoricalPricePathsPage() {
           <LastUpdated prefix="As of" />
         </div>
       </header>
+
+      {presenter && <PresenterTalkingPoints title="Historical Price Paths" points={talkingPoints} />}
 
       {/* The Historical Path Explorer — the signature visual: the journey */}
       {explorer.available && (
@@ -229,7 +266,7 @@ export default function HistoricalPricePathsPage() {
         </Link>
       </section>
 
-      <FlagshipJourney current="historical-price-paths" />
+      {!presenter && <FlagshipJourney current="historical-price-paths" />}
 
       <p className="text-[11.5px] text-ink-500 leading-relaxed max-w-2xl border-t border-white/[0.06] pt-5">
         {DISCLAIMER}

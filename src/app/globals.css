@@ -236,6 +236,57 @@ input:focus-visible {
 /* Distraction-free landing: hide site chrome on /start (paid traffic). */
 html[data-bare="1"] .site-chrome { display: none !important; }
 
+/* Presenter mode hides chrome via its own flag, so BareChromeSync's per-route
+   data-bare housekeeping can never clobber it. */
+html[data-presenter="1"] .site-chrome { display: none !important; }
+
+/* ── Presenter / studio mode (?presenter=true on the flagship pages) ──────────
+   Turns a page from a dashboard into something built to be filmed: calmer
+   vertical rhythm, roomier cards, and broadcast-legible chart type. Scoped to
+   .presenter-stage so it never touches the rest of the app. */
+html[data-presenter="1"] main { padding-top: 2.5rem; padding-bottom: 3rem; }
+html[data-presenter="1"] .presenter-stage .card,
+html[data-presenter="1"] .presenter-stage .card-glow { padding: 1.75rem; }
+@media (min-width: 640px) {
+  html[data-presenter="1"] .presenter-stage .card,
+  html[data-presenter="1"] .presenter-stage .card-glow { padding: 2rem; }
+}
+/* Bigger, higher-contrast chart type while filming. */
+html[data-presenter="1"] .presenter-stage .recharts-cartesian-axis-tick text { font-size: 13px !important; fill: #8b97a8 !important; }
+html[data-presenter="1"] .presenter-stage .recharts-cartesian-grid-horizontal line,
+html[data-presenter="1"] .presenter-stage .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.07) !important; }
+html[data-presenter="1"] .presenter-stage .recharts-tooltip-item { font-size: 14px !important; }
+html[data-presenter="1"] .presenter-stage .recharts-tooltip-label { font-size: 12.5px !important; }
+
+/* Recording safe-area guides (title-safe / action-safe), toggled with `g`. */
+.presenter-guides { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+.presenter-guide { position: absolute; border: 1px dashed rgba(94, 234, 212, 0.35); border-radius: 4px; }
+.presenter-guide--action { inset: 3.5%; }
+.presenter-guide--title { inset: 7%; border-color: rgba(167, 139, 250, 0.32); }
+
+/* Floating studio transport bar. */
+.presenter-bar {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+  z-index: 61; display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 999px;
+  background: rgba(13, 18, 25, 0.88); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  font-size: 12px; color: #bfc7d2;
+}
+.presenter-bar__label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #6f7c8e; padding-left: 4px; }
+.presenter-bar__sep { width: 1px; height: 16px; background: rgba(255, 255, 255, 0.1); }
+.presenter-bar__btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px; color: #d5dbe4;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background 160ms, color 160ms, border-color 160ms;
+}
+.presenter-bar__btn:hover { background: rgba(255, 255, 255, 0.08); color: #f3f6fa; }
+.presenter-bar__btn[aria-pressed="true"] { background: rgba(94, 234, 212, 0.14); border-color: rgba(94, 234, 212, 0.4); color: #5eead4; }
+.presenter-bar__btn--exit:hover { border-color: rgba(255, 93, 93, 0.4); color: #ff8a8a; }
+@media print { .presenter-bar, .presenter-guides { display: none !important; } }
+
 /* Print / Save-as-PDF: show only the document, on white. */
 @media print {
   .site-chrome, .no-print { display: none !important; }
