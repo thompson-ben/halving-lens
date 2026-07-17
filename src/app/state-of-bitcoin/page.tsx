@@ -5,6 +5,7 @@ import { ShareTrigger } from "@/components/ShareTrigger";
 import { TrackedLink } from "@/components/TrackedLink";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { PresenterMode } from "@/components/PresenterMode";
+import { RecordModeButton } from "@/components/RecordModeButton";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
 import { snapshotWhatChanged, snapshotContext, snapshotWatchItems, snapshotCyclePosition } from "@/lib/snapshot";
@@ -165,11 +166,15 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           </span>
           <DataBadge status={DATA_STATUS[SOURCE.mode] ?? "live-derived"} source={`As of ${asOf}`} />
           {!presenter && <ShareTrigger />}
+          {!presenter && <RecordModeButton page="/state-of-bitcoin" />}
         </div>
         <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.04] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[42px] lg:text-[54px]"}`}>
           The State of Bitcoin
         </h1>
-        <p className={`mt-4 text-ink-300 max-w-2xl leading-relaxed ${presenter ? "text-[18px]" : "text-[15px] lg:text-[15.5px]"}`}>
+        <p className={`mt-3 font-display text-ink-100 leading-snug max-w-2xl ${presenter ? "text-[23px]" : "text-[17px] sm:text-[19px]"}`}>
+          Understand today&rsquo;s market in two minutes.
+        </p>
+        <p className={`mt-2.5 text-ink-400 max-w-2xl leading-relaxed ${presenter ? "text-[16px]" : "text-[14px] lg:text-[14.5px]"}`}>
           Everything that changed in Bitcoin today, why it matters, and how today&rsquo;s market compares with history.
         </p>
 

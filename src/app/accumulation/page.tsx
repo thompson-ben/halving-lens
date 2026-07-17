@@ -12,6 +12,7 @@ import { BriefSignup } from "@/components/BriefSignup";
 import { AccumulationShare } from "@/components/AccumulationShare";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { PresenterMode } from "@/components/PresenterMode";
+import { RecordModeButton } from "@/components/RecordModeButton";
 import { PresenterTalkingPoints, type TalkingPoint } from "@/components/PresenterTalkingPoints";
 import { accumulationRead, accumulationSeries, ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
 import { runAccumulationBacktest } from "@/lib/accumulationBacktest";
@@ -87,11 +88,15 @@ export default function AccumulationPage({ searchParams }: { searchParams: { pre
             {presenter ? "Accumulation Index — Presenter Mode" : "Accumulation intelligence"}
           </span>
           <DataBadge status="live-derived" source="derived from price history" />
+          {!presenter && <RecordModeButton page="/accumulation" />}
         </div>
         <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.05] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[44px]"}`}>
           Bitcoin Accumulation Index
         </h1>
-        <p className={`mt-4 text-ink-300 leading-relaxed max-w-2xl ${presenter ? "text-[18px]" : "text-[14.5px]"}`}>
+        <p className={`mt-3 font-display text-ink-100 leading-snug max-w-2xl ${presenter ? "text-[23px]" : "text-[17px] sm:text-[19px]"}`}>
+          See how attractive today&rsquo;s market has been, historically.
+        </p>
+        <p className={`mt-2.5 text-ink-400 leading-relaxed max-w-2xl ${presenter ? "text-[16px]" : "text-[14px]"}`}>
           Historically, how attractive was it to accumulate Bitcoin when conditions looked like
           today? This index scores the environment from{" "}
           <span className="text-ink-100">deep value to overheated</span> using only real,
