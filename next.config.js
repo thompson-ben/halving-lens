@@ -1,21 +1,34 @@
 /** @type {import('next').NextConfig} */
 
-// Site-wide security headers. The five below are ENFORCED immediately — they're
-// safe and high-value (clickjacking, MIME-sniffing, referrer leakage, HTTPS
-// pinning, feature lock-down).
+// Site-wide security headers. Five are ENFORCED (clickjacking, MIME-sniffing,
+// referrer leakage, HTTPS pinning, feature lock-down) and, as of this change,
+// the Content-Security-Policy is ENFORCING too (promoted from report-only).
 //
-// Content-Security-Policy ships REPORT-ONLY first: it logs violations to the
-// browser console without blocking anything, so we can confirm it doesn't break
-// the app (Next.js inline hydration, Recharts inline styles, next/og, Vercel
-// analytics served from /_vercel) before promoting it to an enforcing
-// `Content-Security-Policy`. Flip the header key once the console is clean.
-const CSP_REPORT_ONLY = [
+// The policy allow-lists exactly what the codebase can load and nothing more:
+//   • First-party ('self') for scripts, styles, fonts, XHR/fetch.
+//   • 'unsafe-inline' — Next.js App Router hydration + the pre-paint chrome
+//     script (layout.tsx) are inline; 'unsafe-eval' is kept from the verified
+//     report-only policy to avoid introducing an unverified change.
+//   • The three env-gated marketing vendors in src/components/MarketingScripts
+//     (Meta Pixel, GA4 / Google Tag Manager, Microsoft Clarity) — their script
+//     and any cookie-sync iframe hosts. If their NEXT_PUBLIC_* ids are unset the
+//     tags never render, so these entries are simply inert.
+//   • Vercel analytics/speed-insights are served same-origin from /_vercel, so
+//     'self' already covers them; their beacons ride connect-src https:.
+//   • img-src / connect-src keep `https:` so any first- or third-party image
+//     beacon or fetch over HTTPS works (blocks only plaintext http).
+//
+// If a future integration adds a new external origin, add it here (and, while
+// validating, you can temporarily switch the header key back to
+// `Content-Security-Policy-Report-Only` to log without blocking).
+const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://www.clarity.ms https://*.clarity.ms",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https:",
+  "frame-src 'self' https://www.facebook.com https://td.doubleclick.net",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -33,8 +46,8 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   // Turn off powerful features we don't use.
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
-  // See note above — report-only until verified, then promote to enforcing.
-  { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
+  // Enforcing — the allow-list above covers everything the app can load.
+  { key: "Content-Security-Policy", value: CSP },
 ];
 
 const nextConfig = {
