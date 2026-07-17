@@ -1,4 +1,4 @@
-import { growthDashboard } from "@/lib/analytics";
+import { growthDashboard, subscriberStats, type SubscriberStats } from "@/lib/analytics";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 import {
   emailEngagement,
@@ -34,7 +34,7 @@ export default async function GrowthPage() {
       <Shell>{adminConfigured() ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
-  const [health, a, email, funnel, waes, v2w, referral, experiments, share, acq, ret] = await Promise.all([
+  const [health, a, email, funnel, waes, v2w, referral, experiments, share, acq, ret, subs] = await Promise.all([
     marketingHealth(),
     growthDashboard(),
     emailEngagement(),
@@ -46,6 +46,7 @@ export default async function GrowthPage() {
     shareDashboard(),
     acquisitionQuality(),
     retentionAnalytics(),
+    subscriberStats(),
   ]);
   const recommendations = growthRecommendations({
     email,
@@ -74,7 +75,7 @@ export default async function GrowthPage() {
       {!a.configured ? (
         <p className="text-[14px] text-ink-300">Supabase isn&apos;t configured — set the keys and run supabase/analytics.sql to populate the metrics below.</p>
       ) : (
-        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} share={share} acq={acq} ret={ret} />
+        <GrowthBody a={a} email={email} funnel={funnel} waes={waes} v2w={v2w} referral={referral} recommendations={recommendations} runningExp={runningExp} share={share} acq={acq} ret={ret} subs={subs} />
       )}
     </Shell>
   );
@@ -92,6 +93,7 @@ function GrowthBody({
   share,
   acq,
   ret,
+  subs,
 }: {
   a: Awaited<ReturnType<typeof growthDashboard>>;
   email: EmailEngagement;
@@ -104,6 +106,7 @@ function GrowthBody({
   share: ShareDashboard;
   acq: AcquisitionQuality;
   ret: RetentionAnalytics;
+  subs: SubscriberStats;
 }) {
   const g = a.growth;
   const weeklies = weeklyStats();
@@ -178,7 +181,7 @@ function GrowthBody({
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
         <Stat label="Visitors · 24h" value={a.windows.visitors1} />
         <Stat label="Returning" value={a.totals.returning} />
-        <Stat label="Subscribers" value={a.totals.subscribers} />
+        <Stat label="Active subscribers" value={subs.active ?? a.totals.subscribers} />
         <Stat label="Signups · 7d" value={a.windows.signups7} />
         <Stat label="Landing conv." value={a.landing.conversionRate != null ? `${a.landing.conversionRate}%` : "—"} />
         <Stat label="Cost / sub" value={overallCps != null ? `£${overallCps}` : "—"} />

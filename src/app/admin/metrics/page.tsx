@@ -1,4 +1,4 @@
-import { analyticsSummary, type SectionFeedback } from "@/lib/analytics";
+import { analyticsSummary, subscriberStats, type SectionFeedback } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ExcludeToggle } from "@/components/ExcludeToggle";
 import { ResetStatsButton } from "@/components/ResetStatsButton";
@@ -31,7 +31,7 @@ export default async function AdminMetricsPage() {
     );
   }
 
-  const a = await analyticsSummary();
+  const [a, subs] = await Promise.all([analyticsSummary(), subscriberStats()]);
   if (!a.configured) {
     return (
       <Shell>
@@ -71,10 +71,10 @@ export default async function AdminMetricsPage() {
         <Stat label="Sessions" value={a.totals.sessions} />
         <Stat label="New visitors" value={a.totals.newVisitors} />
         <Stat label="Returning" value={a.totals.sessions != null && a.totals.newVisitors != null ? Math.max(0, a.totals.sessions - a.totals.newVisitors) : null} />
-        <Stat label="Signups" value={a.totals.signups} />
-        <Stat label="Signup conv." value={signupConv != null ? `${signupConv}%` : "—"} />
+        <Stat label="Total signups" value={a.totals.signups} />
+        <Stat label="Visitor conversion" value={signupConv != null ? `${signupConv}%` : "—"} />
         <Stat label="Shares" value={a.totals.shares} />
-        <Stat label="Subscribers" value={a.subscribers} />
+        <Stat label="Active subscribers" value={subs.active ?? a.subscribers} />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">

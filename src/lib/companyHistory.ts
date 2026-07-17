@@ -33,7 +33,7 @@ export function shiftMonthKey(key: string, deltaMonths: number): string {
   const d = new Date(Date.UTC(y, m - 1 + deltaMonths, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
-function monthLabel(key: string): string {
+export function monthLabel(key: string): string {
   const [y, m] = key.split("-").map(Number);
   const NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   return `${NAMES[m - 1] ?? "?"} ${y}`;
@@ -110,6 +110,18 @@ export async function captureMonthlySnapshot(metrics: SnapshotMetrics, nowMs = D
   const existing = await getSnapshot(month);
   const merged = { ...(existing ?? {}), ...metrics };
   return sbUpsert("company_snapshots", { month, metrics: merged, updated_at: new Date(nowMs).toISOString() }, "month");
+}
+
+// Most recent monthly snapshots, newest first. Powers the Executive Summary's
+// social block, which reads the latest manual figures + the previous entry for a
+// delta. Empty when Supabase is unconfigured.
+export interface DatedSnapshot { month: string; metrics: SnapshotMetrics }
+export async function recentSnapshots(limit = 12): Promise<DatedSnapshot[]> {
+  if (!supabaseConfigured) return [];
+  const rows = await sbSelect<{ month: string; metrics: SnapshotMetrics | null }[]>(
+    `company_snapshots?select=month,metrics&order=month.desc&limit=${limit}`,
+  );
+  return (rows ?? []).map((r) => ({ month: r.month, metrics: r.metrics ?? {} }));
 }
 
 export async function getSnapshot(month: string): Promise<SnapshotMetrics | null> {
