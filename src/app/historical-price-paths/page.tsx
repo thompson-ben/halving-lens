@@ -6,6 +6,7 @@ import { HistoricalRange } from "@/components/HistoricalRange";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { PresenterMode } from "@/components/PresenterMode";
+import { RecordModeButton } from "@/components/RecordModeButton";
 import { PresenterTalkingPoints, type TalkingPoint } from "@/components/PresenterTalkingPoints";
 import { DataBadge } from "@/components/DataBadge";
 import { WhatsChanged } from "@/components/WhatsChanged";
@@ -90,11 +91,15 @@ export default function HistoricalPricePathsPage({ searchParams }: { searchParam
             {presenter ? "Historical Price Paths — Presenter Mode" : "The historical range of outcomes"}
           </span>
           <DataBadge status="live-derived" source="derived from price history" />
+          {!presenter && <RecordModeButton page="/historical-price-paths" />}
         </div>
         <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.05] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[44px]"}`}>
           Historical Price Paths
         </h1>
-        <p className={`mt-4 text-ink-300 leading-relaxed max-w-2xl ${presenter ? "text-[18px]" : "text-[14.5px]"}`}>
+        <p className={`mt-3 font-display text-ink-100 leading-snug max-w-2xl ${presenter ? "text-[23px]" : "text-[17px] sm:text-[19px]"}`}>
+          Explore how previous Bitcoin cycles evolved from here.
+        </p>
+        <p className={`mt-2.5 text-ink-400 leading-relaxed max-w-2xl ${presenter ? "text-[16px]" : "text-[14px]"}`}>
           From today&rsquo;s point in the cycle, how far have previous Bitcoin halving cycles gone — both up and down?
           This maps the full historical range of outcomes, drawn only from how prior cycles behaved. It is historical
           context — <span className="text-ink-100">not a prediction, not a price target</span>, and not advice.
