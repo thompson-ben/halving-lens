@@ -10,6 +10,7 @@ import { allFindings } from "@/lib/findings";
 // intentionally left out (paid-ad landing, kept out of organic discovery).
 const STATIC_PATHS = [
   "/",
+  "/state-of-bitcoin",
   "/cycles",
   "/accumulation",
   "/market-health",

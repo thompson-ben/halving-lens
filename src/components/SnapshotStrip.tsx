@@ -34,8 +34,8 @@ export function SnapshotStrip({
     <div className="card p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3 mb-3">
         <span className="text-[10px] uppercase tracking-[0.18em] text-ink-500">{title}</span>
-        <TrackedLink href="/snapshot" event="snapshot_strip_click" props={{ title }} className="text-[11px] text-accent hover:text-accent-soft">
-          Full snapshot →
+        <TrackedLink href="/state-of-bitcoin" event="snapshot_strip_click" props={{ title }} className="text-[11px] text-accent hover:text-accent-soft">
+          The State of Bitcoin →
         </TrackedLink>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-3">
