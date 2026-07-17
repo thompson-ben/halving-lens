@@ -18,6 +18,8 @@ export interface SnapshotChange {
 
 const MATERIALITY_WEIGHT: Record<Materiality, number> = { band: 4, historic: 3, material: 2, modest: 1, none: 0 };
 
+const pt = (n: number): string => `point${Math.abs(Math.round(n)) === 1 ? "" : "s"}`;
+
 function changeItemFor(m: MetricChange): SnapshotChange | null {
   const c7 = m.changes.find((c) => c.period === 7 && c.available);
   const base = MATERIALITY_WEIGHT[m.materiality];
@@ -35,19 +37,19 @@ function changeItemFor(m: MetricChange): SnapshotChange | null {
   const mag = Math.abs(c7.absChange);
   switch (m.id) {
     case "market_health":
-      title = `Market Health ${c7.dir === "up" ? "rose" : "fell"} ${mag.toFixed(0)} points this week`;
+      title = `Market Health ${c7.dir === "up" ? "rose" : "fell"} ${mag.toFixed(0)} ${pt(mag)} this week`;
       break;
     case "sentiment":
-      title = `Sentiment ${c7.dir === "up" ? "rose" : "fell"} ${mag.toFixed(0)} points this week`;
+      title = `Sentiment ${c7.dir === "up" ? "rose" : "fell"} ${mag.toFixed(0)} ${pt(mag)} this week`;
       break;
     case "accumulation":
-      title = `Accumulation Index ${c7.dir === "down" ? "improved" : "eased"} ${mag.toFixed(0)} points this week`;
+      title = `Accumulation Index ${c7.dir === "down" ? "improved" : "eased"} ${mag.toFixed(0)} ${pt(mag)} this week`;
       break;
     case "price":
       title = `Bitcoin ${c7.pctChange != null && c7.pctChange >= 0 ? "gained" : "fell"} ${Math.abs(c7.pctChange ?? 0).toFixed(1)}% this week`;
       break;
     case "drawdown":
-      title = `Drawdown ${c7.dir === "down" ? "deepened" : "recovered"} ${mag.toFixed(0)} points to ${m.currentLabel}`;
+      title = `Drawdown ${c7.dir === "down" ? "deepened" : "recovered"} ${mag.toFixed(0)} ${pt(mag)} to ${m.currentLabel}`;
       break;
     case "etf_flow":
       title = `ETF seven-day demand at ${c7.absLabel}`;
