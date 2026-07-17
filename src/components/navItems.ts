@@ -41,7 +41,7 @@ export const PRIMARY: readonly NavLink[] = [
   { href: "/accumulation", label: "Accumulation index", icon: Sprout },
   { href: "/market-health", label: "Market Health", icon: HeartPulse },
   { href: "/etf", label: "ETF Flows", icon: Landmark },
-  { href: "/downside-scenarios", label: "Downside scenarios", icon: TrendingDown },
+  { href: "/historical-price-paths", label: "Historical price paths", icon: TrendingDown },
   { href: "/brief", label: "Daily brief", icon: Newspaper },
   { href: "/research", label: "Morning Research", icon: Library },
   { href: "/research/findings", label: "Research findings", icon: FlaskConical },

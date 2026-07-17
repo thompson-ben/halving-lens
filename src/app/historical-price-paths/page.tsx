@@ -2,47 +2,82 @@ import Link from "next/link";
 import { ArrowUpRight, ShieldAlert } from "lucide-react";
 import { DownsideLadder } from "@/components/DownsideLadder";
 import { DownsideChart } from "@/components/DownsideChart";
+import { HistoricalRange } from "@/components/HistoricalRange";
 import { DataBadge } from "@/components/DataBadge";
 import { WhatsChanged } from "@/components/WhatsChanged";
 import { metricChange } from "@/lib/metricChange";
 import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { downsideScenarios } from "@/lib/downside";
+import { upsideScenarios } from "@/lib/upside";
 import { fmtUsd, fmtPct } from "@/lib/format";
 
 export const metadata = {
-  title: "Downside scenarios — halvinglens.com",
+  title: "Historical Price Paths — how far Bitcoin has gone from here | HalvingLens",
   description:
-    "Historical downside scenario map for Bitcoin — where prior cyclical bear-market drawdowns and long-term support levels would imply. Context, not a forecast.",
+    "The full historical range of Bitcoin outcomes from today's point in the cycle — both upside continuations and downside corrections — drawn only from how previous halving cycles behaved. Historical paths, not forecasts.",
+  alternates: { canonical: "https://halvinglens.com/historical-price-paths" },
+  openGraph: {
+    title: "Historical Price Paths | HalvingLens",
+    description: "The historical range of paths Bitcoin has taken from comparable points in previous halving cycles — upside and downside. Not forecasts.",
+    url: "https://halvinglens.com/historical-price-paths",
+    type: "website",
+  },
 };
 
 const DISCLAIMER =
-  "Historical drawdowns are not forecasts. This analysis shows scenario ranges based on prior Bitcoin cycles and long-term support levels. It is educational context, not financial advice.";
+  "These are not forecasts. This analysis shows the range of paths Bitcoin has taken from comparable points in previous halving cycles. History never repeats exactly — it is educational context, not financial advice.";
 
-export default function DownsideScenariosPage() {
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Historical Price Paths",
+  description:
+    "The full historical range of Bitcoin outcomes from today's point in the cycle — upside continuations and downside corrections — drawn only from how previous halving cycles behaved.",
+  url: "https://halvinglens.com/historical-price-paths",
+  isPartOf: { "@type": "WebSite", name: "HalvingLens", url: "https://halvinglens.com" },
+};
+
+export default function HistoricalPricePathsPage() {
   const d = downsideScenarios();
+  const up = upsideScenarios();
 
   return (
     <div className="space-y-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <header className="pt-2">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
           <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
-            Cycle low scenario map
+            The historical range of outcomes
           </span>
           <DataBadge status="live-derived" source="derived from price history" />
         </div>
         <h1 className="font-display text-[34px] sm:text-[44px] font-medium tracking-tightest text-ink-50 leading-[1.05]">
-          Bitcoin downside scenarios
+          Historical Price Paths
         </h1>
         <p className="mt-4 text-[14.5px] text-ink-300 leading-relaxed max-w-2xl">
-          If Bitcoin fell from here, where could it reasonably find support based on history? This
-          map compares long-term support levels with the drawdowns of prior Bitcoin cyclical bear
-          markets. It is historical context — <span className="text-ink-100">not a prediction, not a price target</span>, and not advice.
+          From today&rsquo;s point in the cycle, how far have previous Bitcoin halving cycles gone — both up and down?
+          This maps the full historical range of outcomes, drawn only from how prior cycles behaved. It is historical
+          context — <span className="text-ink-100">not a prediction, not a price target</span>, and not advice.
         </p>
         <div className="mt-3">
           <LastUpdated prefix="As of" />
         </div>
       </header>
+
+      {/* The unified range — the centrepiece */}
+      {up.available && <HistoricalRange up={up} down={d} />}
+
+      {/* Historical Upside Range */}
+      {up.available && <UpsideSection up={up} />}
+
+      <div className="pt-2">
+        <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-2">Historical Downside Range</div>
+        <p className="text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">
+          The other half of the range: if Bitcoin fell from here, where has history found support? Long-term support levels
+          alongside the drawdowns of prior Bitcoin cyclical bear markets.
+        </p>
+      </div>
 
       <WhatsChanged metric={metricChange("drawdown")} />
 
@@ -189,6 +224,71 @@ function MethodCard({
         <DataBadge status={quality} size="sm" showDot={false} />
       </div>
       <p className="text-[12.5px] text-ink-300 leading-relaxed">{body}</p>
+    </div>
+  );
+}
+
+function UpsideSection({ up }: { up: ReturnType<typeof upsideScenarios> }) {
+  return (
+    <section>
+      <div className="mb-4 max-w-2xl">
+        <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-2">Historical Upside Range</div>
+        <p className="text-[13.5px] text-ink-300 leading-relaxed">
+          If Bitcoin continued like each previous cycle from this same point after the halving, here is how far it went to
+          that cycle&rsquo;s peak. These are historical continuations — not forecasts.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {up.perCycle.map((c) => (
+          <div key={c.cycleId} className="card p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color }} />
+              <span className="text-[12.5px] font-medium text-ink-100">{c.label}</span>
+            </div>
+            {c.alreadyPeaked ? (
+              <>
+                <div className="font-display text-[26px] text-ink-300 tabular-nums leading-none">Past peak</div>
+                <p className="mt-2 text-[12px] text-ink-400 leading-relaxed">
+                  This cycle had already reached its high by this point, so it offered no further upside from here.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="font-display text-[30px] text-accent tabular-nums leading-none">+{Math.round(c.remainingUpsidePct)}%</div>
+                <div className="mt-1.5 text-[13px] text-ink-200 tabular-nums">≈ {fmtUsd(c.equivalentPrice, { compact: true })}</div>
+                <p className="mt-2 text-[12px] text-ink-400 leading-relaxed">
+                  From here it rose {c.multiple.toFixed(1)}× to its {c.year} cycle peak.
+                </p>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+        <RangeStat label="Historical average" value={up.averagePrice != null ? fmtUsd(up.averagePrice, { compact: true }) : "—"} sub={up.averageMult != null ? `${up.averageMult.toFixed(1)}× from here` : undefined} />
+        <RangeStat label="Historical median" value={up.medianPrice != null ? fmtUsd(up.medianPrice, { compact: true }) : "—"} sub={up.medianMult != null ? `${up.medianMult.toFixed(1)}× from here` : undefined} />
+        <RangeStat
+          label="Historical range"
+          value={up.conservativePrice != null && up.strongPrice != null ? `${fmtUsd(up.conservativePrice, { compact: true })}–${fmtUsd(up.strongPrice, { compact: true })}` : "—"}
+        />
+      </div>
+
+      <p className="mt-3 text-[11.5px] text-ink-500 leading-relaxed max-w-3xl">
+        These are not forecasts. They simply illustrate how previous Bitcoin halving cycles behaved from comparable points
+        in history. History never repeats exactly, but the historical range of outcomes provides valuable context.
+      </p>
+    </section>
+  );
+}
+
+function RangeStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="bg-ink-950/40 p-4">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">{label}</div>
+      <div className="mt-1 text-[18px] font-display text-ink-50 tabular-nums leading-tight">{value}</div>
+      {sub && <div className="text-[10.5px] text-ink-500 leading-tight">{sub}</div>}
     </div>
   );
 }

@@ -30,7 +30,9 @@ export const CANONICAL_ALIASES: Record<string, string> = {
   accumulation: "/accumulation",
   "market-health": "/market-health",
   "etf-flows": "/etf",
-  downside: "/downside-scenarios",
+  "historical-price-paths": "/historical-price-paths",
+  downside: "/historical-price-paths", // legacy alias — keeps old /r/downside short links working
+  "price-paths": "/historical-price-paths",
   brief: "/brief",
   research: "/research",
   findings: "/research/findings",
