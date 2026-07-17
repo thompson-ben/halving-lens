@@ -6,6 +6,7 @@ import { TrackedLink } from "@/components/TrackedLink";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { PresenterMode } from "@/components/PresenterMode";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
+import { FlagshipShare } from "@/components/FlagshipShare";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
 import { snapshotWhatChanged, snapshotContext, snapshotWatchItems, snapshotCyclePosition } from "@/lib/snapshot";
 import { upsideScenarios } from "@/lib/upside";
@@ -319,6 +320,10 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           ))}
         </div>
       </section>
+
+      {!presenter && (
+        <FlagshipShare page="/state-of-bitcoin" label="The State of Bitcoin" blurb="Everything that changed in Bitcoin today, and how it compares with history." />
+      )}
 
       {!presenter && <FlagshipJourney current="state-of-bitcoin" />}
 

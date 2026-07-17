@@ -5,6 +5,7 @@ import { DownsideChart } from "@/components/DownsideChart";
 import { HistoricalRange } from "@/components/HistoricalRange";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
+import { FlagshipShare } from "@/components/FlagshipShare";
 import { PresenterMode } from "@/components/PresenterMode";
 import { PresenterTalkingPoints, type TalkingPoint } from "@/components/PresenterTalkingPoints";
 import { DataBadge } from "@/components/DataBadge";
@@ -265,6 +266,10 @@ export default function HistoricalPricePathsPage({ searchParams }: { searchParam
           <ArrowUpRight size={16} className="text-accent shrink-0" />
         </Link>
       </section>
+
+      {!presenter && (
+        <FlagshipShare page="/historical-price-paths" label="Historical Price Paths" blurb="How far previous Bitcoin cycles travelled from today's point — up and down." />
+      )}
 
       {!presenter && <FlagshipJourney current="historical-price-paths" />}
 

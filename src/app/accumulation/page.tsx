@@ -10,6 +10,7 @@ import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { BriefSignup } from "@/components/BriefSignup";
 import { AccumulationShare } from "@/components/AccumulationShare";
+import { FlagshipShare } from "@/components/FlagshipShare";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { PresenterMode } from "@/components/PresenterMode";
 import { PresenterTalkingPoints, type TalkingPoint } from "@/components/PresenterTalkingPoints";
@@ -268,14 +269,17 @@ export default function AccumulationPage({ searchParams }: { searchParams: { pre
           Copy a ready-to-post summary, or grab the version for each channel. Every figure is the live
           reading — historical context, not advice.
         </p>
-        <div className="card p-4 sm:p-6">
-          <AccumulationShare
-            summary={shareSummary}
-            x={pack.xThread.join("\n\n")}
-            linkedin={pack.linkedin}
-            instagram={pack.instagram}
-            email={`Subject: ${pack.emailSubject}\n\n${pack.emailBody}`}
-          />
+        <div className="space-y-4">
+          <FlagshipShare page="/accumulation" label="Bitcoin Accumulation Index" blurb="How attractive today's Bitcoin market has been, versus its own history." />
+          <div className="card p-4 sm:p-6">
+            <AccumulationShare
+              summary={shareSummary}
+              x={pack.xThread.join("\n\n")}
+              linkedin={pack.linkedin}
+              instagram={pack.instagram}
+              email={`Subject: ${pack.emailSubject}\n\n${pack.emailBody}`}
+            />
+          </div>
         </div>
       </section>
 
