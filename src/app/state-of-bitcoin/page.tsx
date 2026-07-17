@@ -7,6 +7,8 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SnapshotPresenterMode } from "@/components/SnapshotPresenterMode";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
 import { snapshotWhatChanged, snapshotContext, snapshotWatchItems, snapshotCyclePosition } from "@/lib/snapshot";
+import { upsideScenarios } from "@/lib/upside";
+import { downsideScenarios } from "@/lib/downside";
 import { cycleSummary } from "@/lib/cycleSummary";
 import { selectChartOfWeek } from "@/lib/chartOfWeek";
 import { episodeBrief } from "@/lib/episodeBrief";
@@ -101,7 +103,7 @@ const METRIC_DEST: Record<string, string> = {
   market_health: "/",
   sentiment: "/sentiment",
   accumulation: "/accumulation",
-  drawdown: "/downside-scenarios",
+  drawdown: "/historical-price-paths",
   etf_flow: "/etf",
 };
 
@@ -268,6 +270,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           </div>
           <p className="mt-5 pt-4 border-t border-white/[0.06] text-[14px] text-ink-200 leading-relaxed">{ctx.summary}</p>
         </div>
+        <HistoricalRangeCard />
       </section>
 
       {/* ── Chart of the week ── */}
@@ -363,6 +366,40 @@ function ContextStat({ label, value, sub }: { label: string; value: string; sub?
       <div className="mt-1 text-[19px] font-display text-ink-50 tabular-nums leading-tight">{value}</div>
       {sub && <div className="text-[10.5px] text-ink-500 leading-tight">{sub}</div>}
     </div>
+  );
+}
+
+// Compact "full range of historical outcomes" — answers the fourth question the
+// page exists to answer, linking through to the full Historical Price Paths.
+function HistoricalRangeCard() {
+  const up = upsideScenarios();
+  const down = downsideScenarios();
+  if (!up.available) return null;
+  const severe = down.levels.filter((l) => l.category === "drawdown").slice(-1)[0]?.price ?? null;
+  const strong = up.strongPrice;
+  return (
+    <TrackedLink href="/historical-price-paths" event="snapshot_range_click" className="card card-interactive p-5 sm:p-6 mt-4 block">
+      <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent">The full historical range from here</div>
+      <div className="mt-2.5 flex items-center gap-3 flex-wrap">
+        {severe != null && (
+          <span className="text-[15px] text-signal-red tabular-nums">
+            <span aria-hidden>↓</span> {fmtUsd(severe, { compact: true })}
+          </span>
+        )}
+        <span className="text-ink-600">·</span>
+        <span className="text-[13px] text-ink-400 tabular-nums">Today {fmtUsd(up.currentPrice, { compact: true })}</span>
+        <span className="text-ink-600">·</span>
+        {strong != null && (
+          <span className="text-[15px] text-accent tabular-nums">
+            <span aria-hidden>↑</span> {fmtUsd(strong, { compact: true })}
+          </span>
+        )}
+      </div>
+      <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">
+        How far previous halving cycles went from today&rsquo;s point — both up and down. Historical paths, not forecasts.
+      </p>
+      <span className="mt-2 inline-block text-[12.5px] text-accent">See Historical Price Paths →</span>
+    </TrackedLink>
   );
 }
 

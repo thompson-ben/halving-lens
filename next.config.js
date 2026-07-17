@@ -61,6 +61,9 @@ const nextConfig = {
       // old URL keeps its SEO equity and never breaks; query strings (e.g.
       // ?presenter=true) are preserved automatically.
       { source: "/snapshot", destination: "/state-of-bitcoin", permanent: true },
+      // "Downside scenarios" grew into the two-sided "Historical Price Paths".
+      // Permanent redirect preserves the old URL's SEO equity.
+      { source: "/downside-scenarios", destination: "/historical-price-paths", permanent: true },
     ];
   },
 };
