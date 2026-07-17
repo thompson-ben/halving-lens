@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { PriceSentimentChart } from "@/components/PriceSentimentChart";
 import { DataBadge } from "@/components/DataBadge";
+import { WhatsChanged } from "@/components/WhatsChanged";
+import { metricChange } from "@/lib/metricChange";
 import { RelatedResearch } from "@/components/RelatedResearch";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SENTIMENT } from "@/lib/btcData";
@@ -61,6 +63,8 @@ export default function SentimentPage() {
           signals into a single 0–100 score. Low means fear; high means greed.
         </p>
       </header>
+
+      <WhatsChanged metric={metricChange("sentiment")} />
 
       {read ? (
         <>

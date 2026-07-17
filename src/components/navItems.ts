@@ -3,6 +3,7 @@ import {
   Award,
   BookOpen,
   Boxes,
+  Camera,
   FlaskConical,
   Gauge,
   HeartPulse,
@@ -33,6 +34,7 @@ export interface NavLink {
 // Core cycle journeys.
 export const PRIMARY: readonly NavLink[] = [
   { href: "/", label: "Cycle dashboard", icon: Gauge },
+  { href: "/snapshot", label: "Market snapshot", icon: Camera },
   { href: "/dashboard", label: "Your dashboard", icon: LayoutDashboard },
   { href: "/cycles", label: "Cycle comparison", icon: Layers },
   { href: "/similar-moments", label: "Similar moments", icon: History },

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { TrendingUp, Layers, CalendarClock, LineChart, ArrowUpRight, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { DataBadge } from "@/components/DataBadge";
+import { WhatsChanged } from "@/components/WhatsChanged";
+import { metricChange } from "@/lib/metricChange";
 import { EtfTrendChart } from "@/components/EtfTrendChart";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { BriefSignup } from "@/components/BriefSignup";
@@ -44,6 +46,8 @@ export default function EtfPage() {
           2012, 2016 or 2020. Here is what it&apos;s doing, day by day.
         </p>
       </header>
+
+      {ETF.connected && <WhatsChanged metric={metricChange("etf_flow")} />}
 
       {ETF.connected ? <LiveEtf /> : <ComingSoonEtf />}
 

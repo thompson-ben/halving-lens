@@ -4,6 +4,8 @@ import { AccumulationGauge } from "@/components/AccumulationGauge";
 import { AccumulationTimelineChart } from "@/components/AccumulationTimelineChart";
 import { DcaSimulatorPanel } from "@/components/DcaSimulatorPanel";
 import { DataBadge } from "@/components/DataBadge";
+import { WhatsChanged } from "@/components/WhatsChanged";
+import { metricChange } from "@/lib/metricChange";
 import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { BriefSignup } from "@/components/BriefSignup";
@@ -67,6 +69,8 @@ export default function AccumulationPage() {
           <LastUpdated prefix="As of" />
         </div>
       </header>
+
+      <WhatsChanged metric={metricChange("accumulation")} />
 
       {/* Hero — today's reading */}
       <section className="card-glow p-6 sm:p-8">
