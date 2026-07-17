@@ -7,6 +7,7 @@ import { CYCLES, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { cycleDivergence, cycleTrackingHeadline } from "@/lib/cycleIntel";
 import { cycleTiming } from "@/lib/cycleTiming";
 import { drawdownAnalysis } from "@/lib/drawdowns";
+import { SnapshotStrip } from "@/components/SnapshotStrip";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 const fmtMult = (m: number) => (m >= 10 ? `${m.toFixed(0)}×` : `${m.toFixed(1)}×`);
@@ -41,6 +42,8 @@ export default function CyclesPage() {
           compares with the prior three at the same number of days after the halving.
         </p>
       </header>
+
+      <SnapshotStrip title="Where the cycle moved this week" />
 
       {/* Plain-English interpretation above the chart */}
       <section className="card-glow p-6 lg:p-8 relative overflow-hidden">

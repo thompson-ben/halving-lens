@@ -14,6 +14,7 @@ import { dailyChange, type MetricDelta, type DailyChange } from "@/lib/dailyChan
 import { ContentPack } from "@/components/ContentPack";
 import { BriefSignup } from "@/components/BriefSignup";
 import { DataBadge } from "@/components/DataBadge";
+import { SnapshotStrip } from "@/components/SnapshotStrip";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatHappenedNext } from "@/components/WhatHappenedNext";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
@@ -58,6 +59,8 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
           <LastUpdated prefix="Generated" />
         </div>
       </header>
+
+      {!dateLabel && <SnapshotStrip title="What changed — today & this week" />}
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
         <Stat label="BTC price" value={fmtUsd(s.price)} />
