@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { type LucideIcon } from "lucide-react";
 import { Logo } from "./Logo";
-import { PRIMARY, EXPLORE, SOON } from "./navItems";
+import { FLAGSHIP, PRIMARY, EXPLORE, SOON } from "./navItems";
 import { TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { halvingStats } from "@/lib/halvingStats";
 
@@ -25,7 +25,12 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex-1 px-3 py-7 flex flex-col gap-0.5 overflow-y-auto">
-        <SectionLabel>Cycle</SectionLabel>
+        <SectionLabel className="text-accent">Flagship</SectionLabel>
+        {FLAGSHIP.map((item) => (
+          <NavItem key={item.href} {...item} />
+        ))}
+
+        <SectionLabel className="mt-7">Cycle</SectionLabel>
         {PRIMARY.map((item) => (
           <NavItem key={item.href} {...item} />
         ))}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
-import { PRIMARY, EXPLORE, SOON, type NavLink } from "./navItems";
+import { FLAGSHIP, PRIMARY, EXPLORE, SOON, type NavLink } from "./navItems";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -84,7 +84,12 @@ export function MobileNav() {
             </div>
 
             <div className="flex-1 px-3 py-7 flex flex-col gap-0.5 overflow-y-auto">
-              <SectionLabel>Cycle</SectionLabel>
+              <SectionLabel className="text-accent">Flagship</SectionLabel>
+              {FLAGSHIP.map((item) => (
+                <MobileNavItem key={item.href} item={item} active={pathname === item.href} />
+              ))}
+
+              <SectionLabel className="mt-7">Cycle</SectionLabel>
               {PRIMARY.map((item) => (
                 <MobileNavItem key={item.href} item={item} active={pathname === item.href} />
               ))}
