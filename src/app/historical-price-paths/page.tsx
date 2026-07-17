@@ -3,6 +3,7 @@ import { ArrowUpRight, ShieldAlert } from "lucide-react";
 import { DownsideLadder } from "@/components/DownsideLadder";
 import { DownsideChart } from "@/components/DownsideChart";
 import { HistoricalRange } from "@/components/HistoricalRange";
+import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { DataBadge } from "@/components/DataBadge";
 import { WhatsChanged } from "@/components/WhatsChanged";
 import { metricChange } from "@/lib/metricChange";
@@ -10,6 +11,7 @@ import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { downsideScenarios } from "@/lib/downside";
 import { upsideScenarios } from "@/lib/upside";
+import { pathExplorer } from "@/lib/pathExplorer";
 import { fmtUsd, fmtPct } from "@/lib/format";
 
 export const metadata = {
@@ -41,6 +43,7 @@ const JSON_LD = {
 export default function HistoricalPricePathsPage() {
   const d = downsideScenarios();
   const up = upsideScenarios();
+  const explorer = pathExplorer();
 
   return (
     <div className="space-y-10">
@@ -65,7 +68,33 @@ export default function HistoricalPricePathsPage() {
         </div>
       </header>
 
-      {/* The unified range — the centrepiece */}
+      {/* The Historical Path Explorer — the signature visual: the journey */}
+      {explorer.available && (
+        <section>
+          <div className="mb-4 max-w-2xl">
+            <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-2">Historical Path Explorer</div>
+            <h2 className="font-display text-[24px] sm:text-[30px] font-medium tracking-tight-2 text-ink-100 leading-snug">
+              How did Bitcoin actually travel from here?
+            </h2>
+            <p className="mt-3 text-[13.5px] text-ink-300 leading-relaxed">
+              Every completed halving cycle, replayed from today&rsquo;s equivalent cycle day and rebased to 100%. These are
+              the <span className="text-ink-100">real weekly closes</span> that followed — not smoothed, not modelled, not a
+              forecast. Cycles that had already topped by this point are dashed and flagged.
+            </p>
+          </div>
+          <div className="card p-4 sm:p-7 relative">
+            <HistoricalPathExplorer data={explorer} />
+            <div className="watermark">halvinglens.com · historical path explorer</div>
+          </div>
+          <p className="mt-3 text-[11.5px] text-ink-500 leading-relaxed max-w-3xl">
+            Historical evidence, not prediction. The comparison point advances automatically as the cycle progresses; history
+            never repeats exactly.
+          </p>
+          {explorer.diminishing.observed && <DiminishingReturnsPanel explorer={explorer} up={up} />}
+        </section>
+      )}
+
+      {/* The unified range — the destination */}
       {up.available && <HistoricalRange up={up} down={d} />}
 
       {/* Historical Upside Range */}
@@ -289,6 +318,67 @@ function RangeStat({ label, value, sub }: { label: string; value: string; sub?: 
       <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">{label}</div>
       <div className="mt-1 text-[18px] font-display text-ink-50 tabular-nums leading-tight">{value}</div>
       {sub && <div className="text-[10.5px] text-ink-500 leading-tight">{sub}</div>}
+    </div>
+  );
+}
+
+// Only rendered when the diminishing-returns pattern is genuinely observed in the
+// data (measured in pathExplorer, not assumed).
+function DiminishingReturnsPanel({
+  explorer,
+  up,
+}: {
+  explorer: ReturnType<typeof pathExplorer>;
+  up: ReturnType<typeof upsideScenarios>;
+}) {
+  const dim = explorer.diminishing;
+  const maxMult = Math.max(...dim.perCycle.map((c) => c.totalReturnMult));
+  // Time & upside still ahead — only meaningful for cycles not yet past peak.
+  const live = explorer.paths.filter((p) => !p.pastPeak);
+
+  return (
+    <div className="card-glow p-5 sm:p-6 mt-4">
+      <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-1.5">Observed pattern · diminishing returns</div>
+      <p className="text-[13.5px] text-ink-200 leading-relaxed max-w-3xl">{dim.note}</p>
+
+      <div className="mt-4 space-y-2.5">
+        {dim.perCycle.map((c) => (
+          <div key={c.year} className="flex items-center gap-3">
+            <span className="text-[12px] text-ink-400 w-10 shrink-0 tabular-nums">{c.year}</span>
+            <div className="flex-1 h-2.5 rounded-full bg-white/[0.04] overflow-hidden">
+              <div className="h-full rounded-full bg-accent/70" style={{ width: `${(c.totalReturnMult / maxMult) * 100}%` }} />
+            </div>
+            <span className="text-[13px] text-ink-100 tabular-nums w-14 text-right">{Math.round(c.totalReturnMult)}×</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 pt-4 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">Cycles past peak by now</div>
+          <div className="mt-1 text-[17px] font-display text-ink-50 tabular-nums">
+            {explorer.paths.filter((p) => p.pastPeak).length} of {explorer.paths.length}
+          </div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">Remaining upside from here</div>
+          <div className="mt-1 text-[17px] font-display tabular-nums text-accent">
+            {live.length ? `+${Math.round(Math.max(...live.map((p) => p.peakPct - 100)))}%` : "—"}
+          </div>
+          <div className="text-[10px] text-ink-500">{live.length ? `${live.map((p) => p.label).join(", ")} still rising to peak` : "all prior cycles had already peaked by this day"}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">Time to that peak</div>
+          <div className="mt-1 text-[17px] font-display text-ink-50 tabular-nums">
+            {live.length ? `~${Math.max(...live.map((p) => p.daysToPeak))} days` : "—"}
+          </div>
+          <div className="text-[10px] text-ink-500">from today&rsquo;s equivalent point</div>
+        </div>
+      </div>
+      <p className="mt-4 text-[11px] text-ink-500 leading-relaxed max-w-3xl">
+        A consistent historical observation across only three completed cycles — not a law, and no guarantee it continues.
+        Historical context, not a prediction.
+      </p>
     </div>
   );
 }
