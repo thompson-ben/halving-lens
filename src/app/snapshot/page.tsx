@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { DataBadge } from "@/components/DataBadge";
 import { ShareTrigger } from "@/components/ShareTrigger";
+import { TrackedLink } from "@/components/TrackedLink";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SnapshotPresenterMode } from "@/components/SnapshotPresenterMode";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
@@ -70,17 +71,26 @@ function Delta({ label, c }: { label: string; c?: MetricChange["changes"][number
   );
 }
 
-function MetricCard({ m, big = false }: { m: MetricChange; big?: boolean }) {
+const METRIC_DEST: Record<string, string> = {
+  price: "/price",
+  market_health: "/",
+  sentiment: "/sentiment",
+  accumulation: "/accumulation",
+  drawdown: "/downside-scenarios",
+  etf_flow: "/etf",
+};
+
+function MetricCard({ m }: { m: MetricChange }) {
   const sparkTone: "good" | "bad" | "neutral" = m.status === "improving" ? "good" : m.status === "weakening" ? "bad" : "neutral";
   const c1 = m.changes.find((c) => c.period === 1);
   const c7 = m.changes.find((c) => c.period === 7);
   return (
-    <div className="card p-4 sm:p-5 flex flex-col">
+    <TrackedLink href={METRIC_DEST[m.id] ?? "/snapshot"} event="snapshot_card_click" props={{ metric: m.id }} className="card card-interactive p-4 sm:p-5 flex flex-col">
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">{m.name}</span>
         {m.band && <span className="text-[10.5px] px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-300">{m.band.label}</span>}
       </div>
-      <div className={`mt-2 font-display ${big ? "text-[40px]" : "text-[32px]"} leading-none text-ink-50 tabular-nums`}>{m.currentLabel}</div>
+      <div className="mt-2 font-display text-[32px] leading-none text-ink-50 tabular-nums">{m.currentLabel}</div>
       <div className="mt-3 flex items-center gap-4">
         <Delta label={m.frequency === "trading-day" ? "Latest" : "1d"} c={c1} />
         <Delta label={m.frequency === "trading-day" ? "7d net" : "7d"} c={c7} />
@@ -89,7 +99,7 @@ function MetricCard({ m, big = false }: { m: MetricChange; big?: boolean }) {
         <span className="text-[10.5px] text-ink-500 leading-tight">{m.percentileLabel ?? (m.band ? m.band.label : "")}</span>
         <Spark values={m.spark} tone={sparkTone} />
       </div>
-    </div>
+    </TrackedLink>
   );
 }
 
@@ -191,20 +201,20 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       {/* ── Chart of the week ── */}
       <section>
         <SectionHead n="04" title="Chart of the week" note="The single chart worth looking at right now." />
-        <Link href={cotw.link} className="card card-interactive p-5 sm:p-6 block">
+        <TrackedLink href={cotw.link} event="snapshot_chart_click" props={{ chart: cotw.key }} className="card card-interactive p-5 sm:p-6 block">
           <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent">Chart of the week</div>
           <div className="mt-2 font-display text-[24px] sm:text-[28px] text-ink-50 leading-tight">{cotw.title}</div>
           <p className="mt-2 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">{cotw.why[0]}</p>
           <p className="mt-3 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">{cotw.context}</p>
           <span className="mt-3 inline-block text-[12.5px] text-accent">View the live chart →</span>
-        </Link>
+        </TrackedLink>
       </section>
 
       {/* ── Research corner ── */}
       {finding && (
         <section>
           <SectionHead n="05" title="Research corner" note="This week's finding from the research library." />
-          <Link href={`/research/findings/${finding.slug}`} className="card card-interactive p-5 sm:p-6 block">
+          <TrackedLink href={`/research/findings/${finding.slug}`} event="snapshot_research_click" props={{ id: finding.id }} className="card card-interactive p-5 sm:p-6 block">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-accent/25 text-accent">{finding.id}</span>
               <span className="text-[11px] text-ink-500">{finding.datePublished}</span>
@@ -212,7 +222,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             <div className="mt-2 font-display text-[20px] sm:text-[23px] text-ink-50 leading-tight">{finding.title}</div>
             <p className="mt-2 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">{finding.headline}</p>
             <span className="mt-3 inline-block text-[12.5px] text-accent">Read the research →</span>
-          </Link>
+          </TrackedLink>
         </section>
       )}
 
@@ -286,7 +296,7 @@ function ContextStat({ label, value, sub }: { label: string; value: string; sub?
 
 function CyclePositionCard({ gainMult, pos }: { gainMult: string; pos: ReturnType<typeof snapshotCyclePosition> }) {
   return (
-    <div className="card p-4 sm:p-5 flex flex-col">
+    <TrackedLink href="/cycles" event="snapshot_card_click" props={{ metric: "cycle_position" }} className="card card-interactive p-4 sm:p-5 flex flex-col">
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">Cycle Position</span>
         <span className="text-[10.5px] px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-300">{pos.phaseLabel}</span>
@@ -301,6 +311,6 @@ function CyclePositionCard({ gainMult, pos }: { gainMult: string; pos: ReturnTyp
         </span>
       </div>
       <div className="mt-3 pt-3 border-t border-white/[0.06] text-[10.5px] text-ink-500">{pos.progressPct}% through the four-year cycle</div>
-    </div>
+    </TrackedLink>
   );
 }

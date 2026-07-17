@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { track } from "@/lib/track";
 
 // Presenter Mode chrome control for /snapshot?presenter=true. Hides the site
 // sidebar/topbar via the existing `data-bare` hook (see globals.css) while the
@@ -10,6 +11,7 @@ export function SnapshotPresenterMode() {
   useEffect(() => {
     const el = document.documentElement;
     el.setAttribute("data-bare", "1");
+    track("snapshot_presenter");
     return () => el.removeAttribute("data-bare");
   }, []);
   return null;

@@ -5,6 +5,7 @@ import { ResearchHubNav } from "@/components/ResearchHubNav";
 import { RelatedResearch } from "@/components/RelatedResearch";
 import { ShareButtons } from "@/components/ShareButtons";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { SnapshotStrip } from "@/components/SnapshotStrip";
 import { latestWeekly, weeklyStats } from "@/lib/weekly";
 import { absoluteUrl } from "@/lib/site";
 
@@ -41,6 +42,8 @@ export default function WeeklyPage() {
           </div>
         </div>
       </header>
+
+      {w && <SnapshotStrip title="This week's movement" />}
 
       {!w ? (
         <div className="card p-8 text-center">
