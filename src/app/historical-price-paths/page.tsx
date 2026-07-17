@@ -4,6 +4,7 @@ import { DownsideLadder } from "@/components/DownsideLadder";
 import { DownsideChart } from "@/components/DownsideChart";
 import { HistoricalRange } from "@/components/HistoricalRange";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
+import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { DataBadge } from "@/components/DataBadge";
 import { WhatsChanged } from "@/components/WhatsChanged";
 import { metricChange } from "@/lib/metricChange";
@@ -227,6 +228,8 @@ export default function HistoricalPricePathsPage() {
           <ArrowUpRight size={16} className="text-accent shrink-0" />
         </Link>
       </section>
+
+      <FlagshipJourney current="historical-price-paths" />
 
       <p className="text-[11.5px] text-ink-500 leading-relaxed max-w-2xl border-t border-white/[0.06] pt-5">
         {DISCLAIMER}

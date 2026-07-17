@@ -10,6 +10,7 @@ import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { BriefSignup } from "@/components/BriefSignup";
 import { AccumulationShare } from "@/components/AccumulationShare";
+import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { accumulationRead, accumulationSeries, ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
 import { runAccumulationBacktest } from "@/lib/accumulationBacktest";
 import { accumulationContentPack } from "@/lib/contentCards";
@@ -286,6 +287,8 @@ export default function AccumulationPage() {
           <ArrowUpRight size={16} className="text-accent shrink-0" />
         </Link>
       </section>
+
+      <FlagshipJourney current="accumulation" />
 
       <div className="rounded-xl border border-accent/15 bg-accent/[0.04] p-5 sm:p-6">
         <div className="flex items-start gap-3">
