@@ -9,6 +9,7 @@ import { metricChange, type MetricChange } from "@/lib/metricChange";
 import { snapshotWhatChanged, snapshotContext, snapshotWatchItems, snapshotCyclePosition } from "@/lib/snapshot";
 import { cycleSummary } from "@/lib/cycleSummary";
 import { selectChartOfWeek } from "@/lib/chartOfWeek";
+import { episodeBrief } from "@/lib/episodeBrief";
 import { latestFindings } from "@/lib/findings";
 import { SOURCE } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
@@ -117,6 +118,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   const watch = snapshotWatchItems();
   const cotw = selectChartOfWeek();
   const finding = latestFindings(1)[0];
+  const episode = presenter ? episodeBrief() : null;
 
   const asOf = SOURCE.fetchedAt ? format(new Date(SOURCE.fetchedAt), "d MMM yyyy, HH:mm 'UTC'") : "—";
   const gainMult = (1 + pos.gainFromHalving / 100).toFixed(1);
@@ -149,6 +151,49 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           <HeroStat label="Since halving" value={`${gainMult}×`} sub={`${Math.round(pos.drawdownFromAth)}% from high`} />
         </div>
       </header>
+
+      {/* ── Presenter talking points (episode running order) ── */}
+      {episode && (
+        <section className="card-glow p-5 sm:p-6">
+          <div className="text-[11px] uppercase tracking-[0.2em] text-accent mb-3">Talking points · Documenting the Bitcoin Cycle</div>
+          <ol className="space-y-3 text-[15px] text-ink-200 leading-snug">
+            <li><span className="text-ink-500">Opening — </span>{episode.opening}</li>
+            <li>
+              <span className="text-ink-500">Snapshot — </span>
+              <ul className="mt-1 space-y-1 text-[14px] text-ink-300">
+                {episode.scoreboard.map((l, i) => (
+                  <li key={i}>• {l}</li>
+                ))}
+              </ul>
+            </li>
+            <li>
+              <span className="text-ink-500">What changed — </span>
+              {episode.whatChanged.length ? (
+                <ul className="mt-1 space-y-1 text-[14px] text-ink-300">
+                  {episode.whatChanged.map((l, i) => (
+                    <li key={i}>• {l}</li>
+                  ))}
+                </ul>
+              ) : (
+                "A quiet week across the core readings."
+              )}
+            </li>
+            <li><span className="text-ink-500">Chart of the week — </span>{episode.chartOfWeek.title}. {episode.chartOfWeek.why}</li>
+            <li><span className="text-ink-500">Historical context — </span>{episode.context}</li>
+            {episode.research && (
+              <li><span className="text-ink-500">Research corner — </span>{episode.research.id}: {episode.research.conclusion}</li>
+            )}
+            <li>
+              <span className="text-ink-500">Watching next — </span>
+              <ul className="mt-1 space-y-1 text-[14px] text-ink-300">
+                {episode.watch.map((l, i) => (
+                  <li key={i}>• {l}</li>
+                ))}
+              </ul>
+            </li>
+          </ol>
+        </section>
+      )}
 
       {/* ── Primary scoreboard ── */}
       <section>
