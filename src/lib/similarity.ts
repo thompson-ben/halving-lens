@@ -9,6 +9,7 @@
 
 import { CYCLES, CURRENT_CYCLE, TODAY, TODAY_DAY_IN_CYCLE, type Cycle, type CycleSample } from "./btcData";
 import { sentimentValueNear } from "./sentiment";
+import { format } from "date-fns";
 
 const MS_DAY = 86_400_000;
 
@@ -104,8 +105,7 @@ function todayFeat(): { feat: Feat; drawdown: number } {
   return { feat: featOf(CURRENT_CYCLE, TODAY, drawdown), drawdown };
 }
 
-export function similarMoments(limit = 4): SimilarMoment[] {
-  const ref = todayFeat().feat;
+export function similarMoments(limit = 4, ref: Feat = todayFeat().feat): SimilarMoment[] {
   const priors = CYCLES.filter((c) => c.id !== 5);
 
   type Scored = { c: Cycle; s: CycleSample; drawdown: number; sim: number };
@@ -187,5 +187,68 @@ export function currentMoment(): { day: number; drawdown: number; mayer: number;
     drawdown,
     mayer: TODAY.mayer,
     gainMult: TODAY.price / CURRENT_CYCLE.samples[0].price,
+  };
+}
+
+// Reconstruct the current cycle's feature vector as it stood `days` ago, from
+// the nearest weekly sample at or before that point. Running-peak drawdown uses
+// only data up to that sample, so this is a legitimate point-in-time reference
+// with no look-ahead. Null when history doesn't reach back that far.
+function refFeatDaysAgo(days: number): { feat: Feat; dayAtRef: number; ts: number } | null {
+  const dds = drawdowns(CURRENT_CYCLE);
+  const samples = CURRENT_CYCLE.samples;
+  const todayDay = samples[samples.length - 1]?.day ?? TODAY_DAY_IN_CYCLE;
+  const targetDay = todayDay - days;
+  if (targetDay < 30) return null;
+  let idx = -1;
+  for (let i = 0; i < samples.length; i++) {
+    if (samples[i].day <= targetDay) idx = i;
+    else break;
+  }
+  if (idx < 0 || samples[idx].price <= 0) return null;
+  const halvingMs = new Date(CURRENT_CYCLE.halvingDate).getTime();
+  return { feat: featOf(CURRENT_CYCLE, samples[idx], dds[idx] ?? 0), dayAtRef: samples[idx].day, ts: halvingMs + samples[idx].day * MS_DAY };
+}
+
+export interface SimilarityTrend {
+  available: boolean;
+  current: { dateLabel: string; similarity: number } | null;
+  prior: { dateLabel: string; similarity: number } | null; // the top match as it stood ~`days` ago
+  delta: number | null; // change in the top match's similarity score
+  topChanged: boolean; // did the #1 historical match itself change?
+  cycleDay: number;
+  drawdown: number; // current, ≤ 0
+  sinceLabel: string | null; // date of the prior reference point
+}
+
+// How the closest-historical-match read has shifted over the past `days`. The
+// prior read recomputes the ranking from the point-in-time reference vector, so
+// it answers "what did the model say a week ago?" honestly. Descriptive only —
+// a match is context for what happened before, never a forecast.
+export function similarityTrend(days = 7): SimilarityTrend {
+  const curTop = similarMoments(1)[0] ?? null;
+  const cur = curTop ? { dateLabel: curTop.dateLabel, similarity: curTop.similarity } : null;
+  const cm = currentMoment();
+
+  const priorRef = refFeatDaysAgo(days);
+  let prior: SimilarityTrend["prior"] = null;
+  let sinceLabel: string | null = null;
+  if (priorRef) {
+    const priorTop = similarMoments(1, priorRef.feat)[0] ?? null;
+    if (priorTop) {
+      prior = { dateLabel: priorTop.dateLabel, similarity: priorTop.similarity };
+      sinceLabel = format(priorRef.ts, "d MMM");
+    }
+  }
+
+  return {
+    available: !!cur,
+    current: cur,
+    prior,
+    delta: cur && prior ? cur.similarity - prior.similarity : null,
+    topChanged: !!cur && !!prior && cur.dateLabel !== prior.dateLabel,
+    cycleDay: cm.day,
+    drawdown: cm.drawdown,
+    sinceLabel,
   };
 }

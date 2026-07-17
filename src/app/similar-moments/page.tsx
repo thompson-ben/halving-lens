@@ -1,5 +1,6 @@
 import { SimilarMomentsExplorer } from "@/components/SimilarMomentsExplorer";
-import { similarMoments } from "@/lib/similarity";
+import { SimilarityChange } from "@/components/SimilarityChange";
+import { similarMoments, similarityTrend } from "@/lib/similarity";
 
 export const metadata = {
   title: "Similar moments — have we seen this before? — halvinglens.com",
@@ -22,6 +23,8 @@ export default function SimilarMomentsPage() {
           cycle position, drawdown and price heat. Historical context, not prediction.
         </p>
       </header>
+
+      <SimilarityChange trend={similarityTrend()} />
 
       {top && (
         <section className="card-glow p-6 lg:p-8 relative overflow-hidden">
