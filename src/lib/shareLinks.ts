@@ -22,6 +22,7 @@ import { SITE_URL } from "./site";
 // Stable over time — treat these as canonical URLs; don't renumber them.
 export const CANONICAL_ALIASES: Record<string, string> = {
   home: "/",
+  snapshot: "/snapshot",
   dashboard: "/dashboard",
   cycles: "/cycles",
   "similar-moments": "/similar-moments",

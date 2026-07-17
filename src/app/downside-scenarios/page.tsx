@@ -3,6 +3,8 @@ import { ArrowUpRight, ShieldAlert } from "lucide-react";
 import { DownsideLadder } from "@/components/DownsideLadder";
 import { DownsideChart } from "@/components/DownsideChart";
 import { DataBadge } from "@/components/DataBadge";
+import { WhatsChanged } from "@/components/WhatsChanged";
+import { metricChange } from "@/lib/metricChange";
 import { LastUpdated } from "@/components/LastUpdated";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { downsideScenarios } from "@/lib/downside";
@@ -41,6 +43,8 @@ export default function DownsideScenariosPage() {
           <LastUpdated prefix="As of" />
         </div>
       </header>
+
+      <WhatsChanged metric={metricChange("drawdown")} />
 
       {/* The scenario map */}
       <DownsideLadder />
