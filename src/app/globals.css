@@ -285,7 +285,30 @@ html[data-presenter="1"] .presenter-stage .recharts-tooltip-label { font-size: 1
 .presenter-bar__btn:hover { background: rgba(255, 255, 255, 0.08); color: #f3f6fa; }
 .presenter-bar__btn[aria-pressed="true"] { background: rgba(94, 234, 212, 0.14); border-color: rgba(94, 234, 212, 0.4); color: #5eead4; }
 .presenter-bar__btn--exit:hover { border-color: rgba(255, 93, 93, 0.4); color: #ff8a8a; }
+.presenter-bar { animation: presenter-bar-in 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+@keyframes presenter-bar-in { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media print { .presenter-bar, .presenter-guides { display: none !important; } }
+
+/* ── Studio polish ────────────────────────────────────────────────────────────
+   Small touches that make presenter mode feel like a set, not a dashboard: an
+   ambient stage glow behind the content, a calm one-time reveal of the stage,
+   airier headings, and steadier stat figures. Motion is disabled under
+   prefers-reduced-motion by the global rule above. */
+html[data-presenter="1"] body {
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(94, 234, 212, 0.05) 0%, transparent 55%),
+    var(--shell-bg);
+}
+html[data-presenter="1"] .presenter-stage {
+  animation: presenter-stage-in 620ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes presenter-stage-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+/* A touch more air between the big beats while presenting. */
+html[data-presenter="1"] .presenter-stage > * + * { margin-top: 2.75rem; }
+html[data-presenter="1"] .presenter-stage h1 { letter-spacing: -0.035em; }
+html[data-presenter="1"] .presenter-stage h2 { letter-spacing: -0.02em; }
+/* Tabular figures don't jitter if a value updates mid-stream. */
+html[data-presenter="1"] .presenter-stage .tabular-nums { font-variant-numeric: tabular-nums; }
 
 /* Print / Save-as-PDF: show only the document, on white. */
 @media print {
