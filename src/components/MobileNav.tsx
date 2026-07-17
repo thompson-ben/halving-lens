@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
-import { FLAGSHIP, PRIMARY, EXPLORE, SOON, type NavLink } from "./navItems";
+import { NAV_SECTIONS, type NavLink } from "./navItems";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -84,24 +84,15 @@ export function MobileNav() {
             </div>
 
             <div className="flex-1 px-3 py-7 flex flex-col gap-0.5 overflow-y-auto">
-              <SectionLabel className="text-accent">Flagship</SectionLabel>
-              {FLAGSHIP.map((item) => (
-                <MobileNavItem key={item.href} item={item} active={pathname === item.href} />
-              ))}
-
-              <SectionLabel className="mt-7">Cycle</SectionLabel>
-              {PRIMARY.map((item) => (
-                <MobileNavItem key={item.href} item={item} active={pathname === item.href} />
-              ))}
-
-              <SectionLabel className="mt-7">Explore</SectionLabel>
-              {EXPLORE.map((item) => (
-                <MobileNavItem key={item.href} item={item} active={pathname === item.href} />
-              ))}
-
-              <SectionLabel className="mt-7">Coming soon</SectionLabel>
-              {SOON.map((item) => (
-                <MobileNavItem key={item.href} item={item} active={pathname === item.href} muted />
+              {NAV_SECTIONS.map((section, i) => (
+                <div key={section.label} className="contents">
+                  <SectionLabel className={`${section.accent ? "text-accent" : ""} ${i > 0 ? "mt-7" : ""}`}>
+                    {section.label}
+                  </SectionLabel>
+                  {section.items.map((item) => (
+                    <MobileNavItem key={item.href} item={item} active={pathname === item.href} muted={section.muted} />
+                  ))}
+                </div>
               ))}
             </div>
           </nav>

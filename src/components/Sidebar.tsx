@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { type LucideIcon } from "lucide-react";
 import { Logo } from "./Logo";
-import { FLAGSHIP, PRIMARY, EXPLORE, SOON } from "./navItems";
+import { NAV_SECTIONS } from "./navItems";
 import { TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { halvingStats } from "@/lib/halvingStats";
 
@@ -25,24 +25,15 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex-1 px-3 py-7 flex flex-col gap-0.5 overflow-y-auto">
-        <SectionLabel className="text-accent">Flagship</SectionLabel>
-        {FLAGSHIP.map((item) => (
-          <NavItem key={item.href} {...item} />
-        ))}
-
-        <SectionLabel className="mt-7">Cycle</SectionLabel>
-        {PRIMARY.map((item) => (
-          <NavItem key={item.href} {...item} />
-        ))}
-
-        <SectionLabel className="mt-7">Explore</SectionLabel>
-        {EXPLORE.map((item) => (
-          <NavItem key={item.href} {...item} />
-        ))}
-
-        <SectionLabel className="mt-7">Coming soon</SectionLabel>
-        {SOON.map((item) => (
-          <NavItem key={item.href} {...item} muted />
+        {NAV_SECTIONS.map((section, i) => (
+          <div key={section.label} className="contents">
+            <SectionLabel className={`${section.accent ? "text-accent" : ""} ${i > 0 ? "mt-7" : ""}`}>
+              {section.label}
+            </SectionLabel>
+            {section.items.map((item) => (
+              <NavItem key={item.href} {...item} muted={section.muted} />
+            ))}
+          </div>
         ))}
       </nav>
 

@@ -5,6 +5,7 @@ import { ShareTrigger } from "@/components/ShareTrigger";
 import { TrackedLink } from "@/components/TrackedLink";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SnapshotPresenterMode } from "@/components/SnapshotPresenterMode";
+import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
 import { snapshotWhatChanged, snapshotContext, snapshotWatchItems, snapshotCyclePosition } from "@/lib/snapshot";
 import { upsideScenarios } from "@/lib/upside";
@@ -318,6 +319,8 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           ))}
         </div>
       </section>
+
+      {!presenter && <FlagshipJourney current="state-of-bitcoin" />}
 
       <p className="text-[11px] text-ink-600 pt-2">
         Every figure traces to the live HalvingLens data and updates automatically. Historical context. Not prediction. Not financial advice.
