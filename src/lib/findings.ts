@@ -149,9 +149,9 @@ export const FINDINGS: ResearchFinding[] = [
     },
     related: [
       { label: "Accumulation Index — run the three-way backtest yourself", href: "/accumulation", kind: "tool" },
+      { label: "HL-N001 — How often is Bitcoin actually overheated?", href: "/research/notes/hl-n001", kind: "finding" },
       { label: "Morning Research — the daily analyst note", href: "/research", kind: "page" },
       { label: "Weekly Research — the week in context", href: "/weekly", kind: "weekly" },
-      { label: "Today's Brief", href: "/brief", kind: "brief" },
     ],
   },
   {

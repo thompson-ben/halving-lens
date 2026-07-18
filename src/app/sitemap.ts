@@ -6,6 +6,7 @@ import { allEditions } from "@/lib/research";
 import { allWeeklies } from "@/lib/weekly";
 import { allFindings } from "@/lib/findings";
 import { allBriefs } from "@/lib/evidenceBriefs";
+import { allNotes } from "@/lib/researchNotes";
 
 // Public routes only — admin/metrics is excluded (noindex), and /start is
 // intentionally left out (paid-ad landing, kept out of organic discovery).
@@ -22,6 +23,7 @@ const STATIC_PATHS = [
   "/research",
   "/research/findings",
   "/research/briefs",
+  "/research/notes",
   "/weekly",
   "/weekly/archive",
   "/sentiment",
@@ -98,6 +100,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  const researchNoteEntries = allNotes().map((n) => ({
+    url: `${SITE_URL}/research/notes/${n.slug}`,
+    lastModified: new Date(n.datePublished),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   return [
     ...staticEntries,
     mythsEntry,
@@ -107,5 +116,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...weeklyEntries,
     ...findingEntries,
     ...evidenceBriefEntries,
+    ...researchNoteEntries,
   ];
 }

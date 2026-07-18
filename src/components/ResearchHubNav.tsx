@@ -9,6 +9,7 @@ const TABS = [
   { href: "/weekly", label: "Weekly Research", blurb: "Weekly" },
   { href: "/research/findings", label: "Research Findings", blurb: "Papers" },
   { href: "/research/briefs", label: "Evidence Briefs", blurb: "One-figure" },
+  { href: "/research/notes", label: "Research Notes", blurb: "Desk notes" },
   { href: "/research/myths", label: "Myth vs Reality", blurb: "Evidence" },
 ] as const;
 
@@ -17,10 +18,11 @@ const ACTIVE_HREF = {
   weekly: "/weekly",
   findings: "/research/findings",
   briefs: "/research/briefs",
+  notes: "/research/notes",
   myths: "/research/myths",
 } as const;
 
-export function ResearchHubNav({ active }: { active: "morning" | "weekly" | "findings" | "briefs" | "myths" }) {
+export function ResearchHubNav({ active }: { active: "morning" | "weekly" | "findings" | "briefs" | "notes" | "myths" }) {
   const key = ACTIVE_HREF[active];
   return (
     <nav className="flex flex-wrap items-center gap-2 mb-2">

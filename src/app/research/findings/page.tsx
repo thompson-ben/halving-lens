@@ -22,7 +22,7 @@ const LIBRARY_TIERS: { key: string; label: string; blurb: string; href: string |
   { key: "foundational", label: "Foundational", blurb: "Start-here papers every reader should begin with", href: "#start-here" },
   { key: "papers", label: "Research Papers", blurb: "Full, citable findings with live evidence", href: "#library" },
   { key: "briefs", label: "Evidence Briefs (HL-E)", blurb: "One-figure answers to a single question", href: "/research/briefs" },
-  { key: "notes", label: "Research Notes", blurb: "Shorter observations from the daily desk", href: null },
+  { key: "notes", label: "Research Notes (HL-N)", blurb: "Short desk observations from the record", href: "/research/notes" },
   { key: "myths", label: "Myth vs Reality", blurb: "Common assumptions tested against the record", href: "/research/myths" },
 ];
 
@@ -99,8 +99,8 @@ export default async function ResearchFindingsPage() {
           The research library
         </div>
         <p className="text-[13px] text-ink-400 mb-5 max-w-2xl">
-          A layered library, built in tiers. Start with the foundational papers, then work outward. Tiers marked
-          &ldquo;In development&rdquo; are planned but not yet published — we don&rsquo;t link to what isn&rsquo;t there.
+          A layered library, built in tiers — from single-figure briefs to full papers. Start with the foundational
+          papers, then work outward. Any tier still in development is shown plainly and never linked until it is live.
         </p>
         <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {LIBRARY_TIERS.map((t, i) => {
