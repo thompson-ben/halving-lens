@@ -209,10 +209,10 @@ export const FINDINGS: ResearchFinding[] = [
       },
     },
     related: [
+      { label: "HL-E002 — the one-figure Evidence Brief version", href: "/research/briefs/hl-e002", kind: "brief" },
       { label: "Sentiment — the live Fear & Greed read", href: "/sentiment", kind: "tool" },
       { label: "HL-R001 — Does Taking Profits Beat Dynamic DCA?", href: "/research/findings/hl-r001", kind: "finding" },
       { label: "Accumulation Index — where today sits in history", href: "/accumulation", kind: "tool" },
-      { label: "Today's Brief", href: "/brief", kind: "brief" },
     ],
   },
 ];

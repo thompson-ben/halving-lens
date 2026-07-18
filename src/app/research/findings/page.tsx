@@ -21,8 +21,8 @@ const GOLD = "#d9b96a";
 const LIBRARY_TIERS: { key: string; label: string; blurb: string; href: string | null }[] = [
   { key: "foundational", label: "Foundational", blurb: "Start-here papers every reader should begin with", href: "#start-here" },
   { key: "papers", label: "Research Papers", blurb: "Full, citable findings with live evidence", href: "#library" },
+  { key: "briefs", label: "Evidence Briefs (HL-E)", blurb: "One-figure answers to a single question", href: "/research/briefs" },
   { key: "notes", label: "Research Notes", blurb: "Shorter observations from the daily desk", href: null },
-  { key: "briefs", label: "Evidence Briefs (HL-E)", blurb: "One-chart answers to a single question", href: null },
   { key: "myths", label: "Myth vs Reality", blurb: "Common assumptions tested against the record", href: "/research/myths" },
 ];
 

@@ -7,7 +7,8 @@ import Link from "next/link";
 const TABS = [
   { href: "/research", label: "Morning Research", blurb: "Daily" },
   { href: "/weekly", label: "Weekly Research", blurb: "Weekly" },
-  { href: "/research/findings", label: "Research Findings", blurb: "Original notes" },
+  { href: "/research/findings", label: "Research Findings", blurb: "Papers" },
+  { href: "/research/briefs", label: "Evidence Briefs", blurb: "One-figure" },
   { href: "/research/myths", label: "Myth vs Reality", blurb: "Evidence" },
 ] as const;
 
@@ -15,10 +16,11 @@ const ACTIVE_HREF = {
   morning: "/research",
   weekly: "/weekly",
   findings: "/research/findings",
+  briefs: "/research/briefs",
   myths: "/research/myths",
 } as const;
 
-export function ResearchHubNav({ active }: { active: "morning" | "weekly" | "findings" | "myths" }) {
+export function ResearchHubNav({ active }: { active: "morning" | "weekly" | "findings" | "briefs" | "myths" }) {
   const key = ACTIVE_HREF[active];
   return (
     <nav className="flex flex-wrap items-center gap-2 mb-2">
