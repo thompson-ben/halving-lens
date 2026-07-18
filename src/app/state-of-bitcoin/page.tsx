@@ -9,7 +9,8 @@ import { RecordModeButton } from "@/components/RecordModeButton";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { FlagshipShare } from "@/components/FlagshipShare";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
-import { snapshotWhatChanged, snapshotContext, snapshotWatchItems, snapshotCyclePosition } from "@/lib/snapshot";
+import { snapshotWhatChanged, snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
+import { cycleStatus, todaysVerdict, matchReasons, weekChangeSummary, metricMeaning, rankedWatch, type StatusTone } from "@/lib/stateOfBitcoin";
 import { upsideScenarios } from "@/lib/upside";
 import { downsideScenarios } from "@/lib/downside";
 import { cycleSummary } from "@/lib/cycleSummary";
@@ -70,6 +71,23 @@ const FLAG_TONE: Record<"good" | "bad" | "neutral" | "flag", string> = {
   flag: "text-signal-amber",
 };
 
+// Self-explanatory signed return (e.g. "+2%", "+0.2%", "−14%"). One decimal
+// when small so a near-flat cycle doesn't collapse to a bare "+0%".
+function fmtSignedPct(n: number): string {
+  const digits = Math.abs(n) >= 10 ? 0 : 1;
+  const sign = n > 0 ? "+" : n < 0 ? "−" : "";
+  return `${sign}${Math.abs(n).toFixed(digits)}%`;
+}
+
+// Overall Cycle Status badge palette — maps the status tone to the ink/accent
+// system already used across the page.
+const STATUS_STYLE: Record<StatusTone, string> = {
+  cool: "border-sky-400/30 bg-sky-400/[0.06] text-sky-300",
+  neutral: "border-accent/30 bg-accent/[0.06] text-accent",
+  warm: "border-signal-amber/30 bg-signal-amber/[0.06] text-signal-amber",
+  caution: "border-signal-red/30 bg-signal-red/[0.06] text-signal-red",
+};
+
 function Spark({ values, tone }: { values: number[]; tone: "good" | "bad" | "neutral" }) {
   if (values.length < 2) return null;
   const w = 108,
@@ -103,7 +121,7 @@ function Delta({ label, c }: { label: string; c?: MetricChange["changes"][number
 
 const METRIC_DEST: Record<string, string> = {
   price: "/price",
-  market_health: "/",
+  market_health: "/market-health",
   sentiment: "/sentiment",
   accumulation: "/accumulation",
   drawdown: "/historical-price-paths",
@@ -125,7 +143,8 @@ function MetricCard({ m }: { m: MetricChange }) {
         <Delta label={m.frequency === "trading-day" ? "Latest" : "1d"} c={c1} />
         <Delta label={m.frequency === "trading-day" ? "7d net" : "7d"} c={c7} />
       </div>
-      <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3">
+      <p className="mt-3 text-[11.5px] text-ink-300 leading-snug">{metricMeaning(m)}</p>
+      <div className="mt-auto pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3">
         <span className="text-[10.5px] text-ink-500 leading-tight">{m.percentileLabel ?? (m.band ? m.band.label : "")}</span>
         <Spark values={m.spark} tone={sparkTone} />
       </div>
@@ -144,13 +163,18 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   const pos = snapshotCyclePosition();
   const changed = snapshotWhatChanged(5);
   const ctx = snapshotContext();
-  const watch = snapshotWatchItems();
+  const watch = rankedWatch();
   const cotw = selectChartOfWeek();
   const finding = latestFindings(1)[0];
   const episode = presenter ? episodeBrief() : null;
 
+  const status = cycleStatus();
+  const verdict = todaysVerdict();
+  const reasons = matchReasons();
+  const weekChange = weekChangeSummary();
+
   const asOf = SOURCE.fetchedAt ? format(new Date(SOURCE.fetchedAt), "d MMM yyyy, HH:mm 'UTC'") : "—";
-  const gainMult = (1 + pos.gainFromHalving / 100).toFixed(1);
+  const sinceHalving = fmtSignedPct(pos.gainFromHalving);
   const c1p = price.changes.find((c) => c.period === 1);
   const c7p = price.changes.find((c) => c.period === 7);
 
@@ -184,9 +208,22 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           <HeroStat label="Bitcoin price" value={fmtUsd(s.price)} sub={c1p?.pctLabel ? `${c1p.pctLabel} 24h` : undefined} subTone={c1p?.good} />
           <HeroStat label="This week" value={c7p?.pctLabel ?? "—"} valTone={c7p?.good} />
           <HeroStat label="Cycle day" value={`Day ${pos.cycleDay}`} sub={`${pos.progressPct}% through`} />
-          <HeroStat label="Since halving" value={`${gainMult}×`} sub={`${Math.round(pos.drawdownFromAth)}% from high`} />
+          <HeroStat label="Since halving" value={sinceHalving} sub="vs halving day" />
         </div>
       </header>
+
+      {/* ── Overall Cycle Status — the weekly headline ── */}
+      <section aria-label="Overall cycle status">
+        <div className="card-glow p-5 sm:p-6">
+          <div className="text-[10.5px] uppercase tracking-[0.2em] text-ink-500 mb-3">Overall cycle status</div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1.5 text-[13px] sm:text-[14px] font-medium ${STATUS_STYLE[status.tone]}`}>
+              {status.badge}
+            </span>
+            <p className={`font-display text-ink-100 leading-snug ${presenter ? "text-[19px]" : "text-[15px] sm:text-[17px]"}`}>{status.sentence}</p>
+          </div>
+        </div>
+      </section>
 
       {/* ── Presenter talking points (episode running order) ── */}
       {episode && (
@@ -236,7 +273,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         <SectionHead n="01" title="The scoreboard" note="The core HalvingLens readings, at a glance." />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <MetricCard m={price} />
-          <CyclePositionCard gainMult={gainMult} pos={pos} />
+          <CyclePositionCard sinceHalving={sinceHalving} pos={pos} />
           <MetricCard m={health} />
           <MetricCard m={sentiment} />
           <MetricCard m={accumulation} />
@@ -244,9 +281,23 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         </div>
       </section>
 
+      {/* ── Today's Verdict — the plain-English synthesis ── */}
+      <section aria-label="Today's verdict">
+        <SectionHead n="02" title="Today's verdict" note="The whole scoreboard, in plain English." />
+        <div className="card-glow p-5 sm:p-6">
+          <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-2.5">In one read</div>
+          <p className={`font-display text-ink-50 leading-relaxed ${presenter ? "text-[22px]" : "text-[17px] sm:text-[20px]"}`}>{verdict}</p>
+        </div>
+      </section>
+
       {/* ── What changed this week ── */}
       <section>
-        <SectionHead n="02" title="What changed this week?" note="The most meaningful developments of the past seven days." />
+        <SectionHead n="03" title="What changed this week?" note="The most meaningful developments of the past seven days." />
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[12px] text-ink-200">
+            {weekChange.headline}
+          </span>
+        </div>
         <div className="card p-5 sm:p-6">
           {changed.length === 0 ? (
             <p className="text-[14px] text-ink-400">A quiet week — no material shifts across the core readings.</p>
@@ -267,7 +318,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
       {/* ── Historical context ── */}
       <section>
-        <SectionHead n="03" title="Where today sits in history" note="Descriptive context — not a forecast." />
+        <SectionHead n="04" title="Where today sits in history" note="Descriptive context — not a forecast." />
         <div className="card p-5 sm:p-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <ContextStat label="Closest match" value={ctx.match ?? "—"} sub={ctx.similarity != null ? `${ctx.similarity}% similar` : undefined} />
@@ -275,6 +326,19 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             <ContextStat label="Drawdown rank" value={ctx.drawdownPercentile != null ? `${ctx.drawdownPercentile}th` : "—"} sub="of tracked days" />
             <ContextStat label="Market Health" value={ctx.healthPercentile != null ? `${ctx.healthPercentile}th` : (health.band?.label ?? "—")} sub="percentile" />
           </div>
+          {reasons.length > 0 && ctx.match && (
+            <div className="mt-5 pt-4 border-t border-white/[0.06]">
+              <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-2">Why this match?</div>
+              <div className="flex flex-wrap gap-2">
+                {reasons.map((r) => (
+                  <span key={r.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11.5px] text-ink-200">
+                    {r.label}
+                    <span className="tabular-nums text-ink-500">{r.closeness}%</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="mt-5 pt-4 border-t border-white/[0.06] text-[14px] text-ink-200 leading-relaxed">{ctx.summary}</p>
         </div>
         <HistoricalRangeCard />
@@ -282,20 +346,30 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
       {/* ── Chart of the week ── */}
       <section>
-        <SectionHead n="04" title="Chart of the week" note="The single chart worth looking at right now." />
-        <TrackedLink href={cotw.link} event="snapshot_chart_click" props={{ chart: cotw.key }} className="card card-interactive p-5 sm:p-6 block">
+        <SectionHead n="05" title="Chart of the week" note="The single chart worth looking at right now." />
+        <TrackedLink href={cotw.link} event="snapshot_chart_click" props={{ chart: cotw.key }} className="card-glow card-interactive p-6 sm:p-8 block">
           <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent">Chart of the week</div>
-          <div className="mt-2 font-display text-[24px] sm:text-[28px] text-ink-50 leading-tight">{cotw.title}</div>
-          <p className="mt-2 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">{cotw.why[0]}</p>
-          <p className="mt-3 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">{cotw.context}</p>
-          <span className="mt-3 inline-block text-[12.5px] text-accent">View the live chart →</span>
+          <div className="mt-2 font-display text-[28px] sm:text-[34px] text-ink-50 leading-tight tracking-tight-2">{cotw.title}</div>
+          {cotw.why.length > 0 && (
+            <ul className="mt-4 space-y-2 max-w-2xl">
+              {cotw.why.slice(0, 2).map((w, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-[13.5px] text-ink-200 leading-relaxed">
+                  <span className="mt-1.5 text-accent" aria-hidden>•</span>
+                  <span>{w}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-4 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">{cotw.context}</p>
+          <p className="mt-4 pt-4 border-t border-white/[0.06] text-[13.5px] text-ink-100 leading-relaxed max-w-2xl">{cotw.takeaway}</p>
+          <span className="mt-4 inline-block text-[12.5px] text-accent">View the live chart →</span>
         </TrackedLink>
       </section>
 
       {/* ── Research corner ── */}
       {finding && (
         <section>
-          <SectionHead n="05" title="Research corner" note="This week's finding from the research library." />
+          <SectionHead n="06" title="Research corner" note="This week's finding from the research library." />
           <TrackedLink href={`/research/findings/${finding.slug}`} event="snapshot_research_click" props={{ id: finding.id }} className="card card-interactive p-5 sm:p-6 block">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-accent/25 text-accent">{finding.id}</span>
@@ -308,13 +382,16 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         </section>
       )}
 
-      {/* ── What we're watching ── */}
+      {/* ── What we're watching (ranked by significance) ── */}
       <section>
-        <SectionHead n="06" title="What we're watching" note="Objective signals to monitor next week — observations, not predictions." />
+        <SectionHead n="07" title="What we're watching" note="Objective signals to monitor next week, ranked by significance — observations, not predictions." />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {watch.map((w, i) => (
-            <div key={i} className="card p-5">
-              <div className="text-[14px] font-medium text-ink-50 leading-snug">{w.title}</div>
+            <div key={i} className={`card p-5 ${w.top ? "ring-1 ring-accent/30" : ""}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="text-[14px] font-medium text-ink-50 leading-snug">{w.title}</div>
+                {w.top && <span className="shrink-0 text-[9.5px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border border-accent/30 bg-accent/[0.06] text-accent">Priority</span>}
+              </div>
               <div className="mt-2 text-[12px] text-accent">{w.current}</div>
               <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">{w.why}</p>
               <div className="mt-3 pt-3 border-t border-white/[0.06] text-[11.5px] text-ink-500">
@@ -416,7 +493,7 @@ function HistoricalRangeCard() {
   );
 }
 
-function CyclePositionCard({ gainMult, pos }: { gainMult: string; pos: ReturnType<typeof snapshotCyclePosition> }) {
+function CyclePositionCard({ sinceHalving, pos }: { sinceHalving: string; pos: ReturnType<typeof snapshotCyclePosition> }) {
   return (
     <TrackedLink href="/cycles" event="snapshot_card_click" props={{ metric: "cycle_position" }} className="card card-interactive p-4 sm:p-5 flex flex-col">
       <div className="flex items-start justify-between gap-2">
@@ -426,13 +503,13 @@ function CyclePositionCard({ gainMult, pos }: { gainMult: string; pos: ReturnTyp
       <div className="mt-2 font-display text-[32px] leading-none text-ink-50 tabular-nums">Day {pos.cycleDay}</div>
       <div className="mt-3 flex items-center gap-4 text-[12px]">
         <span className="text-ink-500">
-          Since halving <span className="text-accent tabular-nums">{gainMult}×</span>
+          <span className="text-accent tabular-nums">{sinceHalving}</span> since halving day
         </span>
         <span className="text-ink-500">
           From high <span className="text-signal-red tabular-nums">{Math.round(pos.drawdownFromAth)}%</span>
         </span>
       </div>
-      <div className="mt-3 pt-3 border-t border-white/[0.06] text-[10.5px] text-ink-500">{pos.progressPct}% through the four-year cycle</div>
+      <div className="mt-auto pt-3 border-t border-white/[0.06] text-[10.5px] text-ink-500">{pos.progressPct}% through the four-year cycle</div>
     </TrackedLink>
   );
 }
