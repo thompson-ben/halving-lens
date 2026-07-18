@@ -47,6 +47,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path === "/" ? 1 : path === "/brief" ? 0.9 : 0.7,
   }));
 
+  const mythsEntry = {
+    url: `${SITE_URL}/research/myths`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  };
+
   const metricEntries = METRICS.map((m) => ({
     url: `${SITE_URL}/metrics/${m.slug}`,
     lastModified: now,
@@ -84,6 +91,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...staticEntries,
+    mythsEntry,
     ...metricEntries,
     ...briefEntries,
     ...researchEntries,

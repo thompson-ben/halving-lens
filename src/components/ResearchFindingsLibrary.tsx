@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { track } from "@/lib/track";
 import type { ResearchFinding, FindingTopic } from "@/lib/findings";
+import { findingBadges, findingLeaders } from "@/lib/researchBadges";
 import { ResearchFindingCard } from "./ResearchFindingCard";
 
 // Searchable, filterable library of every published Research Finding. Rankings
@@ -27,16 +28,19 @@ export function ResearchFindingsLibrary({
   findings,
   topics,
   engagement = {},
+  todayISO,
 }: {
   findings: ResearchFinding[];
   topics: FindingTopic[];
   engagement?: Record<string, Engagement>;
+  todayISO: string;
 }) {
   const [q, setQ] = useState("");
   const [topic, setTopic] = useState<FindingTopic | "all">("all");
   const [sort, setSort] = useState<SortKey>("newest");
 
   const eng = (slug: string): Engagement => engagement[slug] ?? { views: 0, shares: 0 };
+  const leaders = useMemo(() => findingLeaders(engagement), [engagement]);
 
   const results = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -113,7 +117,11 @@ export function ResearchFindingsLibrary({
       ) : (
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {results.map((f) => (
-            <ResearchFindingCard key={f.id} f={f} />
+            <ResearchFindingCard
+              key={f.id}
+              f={f}
+              badges={findingBadges(f, { engagement, leaders, todayISO })}
+            />
           ))}
         </div>
       )}

@@ -71,6 +71,7 @@ export interface ResearchFinding {
   lastUpdated?: string; // YYYY-MM-DD, set when status becomes "updated"
   supersededBy?: string; // HL-R id, set when status becomes "superseded"
   editorsPick?: boolean; // surfaced in the library's "Editor's Pick" sort
+  foundational?: boolean; // a "start here" paper — the tier every reader should begin with
   topics: FindingTopic[];
   keyConclusion: string;
   background: string[];
@@ -98,6 +99,7 @@ export const FINDINGS: ResearchFinding[] = [
     datePublished: "2026-06-30",
     status: "active",
     editorsPick: true,
+    foundational: true,
     topics: ["Dynamic DCA", "Distribution", "Accumulation"],
     keyConclusion:
       "Across the historical data available, and within the assumptions tested, a buy-only Dynamic DCA rule — sizing each weekly purchase by the Accumulation Index and never selling — retained the largest long-term Bitcoin position and the highest end value per dollar of new money contributed. A distribution variant that trimmed holdings in historically overheated conditions, paid tax on the realised gain, and reinvested the proceeds on later dips recovered most — but not all — of the Bitcoin it gave up. This is an observed historical outcome, not a prediction, recommendation, or claim about the future.",

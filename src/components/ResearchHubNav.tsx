@@ -8,10 +8,18 @@ const TABS = [
   { href: "/research", label: "Morning Research", blurb: "Daily" },
   { href: "/weekly", label: "Weekly Research", blurb: "Weekly" },
   { href: "/research/findings", label: "Research Findings", blurb: "Original notes" },
+  { href: "/research/myths", label: "Myth vs Reality", blurb: "Evidence" },
 ] as const;
 
-export function ResearchHubNav({ active }: { active: "morning" | "weekly" | "findings" }) {
-  const key = active === "morning" ? "/research" : active === "weekly" ? "/weekly" : "/research/findings";
+const ACTIVE_HREF = {
+  morning: "/research",
+  weekly: "/weekly",
+  findings: "/research/findings",
+  myths: "/research/myths",
+} as const;
+
+export function ResearchHubNav({ active }: { active: "morning" | "weekly" | "findings" | "myths" }) {
+  const key = ACTIVE_HREF[active];
   return (
     <nav className="flex flex-wrap items-center gap-2 mb-2">
       <span className="text-[10.5px] uppercase tracking-[0.22em] text-ink-500 mr-1">HalvingLens Research</span>

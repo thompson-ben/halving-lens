@@ -10,6 +10,7 @@ import { PresenterMode } from "@/components/PresenterMode";
 import { RecordModeButton } from "@/components/RecordModeButton";
 import { PresenterTalkingPoints, type TalkingPoint } from "@/components/PresenterTalkingPoints";
 import { DataBadge } from "@/components/DataBadge";
+import { RelatedResearch } from "@/components/RelatedResearch";
 import { WhatsChanged } from "@/components/WhatsChanged";
 import { metricChange } from "@/lib/metricChange";
 import { LastUpdated } from "@/components/LastUpdated";
@@ -271,6 +272,10 @@ export default function HistoricalPricePathsPage({ searchParams }: { searchParam
           <ArrowUpRight size={16} className="text-accent shrink-0" />
         </Link>
       </section>
+
+      {!presenter && (
+        <RelatedResearch topics={["Drawdowns", "Similar Moments"]} heading="Related research" />
+      )}
 
       {!presenter && (
         <FlagshipShare page="/historical-price-paths" label="Historical Price Paths" blurb="How far previous Bitcoin cycles travelled from today's point — up and down." />
