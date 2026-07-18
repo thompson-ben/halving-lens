@@ -8,12 +8,14 @@ import { PresenterMode } from "@/components/PresenterMode";
 import { RecordModeButton } from "@/components/RecordModeButton";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { FlagshipShare } from "@/components/FlagshipShare";
+import { WhereAreWe } from "@/components/WhereAreWe";
+import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
 import { snapshotWhatChanged, snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
-import { cycleStatus, todaysVerdict, matchReasons, weekChangeSummary, metricMeaning, rankedWatch, type StatusTone } from "@/lib/stateOfBitcoin";
+import { todaysVerdict, matchReasons, weekChangeSummary, metricMeaning, rankedWatch } from "@/lib/stateOfBitcoin";
+import { pathExplorer } from "@/lib/pathExplorer";
 import { upsideScenarios } from "@/lib/upside";
 import { downsideScenarios } from "@/lib/downside";
-import { cycleSummary } from "@/lib/cycleSummary";
 import { selectChartOfWeek } from "@/lib/chartOfWeek";
 import { episodeBrief } from "@/lib/episodeBrief";
 import { latestFindings } from "@/lib/findings";
@@ -78,15 +80,6 @@ function fmtSignedPct(n: number): string {
   const sign = n > 0 ? "+" : n < 0 ? "−" : "";
   return `${sign}${Math.abs(n).toFixed(digits)}%`;
 }
-
-// Overall Cycle Status badge palette — maps the status tone to the ink/accent
-// system already used across the page.
-const STATUS_STYLE: Record<StatusTone, string> = {
-  cool: "border-sky-400/30 bg-sky-400/[0.06] text-sky-300",
-  neutral: "border-accent/30 bg-accent/[0.06] text-accent",
-  warm: "border-signal-amber/30 bg-signal-amber/[0.06] text-signal-amber",
-  caution: "border-signal-red/30 bg-signal-red/[0.06] text-signal-red",
-};
 
 function Spark({ values, tone }: { values: number[]; tone: "good" | "bad" | "neutral" }) {
   if (values.length < 2) return null;
@@ -154,7 +147,6 @@ function MetricCard({ m }: { m: MetricChange }) {
 
 export default function SnapshotPage({ searchParams }: { searchParams: { presenter?: string } }) {
   const presenter = searchParams?.presenter === "true";
-  const s = cycleSummary();
   const price = metricChange("price");
   const health = metricChange("market_health");
   const sentiment = metricChange("sentiment");
@@ -168,15 +160,13 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   const finding = latestFindings(1)[0];
   const episode = presenter ? episodeBrief() : null;
 
-  const status = cycleStatus();
   const verdict = todaysVerdict();
   const reasons = matchReasons();
   const weekChange = weekChangeSummary();
+  const explorer = pathExplorer();
 
   const asOf = SOURCE.fetchedAt ? format(new Date(SOURCE.fetchedAt), "d MMM yyyy, HH:mm 'UTC'") : "—";
   const sinceHalving = fmtSignedPct(pos.gainFromHalving);
-  const c1p = price.changes.find((c) => c.period === 1);
-  const c7p = price.changes.find((c) => c.period === 7);
 
   return (
     <div className={presenter ? "presenter-stage space-y-10 max-w-5xl mx-auto" : "space-y-12 lg:space-y-14"}>
@@ -202,28 +192,10 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         <p className={`mt-2.5 text-ink-400 max-w-2xl leading-relaxed ${presenter ? "text-[16px]" : "text-[14px] lg:text-[14.5px]"}`}>
           Everything that changed in Bitcoin today, why it matters, and how today&rsquo;s market compares with history.
         </p>
-
-        {/* Hero stat strip */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <HeroStat label="Bitcoin price" value={fmtUsd(s.price)} sub={c1p?.pctLabel ? `${c1p.pctLabel} 24h` : undefined} subTone={c1p?.good} />
-          <HeroStat label="This week" value={c7p?.pctLabel ?? "—"} valTone={c7p?.good} />
-          <HeroStat label="Cycle day" value={`Day ${pos.cycleDay}`} sub={`${pos.progressPct}% through`} />
-          <HeroStat label="Since halving" value={sinceHalving} sub="vs halving day" />
-        </div>
       </header>
 
-      {/* ── Overall Cycle Status — the weekly headline ── */}
-      <section aria-label="Overall cycle status">
-        <div className="card-glow p-5 sm:p-6">
-          <div className="text-[10.5px] uppercase tracking-[0.2em] text-ink-500 mb-3">Overall cycle status</div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1.5 text-[13px] sm:text-[14px] font-medium ${STATUS_STYLE[status.tone]}`}>
-              {status.badge}
-            </span>
-            <p className={`font-display text-ink-100 leading-snug ${presenter ? "text-[19px]" : "text-[15px] sm:text-[17px]"}`}>{status.sentence}</p>
-          </div>
-        </div>
-      </section>
+      {/* ── Where are we? — the orientation hero (the visual identity) ── */}
+      <WhereAreWe />
 
       {/* ── Presenter talking points (episode running order) ── */}
       {episode && (
@@ -268,9 +240,18 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         </section>
       )}
 
-      {/* ── Primary scoreboard ── */}
+      {/* ── What does that mean? — Today's Verdict ── */}
+      <section aria-label="Today's verdict">
+        <SectionHead n="01" title="What does that mean?" note="Today's chapter, in plain English." />
+        <div className="card-glow p-5 sm:p-6">
+          <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-2.5">Today's verdict</div>
+          <p className={`font-display text-ink-50 leading-relaxed ${presenter ? "text-[22px]" : "text-[17px] sm:text-[20px]"}`}>{verdict}</p>
+        </div>
+      </section>
+
+      {/* ── Why? — the scoreboard, as the evidence behind the chapter ── */}
       <section>
-        <SectionHead n="01" title="The scoreboard" note="The core HalvingLens readings, at a glance." />
+        <SectionHead n="02" title="Why?" note="The evidence behind today's chapter — the core HalvingLens readings." />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <MetricCard m={price} />
           <CyclePositionCard sinceHalving={sinceHalving} pos={pos} />
@@ -278,15 +259,6 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           <MetricCard m={sentiment} />
           <MetricCard m={accumulation} />
           <MetricCard m={etf} />
-        </div>
-      </section>
-
-      {/* ── Today's Verdict — the plain-English synthesis ── */}
-      <section aria-label="Today's verdict">
-        <SectionHead n="02" title="Today's verdict" note="The whole scoreboard, in plain English." />
-        <div className="card-glow p-5 sm:p-6">
-          <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-2.5">In one read</div>
-          <p className={`font-display text-ink-50 leading-relaxed ${presenter ? "text-[22px]" : "text-[17px] sm:text-[20px]"}`}>{verdict}</p>
         </div>
       </section>
 
@@ -316,9 +288,15 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         </div>
       </section>
 
-      {/* ── Historical context ── */}
+      {/* ── How has history behaved from here? — the evidence for the chapter ── */}
       <section>
-        <SectionHead n="04" title="Where today sits in history" note="Descriptive context — not a forecast." />
+        <SectionHead n="04" title="How has history behaved from here?" note="The evidence behind the chapter — real completed cycles replayed from today's point. Historical context, not a forecast." />
+        {explorer.available && (
+          <div className="card p-4 sm:p-7 relative mb-4">
+            <HistoricalPathExplorer data={explorer} />
+            <div className="watermark">halvinglens.com · historical path explorer</div>
+          </div>
+        )}
         <div className="card p-5 sm:p-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <ContextStat label="Closest match" value={ctx.match ?? "—"} sub={ctx.similarity != null ? `${ctx.similarity}% similar` : undefined} />
@@ -435,16 +413,6 @@ function SectionHead({ n, title, note }: { n: string; title: string; note: strin
         <h2 className="font-display text-[22px] sm:text-[26px] text-ink-50 tracking-tight-2">{title}</h2>
       </div>
       <p className="mt-1 ml-8 text-[12.5px] text-ink-500">{note}</p>
-    </div>
-  );
-}
-
-function HeroStat({ label, value, sub, valTone, subTone }: { label: string; value: string; sub?: string; valTone?: "good" | "bad" | "neutral"; subTone?: "good" | "bad" | "neutral" }) {
-  return (
-    <div className="card p-4">
-      <div className="text-[10px] uppercase tracking-[0.16em] text-ink-500">{label}</div>
-      <div className={`mt-1.5 text-[22px] font-display tabular-nums ${valTone ? TONE[valTone] : "text-ink-50"}`}>{value}</div>
-      {sub && <div className={`text-[11px] tabular-nums ${subTone ? TONE[subTone] : "text-ink-500"}`}>{sub}</div>}
     </div>
   );
 }
