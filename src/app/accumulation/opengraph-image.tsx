@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { accumulationRead, ACCUMULATION_BANDS } from "@/lib/accumulation";
+import { markGlyphDataUri } from "@/lib/brandMark";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -30,7 +31,8 @@ export default async function Image() {
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 18, height: 18, borderRadius: 9, background: "#5eead4" }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={markGlyphDataUri(30)} width={30} height={30} alt="" />
             <div style={{ display: "flex", fontSize: 26, color: "#e4e9f0", fontWeight: 600 }}>halvinglens.com</div>
           </div>
           <div style={{ display: "flex", fontSize: 22, color: "#6f7c8e", letterSpacing: 3 }}>ACCUMULATION INDEX</div>

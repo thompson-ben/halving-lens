@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { metricChange } from "@/lib/metricChange";
 import { cycleSummary } from "@/lib/cycleSummary";
+import { markGlyphDataUri } from "@/lib/brandMark";
 import { fmtUsd } from "@/lib/format";
 
 export const size = { width: 1200, height: 630 };
@@ -40,7 +41,8 @@ export default async function Image() {
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 18, height: 18, borderRadius: 9, background: "#5eead4" }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={markGlyphDataUri(30)} width={30} height={30} alt="" />
             <div style={{ display: "flex", fontSize: 26, color: "#e4e9f0", fontWeight: 600 }}>halvinglens.com</div>
           </div>
           <div style={{ display: "flex", fontSize: 22, color: "#6f7c8e", letterSpacing: 3 }}>THE STATE OF BITCOIN</div>
