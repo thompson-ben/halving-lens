@@ -42,6 +42,10 @@ export interface Edition {
     sentiment: string;
   };
   search: string; // lowercased haystack for full-text search
+  // Internal-only editorial-variety diagnostic: how fresh each rotated field read
+  // versus the previous ~10 editions (0..100, 100 = fully fresh). Never rendered
+  // in the email; optional so older persisted editions stay valid.
+  freshness?: { subject: number; take: number; oneThing: number; overall: number };
 }
 
 // Newest first.

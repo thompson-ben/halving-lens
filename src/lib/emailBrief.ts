@@ -20,6 +20,16 @@ import { similarMoments } from "./similarity";
 import { editorialFeature, editionNumber, featureHeroNarrative } from "./editorial";
 import { latestFindings } from "./findings";
 import { briefDate } from "./briefArchive";
+import { dailyChange } from "./dailyChange";
+import {
+  dateSeed,
+  freshnessVs,
+  pickFreshest,
+  recentSubjects,
+  recentTakes,
+  recentOneThings,
+  SEED_OFFSET,
+} from "./editorialVariety";
 import type { Edition } from "./research";
 import { SITE_URL, SITE_HOST, absoluteUrl, emailImageBase } from "./site";
 import { type EmailTracking, NO_EMAIL_TRACKING, forHtmlAttr } from "./emailTracking";
@@ -73,30 +83,97 @@ function reads() {
 }
 
 // ── Today's Take — one sentence (kept deliberately short) ────────────────────
+// Each branch offers 2-3 truthful re-wordings of the SAME fact (no new facts),
+// and we serve whichever reads freshest versus the last ~10 openings. Selection
+// is deterministic (dateSeed) so the sent email and the persisted edition agree.
 function todaysTake(): string {
   const { s, cheap, fear, greed, etfNeg, sr } = reads();
-  if (cheap && fear) return `Bitcoin remains historically cheap while sentiment sits in ${sr!.band.label.toLowerCase()}.`;
-  if (cheap && etfNeg) return `Bitcoin stays in one of its cheapest historical valuation regions even as ETF flows turn negative.`;
-  if (cheap) return `Bitcoin continues trading inside one of its cheapest historical valuation regions.`;
-  if (s.heat === "cool") return `Bitcoin is still trading in one of the coolest historical risk environments.`;
-  if (fear) return `Extreme fear persists while Bitcoin holds an important historical cycle window.`;
-  if (greed) return `Sentiment runs hot while Bitcoin sits in the richer end of its historical range.`;
-  if (etfNeg) return `ETF outflows continue against a ${HEAT_LABEL[s.heat].toLowerCase()} historical backdrop.`;
-  return `Bitcoin is sitting in the ${HEAT_LABEL[s.heat].toLowerCase()} part of its historical range.`;
+  const heat = HEAT_LABEL[s.heat].toLowerCase();
+  const mood = sr ? sr.band.label.toLowerCase() : "";
+  let variants: string[];
+  if (cheap && fear)
+    variants = [
+      `Bitcoin remains historically cheap while sentiment sits in ${mood}.`,
+      `By the historical record, Bitcoin still reads cheap even as sentiment holds in ${mood}.`,
+      `Valuation stays in the low band of Bitcoin's history while ${mood} grips sentiment.`,
+    ];
+  else if (cheap && etfNeg)
+    variants = [
+      `Bitcoin stays in one of its cheapest historical valuation regions even as ETF flows turn negative.`,
+      `Even with ETF flows negative this week, Bitcoin remains in one of its cheapest historical regions.`,
+      `ETF flows are negative, yet by history Bitcoin still trades cheap.`,
+    ];
+  else if (cheap)
+    variants = [
+      `Bitcoin continues trading inside one of its cheapest historical valuation regions.`,
+      `By the historical record, Bitcoin still sits in one of its cheapest regions.`,
+      `Valuation remains in the low band of Bitcoin's history.`,
+    ];
+  else if (s.heat === "cool")
+    variants = [
+      `Bitcoin is still trading in one of the coolest historical risk environments.`,
+      `By history, Bitcoin remains in one of its coolest risk environments.`,
+      `The cycle's risk backdrop stays among the coolest in Bitcoin's history.`,
+    ];
+  else if (fear)
+    variants = [
+      `Extreme fear persists while Bitcoin holds an important historical cycle window.`,
+      `Sentiment stays in extreme fear as Bitcoin sits in a notable historical cycle window.`,
+      `Fear remains extreme, set against a historically notable cycle position.`,
+    ];
+  else if (greed)
+    variants = [
+      `Sentiment runs hot while Bitcoin sits in the richer end of its historical range.`,
+      `With sentiment hot, Bitcoin sits toward the richer end of its historical range.`,
+      `Bitcoin trades in the richer part of its historical range as sentiment runs hot.`,
+    ];
+  else if (etfNeg)
+    variants = [
+      `ETF flows stay negative against a ${heat} historical backdrop.`,
+      `Against a ${heat} backdrop, ETF flows remain negative this week.`,
+      `ETF flows read negative, set against a ${heat} historical backdrop.`,
+    ];
+  else
+    variants = [
+      `Bitcoin is sitting in the ${heat} part of its historical range.`,
+      `By history, Bitcoin sits in the ${heat} part of its range.`,
+      `Bitcoin's position reads ${heat} against its own history.`,
+    ];
+  return pickFreshest(variants, recentTakes(10), dateSeed() + SEED_OFFSET.take).value;
 }
 
 // ── If You Only Read One Thing — the single insight ──────────────────────────
+// Same rotation discipline as todaysTake: several truthful re-wordings of the
+// one insight, freshest-versus-recent wins. A different seed offset keeps it
+// from moving in lockstep with the opening.
 function oneThing(): string {
   const { acc, cheaper, cheap, greed, fear, sr } = reads();
-  if (cheap)
-    return (
-      `Bitcoin is trading cheaper than ${cheaper}% of all weeks in its history` +
-      (fear ? `, while sentiment remains in ${sr!.band.label.toLowerCase()}` : "") +
-      `. We have only seen conditions like this a handful of times before.`
-    );
-  if (greed)
-    return `Sentiment sits in ${sr!.band.label.toLowerCase()} and Bitcoin trades in the upper ${acc.historicalPercentile}% of its historical range — an environment that has historically rewarded patience over conviction.`;
-  return `Bitcoin sits at the ${acc.historicalPercentile}th percentile of its historical valuation range — a middle-of-the-road environment by historical standards, neither cheap nor stretched.`;
+  const pct = acc.historicalPercentile;
+  let variants: string[];
+  if (cheap) {
+    const mood = sr ? sr.band.label.toLowerCase() : "";
+    const fearClause = fear ? `, while sentiment remains in ${mood}` : "";
+    const fearClause2 = fear ? ` with sentiment in ${mood}` : "";
+    variants = [
+      `Bitcoin is trading cheaper than ${cheaper}% of all weeks in its history${fearClause}. We have only seen conditions like this a handful of times before.`,
+      `By the historical record, Bitcoin is cheaper than ${cheaper}% of all weeks it has ever traded${fearClause} — a combination the record shows only a handful of times.`,
+      `Only about ${pct}% of all weeks in Bitcoin's history were cheaper than today${fearClause2}. Conditions like this have been rare.`,
+    ];
+  } else if (greed) {
+    const mood = sr ? sr.band.label.toLowerCase() : "";
+    variants = [
+      `Sentiment sits in ${mood} and Bitcoin trades in the upper ${pct}% of its historical range — an environment that has historically rewarded patience over conviction.`,
+      `Bitcoin sits in the upper ${pct}% of its historical range with sentiment in ${mood} — historically an environment that rewarded patience over conviction.`,
+      `With sentiment in ${mood}, Bitcoin trades in the upper ${pct}% of its historical range — a setup that has, in the past, favoured patience over conviction.`,
+    ];
+  } else {
+    variants = [
+      `Bitcoin sits at the ${pct}th percentile of its historical valuation range — a middle-of-the-road environment by historical standards, neither cheap nor stretched.`,
+      `At the ${pct}th percentile of its historical valuation range, Bitcoin reads middle-of-the-road — neither cheap nor stretched by historical standards.`,
+      `By historical valuation, Bitcoin sits mid-range at the ${pct}th percentile — neither cheap nor stretched.`,
+    ];
+  }
+  return pickFreshest(variants, recentOneThings(10), dateSeed() + SEED_OFFSET.oneThing).value;
 }
 
 // ── Today's Confidence — agreement across the core signals ───────────────────
@@ -314,10 +391,23 @@ export function editionContent(): Edition {
   const feature = editorialFeature();
   const stars = Math.max(1, Math.min(5, Math.round(cs.score / 20)));
 
+  const subject = dailyEmailSubject();
   const take = todaysTake();
   const one = oneThing();
   const why = whyThisMattersToday();
   const mem = bitcoinMemory();
+
+  // Internal freshness diagnostic — how distinct each rotated field is versus the
+  // previous ~10 editions. Persisted for internal inspection; never shown.
+  const fSubject = freshnessVs(subject, recentSubjects(10));
+  const fTake = freshnessVs(take, recentTakes(10));
+  const fOneThing = freshnessVs(one, recentOneThings(10));
+  const freshness = {
+    subject: fSubject,
+    take: fTake,
+    oneThing: fOneThing,
+    overall: Math.round((fSubject + fTake + fOneThing) / 3),
+  };
   const words = `${take} ${one} ${conf.blurb} ${conf.detail} ${ctx?.body ?? ""} ${why} ${obs.quote} ${obs.body} ${watch.map((w) => w.signal + " " + w.status).join(" ")} ${mem}`.split(/\s+/).length;
   const readMin = Math.max(2, Math.round(words / 200));
 
@@ -333,7 +423,7 @@ export function editionContent(): Edition {
     slug: format(briefDate(), "yyyy-MM-dd"),
     dateLabel: format(briefDate(), "EEEE d MMMM yyyy"),
     feature: { key: feature.key, day: feature.day, title: feature.title },
-    subject: dailyEmailSubject(),
+    subject,
     take,
     contextScore: { score: cs.score, label: cs.label, stars },
     oneThing: one,
@@ -357,44 +447,151 @@ export function editionContent(): Edition {
       sentiment: sr ? sr.band.label : "n/a",
     },
     search,
+    freshness,
   };
 }
 
 // ── Subject — curiosity-first, no formulaic prefix ───────────────────────────
+// Builds a POOL of truthful, applicable subjects spanning MULTIPLE angles for
+// today's data (value, sentiment, ETF, cycle position, similar moment, "what
+// changed"), lightly biased toward the weekday feature, then serves the one that
+// reads freshest versus the last ~10 subjects. Because the pool is far larger
+// than a single branch's 3-4 variants, a persistent market state no longer
+// repeats every few days. Every candidate is gated on the data that makes it
+// TRUE — no ETF claim without ETF data, no "cheap" claim unless cheap, etc.
 export function dailyEmailSubject(): string {
-  const { s, acc, top, cheap, fear, greed, etfNeg, etfPos, etfWk, cheaper } = reads();
-  // Rotate through on-message variants by day, so a persistent market state never
-  // produces the same subject two mornings running (which reads as a duplicate
-  // and hurts opens). Deterministic per date; consecutive days differ.
-  const dayIdx = Math.floor(briefDate().getTime() / 86_400_000);
-  const pick = (v: string[]) => v[((dayIdx % v.length) + v.length) % v.length];
+  const { s, acc, sr, top, cheap, rich, fear, greed, etfNeg, etfPos, etfWk, cheaper } = reads();
+  const pool: string[] = [];
 
-  if (cheap && fear)
-    return pick([
+  // ── Value angle ────────────────────────────────────────────────────────────
+  if (cheap && fear) {
+    pool.push(
       "The crowd is fearful. History wasn't.",
       "Extreme fear meets historically cheap Bitcoin",
       `Cheaper than ${cheaper}% of history — while fear runs high`,
       "When fear and value overlap",
-    ]);
-  if (acc.band.key === "deep_value")
-    return pick(["Bitcoin just entered a rare historical zone", "A historically deep-value reading today", "Deep value, by the historical record"]);
-  if (top && top.similarity >= 80)
-    return pick([`Today's market rhymes with ${top.dateLabel}`, `A familiar setup — echoes of ${top.dateLabel}`, `${top.similarity}% similar to ${top.dateLabel}`]);
-  if (cheap && etfNeg)
-    return pick(["Historically cheap, despite the outflows", "Cheap by history, even as ETFs bleed", "Low valuation meets ETF outflows"]);
-  if (cheap)
-    return pick(["Bitcoin remains historically cheap", `Still cheaper than ${cheaper}% of history`, "A low reading on the historical range"]);
-  if (greed)
-    return pick(["The expensive comfort of conviction", "Greed runs warm in the historical range", "Sentiment hot, valuation stretched"]);
-  if (fear)
-    return pick(["Extreme fear persists", "Fear holds, by the numbers", "The mood stays fearful"]);
-  if (etfNeg && Math.abs(etfWk!) > 0)
-    return pick(["ETF outflows accelerate again", "Another week of ETF outflows", "ETF demand cools further"]);
-  if (etfPos)
-    return pick(["ETF demand picks up again", "ETF inflows build again", "Fresh ETF demand this week"]);
-  if (s.heat === "cool")
-    return pick(["Bitcoin's rhythm continues to diverge", "A cool spot in the cycle", "Still one of the cooler cycle readings"]);
-  return pick(["Where Bitcoin sits in the cycle today", "Today's cycle read, in context", "The cycle, clearly"]);
+    );
+  }
+  if (cheap && etfNeg) {
+    pool.push("Historically cheap, despite the outflows", "Cheap by history, even as ETFs bleed", "Low valuation meets ETF outflows");
+  }
+  if (acc.band.key === "deep_value") {
+    pool.push("Bitcoin just entered a rare historical zone", "A historically deep-value reading today", "Deep value, by the historical record");
+  }
+  if (cheap) {
+    pool.push(
+      "Bitcoin remains historically cheap",
+      `Still cheaper than ${cheaper}% of history`,
+      "A low reading on the historical range",
+      "By the historical record, Bitcoin still reads cheap",
+    );
+  }
+  if (rich) {
+    pool.push("Valuation sits in the richer end of history", `Only ${cheaper}% of history was cheaper than today`);
+  }
+
+  // ── Sentiment angle (only when sentiment data exists) ────────────────────────
+  if (greed) {
+    pool.push("The expensive comfort of conviction", "Greed runs warm in the historical range");
+    if (rich) pool.push("Sentiment hot, valuation stretched");
+  }
+  if (fear) {
+    pool.push("Extreme fear persists", "Fear holds, by the numbers", "The mood stays fearful");
+  }
+
+  // ── ETF angle (only when ETF data is connected) ─────────────────────────────
+  if (etfWk != null) {
+    if (etfNeg) {
+      pool.push("A week of net ETF outflows", "ETF flows turned negative this week", "ETF demand reads weak this week");
+    } else if (etfPos) {
+      pool.push("Net ETF inflows this week", "Fresh ETF demand this week", "ETF flows turned positive this week");
+    } else {
+      pool.push("ETF flows are roughly flat this week");
+    }
+  }
+
+  // ── Cycle-position angle ─────────────────────────────────────────────────────
+  if (s.heat === "cool") {
+    pool.push("A cool spot in the cycle", "Still one of the cooler cycle readings", "Bitcoin's rhythm continues to diverge");
+  }
+  if (s.heatPercentile != null) {
+    pool.push(`Bitcoin sits around the ${s.heatPercentile}th percentile of its historical range`);
+  }
+  pool.push("Where Bitcoin sits in the cycle today", "Today's cycle read, in context", "The cycle, clearly");
+
+  // ── Similar-moment angle (only when a match exists) ──────────────────────────
+  if (top) {
+    if (top.similarity >= 75) {
+      pool.push(`Today's market rhymes with ${top.dateLabel}`, `A familiar setup — echoes of ${top.dateLabel}`, `${top.similarity}% similar to ${top.dateLabel}`);
+    } else {
+      pool.push(`Today's closest match in the record: ${top.dateLabel}`);
+    }
+  }
+
+  // ── "What changed today" angle (only on a genuine, meaningful mover) ─────────
+  const dc = dailyChange();
+  if (dc.available && dc.changed.length > 0 && dc.biggestStory) {
+    if (dc.biggestStory.key !== "price") pool.push("Today's biggest change isn't the price");
+    if (!dc.cycleReadChanged) pool.push("One metric moved — the cycle didn't");
+    pool.push(`What changed today: ${dc.biggestStory.label.toLowerCase()}`);
+  }
+
+  // ── Weekday theme bias — add themed candidates so the freshest pick leans
+  //    toward the day's feature, without forcing it. Each is still data-gated.
+  const feature = editorialFeature().key;
+  if ((feature === "similar" || feature === "historical") && top) {
+    pool.push(`In historical terms, today echoes ${top.dateLabel}`);
+  }
+  if (feature === "etf" && etfWk != null) {
+    pool.push(etfNeg ? "ETF Watch: outflows this week" : etfPos ? "ETF Watch: inflows this week" : "ETF Watch: flows roughly flat");
+  }
+  if ((feature === "market_reset" || feature === "weekahead") && dc.available && dc.biggestStory) {
+    pool.push(dc.changed.length > 0 ? `What actually changed: ${dc.biggestStory.label.toLowerCase()}` : "What actually changed — and what didn't");
+  }
+  if (feature === "long_view") {
+    pool.push("The long view: where this cycle stands");
+  }
+  if (feature === "weekly_close") {
+    pool.push(cheap ? `The week's takeaway: cheaper than ${cheaper}% of history` : "The week's takeaway, in context");
+  }
+
+  return pickFreshest(pool, recentSubjects(10), dateSeed() + SEED_OFFSET.subject).value;
+}
+
+// ── Primary CTA — deterministic, contextual rotation ─────────────────────────
+// The one static "Continue inside HalvingLens →" button repeated every day. Now
+// it rotates deterministically among flagship destinations (keyed on dateSeed so
+// consecutive days differ), with the pool ordered so the day's lead sits first —
+// making the button contextual without being clickbait. Copy stays honest.
+type PrimaryCta = { label: string; path: string; track: string };
+const CTA_POOL: PrimaryCta[] = [
+  { label: "Read today's State of Bitcoin", path: "/state-of-bitcoin", track: "daily_cta_state" },
+  { label: "See today's Accumulation Index", path: "/accumulation", track: "daily_cta_accumulation" },
+  { label: "View similar moments", path: "/similar-moments", track: "daily_cta_similar" },
+  { label: "Explore Historical Price Paths", path: "/historical-price-paths", track: "daily_cta_paths" },
+  { label: "Read this week's research finding", path: "/research/findings", track: "daily_cta_research" },
+];
+function primaryCta(): PrimaryCta {
+  const { cheap, rich, top } = reads();
+  const feature = editorialFeature().key;
+  // The lead the button should lean toward, by path.
+  const leadPath =
+    cheap || rich
+      ? "/accumulation"
+      : top && top.similarity >= 75
+        ? "/similar-moments"
+        : feature === "similar" || feature === "historical"
+          ? "/similar-moments"
+          : feature === "long_view"
+            ? "/historical-price-paths"
+            : "/state-of-bitcoin";
+  const leadIdx = Math.max(0, CTA_POOL.findIndex((c) => c.path === leadPath));
+  // Order the pool with the lead first, then rotate by dateSeed. On any run of
+  // days sharing the same lead the ordering is stable, so seed+1 lands on a
+  // different entry each morning — no two consecutive days repeat.
+  const ordered = [...CTA_POOL.slice(leadIdx), ...CTA_POOL.slice(0, leadIdx)];
+  const idx = ((dateSeed() + SEED_OFFSET.cta) % ordered.length + ordered.length) % ordered.length;
+  return ordered[idx];
 }
 
 // ── Plain-text part ──────────────────────────────────────────────────────────
@@ -563,9 +760,10 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
     ${moreLink("Track these on your dashboard", "/", "daily_watch")}`
     : "";
 
+  const primary = primaryCta();
   const cta = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-      <a href="${tracking.link(`${SITE_URL}/brief`, "daily_continue")}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 38px;border-radius:12px;">Continue inside HalvingLens →</a>
+      <a href="${tracking.link(`${SITE_URL}${primary.path}`, primary.track)}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 38px;border-radius:12px;">${esc(primary.label)} →</a>
     </td></tr></table>`;
 
   const archive = `
