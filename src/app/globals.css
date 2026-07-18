@@ -233,6 +233,16 @@ input:focus-visible {
   font-size: 12px !important;
 }
 
+/* "Where Are We?" hero — the gentle pulse on the "You are here" focal point.
+   Scoped, and silenced for reduced-motion. */
+.waw-pulse { transform-box: fill-box; transform-origin: center; animation: waw-halo 2.8s ease-out infinite; }
+@keyframes waw-halo {
+  0% { transform: scale(0.55); opacity: 0.6; }
+  70% { transform: scale(2); opacity: 0; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .waw-pulse { animation: none; opacity: 0.18; } }
+
 /* Distraction-free landing: hide site chrome on /start (paid traffic). */
 html[data-bare="1"] .site-chrome { display: none !important; }
 

@@ -16,7 +16,6 @@ import { todaysVerdict, matchReasons, weekChangeSummary, metricMeaning, rankedWa
 import { pathExplorer } from "@/lib/pathExplorer";
 import { upsideScenarios } from "@/lib/upside";
 import { downsideScenarios } from "@/lib/downside";
-import { cycleSummary } from "@/lib/cycleSummary";
 import { selectChartOfWeek } from "@/lib/chartOfWeek";
 import { episodeBrief } from "@/lib/episodeBrief";
 import { latestFindings } from "@/lib/findings";
@@ -148,7 +147,6 @@ function MetricCard({ m }: { m: MetricChange }) {
 
 export default function SnapshotPage({ searchParams }: { searchParams: { presenter?: string } }) {
   const presenter = searchParams?.presenter === "true";
-  const s = cycleSummary();
   const price = metricChange("price");
   const health = metricChange("market_health");
   const sentiment = metricChange("sentiment");
@@ -169,8 +167,6 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
   const asOf = SOURCE.fetchedAt ? format(new Date(SOURCE.fetchedAt), "d MMM yyyy, HH:mm 'UTC'") : "—";
   const sinceHalving = fmtSignedPct(pos.gainFromHalving);
-  const c1p = price.changes.find((c) => c.period === 1);
-  const c7p = price.changes.find((c) => c.period === 7);
 
   return (
     <div className={presenter ? "presenter-stage space-y-10 max-w-5xl mx-auto" : "space-y-12 lg:space-y-14"}>
@@ -196,14 +192,6 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         <p className={`mt-2.5 text-ink-400 max-w-2xl leading-relaxed ${presenter ? "text-[16px]" : "text-[14px] lg:text-[14.5px]"}`}>
           Everything that changed in Bitcoin today, why it matters, and how today&rsquo;s market compares with history.
         </p>
-
-        {/* Hero stat strip */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <HeroStat label="Bitcoin price" value={fmtUsd(s.price)} sub={c1p?.pctLabel ? `${c1p.pctLabel} 24h` : undefined} subTone={c1p?.good} />
-          <HeroStat label="This week" value={c7p?.pctLabel ?? "—"} valTone={c7p?.good} />
-          <HeroStat label="Cycle day" value={`Day ${pos.cycleDay}`} sub={`${pos.progressPct}% through`} />
-          <HeroStat label="Since halving" value={sinceHalving} sub="vs halving day" />
-        </div>
       </header>
 
       {/* ── Where are we? — the orientation hero (the visual identity) ── */}
@@ -425,16 +413,6 @@ function SectionHead({ n, title, note }: { n: string; title: string; note: strin
         <h2 className="font-display text-[22px] sm:text-[26px] text-ink-50 tracking-tight-2">{title}</h2>
       </div>
       <p className="mt-1 ml-8 text-[12.5px] text-ink-500">{note}</p>
-    </div>
-  );
-}
-
-function HeroStat({ label, value, sub, valTone, subTone }: { label: string; value: string; sub?: string; valTone?: "good" | "bad" | "neutral"; subTone?: "good" | "bad" | "neutral" }) {
-  return (
-    <div className="card p-4">
-      <div className="text-[10px] uppercase tracking-[0.16em] text-ink-500">{label}</div>
-      <div className={`mt-1.5 text-[22px] font-display tabular-nums ${valTone ? TONE[valTone] : "text-ink-50"}`}>{value}</div>
-      {sub && <div className={`text-[11px] tabular-nums ${subTone ? TONE[subTone] : "text-ink-500"}`}>{sub}</div>}
     </div>
   );
 }
