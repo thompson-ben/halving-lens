@@ -108,6 +108,7 @@ export interface WatchItem {
   current: string;
   why: string;
   trigger: string;
+  priority?: number; // ranking score (higher = more significant); already sorted
 }
 
 // Proximity of a value to the nearest band edge, for ranking "near a threshold".
@@ -173,7 +174,7 @@ export function snapshotWatchItems(): WatchItem[] {
   return items
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 3)
-    .map((x) => x.item);
+    .map((x) => ({ ...x.item, priority: Math.round(x.priority) }));
 }
 
 // ── Scoreboard bundle ────────────────────────────────────────────────────────

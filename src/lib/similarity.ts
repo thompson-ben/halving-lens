@@ -47,6 +47,27 @@ function featOf(c: Cycle, s: CycleSample, drawdown: number): Feat {
   };
 }
 
+// Per-feature closeness (0..100) between today's reference vector and a
+// candidate. Each feature is already normalised to 0..1, so the closeness is
+// just 100·(1 − |diff|). Descriptive only — the ranking uses `distance`, never
+// this.
+const FACTOR_LABEL: Record<SimilarFactorKey, string> = {
+  drawdown: "Drawdown from high",
+  cycleTiming: "Point in the cycle",
+  marketHeat: "Market heat",
+  gainSinceHalving: "Gain since halving",
+};
+
+function factorsOf(ref: Feat, cand: Feat): SimilarFactor[] {
+  const closeness = (diff: number) => Math.max(0, Math.min(100, Math.round(100 * (1 - Math.abs(diff)))));
+  return [
+    { key: "drawdown", label: FACTOR_LABEL.drawdown, closeness: closeness(cand.ddMag - ref.ddMag) },
+    { key: "cycleTiming", label: FACTOR_LABEL.cycleTiming, closeness: closeness(cand.progress - ref.progress) },
+    { key: "marketHeat", label: FACTOR_LABEL.marketHeat, closeness: closeness(cand.mayer - ref.mayer) },
+    { key: "gainSinceHalving", label: FACTOR_LABEL.gainSinceHalving, closeness: closeness(cand.gain - ref.gain) },
+  ];
+}
+
 function distance(a: Feat, b: Feat): number {
   const d =
     W.progress * (a.progress - b.progress) ** 2 +
@@ -57,6 +78,17 @@ function distance(a: Feat, b: Feat): number {
   return Math.sqrt(d / wsum);
 }
 
+// Per-feature closeness for the "why is this the closest match?" read. Additive
+// and optional — existing consumers ignore it. `closeness` is 0..100 (100 =
+// near-identical on that feature); it is NOT part of the ranking math, only an
+// honest, after-the-fact breakdown of which features the match shares.
+export type SimilarFactorKey = "drawdown" | "cycleTiming" | "marketHeat" | "gainSinceHalving";
+export interface SimilarFactor {
+  key: SimilarFactorKey;
+  label: string;
+  closeness: number; // 0..100
+}
+
 export interface SimilarMoment {
   cycleId: number;
   short: string;
@@ -65,6 +97,7 @@ export interface SimilarMoment {
   day: number;
   dateLabel: string; // "Mar 2017"
   similarity: number; // 0..100
+  factors?: SimilarFactor[]; // per-feature closeness vs today (additive, optional)
   metrics: {
     price: number;
     cycleDay: number;
@@ -152,6 +185,7 @@ export function similarMoments(limit = 4, ref: Feat = todayFeat().feat): Similar
       day: s.day,
       dateLabel: monthYear(ts),
       similarity: Math.round(sim),
+      factors: factorsOf(ref, featOf(c, s, drawdown)),
       metrics: {
         price: s.price,
         cycleDay: s.day,
