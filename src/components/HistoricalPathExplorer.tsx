@@ -1,6 +1,7 @@
 "use client";
 
-import { Area, CartesianGrid, ComposedChart, Line, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { ReactNode } from "react";
+import { Area, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { PathExplorer } from "@/lib/pathExplorer";
 
 // The Historical Path Explorer — the signature visual. It reads left-to-right as
@@ -31,10 +32,31 @@ export function HistoricalPathExplorer({ data }: { data: PathExplorer }) {
 
   return (
     <div>
+      {/* Decode key — so a first-time viewer reads the chart in one glance */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-ink-400">
+        <LegendKey><span className="inline-block w-5 h-[3px] rounded-full" style={{ background: CURRENT }} /> This cycle</LegendKey>
+        <LegendKey><span className="inline-block w-5 h-[2px] rounded-full bg-ink-300/50" /> Prior cycles</LegendKey>
+        <LegendKey><span className="inline-block w-5 h-[2px] border-t-2 border-dashed" style={{ borderColor: MEDIAN }} /> Median</LegendKey>
+        <LegendKey><span className="inline-block w-4 h-3 rounded-sm" style={{ background: "rgba(94,234,212,0.14)" }} /> Range of outcomes</LegendKey>
+        <LegendKey><span className="inline-block w-1.5 h-1.5 rounded-full ring-2 ring-[#5eead4]/30" style={{ background: CURRENT }} /> Today</LegendKey>
+      </div>
+
       <div className="w-full h-[400px] sm:h-[460px]">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={rows} margin={{ top: 16, right: 18, bottom: 8, left: 4 }}>
+          <ComposedChart data={rows} margin={{ top: 20, right: 18, bottom: 8, left: 4 }}>
+            <defs>
+              <linearGradient id="hpeBand" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={CURRENT} stopOpacity={0.16} />
+                <stop offset="100%" stopColor={CURRENT} stopOpacity={0.04} />
+              </linearGradient>
+            </defs>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+
+            {/* "This cycle so far" — the run-up region, faintly shaded so the eye
+                separates what already happened from where history went next. */}
+            <ReferenceArea x1={-data.leadInDays} x2={0} fill={CURRENT} fillOpacity={0.035} strokeOpacity={0}
+              label={{ value: "This cycle so far", position: "insideTopLeft", fill: "#6f7c8e", fontSize: 10.5, offset: 8 }} />
+
             <XAxis
               type="number"
               dataKey="day"
@@ -47,12 +69,13 @@ export function HistoricalPathExplorer({ data }: { data: PathExplorer }) {
             <YAxis tick={{ fill: "#6f7c8e", fontSize: 11 }} tickFormatter={(v) => `${v}%`} stroke="rgba(255,255,255,0.1)" width={44} domain={["auto", "auto"]} />
 
             {/* Historical envelope — the real range the completed cycles occupied */}
-            <Area type="monotone" dataKey="band" stroke="none" fill={CURRENT} fillOpacity={0.06} connectNulls isAnimationActive={false} activeDot={false} />
-            <Line type="monotone" dataKey="mid" name="Historical median" stroke={MEDIAN} strokeWidth={1.6} strokeDasharray="2 3" strokeOpacity={0.75} dot={false} connectNulls isAnimationActive={false} />
+            <Area type="monotone" dataKey="band" stroke="none" fill="url(#hpeBand)" connectNulls isAnimationActive={false} activeDot={false} />
+            <Line type="monotone" dataKey="mid" name="Historical median" stroke={MEDIAN} strokeWidth={1.6} strokeDasharray="2 3" strokeOpacity={0.8} dot={false} connectNulls isAnimationActive={false} />
 
             <ReferenceLine y={100} stroke="rgba(255,255,255,0.18)" strokeDasharray="3 3" />
 
-            {/* Completed cycles — supporting context: dimmed, dashed once past peak */}
+            {/* Completed cycles — supporting context: dimmed, and faded further
+                once past their peak (that path is aftermath, not comparison). */}
             {data.paths.map((p) => (
               <Line
                 key={p.cycleId}
@@ -60,22 +83,25 @@ export function HistoricalPathExplorer({ data }: { data: PathExplorer }) {
                 dataKey={`c${p.cycleId}`}
                 name={p.label}
                 stroke={p.color}
-                strokeWidth={1.9}
+                strokeWidth={p.pastPeak ? 1.5 : 1.9}
                 strokeDasharray={p.pastPeak ? "5 4" : undefined}
-                strokeOpacity={0.5}
+                strokeOpacity={p.pastPeak ? 0.32 : 0.55}
                 dot={false}
                 connectNulls
                 isAnimationActive={false}
               />
             ))}
 
-            {/* The current cycle — the star: bright, solid, on top */}
-            <Line type="monotone" dataKey="current" name="This cycle" stroke={CURRENT} strokeWidth={3.4} dot={false} connectNulls isAnimationActive={false} />
+            {/* The current cycle — the star: a soft glow underlay then a bright,
+                solid line on top, so it visibly dominates the fan of history. */}
+            <Line type="monotone" dataKey="current" stroke={CURRENT} strokeWidth={9} strokeOpacity={0.12} dot={false} connectNulls isAnimationActive={false} legendType="none" />
+            <Line type="monotone" dataKey="current" name="This cycle" stroke={CURRENT} strokeWidth={3.6} dot={false} connectNulls isAnimationActive={false} />
 
-            {/* The pivot — "You are here" */}
-            <ReferenceLine x={0} stroke={CURRENT} strokeOpacity={0.45} />
+            {/* The pivot — "You are here": a haloed dot on a strong vertical. */}
+            <ReferenceLine x={0} stroke={CURRENT} strokeOpacity={0.5} strokeWidth={1.5} />
+            <ReferenceDot x={0} y={100} r={11} fill={CURRENT} fillOpacity={0.16} stroke="none" isFront={false} />
             <ReferenceDot x={0} y={100} r={5.5} fill={CURRENT} stroke="#05070a" strokeWidth={2} isFront
-              label={{ value: "You are here", position: "top", fill: CURRENT, fontSize: 12, fontWeight: 600, offset: 12 }} />
+              label={{ value: "You are here", position: "top", fill: CURRENT, fontSize: 12.5, fontWeight: 700, offset: 14 }} />
 
             <Tooltip
               contentStyle={{ background: "#0c1118", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, fontSize: 12 }}
@@ -129,6 +155,10 @@ export function HistoricalPathExplorer({ data }: { data: PathExplorer }) {
       </div>
     </div>
   );
+}
+
+function LegendKey({ children }: { children: ReactNode }) {
+  return <span className="inline-flex items-center gap-1.5">{children}</span>;
 }
 
 function TeachCard({ label, value, note }: { label: string; value: string; note: string }) {
