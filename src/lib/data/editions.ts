@@ -6,6 +6,102 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 414,
+    "slug": "2026-07-19",
+    "dateLabel": "Sunday 19 July 2026",
+    "feature": {
+      "key": "weekahead",
+      "day": "Sunday",
+      "title": "Week Ahead"
+    },
+    "subject": "What changed today: sentiment",
+    "take": "Valuation remains in the low band of Bitcoin's history.",
+    "contextScore": {
+      "score": 72,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "By the historical record, Bitcoin is cheaper than 77% of all weeks it has ever traded — a combination the record shows only a handful of times.",
+    "confidence": {
+      "level": "HIGH",
+      "blurb": "Today's core signals are in full agreement.",
+      "detail": "Valuation, ETF flows all point the same way."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Attractive",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "22/100"
+      },
+      {
+        "label": "Sentiment",
+        "value": "Fear",
+        "color": "#e0a64f",
+        "strength": 2,
+        "metric": "28/100"
+      },
+      {
+        "label": "Cycle position",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "26/100"
+      },
+      {
+        "label": "ETF demand",
+        "value": "Improving",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "+$70.81M/wk"
+      },
+      {
+        "label": "Momentum",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "+1.3%"
+      }
+    ],
+    "historicalContext": {
+      "match": "Jun 2022",
+      "similarity": 86,
+      "body": "Today most closely resembles Jun 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "The week ahead matters less than the environment we enter it from.",
+      "body": "Forecasts age badly; environments don't. The useful question on a Sunday isn't what happens next, but what kind of market we're standing in — and today that's a attractive one by historical standards. Position is context; the calendar is noise."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      }
+    ],
+    "memory": "Every roughly four years, by a rule written in code, the new supply of bitcoin is cut in half.",
+    "heroNarrative": "similar",
+    "readMin": 2,
+    "metrics": {
+      "price": 64777.661748,
+      "fearGreed": 28,
+      "accumulationScore": 22,
+      "accumulationBand": "Historically Attractive",
+      "accumulationPercentile": 23,
+      "cycleDay": 821,
+      "etf": "Improving",
+      "sentiment": "Fear"
+    },
+    "search": "valuation remains in the low band of bitcoin's history. by the historical record, bitcoin is cheaper than 77% of all weeks it has ever traded — a combination the record shows only a handful of times. the week ahead matters less than the environment we enter it from. forecasts age badly; environments don't. the useful question on a sunday isn't what happens next, but what kind of market we're standing in — and today that's a attractive one by historical standards. position is context; the calendar is noise. today most closely resembles jun 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. every roughly four years, by a rule written in code, the new supply of bitcoin is cut in half. week ahead clear historical context fear historically attractive divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles",
+    "freshness": {
+      "subject": 100,
+      "take": 82,
+      "oneThing": 65,
+      "overall": 82
+    }
+  },
+  {
     "edition": 413,
     "slug": "2026-07-18",
     "dateLabel": "Saturday 18 July 2026",
