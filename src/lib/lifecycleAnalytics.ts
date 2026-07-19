@@ -64,10 +64,16 @@ export interface StepStat {
   lastSendISO: string | null;
 }
 
+// A stage in the onboarding journey, defined by the NEXT email a subscriber is
+// due to receive (not the last one they got). This is the operationally useful
+// framing: "improve Email 3 today → these subscribers will benefit".
 export interface StatusBucket {
   key: string;
-  label: string;
+  label: string; // the email's short title (or "Completed onboarding")
   count: number;
+  stage: "awaiting" | "next" | "completed"; // awaiting = due their very first email
+  emailNumber: number | null; // 1-based position in the sequence; null once completed
+  totalEmails: number; // sequence length, for "Email n of N" context
 }
 
 export interface CohortRow {
@@ -310,9 +316,11 @@ export function computeLifecycle(input: LifecycleInput, now: number): LifecycleA
   let eligibleToComplete = 0;
   const durations: number[] = [];
 
-  // Status buckets: awaiting first email, then furthest step reached, then completed.
-  const statusCounts = new Map<string, number>();
-  const bump = (k: string) => statusCounts.set(k, (statusCounts.get(k) ?? 0) + 1);
+  // Stage buckets are keyed by the NEXT email a subscriber is due (the earliest
+  // step not yet sent), not the last one they received. So each active, not-yet-
+  // finished subscriber lands in exactly one stage answering "what are they
+  // waiting for next?". Someone due their very first email is "awaiting".
+  const nextDueCounts = new Map<string, number>();
 
   for (const s of active) {
     const email = s.email.trim().toLowerCase();
@@ -324,7 +332,6 @@ export function computeLifecycle(input: LifecycleInput, now: number): LifecycleA
 
     if (hasFinal) {
       completed += 1;
-      bump("completed");
       // duration = final send - first (tour) send, if both known.
       const first = m?.get(steps[0]?.id ?? "");
       const last = m?.get(finalStep!.id);
@@ -336,23 +343,28 @@ export function computeLifecycle(input: LifecycleInput, now: number): LifecycleA
     const windowOpen = now <= anchor + finalOffsetMs + catchupMs;
     if (windowOpen) onboarding += 1;
 
-    if (!m || m.size === 0) {
-      bump("awaiting");
-    } else {
-      // Furthest step reached by dayOffset.
-      let furthest = steps[0];
-      for (const st of steps) if (m.has(st.id) && st.dayOffset >= furthest.dayOffset) furthest = st;
-      bump(`step:${furthest.id}`);
-    }
+    // Next email due = earliest step (by dayOffset) not yet sent. `steps` is
+    // already sorted; a not-completed subscriber always has at least the final
+    // step outstanding, so this always resolves.
+    const nextStep = steps.find((st) => !m?.has(st.id)) ?? finalStep;
+    if (nextStep) nextDueCounts.set(nextStep.id, (nextDueCounts.get(nextStep.id) ?? 0) + 1);
   }
 
+  // One row per email in journey order (the first = "awaiting first email"),
+  // then completed. Kept unfiltered so the whole journey is always visible —
+  // empty stages read as genuine gaps, not missing data.
+  const totalEmails = steps.length;
   const status: StatusBucket[] = [
-    { key: "awaiting", label: "Awaiting first email", count: statusCounts.get("awaiting") ?? 0 },
-    ...steps
-      .filter((s) => s.id !== finalStep?.id)
-      .map((s) => ({ key: `step:${s.id}`, label: `On: ${STEP_LABEL[s.id] ?? s.id}`, count: statusCounts.get(`step:${s.id}`) ?? 0 })),
-    { key: "completed", label: "Completed onboarding", count: statusCounts.get("completed") ?? 0 },
-  ].filter((b) => b.count > 0);
+    ...steps.map((s, i) => ({
+      key: i === 0 ? "awaiting" : `next:${s.id}`,
+      label: STEP_LABEL[s.id] ?? s.id,
+      count: nextDueCounts.get(s.id) ?? 0,
+      stage: (i === 0 ? "awaiting" : "next") as "awaiting" | "next",
+      emailNumber: i + 1,
+      totalEmails,
+    })),
+    { key: "completed", label: "Completed onboarding", count: completed, stage: "completed" as const, emailNumber: null, totalEmails },
+  ];
 
   const completionRate = pct(completed, eligibleToComplete);
   const avgDurationDays = durations.length ? Math.round((durations.reduce((a, b) => a + b, 0) / durations.length) * 10) / 10 : null;

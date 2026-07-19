@@ -1,4 +1,4 @@
-import { lifecycleAnalytics, type StepStat, type Insight } from "@/lib/lifecycleAnalytics";
+import { lifecycleAnalytics, type StepStat, type Insight, type StatusBucket } from "@/lib/lifecycleAnalytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
@@ -139,10 +139,13 @@ export default async function AdminLifecyclePage() {
               </tr>
             </thead>
             <tbody>
-              {a.steps.map((s) => (
+              {a.steps.map((s, i) => (
                 <tr key={s.id} className="border-t border-white/[0.06]">
                   <td className="py-2.5 text-ink-100">
-                    {s.label}
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="text-[9.5px] font-mono uppercase tracking-[0.1em] text-ink-500 border border-white/[0.1] rounded px-1.5 py-0.5">Email {i + 1}</span>
+                      <span>{s.label}</span>
+                    </span>
                     <div className="text-[10.5px] text-ink-500 truncate max-w-[220px]">{s.subject}</div>
                   </td>
                   <td className="py-2.5 text-ink-400 font-mono tabular-nums">{s.dayOffset}</td>
@@ -167,22 +170,12 @@ export default async function AdminLifecyclePage() {
       </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* ── Current status ── */}
-        <Panel title="Current Onboarding Status" hint="Where active subscribers sit in the journey right now.">
-          <div className="space-y-2">
-            {a.status.map((b) => {
-              const w = (b.count / Math.max(...a.status.map((x) => x.count), 1)) * 100;
-              return (
-                <div key={b.key} className="flex items-center gap-3">
-                  <div className="w-40 shrink-0 text-[12px] text-ink-300 truncate">{b.label}</div>
-                  <div className="flex-1 h-5 rounded bg-white/[0.04] overflow-hidden">
-                    <div className="h-full rounded" style={{ width: `${Math.max(w, 3)}%`, background: b.key === "completed" ? "rgba(52,211,153,0.45)" : "rgba(94,234,212,0.3)" }} />
-                  </div>
-                  <div className="w-12 shrink-0 text-right font-mono text-[12px] text-ink-100 tabular-nums">{fmt(b.count)}</div>
-                </div>
-              );
-            })}
-          </div>
+        {/* ── Current onboarding stage: the NEXT email each subscriber is due ── */}
+        <Panel
+          title="Current Onboarding Stage"
+          hint="The next onboarding email each active subscriber is scheduled to receive — where everyone sits in the journey right now. Improve an email and this is exactly who benefits next."
+        >
+          <JourneyStages status={a.status} />
         </Panel>
 
         {/* ── Founder insights ── */}
@@ -333,6 +326,83 @@ function FunnelRow({ step, prev, base }: { step: StepStat; prev: StepStat | null
         {step.opened.toLocaleString()} opened
         {drop != null && <span className={drop > 0 ? "text-signal-red ml-1.5" : "text-signal-green ml-1.5"}>{drop > 0 ? `▼${drop}%` : `▲${-drop}%`}</span>}
       </div>
+    </div>
+  );
+}
+
+// The onboarding journey as a vertical, connected sequence of stages. Each row
+// is the NEXT email a group of active subscribers is due — so the biggest bar is
+// the biggest opportunity: improve that email and this many people benefit next.
+function JourneyStages({ status }: { status: StatusBucket[] }) {
+  const total = status.reduce((sum, b) => sum + b.count, 0);
+  const maxCount = Math.max(...status.map((b) => b.count), 1);
+  // Biggest concentration among subscribers still moving through the journey.
+  const peak = status.filter((b) => b.stage !== "completed").reduce((m, b) => Math.max(m, b.count), 0);
+  const share = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
+
+  const teal = "#5eead4";
+  const green = "#3ddc97";
+
+  return (
+    <div>
+      <ol className="relative">
+        {status.map((b, i) => {
+          const isLast = i === status.length - 1;
+          const done = b.stage === "completed";
+          const isPeak = !done && b.count > 0 && b.count === peak;
+          const w = (b.count / maxCount) * 100;
+          const kicker = b.stage === "awaiting" ? "Awaiting first email" : done ? "Finished" : "Next email due";
+          const nodeColor = done ? green : isPeak ? teal : "rgba(255,255,255,0.35)";
+          const barColor = done ? "rgba(61,220,151,0.5)" : isPeak ? "rgba(94,234,212,0.6)" : "rgba(94,234,212,0.26)";
+
+          return (
+            <li key={b.key} className="relative flex gap-3">
+              {/* rail: numbered node + connector */}
+              <div className="relative flex flex-col items-center w-6 shrink-0">
+                <span
+                  className="z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-ink-875 font-mono text-[10px] tabular-nums"
+                  style={{ borderColor: nodeColor, color: nodeColor }}
+                >
+                  {done ? "✓" : b.emailNumber}
+                </span>
+                {!isLast && <span className="w-px flex-1 bg-white/[0.1]" />}
+              </div>
+
+              {/* body */}
+              <div className="min-w-0 flex-1 pb-3.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[9.5px] uppercase tracking-[0.14em]" style={{ color: done ? green : isPeak ? teal : "#5a6677" }}>
+                      {kicker}
+                    </div>
+                    <div className="truncate text-[12.5px] text-ink-100">
+                      {done ? b.label : `Email ${b.emailNumber} · ${b.label}`}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <span className="font-mono text-[13px] text-ink-50 tabular-nums">{fmt(b.count)}</span>
+                    <span className="ml-1.5 text-[10.5px] text-ink-500 tabular-nums">{share(b.count)}%</span>
+                  </div>
+                </div>
+                <div className="mt-1.5 h-2 overflow-hidden rounded bg-white/[0.04]">
+                  <div className="h-full rounded" style={{ width: `${b.count > 0 ? Math.max(w, 4) : 0}%`, background: barColor }} />
+                </div>
+                {isPeak && <div className="mt-1 text-[10px] text-accent">← most active subscribers are here</div>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-1 border-t border-white/[0.06] pt-3 text-[11px] text-ink-500 leading-relaxed">
+        {total > 0 ? (
+          <>
+            <span className="font-mono tabular-nums text-ink-300">{fmt(total)}</span> active subscribers, placed by the next email due. Counts move
+            down the journey as the sequence sends.
+          </>
+        ) : (
+          "No active subscribers in the journey yet — stages fill in as people sign up and the sequence sends."
+        )}
+      </p>
     </div>
   );
 }
