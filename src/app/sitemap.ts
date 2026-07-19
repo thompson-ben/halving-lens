@@ -5,6 +5,8 @@ import { STORED_BRIEFS } from "@/lib/data/briefs";
 import { allEditions } from "@/lib/research";
 import { allWeeklies } from "@/lib/weekly";
 import { allFindings } from "@/lib/findings";
+import { allBriefs } from "@/lib/evidenceBriefs";
+import { allNotes } from "@/lib/researchNotes";
 
 // Public routes only — admin/metrics is excluded (noindex), and /start is
 // intentionally left out (paid-ad landing, kept out of organic discovery).
@@ -20,6 +22,8 @@ const STATIC_PATHS = [
   "/brief/archive",
   "/research",
   "/research/findings",
+  "/research/briefs",
+  "/research/notes",
   "/weekly",
   "/weekly/archive",
   "/sentiment",
@@ -46,6 +50,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       | "weekly",
     priority: path === "/" ? 1 : path === "/brief" ? 0.9 : 0.7,
   }));
+
+  const mythsEntry = {
+    url: `${SITE_URL}/research/myths`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  };
 
   const metricEntries = METRICS.map((m) => ({
     url: `${SITE_URL}/metrics/${m.slug}`,
@@ -82,12 +93,29 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
+  const evidenceBriefEntries = allBriefs().map((b) => ({
+    url: `${SITE_URL}/research/briefs/${b.slug}`,
+    lastModified: new Date(b.datePublished),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  const researchNoteEntries = allNotes().map((n) => ({
+    url: `${SITE_URL}/research/notes/${n.slug}`,
+    lastModified: new Date(n.datePublished),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   return [
     ...staticEntries,
+    mythsEntry,
     ...metricEntries,
     ...briefEntries,
     ...researchEntries,
     ...weeklyEntries,
     ...findingEntries,
+    ...evidenceBriefEntries,
+    ...researchNoteEntries,
   ];
 }

@@ -1,13 +1,21 @@
 import Link from "next/link";
-import { ArrowUpRight, Star } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { format } from "date-fns";
 import type { ResearchFinding } from "@/lib/findings";
+import type { ResearchBadge } from "@/lib/researchBadges";
+import { ResearchBadges } from "./ResearchBadges";
 import { FindingStatusBadge } from "./FindingStatusBadge";
 
 // Canonical card for a Research Finding — used on the homepage feature row and in
-// the Research Findings library. Leads with the permanent citation ID.
+// the Research Findings library. Evergreen framing: it leads with the permanent
+// citation ID and the finding's tier, then the editorial badge row; the
+// publication date is demoted to small, dim secondary metadata.
 
-export function ResearchFindingCard({ f }: { f: ResearchFinding }) {
+function tierLabel(f: ResearchFinding): string {
+  return f.foundational ? "Foundational Research" : "Research Paper";
+}
+
+export function ResearchFindingCard({ f, badges }: { f: ResearchFinding; badges?: ResearchBadge[] }) {
   let dateLabel = f.datePublished;
   try {
     dateLabel = format(new Date(f.datePublished), "d MMM yyyy");
@@ -21,8 +29,9 @@ export function ResearchFindingCard({ f }: { f: ResearchFinding }) {
     >
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[11px] tracking-[0.14em] text-[#d9b96a]">{f.id}</span>
-        <span className="text-[11px] text-ink-500">{dateLabel}</span>
+        <span className="text-[10px] uppercase tracking-[0.14em] text-ink-500">{tierLabel(f)}</span>
       </div>
+      {badges && badges.length > 0 && <ResearchBadges badges={badges} className="mt-2.5" />}
       <h3 className="mt-3 font-display text-[18px] leading-snug text-ink-50">{f.title}</h3>
       <p className="mt-2 text-[13px] leading-relaxed text-ink-400 flex-1">{f.summary}</p>
       <div className="mt-4 flex items-center justify-between gap-2">
@@ -30,12 +39,8 @@ export function ResearchFindingCard({ f }: { f: ResearchFinding }) {
           Read research
           <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          {f.editorsPick && (
-            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[#d9b96a]">
-              <Star className="w-3 h-3 fill-current" /> Pick
-            </span>
-          )}
+        <span className="inline-flex items-center gap-2">
+          <span className="text-[10.5px] text-ink-600">Published {dateLabel}</span>
           {f.status !== "active" && <FindingStatusBadge status={f.status} />}
         </span>
       </div>
