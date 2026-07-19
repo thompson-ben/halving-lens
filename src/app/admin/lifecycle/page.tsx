@@ -1,4 +1,4 @@
-import { lifecycleAnalytics, type StepStat, type Insight, type StatusBucket } from "@/lib/lifecycleAnalytics";
+import { lifecycleAnalytics, type StepStat, type Insight, type StatusBucket, type ConfirmationStat } from "@/lib/lifecycleAnalytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
@@ -170,12 +170,12 @@ export default async function AdminLifecyclePage() {
       </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* ── Current onboarding stage: the NEXT email each subscriber is due ── */}
+        {/* ── Current subscriber journey: entry (transactional) → onboarding ── */}
         <Panel
-          title="Current Onboarding Stage"
-          hint="The next onboarding email each active subscriber is scheduled to receive — where everyone sits in the journey right now. Improve an email and this is exactly who benefits next."
+          title="Current Subscriber Journey"
+          hint="The full path from the moment someone subscribes: the immediate confirmation email, then the next onboarding email each active subscriber is due. Improve a stage and this is exactly who benefits next."
         >
-          <JourneyStages status={a.status} />
+          <JourneyStages status={a.status} confirmation={a.confirmation} />
         </Panel>
 
         {/* ── Founder insights ── */}
@@ -243,6 +243,11 @@ export default async function AdminLifecyclePage() {
       <section>
         <h2 className="text-[10px] font-medium uppercase tracking-[0.2em] text-ink-500 mb-2">Not yet measured — what each needs</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Gap
+            title="Confirmation email delivery"
+            shows="Delivery, bounce and true open/click rate for the immediate confirmation email — the one email that, if it silently stopped sending, would undermine every subscription."
+            needs="The welcome send is fired best-effort on signup and isn't written to email_sends, so there's no sent denominator (opens/clicks are captured, rates aren't). Log the welcome send + add Resend delivery webhooks to unlock a real rate."
+          />
           <Gap
             title="Engagement trigger analysis"
             shows="For each email: what % of recipients then read the Daily Brief, viewed State of Bitcoin, opened Research, or watched YouTube."
@@ -330,10 +335,60 @@ function FunnelRow({ step, prev, base }: { step: StepStat; prev: StepStat | null
   );
 }
 
-// The onboarding journey as a vertical, connected sequence of stages. Each row
-// is the NEXT email a group of active subscribers is due — so the biggest bar is
-// the biggest opportunity: improve that email and this many people benefit next.
-function JourneyStages({ status }: { status: StatusBucket[] }) {
+// The journey's entry marker: the immediate confirmation ("welcome") email.
+// It's transactional, not onboarding — sent the instant someone subscribes — so
+// it carries no waiting-count and no number. We show the engagement we honestly
+// have (distinct opens / clicks); a true delivery/open RATE needs the welcome
+// send logged + Resend webhooks (see the gap panel), so we never fake one here.
+function ConfirmationStage({ confirmation, gold }: { confirmation: ConfirmationStat; gold: string }) {
+  return (
+    <li className="relative flex gap-3">
+      {/* rail: gold transactional node + connector down into onboarding */}
+      <div className="relative flex flex-col items-center w-6 shrink-0">
+        <span
+          className="z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-ink-875 text-[11px]"
+          style={{ borderColor: gold, color: gold }}
+        >
+          ✓
+        </span>
+        <span className="w-px flex-1" style={{ background: "rgba(217,185,106,0.25)" }} />
+      </div>
+
+      {/* body */}
+      <div className="min-w-0 flex-1 pb-3.5">
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[9.5px] uppercase tracking-[0.14em]" style={{ color: gold }}>
+              Transactional · sent instantly
+            </div>
+            <div className="truncate text-[12.5px] text-ink-100">Confirmation email</div>
+          </div>
+          <div className="shrink-0 text-right">
+            {confirmation.tracked ? (
+              <span className="font-mono text-[11.5px] tabular-nums text-ink-300">
+                {fmt(confirmation.opened)} <span className="text-ink-500">opened</span>
+                <span className="text-ink-600"> · </span>
+                {fmt(confirmation.clicked)} <span className="text-ink-500">clicked</span>
+              </span>
+            ) : (
+              <span className="font-mono text-[11.5px] text-ink-600">— not yet tracked</span>
+            )}
+          </div>
+        </div>
+        <div className="mt-1.5 text-[10.5px] text-ink-500">
+          Every subscriber receives this the moment they sign up — before onboarding begins.
+        </div>
+      </div>
+    </li>
+  );
+}
+
+// The subscriber journey as a vertical, connected sequence. It opens with the
+// TRANSACTIONAL confirmation email (an entry marker — sent instantly, nobody
+// waits at it) and then flows into the numbered onboarding buckets, each of
+// which IS a holding stage: the next email that group is due. The biggest
+// onboarding bar is the biggest opportunity — improve it and this many benefit.
+function JourneyStages({ status, confirmation }: { status: StatusBucket[]; confirmation: ConfirmationStat }) {
   const total = status.reduce((sum, b) => sum + b.count, 0);
   const maxCount = Math.max(...status.map((b) => b.count), 1);
   // Biggest concentration among subscribers still moving through the journey.
@@ -346,6 +401,8 @@ function JourneyStages({ status }: { status: StatusBucket[] }) {
   return (
     <div>
       <ol className="relative">
+        {/* Entry stage: the transactional confirmation email (not numbered). */}
+        <ConfirmationStage confirmation={confirmation} gold={GOLD} />
         {status.map((b, i) => {
           const isLast = i === status.length - 1;
           const done = b.stage === "completed";

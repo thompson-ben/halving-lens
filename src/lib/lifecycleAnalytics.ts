@@ -64,6 +64,18 @@ export interface StepStat {
   lastSendISO: string | null;
 }
 
+// The immediate confirmation ("welcome") email is a TRANSACTIONAL lifecycle
+// email, not part of the numbered onboarding sequence — it fires the instant
+// someone subscribes. Nobody ever waits at it, so it isn't a StatusBucket (a
+// holding stage); it's the journey's entry marker. We can measure its opens and
+// clicks (campaign="welcome" events), but its send is not logged to email_sends,
+// so there is no honest denominator for a delivery/open RATE — hence counts only.
+export interface ConfirmationStat {
+  opened: number; // distinct subscribers who opened the confirmation email
+  clicked: number; // distinct subscribers who clicked a link inside it
+  tracked: boolean; // any engagement recorded yet? (false → honest "—", not zero)
+}
+
 // A stage in the onboarding journey, defined by the NEXT email a subscriber is
 // due to receive (not the last one they got). This is the operationally useful
 // framing: "improve Email 3 today → these subscribers will benefit".
@@ -116,6 +128,7 @@ export interface LifecycleAnalytics {
   };
   steps: StepStat[];
   enrolled: number; // active subscribers in the programme (funnel top)
+  confirmation: ConfirmationStat; // the transactional entry email (welcome)
   status: StatusBucket[];
   cohorts: CohortRow[];
   health: { score: number | null; band: string | null; components: HealthComponent[] };
@@ -167,17 +180,21 @@ export interface LifecycleInput {
   sends: SendRow[];
   opens: PropRow[];
   clicks: PropRow[];
+  welcomeOpens: PropRow[]; // email_open events for the confirmation email (campaign="welcome")
+  welcomeClicks: PropRow[]; // email_click events for the confirmation email
   emailSends: EmailSendRow[];
 }
 
 export async function lifecycleAnalytics(): Promise<LifecycleAnalytics> {
   if (!supabaseConfigured) return emptyAnalytics();
 
-  const [subsRaw, sendsRaw, openRaw, clickRaw, emailSendsRaw] = await Promise.all([
+  const [subsRaw, sendsRaw, openRaw, clickRaw, welcomeOpenRaw, welcomeClickRaw, emailSendsRaw] = await Promise.all([
     sbSelect<SubRow[]>("brief_subscribers?select=email,source,status,signup_at&limit=100000"),
     sbSelect<SendRow[]>("lifecycle_sends?select=email,step,sent_at&limit=100000"),
     sbSelect<PropRow[]>("events?select=props&name=eq.email_open&props->>campaign=like.lifecycle-*&limit=100000"),
     sbSelect<PropRow[]>("events?select=props&name=eq.email_click&props->>campaign=like.lifecycle-*&limit=100000"),
+    sbSelect<PropRow[]>("events?select=props&name=eq.email_open&props->>campaign=eq.welcome&limit=100000"),
+    sbSelect<PropRow[]>("events?select=props&name=eq.email_click&props->>campaign=eq.welcome&limit=100000"),
     sbSelect<EmailSendRow[]>("email_sends?select=email_status,sent_at&limit=100000"),
   ]);
 
@@ -189,6 +206,8 @@ export async function lifecycleAnalytics(): Promise<LifecycleAnalytics> {
       sends: sendsRaw ?? [],
       opens: openRaw ?? [],
       clicks: clickRaw ?? [],
+      welcomeOpens: welcomeOpenRaw ?? [],
+      welcomeClicks: welcomeClickRaw ?? [],
       emailSends: emailSendsRaw ?? [],
     },
     Date.now(),
@@ -214,6 +233,7 @@ function emptyAnalytics(): LifecycleAnalytics {
     },
     steps: [],
     enrolled: 0,
+    confirmation: { opened: 0, clicked: 0, tracked: false },
     status: [],
     cohorts: [],
     health: { score: null, band: null, components: [] },
@@ -231,6 +251,26 @@ export function computeLifecycle(input: LifecycleInput, now: number): LifecycleA
   const sends = input.sends;
   const opens = input.opens;
   const clicks = input.clicks;
+
+  // ── Confirmation (welcome) email — the transactional journey entry ──────────
+  // Distinct subscribers (by privacy-safe hash) who opened / clicked it. Counts
+  // only: the welcome send isn't logged to email_sends, so there's no honest
+  // denominator for a rate (see the "Confirmation email delivery" gap panel).
+  const distinctSubs = (rows: PropRow[]): number => {
+    const seen = new Set<string>();
+    for (const r of rows) {
+      const sub = String(r.props?.sub ?? "");
+      if (sub) seen.add(sub);
+    }
+    return seen.size;
+  };
+  const confirmationOpened = distinctSubs(input.welcomeOpens);
+  const confirmationClicked = distinctSubs(input.welcomeClicks);
+  const confirmation: ConfirmationStat = {
+    opened: confirmationOpened,
+    clicked: confirmationClicked,
+    tracked: confirmationOpened > 0 || confirmationClicked > 0,
+  };
 
   const steps = [...LIFECYCLE_STEPS].filter((s) => s.enabled ?? true).sort((a, b) => a.dayOffset - b.dayOffset);
   const finalStep = steps[steps.length - 1];
@@ -500,6 +540,7 @@ export function computeLifecycle(input: LifecycleInput, now: number): LifecycleA
     },
     steps: stepStats,
     enrolled: active.length,
+    confirmation,
     status,
     cohorts,
     health: { score: healthScore, band, components },
