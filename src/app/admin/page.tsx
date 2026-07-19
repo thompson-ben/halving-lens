@@ -27,6 +27,7 @@ const SECTIONS: AdminSection[] = [
     emoji: "📈",
     items: [
       { label: "Growth Dashboard", href: "/admin/growth" },
+      { label: "Lifecycle Analytics", href: "/admin/lifecycle" },
       { label: "Share campaigns", href: "/admin/campaigns" },
       { label: "Experiments", href: "/admin/experiments" },
       { label: "Funnel & WAES", href: "/admin/growth" },
@@ -50,6 +51,7 @@ const SECTIONS: AdminSection[] = [
     emoji: "📊",
     items: [
       { label: "Executive summary", href: "/admin/executive" },
+      { label: "Lifecycle Analytics", href: "/admin/lifecycle" },
       { label: "Website Analytics", href: "/admin/analytics" },
       { label: "Email Analytics", href: "/admin/growth" },
       { label: "Campaign Analytics", href: "/admin/growth" },
