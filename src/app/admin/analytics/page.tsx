@@ -211,8 +211,18 @@ export default async function AdminAnalyticsPage() {
       </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Panel title="Top pages">
-          <Bars items={a.topPages} />
+        <Panel title="Visitor journeys">
+          <p className="text-[12.5px] text-ink-300 leading-relaxed">
+            Page-view rankings answer &ldquo;which pages got traffic?&rdquo; — not &ldquo;how do visitors discover value?&rdquo;.
+            That story now lives in <span className="text-ink-100">Visitor Journey Intelligence</span>: explorer rate, journey depth,
+            the paths that create subscribers, exits and visitor flow.
+          </p>
+          <a
+            href="/admin/journeys"
+            className="mt-3 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-accent/25 bg-accent/[0.06] text-accent text-[12.5px] hover:bg-accent/[0.1] transition-colors"
+          >
+            Open Visitor Journey Intelligence →
+          </a>
         </Panel>
         <Panel title="Top signup sources">
           <Bars items={a.topSignupSources} empty="No signups yet." />
