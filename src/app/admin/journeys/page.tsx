@@ -3,6 +3,9 @@ import {
   type JourneyPath,
   type LandingRow,
   type ExitRow,
+  type ExitOutcomes,
+  type ConversionPageRow,
+  type TimeToSubscribe,
   type TransitionFrom,
   type DiscoveryRow,
   type SegmentDepth,
@@ -32,6 +35,12 @@ function fmtDur(sec: number | null): string {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return s ? `${m}m ${s}s` : `${m}m`;
+}
+// Minutes as a founder-legible span. Sub-minute conversions read as seconds.
+function fmtMins(min: number | null): string {
+  if (min == null) return "—";
+  if (min < 1) return `${Math.round(min * 60)}s`;
+  return `${min} min`;
 }
 const asOfFmt = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
@@ -86,6 +95,14 @@ export default async function AdminJourneysPage() {
         <Kpi label="Subscribers" value={fmtN(k.subscribers)} sub="converting sessions" />
       </div>
 
+      {/* THE founder question: did visitors achieve our goal before they left? */}
+      <Panel
+        title="Exit Outcomes"
+        hint="Every session ends in an exit — but not every exit is a loss. A subscriber leaving is success; a member browsing is neutral; only a visitor who left without subscribing is a problem. Lost visitors is the number to reduce."
+      >
+        <ExitOutcomesWidget o={j.exitOutcomes} since={sinceFmt(j.dataSince)} />
+      </Panel>
+
       <Panel title="Journey Funnel" hint="How far visitors get. Each step is the share of sessions reaching that depth — instantly shows exploring vs bouncing.">
         <Funnel steps={j.funnel} />
       </Panel>
@@ -104,7 +121,7 @@ export default async function AdminJourneysPage() {
           </ol>
         </Panel>
 
-        <Panel title="AI Founder Insights" hint="Deterministic, evidence-backed — journeys, not page counts. Each is derived from the numbers on this page.">
+        <Panel title="AI Founder Insights" hint="Deterministic, evidence-backed — journeys, not page counts. Every insight points at an optimisation action, not just a number.">
           <ul className="space-y-2.5">
             {j.insights.map((ins, i) => (
               <InsightRow key={i} ins={ins} />
@@ -113,12 +130,30 @@ export default async function AdminJourneysPage() {
         </Panel>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Panel title="Best Converting Journeys" hint="Not the most common — the highest-converting ordered paths (min sample applied). These are the navigation patterns worth actively encouraging.">
+          <ol className="space-y-2.5">
+            {j.bestJourneys.map((jp, i) => (
+              <JourneyRow key={i} jp={jp} rank={i + 1} />
+            ))}
+            {!j.bestJourneys.length && <Empty>Not enough converting journeys yet to rank — appears as conversions accrue.</Empty>}
+          </ol>
+        </Panel>
+        <Panel title="Subscribers by Conversion Page" hint="Which page actually did the persuading — where the signup fired. Arguably more useful than where they landed: this is the content that converts.">
+          <ConversionPages rows={j.conversionPages} />
+        </Panel>
+      </div>
+
+      <Panel title="Time to Subscribe" hint="How much journey a visitor needs before converting. Front-load the case for subscribing within these first pages rather than deeper in.">
+        <TimeToSubscribeWidget t={j.timeToSubscribe} />
+      </Panel>
+
       <Panel title="Landing Page Effectiveness" hint="Whether each entry point actually works — do arrivals explore, and do they subscribe?">
         <LandingTable rows={j.landings} />
       </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Panel title="Exit Analysis" hint="Where visitors stop exploring. High exit + shallow depth = a page that needs stronger onward links.">
+        <Panel title="Exit Analysis" hint="Not just where visitors leave — whether they left having subscribed. High exits with a low subscribe-before-exit % are the genuine lost opportunities.">
           <ExitTable rows={j.exits} />
         </Panel>
         <Panel title="Discovery Matrix" hint="How each landing page naturally leads visitors onward — the most common second and third page.">
@@ -368,16 +403,26 @@ function LandingTable({ rows }: { rows: LandingRow[] }) {
 }
 
 // ── Exit table ────────────────────────────────────────────────────────────────
+// Success % (subscribed before exit) is what tells an acceptable exit from a lost
+// opportunity — colour-graded so the leaks jump out.
+function successColor(p: number | null): string {
+  if (p == null) return "#5a6677";
+  if (p >= 20) return "#3ddc97"; // healthy
+  if (p >= 8) return "#f5b942"; // middling
+  return "#ff5d5d"; // leaking
+}
 function ExitTable({ rows }: { rows: ExitRow[] }) {
   if (!rows.length) return <Empty>No exit data yet.</Empty>;
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[12.5px] min-w-[420px]">
+      <table className="w-full text-[12.5px] min-w-[520px]">
         <thead>
           <tr className="text-ink-500 text-[10px] uppercase tracking-[0.12em] text-left">
             <th className="font-normal pb-2">Exit page</th>
             <th className="font-normal pb-2 text-right">Exits</th>
-            <th className="font-normal pb-2 text-right">Exit rate</th>
+            <th className="font-normal pb-2 text-right">Subscribed</th>
+            <th className="font-normal pb-2 text-right">Lost</th>
+            <th className="font-normal pb-2 text-right">Success</th>
             <th className="font-normal pb-2 text-right">Depth</th>
             <th className="font-normal pb-2 text-right">Time</th>
           </tr>
@@ -387,13 +432,110 @@ function ExitTable({ rows }: { rows: ExitRow[] }) {
             <tr key={r.path} className="border-t border-white/[0.06]">
               <td className="py-2.5 text-ink-100">{r.label}</td>
               <td className="py-2.5 text-right font-mono tabular-nums text-ink-200">{fmtN(r.exits)}</td>
-              <td className="py-2.5 text-right font-mono tabular-nums text-ink-300">{rate(r.exitRatePct)}</td>
+              <td className="py-2.5 text-right font-mono tabular-nums" style={{ color: r.subscribed > 0 ? "#3ddc97" : "#5a6677" }}>
+                {fmtN(r.subscribed)}
+              </td>
+              <td className="py-2.5 text-right font-mono tabular-nums" style={{ color: r.lost > 0 ? "#c98b93" : "#5a6677" }}>
+                {fmtN(r.lost)}
+              </td>
+              <td className="py-2.5 text-right font-mono tabular-nums font-medium" style={{ color: successColor(r.successPct) }}>
+                {rate(r.successPct)}
+              </td>
               <td className="py-2.5 text-right font-mono tabular-nums text-ink-400">{r.avgDepthBeforeExit ?? "—"}</td>
               <td className="py-2.5 text-right font-mono tabular-nums text-ink-400">{fmtDur(r.avgTimeBeforeExitSec)}</td>
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ── Exit outcomes — the founder KPI ─────────────────────────────────────────
+function ExitOutcomesWidget({ o, since }: { o: ExitOutcomes; since: string }) {
+  if (!o.total) return <Empty>No sessions yet.</Empty>;
+  const tiles = [
+    { label: "Successful exits", value: o.successfulPct, count: o.successful, color: "#3ddc97", note: "subscribed before leaving" },
+    { label: "Returning members", value: o.neutralPct, count: o.neutral, color: "#f5b942", note: "already subscribed — just browsing" },
+    { label: "Lost visitors", value: o.lostPct, count: o.lost, color: "#ff5d5d", note: "left without subscribing" },
+  ];
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+        {tiles.map((t) => (
+          <div key={t.label} className="bg-[#0b0f15] px-4 py-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full" style={{ background: t.color }} />
+              <span className="text-[10px] uppercase tracking-[0.14em] text-ink-400">{t.label}</span>
+            </div>
+            <div className="mt-2 font-mono text-[30px] tabular-nums leading-none" style={{ color: t.color }}>
+              {rate(t.value)}
+            </div>
+            <div className="mt-1.5 text-[11px] text-ink-500">
+              {fmtN(t.count)} session{t.count === 1 ? "" : "s"} · {t.note}
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Split bar — the whole visitor population at a glance */}
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-white/[0.04]">
+        <div style={{ width: `${o.successfulPct ?? 0}%`, background: "#3ddc97" }} />
+        <div style={{ width: `${o.neutralPct ?? 0}%`, background: "#f5b942" }} />
+        <div style={{ width: `${o.lostPct ?? 0}%`, background: "#ff5d5d" }} />
+      </div>
+      {!o.memberDetection && (
+        <p className="text-[11px] text-ink-500 leading-relaxed">
+          Returning-member detection links a visit back to an earlier signup via the anonymous visitor id, which is{" "}
+          <span className="text-ink-400">collecting since {since}</span>. Until enough has accrued, members browsing before then can&apos;t be told
+          apart from lost visitors, so they currently count as lost — the split sharpens over time.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Conversion attribution ────────────────────────────────────────────────────
+function ConversionPages({ rows }: { rows: ConversionPageRow[] }) {
+  if (!rows.length) return <Empty>No subscriptions attributed to a page yet.</Empty>;
+  const max = Math.max(...rows.map((r) => r.subscribers), 1);
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => (
+        <div key={r.path} className="flex items-center gap-3">
+          <div className="w-36 shrink-0 text-[12px] text-ink-200 truncate">{r.label}</div>
+          <div className="flex-1 h-5 rounded bg-white/[0.03] overflow-hidden">
+            <div className="h-full rounded" style={{ width: `${Math.max((r.subscribers / max) * 100, 3)}%`, background: "rgba(61,220,151,0.4)" }} />
+          </div>
+          <div className="w-20 shrink-0 text-right font-mono text-[11.5px] tabular-nums text-ink-100">
+            {fmtN(r.subscribers)} <span className="text-ink-500">· {rate(r.pct)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Time to subscribe ───────────────────────────────────────────────────────
+function TimeToSubscribeWidget({ t }: { t: TimeToSubscribe }) {
+  if (!t.converters) return <Empty>No conversions yet to measure time-to-subscribe.</Empty>;
+  const tiles = [
+    { label: "Avg pages", value: t.avgPages != null ? `${t.avgPages}` : "—", sub: "before subscribing" },
+    { label: "Median pages", value: t.medianPages != null ? `${t.medianPages}` : "—", sub: "typical visitor" },
+    { label: "Avg time", value: fmtMins(t.avgMinutes), sub: "entry → subscribe" },
+    { label: "Median time", value: fmtMins(t.medianMinutes), sub: "typical visitor" },
+  ];
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+      {tiles.map((tl) => (
+        <div key={tl.label} className="bg-[#0b0f15] px-4 py-3.5">
+          <div className="text-[9.5px] uppercase tracking-[0.14em] text-ink-400">{tl.label}</div>
+          <div className="mt-1.5 font-mono text-[22px] tabular-nums leading-none text-ink-50">{tl.value}</div>
+          <div className="mt-1 text-[10px] text-ink-500 truncate">{tl.sub}</div>
+        </div>
+      ))}
+      <div className="col-span-2 lg:col-span-4 bg-[#0b0f15] px-4 py-2 text-[10.5px] text-ink-500 border-t border-white/[0.04]">
+        Based on {fmtN(t.converters)} converting session{t.converters === 1 ? "" : "s"} — pages counted up to the moment the signup fired.
+      </div>
     </div>
   );
 }
