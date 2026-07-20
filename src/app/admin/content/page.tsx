@@ -21,7 +21,7 @@ export const metadata = {
 // Admin-only Daily Content Pack studio: one-click branded carousel cards + copy
 // blocks, all generated from today's Daily Brief. Auth via the metrics dashboard
 // session cookie (or ?key= match). Noindex, unlinked from public nav.
-export default async function ContentPackPage() {
+export default async function ContentPackPage({ searchParams }: { searchParams?: { pack?: string } }) {
   if (!adminConfigured()) {
     return (
       <Shell>
@@ -91,7 +91,7 @@ export default async function ContentPackPage() {
     <Shell>
       <TodaysPlan plan={plan} etf={etf} acc={acc} />
       <EditorialEngine decision={decision} recent={recent} />
-      <ContentPackStudio packs={packs} />
+      <ContentPackStudio packs={packs} initialPackId={searchParams?.pack} />
       <div className="mt-12 pt-10 border-t border-white/[0.07]">
         <ReelStudio reel={reel} script={reelScriptText(reel)} />
       </div>
