@@ -352,13 +352,16 @@ function Chart({
       {lines.map((l, i) => (
         <polyline key={`l${i}`} points={toPts(l.points)} fill="none" stroke={l.color} strokeWidth={3.5} />
       ))}
-      {/* "You are here" — a vertical guide + dot at today's position. */}
-      {today && (
-        <>
-          <line x1={today.x * width} y1={0} x2={today.x * width} y2={height} stroke="rgba(255,255,255,0.5)" strokeWidth={2} />
-          <circle cx={today.x * width} cy={(1 - today.y) * height} r={11} fill="#ffffff" stroke="#070a0f" strokeWidth={4} />
-        </>
-      )}
+      {/* "You are here" — a vertical guide + dot at today's position. Emitted as a
+          keyed array rather than a <>…</> fragment: Satori (@vercel/og) can't
+          render a Fragment as an SVG child and throws "Cannot convert a Symbol
+          value to a string", which previously broke the whole cycle-overlay card. */}
+      {today
+        ? [
+            <line key="today-line" x1={today.x * width} y1={0} x2={today.x * width} y2={height} stroke="rgba(255,255,255,0.5)" strokeWidth={2} />,
+            <circle key="today-dot" cx={today.x * width} cy={(1 - today.y) * height} r={11} fill="#ffffff" stroke="#070a0f" strokeWidth={4} />,
+          ]
+        : null}
     </svg>
   );
 }
