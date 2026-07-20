@@ -1,4 +1,4 @@
-import { SOURCE } from "@/lib/btcData";
+import { SOURCE, SPOT } from "@/lib/btcData";
 import { cn } from "@/lib/cn";
 
 // Clear "as of" timestamp for any surface that states a price or metric. Values
@@ -50,10 +50,20 @@ export function lastUpdatedDate(): string | null {
   return fmtDate.format(new Date(SOURCE.fetchedAt));
 }
 
+// Date (UTC) of the daily close the headline price actually represents — the
+// last COMPLETED daily candle (SPOT.ts), NOT when we synced (SOURCE.fetchedAt).
+// The sync runs during the current, still-unfinished day, so dating the close
+// by the sync time reads as "a close for a day that hasn't ended yet". Dating it
+// by the candle's own timestamp is what the number genuinely is.
+export function dailyCloseDate(): string | null {
+  if (!SPOT?.ts) return null;
+  return fmtDate.format(new Date(SPOT.ts));
+}
+
 // Source label that states the price is a daily close AND which day's close it
 // is — so freshness is obvious right where the number is described.
 export function dailyCloseSource(): string {
-  const d = lastUpdatedDate();
+  const d = dailyCloseDate();
   return d ? `daily close · ${d}` : "daily close";
 }
 

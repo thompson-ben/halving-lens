@@ -6,6 +6,18 @@ import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Growth analytics — halvinglens.com", robots: { index: false } };
 
+// Format an average time-on-page (seconds) as a readable duration. Raw seconds
+// like "1878s" are hard to read and easy to misjudge; "31m 18s" is instantly
+// legible. This is dwell time (captured when the visitor leaves the page), so a
+// large value usually means tabs left open — not active reading time.
+function fmtDuration(seconds: number | null): string {
+  if (seconds == null) return "—";
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s ? `${m}m ${s}s` : `${m}m`;
+}
+
 // Founder growth dashboard. Admin-only (same session cookie as /admin/metrics).
 // Focused on product learning: what users value, what they share, and where the
 // email list grows from. Reads first-party Supabase analytics.
@@ -131,20 +143,20 @@ export default async function AdminAnalyticsPage() {
 
       {/* Page performance — Accumulation + Daily Brief */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Panel title="Accumulation Index performance">
+        <Panel title="Accumulation Index performance" subtitle="All-time · the Accumulation Index page (/accumulation). Avg time on page is dwell captured on exit, not active reading time.">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden">
             <MiniStat label="Page views" value={acc.views} />
             <MiniStat label="Signups here" value={acc.signups} />
-            <MiniStat label="Avg time" value={acc.avgSeconds != null ? `${acc.avgSeconds}s` : "—"} />
+            <MiniStat label="Avg time on page" value={fmtDuration(acc.avgSeconds)} />
             <MiniStat label="Avg scroll" value={acc.avgScroll != null ? `${acc.avgScroll}%` : "—"} />
             <MiniStat label="DCA tweaks" value={acc.dcaChanges} />
             <MiniStat label="Timeline + copies" value={acc.timelineChanges + acc.copies} />
           </div>
         </Panel>
-        <Panel title="Daily Brief performance">
+        <Panel title="Daily Brief performance" subtitle="All-time · the live Daily Brief page (/brief), across all visitors. Avg time on page is dwell captured on exit — not active reading time, so tabs left open inflate it.">
           <div className="grid grid-cols-3 gap-px rounded-lg border border-white/[0.06] bg-white/[0.06] overflow-hidden">
             <MiniStat label="Page views" value={brief.views} />
-            <MiniStat label="Avg time" value={brief.avgSeconds != null ? `${brief.avgSeconds}s` : "—"} />
+            <MiniStat label="Avg time on page" value={fmtDuration(brief.avgSeconds)} />
             <MiniStat label="Avg scroll" value={brief.avgScroll != null ? `${brief.avgScroll}%` : "—"} />
           </div>
         </Panel>
@@ -264,10 +276,12 @@ function MiniStat({ label, value }: { label: string; value: number | string | nu
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div className="card p-6">
-      <h2 className="text-[12.5px] font-medium text-ink-100 mb-4 uppercase tracking-[0.16em]">{title}</h2>
+      <h2 className="text-[12.5px] font-medium text-ink-100 uppercase tracking-[0.16em]">{title}</h2>
+      {subtitle && <p className="mt-1 mb-4 text-[11px] text-ink-500 leading-relaxed normal-case tracking-normal">{subtitle}</p>}
+      {!subtitle && <div className="mb-4" />}
       {children}
     </div>
   );
