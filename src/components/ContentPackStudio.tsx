@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download, RefreshCw, Copy, Check, Package, Image as ImageIcon, Share2, Layers } from "lucide-react";
+import { Download, RefreshCw, Copy, Check, Package, Image as ImageIcon, Share2, Layers, CheckCircle2 } from "lucide-react";
 import { makeZip, type ZipEntry } from "@/lib/zip";
 import { track } from "@/lib/track";
 
@@ -154,6 +154,26 @@ export function ContentPackStudio({ packs }: { packs: StudioPack[] }) {
 
   const regenerate = useCallback(() => setVersion(Date.now()), []);
 
+  // Log this pack as published, so the editorial engine can keep future posts
+  // distinct (no repeated hero chart / layout / angle within the rolling window).
+  const [postState, setPostState] = useState<"idle" | "posting" | "done" | "error">("idle");
+  const markPosted = useCallback(async () => {
+    setPostState("posting");
+    try {
+      const res = await fetch("/api/admin/social-posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pack: active.id, postDate: slug }),
+      });
+      setPostState(res.ok ? "done" : "error");
+      if (res.ok) track("content_pack_posted", { pack: active.id });
+      setTimeout(() => setPostState("idle"), 2600);
+    } catch {
+      setPostState("error");
+      setTimeout(() => setPostState("idle"), 2600);
+    }
+  }, [active.id, slug]);
+
   const allFiles = () => cards.map((c) => filesRef.current[c.id]).filter(Boolean) as File[];
 
   return (
@@ -208,6 +228,21 @@ export function ContentPackStudio({ packs }: { packs: StudioPack[] }) {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/[0.1] text-ink-200 text-[13px] hover:border-white/25 hover:text-ink-50 transition-colors disabled:opacity-60"
         >
           <RefreshCw size={15} /> Regenerate
+        </button>
+        <button
+          onClick={markPosted}
+          disabled={postState === "posting"}
+          title="Record this pack as published so the engine varies future posts"
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border text-[13px] transition-colors disabled:opacity-60 ${
+            postState === "done"
+              ? "border-signal-green/40 text-signal-green"
+              : postState === "error"
+                ? "border-signal-red/40 text-signal-red"
+                : "border-white/[0.1] text-ink-200 hover:border-white/25 hover:text-ink-50"
+          }`}
+        >
+          {postState === "posting" ? <RefreshCw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+          {postState === "done" ? "Logged" : postState === "error" ? "Failed — retry" : "Mark as posted"}
         </button>
         <span className="text-[12px] text-ink-500">
           {cards.length} cards · 1080×1350 · Instagram portrait · {dateLabel}

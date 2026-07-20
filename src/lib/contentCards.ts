@@ -25,7 +25,29 @@ import { SITE_HOST } from "./site";
 import { latestWeekly } from "./weekly";
 import { STORED_BRIEFS } from "./data/briefs";
 import type { StoredBrief } from "./brief";
-import { selectChartOfWeek } from "./chartOfWeek";
+import { selectTopStory, type Story } from "./storyEngine";
+
+// The engine's decision, threaded from the async render/studio entry points so
+// the story-driven cards (story_hero + the Chart-of-the-Week editorial slides)
+// all share one history-aware pick. When absent (sync callers), we resolve the
+// pure top-score story with no diversity — a safe, deterministic default.
+export interface BuildCtx {
+  story?: Story;
+}
+function resolveStory(ctx?: BuildCtx): Story {
+  return ctx?.story ?? selectTopStory();
+}
+
+// A readable eyebrow label per story category (rendered uppercase in the hero).
+const STORY_CATEGORY_LABEL: Record<string, string> = {
+  demand: "ETF Demand",
+  valuation: "Valuation",
+  sentiment: "Sentiment",
+  volatility: "Volatility",
+  health: "Market Health",
+  similarity: "Similar Moments",
+  cycle: "Cycle Position",
+};
 
 // Fear & Greed band → hex, matching the standard palette.
 const TONE_HEX: Record<string, string> = {
@@ -95,7 +117,9 @@ export type CardId =
   // Chart of the Week assets
   | "cotw_why"
   | "cotw_context"
-  | "cotw_takeaway";
+  | "cotw_takeaway"
+  // Editorial Story Engine — the layout-rotating hero that leads the story
+  | "story_hero";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -161,6 +185,7 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   cotw_why: { kicker: "Why this chart", name: "Why this chart" },
   cotw_context: { kicker: "Historical context", name: "Historical context" },
   cotw_takeaway: { kicker: "The takeaway", name: "Key takeaway" },
+  story_hero: { kicker: "Chart of the week", name: "Story hero" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -589,6 +614,23 @@ export interface CotwTakeawayCard {
   text: string;
 }
 
+// ── Editorial Story Engine hero ──────────────────────────────────────────────
+// The layout-rotating lead card. The story engine chooses the headline, the
+// supporting stats, the chart and the layout; this body carries the resolved
+// values so the template just arranges them. `layout` is the diversity-rotated
+// arrangement (stacked / split / spotlight), never repeating the last post's.
+export interface StoryHeroCard {
+  kind: "story_hero";
+  layout: "stacked" | "split" | "spotlight";
+  category: string; // uppercase eyebrow, e.g. "ETF DEMAND"
+  headline: string;
+  deck: string;
+  chart: ChartLine[]; // normalised hero series (may be empty → headline-forward)
+  chartTone: "up" | "down" | "flat";
+  stats: { label: string; value: string; tone?: "up" | "down" | "flat" | "accent" }[];
+  annotation: string | null; // spotlight highlight
+}
+
 export type CardBody =
   | MarketHealthCard
   | HealthFactorsCard
@@ -633,7 +675,8 @@ export type CardBody =
   | WeekContextCard
   | CotwWhyCard
   | CotwContextCard
-  | CotwTakeawayCard;
+  | CotwTakeawayCard
+  | StoryHeroCard;
 
 export interface Card {
   id: CardId;
@@ -1890,26 +1933,59 @@ export function cyclesContentPack(): import("./brief").ContentPack {
   return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody, storyCaption, youtubeCommunity };
 }
 
-// ── Chart of the Week builders ───────────────────────────────────────────────
-// All three text slides read from the same deterministic pick, so they stay in
-// lockstep with whichever chart leads the carousel.
-function cotwWhyCard(): CotwWhyCard {
-  const p = selectChartOfWeek();
-  return { kind: "cotw_why", title: p.title, points: p.why };
+// ── Chart of the Week + Story Hero builders ──────────────────────────────────
+// All the editorial slides read from the one engine story (threaded via ctx, or
+// resolved deterministically when absent), so they stay in lockstep with the
+// hero chart and headline the engine chose.
+function cotwWhyCard(ctx?: BuildCtx): CotwWhyCard {
+  const s = resolveStory(ctx);
+  return { kind: "cotw_why", title: s.headline, points: s.why };
 }
-function cotwContextCard(): CotwContextCard {
-  const p = selectChartOfWeek();
-  return { kind: "cotw_context", heading: "Why it matters", text: p.context };
+function cotwContextCard(ctx?: BuildCtx): CotwContextCard {
+  const s = resolveStory(ctx);
+  return { kind: "cotw_context", heading: "Why it matters", text: s.context };
 }
-function cotwTakeawayCard(): CotwTakeawayCard {
-  const p = selectChartOfWeek();
-  return { kind: "cotw_takeaway", text: p.takeaway };
+function cotwTakeawayCard(ctx?: BuildCtx): CotwTakeawayCard {
+  const s = resolveStory(ctx);
+  return { kind: "cotw_takeaway", text: s.takeaway };
+}
+
+// Normalise a raw series (oldest→newest) into a single 0..1 ChartLine for the
+// hero. Empty when there's too little to draw — the template then goes
+// headline-forward rather than showing a fake line.
+function sparkToChart(spark: number[], tone: "up" | "down" | "flat"): ChartLine[] {
+  const pts = (spark ?? []).filter((v) => Number.isFinite(v));
+  if (pts.length < 2) return [];
+  const min = Math.min(...pts);
+  const span = Math.max(...pts) - min || 1;
+  const color = tone === "up" ? "#3ddc97" : tone === "down" ? "#ff5d5d" : "#5eead4";
+  const points = pts.map((v, i) => [i / (pts.length - 1), (v - min) / span] as [number, number]);
+  return [{ label: "", color, points }];
+}
+
+// The layout-rotating hero — the single most interesting story of the day, in
+// whichever approved arrangement the engine picked (never the last post's).
+function storyHeroCard(ctx?: BuildCtx): StoryHeroCard {
+  const s = resolveStory(ctx);
+  const annotation = s.stats[0] ? `${s.stats[0].label} · ${s.stats[0].value}` : s.deck;
+  return {
+    kind: "story_hero",
+    layout: s.layout,
+    category: STORY_CATEGORY_LABEL[s.category] ?? s.category,
+    headline: s.headline,
+    deck: s.deck,
+    chart: sparkToChart(s.spark, s.sparkTone),
+    chartTone: s.sparkTone,
+    stats: s.stats,
+    annotation: s.layout === "spotlight" ? annotation : null,
+  };
 }
 
 // Cross-channel copy for Chart of the Week — the auto-selected "one chart worth
 // looking at this week". Same framing: historical context, no predictions.
-export function chartOfWeekContentPack(): import("./brief").ContentPack {
-  const p = selectChartOfWeek();
+export function chartOfWeekContentPack(ctx?: BuildCtx): import("./brief").ContentPack {
+  const s = resolveStory(ctx);
+  const p = { title: s.headline, why: s.why, context: s.context, takeaway: s.takeaway, link: s.link };
   const link = `https://${SITE_HOST}${p.link}`;
   const why = p.why.map((w) => `• ${w}`);
 
@@ -1973,7 +2049,10 @@ export function chartOfWeekContentPack(): import("./brief").ContentPack {
   return { xPost: x1, xThread, instagram, linkedin, emailSubject, emailBody, storyCaption, youtubeCommunity };
 }
 
-const BUILDERS: Record<CardId, () => CardBody> = {
+// Builders may accept the threaded BuildCtx (the engine's story). Existing
+// no-arg builders are assignable — they simply ignore it. Only the story-driven
+// cards read it.
+const BUILDERS: Record<CardId, (ctx?: BuildCtx) => CardBody> = {
   hero: heroCard,
   changed: changedCard,
   history: historyCard,
@@ -2022,6 +2101,7 @@ const BUILDERS: Record<CardId, () => CardBody> = {
   cotw_why: cotwWhyCard,
   cotw_context: cotwContextCard,
   cotw_takeaway: cotwTakeawayCard,
+  story_hero: storyHeroCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -2060,8 +2140,12 @@ export function weekPackOrder(): CardId[] {
 // CHART_OF_WEEK_OVERRIDE), then why it's the chart, the historical context and
 // the one-line takeaway, closing on the brand CTA. The lead chart slide's
 // kicker is rebranded to "Chart of the week" in buildCard.
-export function chartWeekPackOrder(): CardId[] {
-  return [selectChartOfWeek().chartCard, "cotw_why", "cotw_context", "cotw_takeaway", "cta"];
+// Chart of the Week now leads with the layout-rotating Story Hero (headline +
+// hero series + supporting stats in the chosen arrangement), then the detailed
+// chart the engine selected, then the historical context and takeaway.
+export function chartWeekPackOrder(ctx?: BuildCtx): CardId[] {
+  const s = resolveStory(ctx);
+  return ["story_hero", s.heroCard, "cotw_context", "cotw_takeaway", "cta"];
 }
 
 // Every Cycle Compared — the signature "where is Bitcoin vs every previous
@@ -2203,7 +2287,7 @@ export function isCardId(id: string): id is CardId {
   return (ALL_CARD_IDS as string[]).includes(id);
 }
 
-export function packOrder(packId: PackId): CardId[] {
+export function packOrder(packId: PackId, ctx?: BuildCtx): CardId[] {
   if (packId === "similar") return SIMILAR_PACK;
   if (packId === "historical") return selectHistoricalNarrative().order;
   if (packId === "accumulation") return ACCUMULATION_PACK;
@@ -2212,22 +2296,22 @@ export function packOrder(packId: PackId): CardId[] {
   if (packId === "metric") return METRIC_PACK;
   if (packId === "cycles") return CYCLES_PACK;
   if (packId === "week") return weekPackOrder();
-  if (packId === "chart_week") return chartWeekPackOrder();
+  if (packId === "chart_week") return chartWeekPackOrder(ctx);
   return CARD_ORDER;
 }
 
-export function buildCard(id: CardId, packId: PackId = "daily"): Card {
-  const order = packOrder(packId);
+export function buildCard(id: CardId, packId: PackId = "daily", ctx?: BuildCtx): Card {
+  const order = packOrder(packId, ctx);
   const index = order.indexOf(id);
-  // Chart of the Week rebrands its lead chart slide's kicker so the carousel
-  // reads "Chart of the week" regardless of which chart was auto-selected.
+  // Chart of the Week rebrands its lead slide's kicker so the carousel reads
+  // "Chart of the week" regardless of which story/chart was auto-selected.
   const kicker = packId === "chart_week" && index === 0 ? "Chart of the week" : CARD_LABELS[id].kicker;
   return {
     id,
     index: index >= 0 ? index + 1 : 1,
     total: order.length,
     kicker,
-    body: BUILDERS[id](),
+    body: BUILDERS[id](ctx),
   };
 }
 
@@ -2248,12 +2332,12 @@ function packDateLabel(): string {
     : format(day, "d MMMM yyyy");
 }
 
-export function buildPack(packId: PackId): Deck {
-  const order = packOrder(packId);
+export function buildPack(packId: PackId, ctx?: BuildCtx): Deck {
+  const order = packOrder(packId, ctx);
   return {
     slug: todaySlug(),
     dateLabel: packDateLabel(),
-    cards: order.map((id) => buildCard(id, packId)),
+    cards: order.map((id) => buildCard(id, packId, ctx)),
   };
 }
 
