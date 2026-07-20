@@ -11,10 +11,17 @@ import {
   type SegmentDepth,
   type JourneyInsight,
   type FunnelStep,
-  type SankeyNode,
-  type SankeyLink,
   type AcquisitionState,
+  type ValueDiscovery,
+  type GrowthOpportunity,
+  type PageHealthRow,
+  type Wins,
+  type PeriodComparison,
+  type PeriodMetrics,
+  type MorningSummary,
+  type Confidence,
 } from "@/lib/journeyAnalytics";
+import { JourneySankey } from "@/components/JourneySankey";
 import { AdminLogin } from "@/components/AdminLogin";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
@@ -85,17 +92,55 @@ export default async function AdminJourneysPage() {
         </a>
       </div>
 
-      {/* North-star + journey KPIs */}
+      {/* 1 · The 20-second read — what happened today */}
+      <MorningSummaryPanel s={j.morningSummary} />
+
+      {/* 2 · North Star: did visitors discover the value + the journey KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-        <Kpi label="Explorer Rate" value={rate(k.explorerRate)} sub="≥3 pages · North Star" hero />
-        <Kpi label="Avg journey depth" value={k.avgJourneyDepth != null ? `${k.avgJourneyDepth}` : "—"} sub="unique pages / session" />
+        <Kpi label="Value Discovery" value={rate(j.valueDiscovery.reachedPct)} sub="reached flagship · North Star" hero />
+        <Kpi label="Explorer Rate" value={rate(k.explorerRate)} sub="≥3 pages" />
         <Kpi label="Conversion" value={rate(k.conversionRate)} sub="session → subscribe" />
         <Kpi label="Sessions" value={fmtN(k.sessions)} sub="journeys analysed" />
-        <Kpi label="Avg time in journey" value={fmtDur(k.avgDurationSec)} sub="entry → last page" />
+        <Kpi label="Avg journey depth" value={k.avgJourneyDepth != null ? `${k.avgJourneyDepth}` : "—"} sub="unique pages / session" />
         <Kpi label="Subscribers" value={fmtN(k.subscribers)} sub="converting sessions" />
       </div>
 
-      {/* THE founder question: did visitors achieve our goal before they left? */}
+      <Panel
+        title="Value Discovery Rate"
+        hint="The real North Star: did visitors reach our best work (a flagship page) before deciding? Those who do convert far more often — so widening this funnel is the biggest lever on growth."
+      >
+        <ValueDiscoveryWidget v={j.valueDiscovery} />
+      </Panel>
+
+      {/* 3 · What should I improve next — ranked by impact */}
+      <Panel
+        title="Biggest Growth Opportunities"
+        hint="The daily backlog, ranked by modeled impact — monthly lost visitors × how many we could plausibly route onward × the rate flagship-reachers convert. An estimate to prioritise by, not a promise."
+      >
+        <Opportunities items={j.opportunities} />
+      </Panel>
+
+      {/* 4 · Why it happened + what's working */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Panel title="AI Founder Insights" hint="Categorised for a daily operating report: act now, keep watching, or protect what works. Every line is evidence-backed and gated by confidence.">
+          <CategorisedInsights insights={j.insights} />
+        </Panel>
+        <Panel title="What's Working" hint="Celebrate — and replicate. The wins worth protecting and copying onto weaker pages.">
+          <WinsPanel wins={j.wins} />
+        </Panel>
+      </div>
+
+      {/* 5 · Is optimisation working — period over period */}
+      <Panel title="Trend — Period over Period" hint="Are the changes we ship actually moving the numbers? Improvements in green, deterioration in red.">
+        <Comparisons rows={j.comparisons} />
+      </Panel>
+
+      {/* 6 · Which pages are healthy, which need work */}
+      <Panel title="Page Health" hint="A composite score per page — subscribe rate, onward navigation, exit quality, journey depth and engagement. Which pages are pulling their weight, and which need work.">
+        <PageHealthTable rows={j.pageHealth} />
+      </Panel>
+
+      {/* 7 · Where people get stuck — did they achieve the goal first? */}
       <Panel
         title="Exit Outcomes"
         hint="Every session ends in an exit — but not every exit is a loss. A subscriber leaving is success; a member browsing is neutral; only a visitor who left without subscribing is a problem. Lost visitors is the number to reduce."
@@ -103,32 +148,13 @@ export default async function AdminJourneysPage() {
         <ExitOutcomesWidget o={j.exitOutcomes} since={sinceFmt(j.dataSince)} />
       </Panel>
 
+      <Panel title="Visitor Flow" hint="Entry → second → third page → outcome. Thickness = volume. Click any node to trace the journeys through it — or click Subscribed to see every converting path.">
+        <JourneySankey nodes={j.sankey.nodes} links={j.sankey.links} />
+      </Panel>
+
       <Panel title="Journey Funnel" hint="How far visitors get. Each step is the share of sessions reaching that depth — instantly shows exploring vs bouncing.">
         <Funnel steps={j.funnel} />
       </Panel>
-
-      <Panel title="Visitor Flow" hint="Entry → second → third page → outcome. Thickness = volume. The shape of how people move through HalvingLens.">
-        <Sankey nodes={j.sankey.nodes} links={j.sankey.links} />
-      </Panel>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Panel title="Top Visitor Journeys" hint="The most common ordered paths, with how often each one converts.">
-          <ol className="space-y-2.5">
-            {j.topJourneys.map((jp, i) => (
-              <JourneyRow key={i} jp={jp} rank={i + 1} />
-            ))}
-            {!j.topJourneys.length && <Empty>No journeys yet.</Empty>}
-          </ol>
-        </Panel>
-
-        <Panel title="AI Founder Insights" hint="Deterministic, evidence-backed — journeys, not page counts. Every insight points at an optimisation action, not just a number.">
-          <ul className="space-y-2.5">
-            {j.insights.map((ins, i) => (
-              <InsightRow key={i} ins={ins} />
-            ))}
-          </ul>
-        </Panel>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Panel title="Best Converting Journeys" hint="Not the most common — the highest-converting ordered paths (min sample applied). These are the navigation patterns worth actively encouraging.">
@@ -143,6 +169,15 @@ export default async function AdminJourneysPage() {
           <ConversionPages rows={j.conversionPages} />
         </Panel>
       </div>
+
+      <Panel title="Top Visitor Journeys" hint="The most common ordered paths, with how often each one converts.">
+        <ol className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-2.5">
+          {j.topJourneys.map((jp, i) => (
+            <JourneyRow key={i} jp={jp} rank={i + 1} />
+          ))}
+          {!j.topJourneys.length && <Empty>No journeys yet.</Empty>}
+        </ol>
+      </Panel>
 
       <Panel title="Time to Subscribe" hint="How much journey a visitor needs before converting. Front-load the case for subscribing within these first pages rather than deeper in.">
         <TimeToSubscribeWidget t={j.timeToSubscribe} />
@@ -190,7 +225,8 @@ export default async function AdminJourneysPage() {
         Live first-party journeys — no fabricated figures. A session is the ordered sequence of pages a visitor views; it
         &ldquo;converts&rdquo; when a signup fires within it. Depth, funnels, journeys, exits and transitions cover full
         history; acquisition channel and per-visitor returning behaviour are <span className="text-ink-400">collecting since {sinceFmt(j.dataSince)}</span>{" "}
-        (Phase 1 instrumentation). Measure. Learn. Improve.
+        (Phase 1 instrumentation). Growth-opportunity impact is a <span className="text-ink-400">modeled estimate</span> — monthly lost visitors ×
+        onward headroom × the rate flagship-reachers convert — for prioritising, not a promise. Measure. Learn. Improve.
       </p>
     </Shell>
   );
@@ -220,121 +256,6 @@ function Funnel({ steps }: { steps: FunnelStep[] }) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-// ── Sankey (self-contained SVG) ───────────────────────────────────────────────
-function Sankey({ nodes, links }: { nodes: SankeyNode[]; links: SankeyLink[] }) {
-  if (!nodes.length || !links.length) return <Empty>Not enough multi-page journeys yet to draw the flow.</Empty>;
-
-  const W = 900;
-  const H = 360;
-  const PAD_Y = 12;
-  const COL_X = [40, 320, 600, 860]; // x of each column's node bar
-  const NODE_W = 12;
-  const GAP = 10;
-
-  const cols: SankeyNode[][] = [[], [], [], []];
-  for (const n of nodes) if (n.col >= 0 && n.col <= 3) cols[n.col].push(n);
-
-  // throughput per node = max(in, out)
-  const inSum = new Map<string, number>();
-  const outSum = new Map<string, number>();
-  for (const l of links) {
-    outSum.set(l.source, (outSum.get(l.source) ?? 0) + l.value);
-    inSum.set(l.target, (inSum.get(l.target) ?? 0) + l.value);
-  }
-  const thru = (id: string) => Math.max(inSum.get(id) ?? 0, outSum.get(id) ?? 0);
-
-  // layout each column: scale so the tallest column fits H
-  type Box = { id: string; label: string; x: number; y: number; h: number; col: number };
-  const boxes = new Map<string, Box>();
-  let maxColTotal = 1;
-  for (const c of cols) maxColTotal = Math.max(maxColTotal, c.reduce((a, n) => a + thru(n.id), 0));
-  const usableH = H - PAD_Y * 2;
-  for (let c = 0; c < 4; c++) {
-    const list = [...cols[c]].sort((a, b) => thru(b.id) - thru(a.id));
-    const total = list.reduce((a, n) => a + thru(n.id), 0) || 1;
-    const gaps = Math.max(0, list.length - 1) * GAP;
-    const scale = (usableH - gaps) / Math.max(total, maxColTotal ? total : 1);
-    let y = PAD_Y + (usableH - (total * scale + gaps)) / 2;
-    for (const n of list) {
-      const h = Math.max(thru(n.id) * scale, 2);
-      boxes.set(n.id, { id: n.id, label: n.label, x: COL_X[c], y, h, col: c });
-      y += h + GAP;
-    }
-  }
-
-  // link ribbons — accumulate offsets on each node's right/left edge
-  const outOff = new Map<string, number>();
-  const inOff = new Map<string, number>();
-  const scaleFor = (id: string) => {
-    const b = boxes.get(id);
-    if (!b) return 0;
-    return b.h / Math.max(thru(id), 1);
-  };
-  const palette = ["#5eead4", "#3ddc97", "#f5b942", "#8b9bd0", "#c78bd0", "#6fb3d0"];
-  const ordered = [...links].sort((a, b) => {
-    const ba = boxes.get(a.source),
-      bb = boxes.get(b.source);
-    return (ba?.y ?? 0) - (bb?.y ?? 0) || b.value - a.value;
-  });
-
-  const paths = ordered.map((l, i) => {
-    const s = boxes.get(l.source);
-    const t = boxes.get(l.target);
-    if (!s || !t) return null;
-    const sw = l.value * scaleFor(l.source);
-    const tw = l.value * scaleFor(l.target);
-    const so = outOff.get(l.source) ?? 0;
-    const to = inOff.get(l.target) ?? 0;
-    outOff.set(l.source, so + sw);
-    inOff.set(l.target, to + tw);
-    const x1 = s.x + NODE_W;
-    const y1 = s.y + so + sw / 2;
-    const x2 = t.x;
-    const y2 = t.y + to + tw / 2;
-    const mx = (x1 + x2) / 2;
-    const color = palette[s.col === 0 ? i % palette.length : s.col];
-    return (
-      <path
-        key={i}
-        d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
-        fill="none"
-        stroke={color}
-        strokeOpacity={0.22}
-        strokeWidth={Math.max(sw, 1)}
-      />
-    );
-  });
-
-  const colTitle = ["Entry", "2nd page", "3rd page", "Outcome"];
-  return (
-    <div className="overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 680 }} role="img" aria-label="Visitor flow Sankey diagram">
-        {COL_X.map((x, i) => (
-          <text key={i} x={i === 3 ? x : x} y={10} fontSize="9" fill="#5a6677" textAnchor={i === 3 ? "end" : "start"} style={{ textTransform: "uppercase", letterSpacing: "0.12em" }}>
-            {colTitle[i]}
-          </text>
-        ))}
-        {paths}
-        {[...boxes.values()].map((b) => (
-          <g key={b.id}>
-            <rect x={b.x} y={b.y} width={NODE_W} height={b.h} rx={2} fill={b.col === 3 ? "#3ddc97" : "#5eead4"} fillOpacity={0.8} />
-            <text
-              x={b.col === 3 ? b.x - 6 : b.x + NODE_W + 6}
-              y={b.y + b.h / 2}
-              fontSize="10.5"
-              fill="#bfc7d2"
-              textAnchor={b.col === 3 ? "end" : "start"}
-              dominantBaseline="middle"
-            >
-              {b.label}
-            </text>
-          </g>
-        ))}
-      </svg>
     </div>
   );
 }
@@ -630,14 +551,289 @@ function Acquisition({ a }: { a: AcquisitionState }) {
   );
 }
 
-// ── Shared bits ───────────────────────────────────────────────────────────────
-function InsightRow({ ins }: { ins: JourneyInsight }) {
-  const dot = ins.tone === "good" ? "bg-signal-green" : ins.tone === "warn" ? "bg-signal-amber" : "bg-ink-500";
+// ── Morning summary — the 20-second read ─────────────────────────────────────
+function MorningSummaryPanel({ s }: { s: MorningSummary }) {
   return (
-    <li className="flex gap-2.5 text-[13px] leading-relaxed text-ink-200">
-      <span className={`shrink-0 w-1.5 h-1.5 rounded-full mt-1.5 ${dot}`} />
-      <span>{ins.text}</span>
-    </li>
+    <section className="card-glow p-5 sm:p-6">
+      <div className="text-[10.5px] uppercase tracking-[0.22em] text-accent mb-3">Today&apos;s journey summary</div>
+      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 mb-3.5">
+        <span className="text-[15px] text-ink-200">
+          <span className="font-mono text-ink-50 text-[18px]">{fmtN(s.sessions)}</span> journeys
+        </span>
+        <span className="text-[15px] text-ink-200">
+          <span className="font-mono text-ink-50 text-[18px]">{fmtN(s.subscribers)}</span> subscribers
+          {s.conversionPct != null && <span className="text-signal-green"> ({s.conversionPct}%)</span>}
+        </span>
+      </div>
+      {s.bullets.length ? (
+        <ul className="space-y-1.5">
+          {s.bullets.map((b, i) => (
+            <li key={i} className="flex gap-2.5 text-[13px] leading-relaxed text-ink-300">
+              <span className="text-accent mt-0.5">•</span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[13px] text-ink-500">Summary appears once enough journeys have accrued.</p>
+      )}
+    </section>
+  );
+}
+
+// ── Value Discovery Rate ─────────────────────────────────────────────────────
+function ValueDiscoveryWidget({ v }: { v: ValueDiscovery }) {
+  if (!v.sessions) return <Empty>No sessions yet.</Empty>;
+  const steps = [
+    { label: "Sessions", value: fmtN(v.sessions), sub: "all journeys", pct: 100 },
+    { label: "Reached flagship", value: rate(v.reachedPct), sub: `${fmtN(v.reached)} sessions`, pct: v.reachedPct ?? 0 },
+    { label: "…then subscribed", value: rate(v.convReachedPct), sub: `${fmtN(v.subscribersReached)} subscribers`, pct: v.convReachedPct ?? 0 },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {steps.map((st, i) => (
+          <div key={st.label} className="relative rounded-xl border border-white/[0.06] bg-[#0b0f15] px-4 py-3.5">
+            <div className="text-[9.5px] uppercase tracking-[0.14em] text-ink-400">{st.label}</div>
+            <div className={`mt-1.5 font-mono text-[26px] tabular-nums leading-none ${i === 1 ? "text-accent" : "text-ink-50"}`}>{st.value}</div>
+            <div className="mt-1 text-[10.5px] text-ink-500">{st.sub}</div>
+            {i < steps.length - 1 && <div className="hidden sm:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-ink-600 text-[16px] z-10">→</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* The lift — the whole argument for guiding people into flagship content */}
+      <div className="rounded-xl border border-white/[0.06] p-4 flex flex-wrap items-center gap-x-8 gap-y-2">
+        <div>
+          <div className="text-[9.5px] uppercase tracking-[0.14em] text-ink-400">Reached flagship</div>
+          <div className="font-mono text-[20px] text-signal-green tabular-nums">{rate(v.convReachedPct)}<span className="text-[12px] text-ink-500"> convert</span></div>
+        </div>
+        <div>
+          <div className="text-[9.5px] uppercase tracking-[0.14em] text-ink-400">Never reached flagship</div>
+          <div className="font-mono text-[20px] text-ink-300 tabular-nums">{rate(v.convNotReachedPct)}<span className="text-[12px] text-ink-500"> convert</span></div>
+        </div>
+        {v.liftX != null && (
+          <div className="ml-auto text-right">
+            <div className="font-mono text-[24px] text-accent tabular-nums leading-none">{v.liftX}×</div>
+            <div className="text-[10.5px] text-ink-500">more likely to subscribe</div>
+          </div>
+        )}
+      </div>
+      <p className="text-[11px] text-ink-500 leading-relaxed">
+        Flagship pages: {v.flagshipLabels.join(" · ")}. Reaching one is what &ldquo;discovering the value&rdquo; means — the strongest predictor of a subscribe.
+      </p>
+    </div>
+  );
+}
+
+// ── Growth opportunities — the ranked backlog ────────────────────────────────
+const OPP_STYLE: Record<GrowthOpportunity["level"], { dot: string; label: string }> = {
+  high: { dot: "#ff5d5d", label: "High impact" },
+  medium: { dot: "#f5b942", label: "Medium impact" },
+  healthy: { dot: "#3ddc97", label: "Healthy" },
+};
+function Opportunities({ items }: { items: GrowthOpportunity[] }) {
+  if (!items.length) return <Empty>No clear optimisation opportunities right now — or not enough data yet to model impact.</Empty>;
+  return (
+    <div className="space-y-3">
+      {items.map((o) => {
+        const st = OPP_STYLE[o.level];
+        return (
+          <div key={o.path} className="rounded-xl border border-white/[0.06] p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: st.dot }} />
+                <span className="text-[14px] text-ink-50 font-medium truncate">{o.label}</span>
+                <ConfidenceBadge c={o.confidence} />
+              </div>
+              {o.level !== "healthy" && (
+                <div className="shrink-0 text-right">
+                  <div className="font-mono text-[18px] tabular-nums leading-none" style={{ color: st.dot }}>+{o.estSubsPerMonth}</div>
+                  <div className="text-[9.5px] text-ink-500 uppercase tracking-wide">subs/mo (est.)</div>
+                </div>
+              )}
+            </div>
+            <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">{o.evidence}</p>
+            <p className="mt-1.5 text-[12.5px] text-ink-200 leading-relaxed">
+              <span className="text-ink-500">Recommendation: </span>{o.recommendation}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Categorised AI insights ──────────────────────────────────────────────────
+const INSIGHT_GROUPS: { key: JourneyInsight["category"]; title: string; icon: string; color: string }[] = [
+  { key: "action", title: "Immediate action", icon: "🚨", color: "#ff5d5d" },
+  { key: "monitor", title: "Monitor", icon: "⚠️", color: "#f5b942" },
+  { key: "good", title: "Working well", icon: "✅", color: "#3ddc97" },
+];
+function CategorisedInsights({ insights }: { insights: JourneyInsight[] }) {
+  if (!insights.length) return <Empty>Insights appear as traffic accrues.</Empty>;
+  return (
+    <div className="space-y-4">
+      {INSIGHT_GROUPS.map((g) => {
+        const rows = insights.filter((i) => i.category === g.key);
+        if (!rows.length) return null;
+        return (
+          <div key={g.key}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[12px]">{g.icon}</span>
+              <span className="text-[10.5px] uppercase tracking-[0.16em]" style={{ color: g.color }}>{g.title}</span>
+            </div>
+            <ul className="space-y-2">
+              {rows.map((ins, i) => (
+                <li key={i} className="text-[13px] leading-relaxed text-ink-200">
+                  <span>{ins.text}</span>
+                  {(ins.impact || ins.confidence) && (
+                    <span className="ml-1.5 inline-flex items-center gap-1.5 align-middle">
+                      {ins.impact && <span className="text-[11px] text-signal-green font-mono">{ins.impact}</span>}
+                      {ins.confidence && <ConfidenceBadge c={ins.confidence} />}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Wins ──────────────────────────────────────────────────────────────────────
+function WinsPanel({ wins }: { wins: Wins }) {
+  const items: { icon: string; label: string; value: string; sub?: string }[] = [];
+  if (wins.topConvertingPage) items.push({ icon: "🏆", label: "Highest converting page", value: `${wins.topConvertingPage.label} · ${wins.topConvertingPage.pct}%`, sub: `${fmtN(wins.topConvertingPage.sample)} sessions` });
+  if (wins.bestOnward) items.push({ icon: "🧭", label: "Best onward navigation", value: `${wins.bestOnward.label} · ${wins.bestOnward.pct}%`, sub: "navigate deeper" });
+  if (wins.strongestJourney) items.push({ icon: "⭐", label: "Most converting journey", value: wins.strongestJourney.steps.join(" → "), sub: `${rate(wins.strongestJourney.conversionPct)} of ${fmtN(wins.strongestJourney.count)}` });
+  if (wins.biggestImprovement) items.push({ icon: "📈", label: "Biggest improvement (7d)", value: `${wins.biggestImprovement.metric}`, sub: `${wins.biggestImprovement.from ?? 0}% → ${wins.biggestImprovement.to ?? 0}%` });
+  if (!items.length) return <Empty>Wins appear as journeys and conversions accrue.</Empty>;
+  return (
+    <div className="space-y-2.5">
+      {items.map((it) => (
+        <div key={it.label} className="flex items-start gap-3 rounded-xl border border-white/[0.06] px-3.5 py-2.5">
+          <span className="text-[15px] mt-0.5">{it.icon}</span>
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">{it.label}</div>
+            <div className="text-[13px] text-ink-100 truncate">{it.value}</div>
+            {it.sub && <div className="text-[11px] text-ink-500">{it.sub}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Period comparisons ───────────────────────────────────────────────────────
+// Direction each metric should move to be "good" (lost% is the exception).
+const METRIC_ROWS: { key: keyof PeriodMetrics; label: string; kind: "pct" | "num" | "depth"; goodUp: boolean }[] = [
+  { key: "valueDiscoveryRate", label: "Value Discovery", kind: "pct", goodUp: true },
+  { key: "explorerRate", label: "Explorer Rate", kind: "pct", goodUp: true },
+  { key: "conversionRate", label: "Conversion", kind: "pct", goodUp: true },
+  { key: "lostPct", label: "Lost visitors", kind: "pct", goodUp: false },
+  { key: "subscribers", label: "Subscribers", kind: "num", goodUp: true },
+];
+function Comparisons({ rows }: { rows: PeriodComparison[] }) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {rows.map((cmp) => (
+        <div key={cmp.label} className="rounded-xl border border-white/[0.06] p-4">
+          <div className="text-[11.5px] text-ink-200 font-medium mb-1">{cmp.label}</div>
+          <div className="text-[10.5px] text-ink-500 mb-3">{fmtN(cmp.current.sessions)} vs {fmtN(cmp.previous.sessions)} sessions</div>
+          {cmp.current.sessions === 0 && cmp.previous.sessions === 0 ? (
+            <p className="text-[11.5px] text-ink-500">No data in this window yet.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {METRIC_ROWS.map((m) => (
+                <CompareRow key={m.key} label={m.label} prev={cmp.previous[m.key]} cur={cmp.current[m.key]} kind={m.kind} goodUp={m.goodUp} />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+function CompareRow({ label, prev, cur, kind, goodUp }: { label: string; prev: number | null; cur: number | null; kind: "pct" | "num" | "depth"; goodUp: boolean }) {
+  const fmt = (v: number | null) => (v == null ? "—" : kind === "pct" ? `${v}%` : `${v}`);
+  const delta = cur != null && prev != null ? cur - prev : null;
+  const eps = kind === "num" ? 0.5 : 0.05;
+  const dir = delta == null || Math.abs(delta) < eps ? "flat" : delta > 0 ? "up" : "down";
+  const good = dir === "flat" ? "flat" : (dir === "up") === goodUp ? "good" : "bad";
+  const color = good === "good" ? "#3ddc97" : good === "bad" ? "#ff5d5d" : "#5a6677";
+  const arrow = dir === "up" ? "↑" : dir === "down" ? "↓" : "→";
+  return (
+    <div className="flex items-center justify-between gap-2 text-[12px]">
+      <span className="text-ink-400">{label}</span>
+      <span className="flex items-center gap-1.5 font-mono tabular-nums">
+        <span className="text-ink-500">{fmt(prev)}</span>
+        <span style={{ color }}>{arrow}</span>
+        <span className="text-ink-100">{fmt(cur)}</span>
+      </span>
+    </div>
+  );
+}
+
+// ── Page health ──────────────────────────────────────────────────────────────
+function healthColor(band: PageHealthRow["band"]): string {
+  return band === "healthy" ? "#3ddc97" : band === "ok" ? "#f5b942" : "#ff5d5d";
+}
+function PageHealthTable({ rows }: { rows: PageHealthRow[] }) {
+  if (!rows.length) return <Empty>No pages with enough traffic to score yet.</Empty>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[12.5px] min-w-[620px]">
+        <thead>
+          <tr className="text-ink-500 text-[10px] uppercase tracking-[0.12em] text-left">
+            <th className="font-normal pb-2">Page</th>
+            <th className="font-normal pb-2 w-40">Health</th>
+            <th className="font-normal pb-2 text-right">Subscribe</th>
+            <th className="font-normal pb-2 text-right">Onward</th>
+            <th className="font-normal pb-2 text-right">Exit success</th>
+            <th className="font-normal pb-2 text-right">Depth</th>
+            <th className="font-normal pb-2 text-right">Conf.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.path} className="border-t border-white/[0.06]">
+              <td className="py-2.5 text-ink-100">{r.label}</td>
+              <td className="py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-2 rounded-full bg-white/[0.05] overflow-hidden max-w-[90px]">
+                    <div className="h-full rounded-full" style={{ width: `${r.score}%`, background: healthColor(r.band) }} />
+                  </div>
+                  <span className="font-mono tabular-nums text-[13px]" style={{ color: healthColor(r.band) }}>{r.score}</span>
+                </div>
+              </td>
+              <td className="py-2.5 text-right font-mono tabular-nums text-ink-200">{rate(r.subscribeRatePct)}</td>
+              <td className="py-2.5 text-right font-mono tabular-nums text-ink-200">{rate(r.onwardPct)}</td>
+              <td className="py-2.5 text-right font-mono tabular-nums text-ink-400">{rate(r.exitSuccessPct)}</td>
+              <td className="py-2.5 text-right font-mono tabular-nums text-ink-400">{r.avgDepth ?? "—"}</td>
+              <td className="py-2.5 text-right"><ConfidenceBadge c={r.confidence} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Shared bits ───────────────────────────────────────────────────────────────
+const CONF_STYLE: Record<Confidence, { label: string; color: string; bg: string }> = {
+  high: { label: "High", color: "#3ddc97", bg: "rgba(61,220,151,0.12)" },
+  medium: { label: "Med", color: "#f5b942", bg: "rgba(245,185,66,0.12)" },
+  low: { label: "Low", color: "#9aa6b4", bg: "rgba(154,166,180,0.12)" },
+};
+function ConfidenceBadge({ c }: { c: Confidence }) {
+  const s = CONF_STYLE[c];
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wide shrink-0" style={{ color: s.color, background: s.bg }} title={`${s.label} confidence (based on sample size)`}>
+      {s.label}
+    </span>
   );
 }
 
@@ -676,7 +872,7 @@ function Shell({ children, asOf }: { children: React.ReactNode; asOf?: string })
         <p className="mt-3 text-[12.5px] text-ink-400">
           {asOf ? (
             <>
-              how visitors discover the value of HalvingLens · as of <span className="text-ink-200 tabular-nums">{asOf} UTC</span> · live first-party journeys, no estimates.
+              the growth operating system · as of <span className="text-ink-200 tabular-nums">{asOf} UTC</span> · live first-party journeys; impact figures are labelled estimates.
             </>
           ) : (
             "The stories our visitors are living — not which pages got traffic."
