@@ -6,6 +6,102 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 415,
+    "slug": "2026-07-20",
+    "dateLabel": "Monday 20 July 2026",
+    "feature": {
+      "key": "market_reset",
+      "day": "Monday",
+      "title": "Market Reset"
+    },
+    "subject": "ETF flows turned positive this week",
+    "take": "By the historical record, Bitcoin still sits in one of its cheapest regions.",
+    "contextScore": {
+      "score": 72,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "Only about 23% of all weeks in Bitcoin's history were cheaper than today. Conditions like this have been rare.",
+    "confidence": {
+      "level": "HIGH",
+      "blurb": "Today's core signals are in full agreement.",
+      "detail": "Valuation, ETF flows all point the same way."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Attractive",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "22/100"
+      },
+      {
+        "label": "Sentiment",
+        "value": "Fear",
+        "color": "#e0a64f",
+        "strength": 2,
+        "metric": "29/100"
+      },
+      {
+        "label": "Cycle position",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "26/100"
+      },
+      {
+        "label": "ETF demand",
+        "value": "Improving",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "+$70.81M/wk"
+      },
+      {
+        "label": "Momentum",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "-0.2%"
+      }
+    ],
+    "historicalContext": {
+      "match": "Jun 2022",
+      "similarity": 86,
+      "body": "Today most closely resembles Jun 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "Monday rewards a clear head more than a strong opinion.",
+      "body": "The weekend's moves feel decisive in the moment and forgettable by Wednesday. Bitcoin's position in the cycle didn't change overnight — and it remains cheaper than 77% of its history. Reset the noise; keep the context."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      }
+    ],
+    "memory": "Bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far.",
+    "heroNarrative": "drawdown",
+    "readMin": 2,
+    "metrics": {
+      "price": 64653.049746,
+      "fearGreed": 29,
+      "accumulationScore": 22,
+      "accumulationBand": "Historically Attractive",
+      "accumulationPercentile": 23,
+      "cycleDay": 822,
+      "etf": "Improving",
+      "sentiment": "Fear"
+    },
+    "search": "by the historical record, bitcoin still sits in one of its cheapest regions. only about 23% of all weeks in bitcoin's history were cheaper than today. conditions like this have been rare. monday rewards a clear head more than a strong opinion. the weekend's moves feel decisive in the moment and forgettable by wednesday. bitcoin's position in the cycle didn't change overnight — and it remains cheaper than 77% of its history. reset the noise; keep the context. today most closely resembles jun 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far. market reset clear historical context fear historically attractive divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles",
+    "freshness": {
+      "subject": 100,
+      "take": 55,
+      "oneThing": 53,
+      "overall": 69
+    }
+  },
+  {
     "edition": 414,
     "slug": "2026-07-19",
     "dateLabel": "Sunday 19 July 2026",
