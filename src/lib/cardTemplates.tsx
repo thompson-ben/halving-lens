@@ -22,6 +22,7 @@ import type {
   CotwWhyCard,
   CotwContextCard,
   CotwTakeawayCard,
+  StoryHeroCard,
   ChangedCard,
   ChartLine,
   CtaCard,
@@ -559,6 +560,122 @@ function CotwTakeaway({ c }: { c: CotwTakeawayCard }) {
       <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 54, fontWeight: 600, lineHeight: 1.3, marginTop: 30, maxWidth: 900 }}>
         {c.text}
       </div>
+    </div>
+  );
+}
+
+// ── Editorial Story Hero — the layout-rotating lead card ─────────────────────
+// The engine picks the story, headline, stats, chart and the LAYOUT. These three
+// arrangements share the same brand language (typography, palette, spacing) so
+// the deck stays unmistakably HalvingLens while never looking the same two posts
+// running. Bloomberg/FT calm, data-first, editorial — no hype.
+const STAT_TONE = { up: "#3ddc97", down: "#ff5d5d", accent: ACCENT, flat: INK_DIM } as const;
+
+function StoryStatChips({ stats, wide }: { stats: StoryHeroCard["stats"]; wide?: boolean }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
+      {stats.slice(0, wide ? 3 : 2).map((s) => (
+        <div
+          key={s.label}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            padding: "20px 26px",
+            borderRadius: 16,
+            background: "rgba(255,255,255,0.03)",
+            border: `1px solid ${HAIRLINE}`,
+          }}
+        >
+          <div style={{ display: "flex", fontSize: 19, letterSpacing: 2, color: INK_FAINT, textTransform: "uppercase" }}>{s.label}</div>
+          <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: STAT_TONE[s.tone ?? "flat"] }}>{s.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StoryHero({ c }: { c: StoryHeroCard }) {
+  const hasChart = c.chart.length > 0;
+  const eyebrow = (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", width: 12, height: 12, borderRadius: 6, background: ACCENT }} />
+      <div style={{ display: "flex", fontSize: 22, letterSpacing: 4, color: ACCENT, textTransform: "uppercase" }}>{c.category}</div>
+    </div>
+  );
+
+  // B) Split — headline + insight left, chart right.
+  if (c.layout === "split") {
+    return (
+      <div style={{ display: "flex", flex: 1, alignItems: "center", gap: 44 }}>
+        <div style={{ display: "flex", flexDirection: "column", width: hasChart ? "52%" : "100%", justifyContent: "center" }}>
+          {eyebrow}
+          <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 64, fontWeight: 700, color: INK, marginTop: 22, marginBottom: 20, lineHeight: 1.05 }}>
+            {c.headline}
+          </div>
+          <div style={{ display: "flex", fontSize: 28, color: INK_DIM, lineHeight: 1.35, marginBottom: 30, maxWidth: 460 }}>{c.deck}</div>
+          <StoryStatChips stats={c.stats} />
+        </div>
+        {hasChart && (
+          <div style={{ display: "flex", width: "48%", alignItems: "center" }}>
+            <Chart lines={c.chart} width={430} height={560} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // C) Spotlight — zoomed chart with a single highlighted annotation + stats.
+  if (c.layout === "spotlight") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+        {eyebrow}
+        <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 58, fontWeight: 700, color: INK, marginTop: 18, marginBottom: 24, lineHeight: 1.06, maxWidth: 940 }}>
+          {c.headline}
+        </div>
+        {hasChart && (
+          <div style={{ display: "flex", position: "relative", marginBottom: 24 }}>
+            <Chart lines={c.chart} width={920} height={360} />
+            {c.annotation && (
+              <div
+                style={{
+                  display: "flex",
+                  position: "absolute",
+                  top: 22,
+                  right: 22,
+                  padding: "12px 20px",
+                  borderRadius: 12,
+                  background: "rgba(94,234,212,0.12)",
+                  border: `1px solid ${ACCENT}`,
+                  color: ACCENT,
+                  fontSize: 24,
+                  fontWeight: 600,
+                }}
+              >
+                {c.annotation}
+              </div>
+            )}
+          </div>
+        )}
+        <StoryStatChips stats={c.stats} wide />
+      </div>
+    );
+  }
+
+  // A) Stacked (default) — eyebrow + headline above, large chart, stats below.
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      {eyebrow}
+      <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 66, fontWeight: 700, color: INK, marginTop: 20, marginBottom: 14, lineHeight: 1.05, maxWidth: 940 }}>
+        {c.headline}
+      </div>
+      <div style={{ display: "flex", fontSize: 28, color: INK_DIM, lineHeight: 1.35, marginBottom: 30, maxWidth: 900 }}>{c.deck}</div>
+      {hasChart && (
+        <div style={{ display: "flex", marginBottom: 30 }}>
+          <Chart lines={c.chart} width={920} height={330} />
+        </div>
+      )}
+      <StoryStatChips stats={c.stats} wide />
     </div>
   );
 }
@@ -1456,6 +1573,8 @@ export function renderCard(card: Card): React.ReactElement {
         return <CotwContext c={card.body} />;
       case "cotw_takeaway":
         return <CotwTakeaway c={card.body} />;
+      case "story_hero":
+        return <StoryHero c={card.body} />;
       case "watch":
         return <Watch c={card.body} />;
       case "takeaway":
