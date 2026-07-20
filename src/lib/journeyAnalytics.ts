@@ -6,12 +6,21 @@
 // a session is the ordered sequence of page_view events sharing a session_id,
 // and a session "converted" if a signup event fired in the same session.
 //
+// Phase 3 shifts the lens from "where did visitors leave?" to "did they achieve
+// our goal before they left?". Every exit is now classified as a SUCCESS (the
+// visitor subscribed), NEUTRAL (an existing member simply browsing) or a LOST
+// visitor (left without ever subscribing) — the last being the number the
+// founder actually wants to reduce. On top of that: which page converts them,
+// the highest-converting journeys, and how long conversion takes.
+//
 // Two data eras, kept honest and distinct:
 //   • HISTORICAL — session_id + path + created_at have been captured for a long
 //     time, so depth, funnels, journeys, exits and transitions cover full history.
 //   • NEW (accruing since JOURNEY_DATA_SINCE) — anonymous visitor id + entry
 //     referrer/UTM only exist from the Phase 1 instrumentation onward. Anything
 //     depending on them reports "collecting since <date>", never a fabricated value.
+//     Returning-member (neutral) exit detection needs the visitor id to link a
+//     browse back to an earlier signup, so it too fills in as data accrues.
 
 import { sbSelect, supabaseConfigured } from "./supabase";
 
@@ -19,8 +28,6 @@ import { sbSelect, supabaseConfigured } from "./supabase";
 // on main (PR #97 merge, 20 Jul 2026). Widgets that need the new signals date
 // their "collecting since" note from here — honest about what we can/can't yet know.
 export const JOURNEY_DATA_SINCE = "2026-07-20T13:00:43Z";
-
-const DAY = 86_400_000;
 
 // Friendly names for the paths founders care about. Anything not listed renders
 // as its path, so the map is a nicety, never a filter.
@@ -56,6 +63,27 @@ export interface JourneyKpis {
   subscribers: number; // sessions that converted
 }
 
+// A session's outcome — the heart of Phase 3.
+export type ExitOutcome = "successful" | "neutral" | "lost";
+
+// The founder KPI: of every session, what share ended in success vs a lost
+// visitor vs a member simply browsing.
+export interface ExitOutcomes {
+  total: number;
+  successful: number; // subscribed in this session
+  neutral: number; // already a member before this session (nothing to optimise)
+  lost: number; // left without ever subscribing — the number to reduce
+  successfulPct: number | null;
+  neutralPct: number | null;
+  lostPct: number | null;
+  // Neutral detection links a browse to an earlier signup via the anonymous
+  // visitor id, which only exists post-Phase-1. Until enough has accrued most
+  // historical "not subscribed" exits can't be proven to be members, so they
+  // count as lost. This flag lets the UI say so honestly.
+  memberDetection: boolean;
+  subscribersKnown: number; // distinct visitor ids we can recognise as members
+}
+
 export interface FunnelStep {
   label: string;
   count: number;
@@ -84,9 +112,29 @@ export interface ExitRow {
   path: string;
   label: string;
   exits: number;
+  subscribed: number; // exits where the visitor had subscribed in-session (success)
+  lost: number; // exits without a subscription (exits − subscribed)
+  successPct: number | null; // subscribed ÷ exits — is this an acceptable exit?
   exitRatePct: number | null; // exits ÷ sessions that viewed the page
   avgDepthBeforeExit: number | null;
   avgTimeBeforeExitSec: number | null;
+}
+
+// Which page actually did the persuading — the page a signup fired on.
+export interface ConversionPageRow {
+  path: string;
+  label: string;
+  subscribers: number;
+  pct: number | null; // share of all attributed signups
+}
+
+// How much journey a visitor needs before converting.
+export interface TimeToSubscribe {
+  converters: number; // converting sessions we could time
+  avgPages: number | null;
+  medianPages: number | null;
+  avgMinutes: number | null;
+  medianMinutes: number | null;
 }
 
 export interface TransitionFrom {
@@ -145,9 +193,13 @@ export interface JourneyAnalytics {
   generatedAt: string;
   dataSince: string;
   kpis: JourneyKpis;
+  exitOutcomes: ExitOutcomes;
   funnel: FunnelStep[];
   landings: LandingRow[];
   topJourneys: JourneyPath[];
+  bestJourneys: JourneyPath[];
+  conversionPages: ConversionPageRow[];
+  timeToSubscribe: TimeToSubscribe;
   exits: ExitRow[];
   transitions: TransitionFrom[];
   discovery: DiscoveryRow[];
@@ -166,6 +218,9 @@ interface EventRow {
 }
 interface SignupRow {
   session_id: string | null;
+  path: string | null;
+  created_at: string | null;
+  props: Record<string, unknown> | null;
 }
 
 export interface JourneyInput {
@@ -174,6 +229,22 @@ export interface JourneyInput {
 }
 
 const pct = (num: number, den: number): number | null => (den > 0 ? Math.round((num / den) * 1000) / 10 : null);
+const round1 = (n: number): number => Math.round(n * 10) / 10;
+
+function mean1(xs: number[]): number | null {
+  return xs.length ? round1(xs.reduce((a, b) => a + b, 0) / xs.length) : null;
+}
+function median1(xs: number[]): number | null {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return round1(s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2);
+}
+
+function propStr(props: Record<string, unknown> | null | undefined, key: string): string | null {
+  const v = props?.[key];
+  return typeof v === "string" && v ? v : null;
+}
 
 function normPath(p: string | null): string | null {
   if (!p) return null;
@@ -194,6 +265,10 @@ interface Session {
   lastTs: number;
   isNew: boolean;
   converted: boolean;
+  outcome: ExitOutcome;
+  visitorId: string | null;
+  pagesBeforeConvert: number | null; // unique pages seen up to the signup (converting sessions)
+  secondsToConvert: number | null; // entry → signup (converting sessions with a timestamp)
   referrer: string | null;
   utmSource: string | null;
 }
@@ -204,7 +279,7 @@ export async function journeyAnalytics(): Promise<JourneyAnalytics> {
     sbSelect<EventRow[]>(
       "events?select=path,session_id,is_new,created_at,props&name=eq.page_view&order=created_at.desc&limit=50000",
     ),
-    sbSelect<SignupRow[]>("events?select=session_id&name=eq.signup&limit=20000"),
+    sbSelect<SignupRow[]>("events?select=session_id,path,created_at,props&name=eq.signup&limit=20000"),
   ]);
   if (pv == null) return emptyJourneys();
   return computeJourneys({ pageViews: pv ?? [], signups: su ?? [] }, Date.now());
@@ -216,9 +291,23 @@ function emptyJourneys(): JourneyAnalytics {
     generatedAt: new Date().toISOString(),
     dataSince: JOURNEY_DATA_SINCE,
     kpis: { sessions: 0, explorerRate: null, avgJourneyDepth: null, conversionRate: null, avgDurationSec: null, subscribers: 0 },
+    exitOutcomes: {
+      total: 0,
+      successful: 0,
+      neutral: 0,
+      lost: 0,
+      successfulPct: null,
+      neutralPct: null,
+      lostPct: null,
+      memberDetection: false,
+      subscribersKnown: 0,
+    },
     funnel: [],
     landings: [],
     topJourneys: [],
+    bestJourneys: [],
+    conversionPages: [],
+    timeToSubscribe: { converters: 0, avgPages: null, medianPages: null, avgMinutes: null, medianMinutes: null },
     exits: [],
     transitions: [],
     discovery: [],
@@ -233,9 +322,30 @@ function emptyJourneys(): JourneyAnalytics {
 export function computeJourneys(input: JourneyInput, now: number): JourneyAnalytics {
   const generatedAt = new Date(now).toISOString();
 
-  // Sessions that converted (a signup fired within them).
-  const convertedIds = new Set<string>();
-  for (const s of input.signups) if (s.session_id) convertedIds.add(s.session_id);
+  // ── Signup index: conversion timing, attribution page, and known members ────
+  // A session "converted" if a signup carried its session_id. We also learn WHEN
+  // (earliest signup ts in the session → time-to-subscribe), WHICH PAGE persuaded
+  // (signup path / props.source → attribution), and WHICH VISITORS are members
+  // (earliest signup ts per visitor id → neutral-exit detection later).
+  const signupTsBySession = new Map<string, number>(); // sessionId → earliest signup ts (Infinity if untimed)
+  const subscriberFirstTs = new Map<string, number>(); // visitorId → earliest signup ts
+  const attribution = new Map<string, number>(); // path → signups attributed
+  for (const s of input.signups) {
+    const ts = s.created_at ? Date.parse(s.created_at) : NaN;
+    if (s.session_id) {
+      const t = Number.isNaN(ts) ? Infinity : ts;
+      const prev = signupTsBySession.get(s.session_id);
+      if (prev == null || t < prev) signupTsBySession.set(s.session_id, t);
+    }
+    const p = normPath(s.path ?? propStr(s.props, "source"));
+    if (p) attribution.set(p, (attribution.get(p) ?? 0) + 1);
+    const vid = propStr(s.props, "visitorId");
+    if (vid && !Number.isNaN(ts)) {
+      const prev = subscriberFirstTs.get(vid);
+      if (prev == null || ts < prev) subscriberFirstTs.set(vid, ts);
+    }
+  }
+  const convertedIds = new Set<string>(signupTsBySession.keys());
 
   // ── Reconstruct sessions from the page_view stream ──────────────────────────
   const rowsBySession = new Map<string, EventRow[]>();
@@ -250,6 +360,7 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
     const seq: string[] = [];
     const unique = new Set<string>();
     let isNew = false;
+    let visitorId: string | null = null;
     let referrer: string | null = null;
     let utmSource: string | null = null;
     for (const r of rows) {
@@ -257,22 +368,52 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
       if (seq[seq.length - 1] !== p) seq.push(p); // collapse consecutive dupes
       unique.add(p);
       if (r.is_new) isNew = true;
-      const props = r.props ?? {};
-      if (referrer == null && typeof props.referrer === "string") referrer = props.referrer;
-      if (utmSource == null && typeof props.utm_source === "string") utmSource = props.utm_source as string;
+      if (visitorId == null) visitorId = propStr(r.props, "visitorId");
+      if (referrer == null) referrer = propStr(r.props, "referrer");
+      if (utmSource == null) utmSource = propStr(r.props, "utm_source");
     }
     if (!seq.length) continue;
+    const firstTs = Date.parse(rows[0].created_at);
+    const lastTs = Date.parse(rows[rows.length - 1].created_at);
+    const converted = convertedIds.has(id);
+
+    // Time-to-subscribe: unique pages seen up to the signup, and entry→signup span.
+    let pagesBeforeConvert: number | null = null;
+    let secondsToConvert: number | null = null;
+    if (converted) {
+      const convTs = signupTsBySession.get(id)!;
+      const seenUpTo = new Set<string>();
+      for (const r of rows) {
+        if (convTs === Infinity || Date.parse(r.created_at) <= convTs) seenUpTo.add(normPath(r.path)!);
+      }
+      pagesBeforeConvert = Math.max(1, seenUpTo.size);
+      if (Number.isFinite(convTs)) secondsToConvert = Math.max(0, (convTs - firstTs) / 1000);
+    }
+
     sessions.push({
       id,
       seq,
       unique,
-      firstTs: Date.parse(rows[0].created_at),
-      lastTs: Date.parse(rows[rows.length - 1].created_at),
+      firstTs,
+      lastTs,
       isNew,
-      converted: convertedIds.has(id),
+      converted,
+      outcome: "lost", // set below, once member detection is known
+      visitorId,
+      pagesBeforeConvert,
+      secondsToConvert,
       referrer,
       utmSource,
     });
+  }
+
+  // ── Classify every session's outcome ────────────────────────────────────────
+  // successful = subscribed in-session · neutral = a member (subscribed earlier)
+  // simply browsing · lost = left without ever subscribing.
+  for (const s of sessions) {
+    if (s.converted) s.outcome = "successful";
+    else if (s.visitorId && (subscriberFirstTs.get(s.visitorId) ?? Infinity) < s.firstTs) s.outcome = "neutral";
+    else s.outcome = "lost";
   }
 
   const N = sessions.length;
@@ -285,10 +426,26 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
   const kpis: JourneyKpis = {
     sessions: N,
     explorerRate: pct(explorers, N),
-    avgJourneyDepth: N ? Math.round((depthSum / N) * 10) / 10 : null,
+    avgJourneyDepth: N ? round1(depthSum / N) : null,
     conversionRate: pct(converters, N),
     avgDurationSec: N ? Math.round(durationSum / N / 1000) : null,
     subscribers: converters,
+  };
+
+  // ── Exit outcomes — the founder KPI ─────────────────────────────────────────
+  const successful = sessions.filter((s) => s.outcome === "successful").length;
+  const neutral = sessions.filter((s) => s.outcome === "neutral").length;
+  const lost = sessions.filter((s) => s.outcome === "lost").length;
+  const exitOutcomes: ExitOutcomes = {
+    total: N,
+    successful,
+    neutral,
+    lost,
+    successfulPct: pct(successful, N),
+    neutralPct: pct(neutral, N),
+    lostPct: pct(lost, N),
+    memberDetection: subscriberFirstTs.size > 0,
+    subscribersKnown: subscriberFirstTs.size,
   };
 
   // ── Depth funnel ──────────────────────────────────────────────────────────
@@ -316,14 +473,14 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
         sessions: ss.length,
         wentDeeperPct: pct(deeper, ss.length),
         subscribedPct: pct(subs, ss.length),
-        avgPages: ss.length ? Math.round((pagesSum / ss.length) * 10) / 10 : null,
+        avgPages: ss.length ? round1(pagesSum / ss.length) : null,
         avgDurationSec: ss.length ? Math.round(durSum / ss.length / 1000) : null,
       };
     })
     .sort((a, b) => b.sessions - a.sessions)
     .slice(0, 8);
 
-  // ── Top journeys (ordered path sequences) ───────────────────────────────────
+  // ── Journeys (ordered path sequences), reused for "top" and "best converting" ─
   const MAX_STEPS = 5;
   const journeyMap = new Map<string, { count: number; conv: number; steps: string[]; truncated: boolean }>();
   for (const s of sessions) {
@@ -335,25 +492,53 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
     if (s.converted) e.conv += 1;
     journeyMap.set(key, e);
   }
-  const topJourneys: JourneyPath[] = [...journeyMap.values()]
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
-    .map((e) => ({
-      steps: e.steps.map(prettyPath),
-      count: e.count,
-      pct: pct(e.count, N) ?? 0,
-      conversionPct: pct(e.conv, e.count),
-      truncated: e.truncated,
-    }));
+  const toJourneyPath = (e: { count: number; conv: number; steps: string[]; truncated: boolean }): JourneyPath => ({
+    steps: e.steps.map(prettyPath),
+    count: e.count,
+    pct: pct(e.count, N) ?? 0,
+    conversionPct: pct(e.conv, e.count),
+    truncated: e.truncated,
+  });
+  const topJourneys: JourneyPath[] = [...journeyMap.values()].sort((a, b) => b.count - a.count).slice(0, 10).map(toJourneyPath);
 
-  // ── Exit analysis ─────────────────────────────────────────────────────────
+  // Best-converting journeys: highest conversion rate, with a minimum sample so a
+  // single 1/1 = 100% path can't masquerade as a pattern. Falls back to the
+  // largest sample available if the data is still small.
+  const MIN_CONV_SAMPLE = Math.max(3, Math.min(8, Math.round(N / 100)));
+  const bestJourneys: JourneyPath[] = [...journeyMap.values()]
+    .filter((e) => e.conv > 0 && e.count >= MIN_CONV_SAMPLE)
+    .sort((a, b) => b.conv / b.count - a.conv / a.count || b.count - a.count)
+    .slice(0, 6)
+    .map(toJourneyPath);
+
+  // ── Conversion attribution — which page did the persuading ──────────────────
+  const totalAttributed = [...attribution.values()].reduce((a, b) => a + b, 0);
+  const conversionPages: ConversionPageRow[] = [...attribution.entries()]
+    .map(([path, n]) => ({ path, label: prettyPath(path), subscribers: n, pct: pct(n, totalAttributed) }))
+    .sort((a, b) => b.subscribers - a.subscribers)
+    .slice(0, 10);
+
+  // ── Time to subscribe ───────────────────────────────────────────────────────
+  const convSessions = sessions.filter((s) => s.converted);
+  const pagesArr = convSessions.map((s) => s.pagesBeforeConvert).filter((x): x is number => x != null);
+  const minsArr = convSessions.map((s) => s.secondsToConvert).filter((x): x is number => x != null).map((x) => x / 60);
+  const timeToSubscribe: TimeToSubscribe = {
+    converters: convSessions.length,
+    avgPages: mean1(pagesArr),
+    medianPages: median1(pagesArr),
+    avgMinutes: mean1(minsArr),
+    medianMinutes: median1(minsArr),
+  };
+
+  // ── Exit analysis (now with conversion outcome per page) ────────────────────
   const viewsByPage = new Map<string, number>();
-  const exitAgg = new Map<string, { exits: number; depthSum: number; timeSum: number }>();
+  const exitAgg = new Map<string, { exits: number; subscribed: number; depthSum: number; timeSum: number }>();
   for (const s of sessions) {
     for (const p of s.unique) viewsByPage.set(p, (viewsByPage.get(p) ?? 0) + 1);
     const exit = s.seq[s.seq.length - 1];
-    const e = exitAgg.get(exit) ?? { exits: 0, depthSum: 0, timeSum: 0 };
+    const e = exitAgg.get(exit) ?? { exits: 0, subscribed: 0, depthSum: 0, timeSum: 0 };
     e.exits += 1;
+    if (s.converted) e.subscribed += 1;
     e.depthSum += s.unique.size;
     e.timeSum += Math.max(0, s.lastTs - s.firstTs);
     exitAgg.set(exit, e);
@@ -363,8 +548,11 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
       path,
       label: prettyPath(path),
       exits: e.exits,
+      subscribed: e.subscribed,
+      lost: e.exits - e.subscribed,
+      successPct: pct(e.subscribed, e.exits),
       exitRatePct: pct(e.exits, viewsByPage.get(path) ?? e.exits),
-      avgDepthBeforeExit: e.exits ? Math.round((e.depthSum / e.exits) * 10) / 10 : null,
+      avgDepthBeforeExit: e.exits ? round1(e.depthSum / e.exits) : null,
       avgTimeBeforeExitSec: e.exits ? Math.round(e.timeSum / e.exits / 1000) : null,
     }))
     .sort((a, b) => b.exits - a.exits)
@@ -422,7 +610,7 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
   const seg = (label: string, ss: Session[]): SegmentDepth => ({
     label,
     sessions: ss.length,
-    avgDepth: ss.length ? Math.round((ss.reduce((a, s) => a + s.unique.size, 0) / ss.length) * 10) / 10 : null,
+    avgDepth: ss.length ? round1(ss.reduce((a, s) => a + s.unique.size, 0) / ss.length) : null,
     conversionPct: pct(ss.filter((s) => s.converted).length, ss.length),
   });
   const segments: SegmentDepth[] = [
@@ -454,16 +642,20 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
   };
 
   // ── Deterministic, evidence-backed founder insights ─────────────────────────
-  const insights = buildInsights({ sessions, kpis, exits, landings, segments });
+  const insights = buildInsights({ sessions, kpis, exitOutcomes, exits, landings, segments, conversionPages, bestJourneys, timeToSubscribe });
 
   return {
     configured: true,
     generatedAt,
     dataSince: JOURNEY_DATA_SINCE,
     kpis,
+    exitOutcomes,
     funnel,
     landings,
     topJourneys,
+    bestJourneys,
+    conversionPages,
+    timeToSubscribe,
     exits,
     transitions,
     discovery,
@@ -560,9 +752,13 @@ function buildSankey(sessions: Session[]): { nodes: SankeyNode[]; links: SankeyL
 function buildInsights(d: {
   sessions: Session[];
   kpis: JourneyKpis;
+  exitOutcomes: ExitOutcomes;
   exits: ExitRow[];
   landings: LandingRow[];
   segments: SegmentDepth[];
+  conversionPages: ConversionPageRow[];
+  bestJourneys: JourneyPath[];
+  timeToSubscribe: TimeToSubscribe;
 }): JourneyInsight[] {
   const out: JourneyInsight[] = [];
   const N = d.sessions.length;
@@ -572,55 +768,71 @@ function buildInsights(d: {
     return out;
   }
 
-  // North-star framing.
-  if (d.kpis.explorerRate != null)
+  // Lost-visitor framing — the number the founder wants to reduce, stated first.
+  if (d.exitOutcomes.lostPct != null)
     out.push({
-      tone: d.kpis.explorerRate >= 40 ? "good" : "info",
-      text: `Explorer Rate is ${d.kpis.explorerRate}% — roughly ${Math.round(d.kpis.explorerRate)} of every 100 visitors explore 3+ pages. This is the engagement number to move.`,
+      tone: d.exitOutcomes.lostPct >= 60 ? "warn" : "info",
+      text: `${d.exitOutcomes.lostPct}% of sessions leave without ever subscribing (${d.exitOutcomes.lost.toLocaleString()} of ${N.toLocaleString()}). This — not raw exits — is the number to drive down; every widget below is a lever on it.`,
     });
 
-  // Flagship-pair lift: viewing both State of Bitcoin AND Historical Price Paths.
-  const A = "/state-of-bitcoin";
-  const B = "/historical-price-paths";
-  const both = d.sessions.filter((s) => s.unique.has(A) && s.unique.has(B));
-  const oneOnly = d.sessions.filter((s) => (s.unique.has(A) ? 1 : 0) + (s.unique.has(B) ? 1 : 0) === 1);
-  const cBoth = pct(both.filter((s) => s.converted).length, both.length);
-  const cOne = pct(oneOnly.filter((s) => s.converted).length, oneOnly.length);
-  if (both.length >= MIN && cBoth != null && cOne != null && cOne > 0) {
-    const mult = Math.round((cBoth / cOne) * 10) / 10;
-    if (mult >= 1.5)
-      out.push({
-        tone: "good",
-        text: `Visitors who read both State of Bitcoin and Historical Price Paths convert ${mult}× more often (${cBoth}% vs ${cOne}%) than those who view only one. Guiding people across both is a conversion lever.`,
-      });
-  }
-
-  // Leaky exit: high-exit page with shallow depth.
-  const leak = d.exits.find((e) => e.exits >= MIN && (e.exitRatePct ?? 0) >= 60 && (e.avgDepthBeforeExit ?? 9) <= 2);
+  // Biggest lost-visitor leak: the exit page bleeding the most non-subscribers.
+  const leak = [...d.exits].filter((e) => e.lost >= MIN).sort((a, b) => b.lost - a.lost)[0];
   if (leak)
     out.push({
       tone: "warn",
-      text: `${leak.label} visitors frequently leave without exploring (${leak.exitRatePct}% exit, ${leak.avgDepthBeforeExit} pages avg). Consider stronger recommendations from ${leak.label} into a flagship page.`,
+      text: `Most lost visitors leave from ${leak.label} — ${leak.lost.toLocaleString()} left there without subscribing (only ${leak.successPct ?? 0}% subscribed first). Add a sharper CTA or a clear onward link from ${leak.label} into a flagship page.`,
     });
 
-  // Deepest-journey landing.
-  const deepest = [...d.landings].filter((l) => l.sessions >= MIN && l.avgPages != null).sort((a, b) => (b.avgPages! - a.avgPages!))[0];
-  if (deepest)
+  // High-converting, low-volume page: worth sending more traffic to.
+  const overall = d.kpis.conversionRate ?? 0;
+  const sorted = [...d.landings].filter((l) => l.sessions >= 8 && l.subscribedPct != null);
+  const median = sorted.length ? [...sorted].sort((a, b) => a.sessions - b.sessions)[Math.floor(sorted.length / 2)].sessions : 0;
+  const efficient = sorted
+    .filter((l) => l.sessions <= Math.max(median, 8) && overall > 0 && (l.subscribedPct ?? 0) >= overall * 1.5)
+    .sort((a, b) => (b.subscribedPct ?? 0) - (a.subscribedPct ?? 0))[0];
+  if (efficient)
+    out.push({
+      tone: "good",
+      text: `${efficient.label} brings relatively few visitors (${efficient.sessions.toLocaleString()} sessions) but converts at ${efficient.subscribedPct}% — well above the ${overall}% average. Driving more traffic to it is high-leverage.`,
+    });
+
+  // Which page does the persuading.
+  const topConv = d.conversionPages[0];
+  if (topConv && topConv.subscribers >= 5)
     out.push({
       tone: "info",
-      text: `Visitors arriving on ${deepest.label} have the deepest journeys (${deepest.avgPages} pages avg) — the strongest entry point for exploration.`,
+      text: `${topConv.label} is where most subscriptions happen (${topConv.subscribers.toLocaleString()} signups, ${topConv.pct ?? 0}% of all conversions) — it is doing the persuading. Protect its message and reuse what works there elsewhere.`,
     });
 
-  // First vs returning depth.
-  const first = d.segments.find((s) => s.label === "First visit");
-  const ret = d.segments.find((s) => s.label === "Returning");
-  if (first?.avgDepth != null && ret?.avgDepth != null && ret.sessions >= MIN) {
-    const deeper = ret.avgDepth > first.avgDepth;
-    out.push({
-      tone: deeper ? "good" : "info",
-      text: `Returning visitors view ${ret.avgDepth} pages vs ${first.avgDepth} on a first visit — ${deeper ? "the platform is becoming a habit." : "returning journeys aren't yet deeper; onboarding has room to build the habit."}`,
-    });
+  // Depth → conversion lift: the value of earning the next click.
+  const oneP = d.sessions.filter((s) => s.unique.size === 1);
+  const threeP = d.sessions.filter((s) => s.unique.size >= 3);
+  const cOne = pct(oneP.filter((s) => s.converted).length, oneP.length);
+  const cThree = pct(threeP.filter((s) => s.converted).length, threeP.length);
+  if (threeP.length >= MIN && cThree != null && cOne != null && cOne > 0) {
+    const mult = Math.round((cThree / cOne) * 10) / 10;
+    if (mult >= 1.5)
+      out.push({
+        tone: "good",
+        text: `Visitors who reach 3+ pages convert ${mult}× more often than single-page sessions (${cThree}% vs ${cOne}%). Earning the second click is the highest-leverage moment — strengthen onward links on entry pages.`,
+      });
   }
+
+  // Strongest converting journey — a path to actively encourage.
+  const best = d.bestJourneys[0];
+  if (best && best.conversionPct != null)
+    out.push({
+      tone: "good",
+      text: `The strongest converting journey is ${best.steps.join(" → ")} (${best.conversionPct}% of ${best.count.toLocaleString()}). Make that path easier to follow with prominent links between those pages.`,
+    });
+
+  // How much journey conversion takes — sets expectations for the levers above.
+  const t = d.timeToSubscribe;
+  if (t.converters >= MIN && t.medianPages != null)
+    out.push({
+      tone: "info",
+      text: `Subscribers typically convert after a median of ${t.medianPages} page${t.medianPages === 1 ? "" : "s"}${t.medianMinutes != null ? ` and ${t.medianMinutes} min` : ""}. Front-load the case for subscribing within those first pages rather than deeper in.`,
+    });
 
   return out;
 }
