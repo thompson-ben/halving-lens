@@ -162,7 +162,8 @@ export function BriefSignup({
               />
               <span>
                 I&apos;m happy to receive the daily brief and occasional updates. No spam,
-                unsubscribe anytime.
+                unsubscribe anytime. See our{" "}
+                <a href="/privacy" className="underline decoration-white/20 underline-offset-2 hover:text-ink-200">Privacy policy</a>.
               </span>
             </label>
           </form>
