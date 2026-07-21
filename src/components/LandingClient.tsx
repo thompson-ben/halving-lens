@@ -143,7 +143,7 @@ export function LandingCta({
 // Email capture tuned for the landing — first-touch attribution + A/B variant
 // ride along on the conversion event. Success shows ONLY when the server
 // confirms durable capture; failures show a retryable error and keep the email.
-export function StartSignup({ source = "/start", buttonLabel = "Get today's free research" }: { source?: string; buttonLabel?: string } = {}) {
+export function StartSignup({ source = "/start", buttonLabel = "Get today's free research", variant: variantOverride }: { source?: string; buttonLabel?: string; variant?: string } = {}) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<UiState | "idle">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -166,7 +166,7 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
     const attr = getAttribution();
     const qs = new URLSearchParams(attr).toString();
     const srcWithAttr = qs ? `${source}?${qs}` : source;
-    const variant = source === "/start" ? getVariant("start_headline") : "free";
+    const variant = variantOverride ?? (source === "/start" ? getVariant("start_headline") : "free");
     track("subscription_submit_attempt", { source, variant, ...attr });
 
     let status: number | null = null;

@@ -12,6 +12,9 @@ export interface Experiment {
 
 export const EXPERIMENTS: Record<string, Experiment> = {
   start_headline: { key: "start_headline", variants: ["a", "b"] },
+  // Homepage hero: "cta" = subscribe button that scrolls to the signup (control);
+  // "inline" = a compact one-field email form right in the hero (variant).
+  home_hero: { key: "home_hero", variants: ["cta", "inline"] },
 };
 
 export function assignVariant(key: string): string {

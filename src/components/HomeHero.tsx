@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { CycleContextChart } from "./CycleContextChart";
+import { HomeHeroCta } from "./HomeHeroCta";
 import { heroInsight } from "@/lib/cycleZones";
 
 // Demonstrates HalvingLens in ~5 seconds: the strongest live cycle insight
@@ -48,24 +49,8 @@ export function HomeHero() {
           <CycleContextChart height={250} compact />
         </div>
 
-        {/* Primary path: subscribe. Exploration stays available but subordinate. */}
-        <p className="mt-7 text-[13.5px] text-ink-200">
-          One clear Bitcoin cycle update each morning. No hype. No predictions.
-        </p>
-        <div className="mt-3 flex items-center gap-4 flex-wrap">
-          <Link
-            href="/#subscribe"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors"
-          >
-            Get the free daily brief <ArrowUpRight size={16} />
-          </Link>
-          <Link
-            href="/price"
-            className="inline-flex items-center gap-1.5 text-[13px] text-ink-300 hover:text-ink-100"
-          >
-            Explore full cycle analysis <ArrowUpRight size={13} />
-          </Link>
-        </div>
+        {/* Primary path: subscribe (A/B — control CTA vs inline hero form). */}
+        <HomeHeroCta />
 
         <p className="mt-6 text-[11.5px] text-ink-500 max-w-2xl leading-relaxed">
           Updated daily from live Bitcoin price, ETF flow, sentiment and cycle data. This is
