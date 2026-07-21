@@ -115,7 +115,7 @@ export function BriefSignup({
           </div>
         ) : (
           <form onSubmit={submit} className="mt-5 space-y-3" noValidate>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 value={email}
@@ -128,7 +128,7 @@ export function BriefSignup({
                 aria-invalid={!!error}
                 aria-describedby={error ? "brief-signup-error" : undefined}
                 disabled={submitting}
-                className={`flex-1 min-w-[200px] h-11 px-3.5 rounded-lg bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 transition-colors disabled:opacity-60 ${
+                className={`w-full sm:flex-1 sm:min-w-0 h-11 px-3.5 rounded-lg bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 transition-colors disabled:opacity-60 ${
                   error ? "border-signal-red/50" : "border-white/[0.08]"
                 }`}
               />
@@ -136,7 +136,7 @@ export function BriefSignup({
                 type="submit"
                 disabled={submitting}
                 aria-busy={submitting}
-                className="h-11 px-5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
+                className="w-full sm:w-auto h-11 px-5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60 shrink-0"
               >
                 {submitting ? "Subscribing…" : error ? "Try again" : "Subscribe free"}
               </button>
