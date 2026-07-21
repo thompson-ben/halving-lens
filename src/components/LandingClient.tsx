@@ -6,6 +6,7 @@ import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
 import { assignVariant, getVariant } from "@/lib/experiments";
 import { fireLead } from "@/lib/marketing";
+import { decideFromResponse, type SubscribeResponseBody, type UiState } from "@/lib/subscription";
 
 const GOLD = "#d9b96a";
 
@@ -90,16 +91,23 @@ export function LandingCta({
 }
 
 // Email capture tuned for the landing — first-touch attribution + A/B variant
-// ride along on the signup event.
+// ride along on the conversion event. Success shows ONLY when the server
+// confirms durable capture; failures show a retryable error and keep the email.
 export function StartSignup({ source = "/start", buttonLabel = "Get today's free research" }: { source?: string; buttonLabel?: string } = {}) {
   const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
+  const [state, setState] = useState<UiState | "idle">("idle");
+  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Once signed up, send them into the app (home) so they get the full site menu
-  // — the paid landings are deliberately chrome-free. They read the confirmation
-  // for a moment first; the button lets them go immediately.
+  const done = state === "success" || state === "existing";
+  const error = state === "invalid" || state === "rate_limited" || state === "error" ? message : null;
+
+  // Once genuinely subscribed (or recognised as already subscribed), send them
+  // into the app so they get the full site menu — the paid landings are
+  // deliberately chrome-free. They read the confirmation for a moment first; the
+  // button lets them go immediately. A failure never redirects.
+  // (Note: this auto-redirect is slated for replacement with a dedicated
+  // confirmation page in PR5 — out of scope for PR1.)
   useEffect(() => {
     if (!done) return;
     const t = setTimeout(() => { window.location.assign("/"); }, 3500);
@@ -108,45 +116,54 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return; // prevent duplicate submissions while in-flight
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email.");
+      setState("invalid");
+      setMessage("Please enter a valid email address.");
       return;
     }
     setBusy(true);
-    setError(null);
+    setMessage(null);
+
     const attr = getAttribution();
     const qs = new URLSearchParams(attr).toString();
     const srcWithAttr = qs ? `${source}?${qs}` : source;
     const variant = source === "/start" ? getVariant("start_headline") : "free";
+    track("subscription_submit_attempt", { source, variant, ...attr });
+
+    let status: number | null = null;
+    let respBody: SubscribeResponseBody | null = null;
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, source: srcWithAttr, consent: true }),
       });
-      if (!res.ok) throw new Error();
+      status = res.status;
+      respBody = (await res.json().catch(() => null)) as SubscribeResponseBody | null;
     } catch {
-      try {
-        const key = "halvinglens.brief.waitlist";
-        const list = JSON.parse(localStorage.getItem(key) ?? "[]");
-        if (!list.includes(email)) list.push(email);
-        localStorage.setItem(key, JSON.stringify(list));
-      } catch {
-        /* ignore */
-      }
-    } finally {
-      track("signup", { source, variant, ...attr });
-      fireLead({ source, variant, ...attr });
-      setDone(true);
-      setBusy(false);
+      status = null; // network failure / timeout
     }
+
+    const d = decideFromResponse(status, respBody);
+    if (d.fireConversion) {
+      track("signup", { source, variant, ...attr });
+      track("subscription_success", { source, variant, ...attr });
+      fireLead({ source, variant, ...attr });
+    } else {
+      track(d.analyticsEvent, { source, variant, category: d.failureCategory ?? null, ...attr });
+    }
+
+    setState(d.state);
+    setMessage(d.message);
+    setBusy(false);
   };
 
   if (done) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3" role="status" aria-live="polite">
         <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[14px]">
-          <Check size={16} /> You&apos;re in — check your inbox for a welcome email.
+          <Check size={16} /> {message}
         </div>
         <p className="text-[12px] text-ink-400 leading-relaxed max-w-md">
           If it&apos;s not in your inbox, check your spam or junk folder and add{" "}
@@ -165,19 +182,22 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
   }
 
   return (
-    <form onSubmit={submit} className="flex gap-2 flex-wrap max-w-md">
+    <form onSubmit={submit} className="flex gap-2 flex-wrap max-w-md" noValidate>
       <input
         type="email"
         value={email}
-        onChange={(e) => { setEmail(e.target.value); setError(null); }}
+        onChange={(e) => { setEmail(e.target.value); if (state !== "idle") setState("idle"); }}
         placeholder="you@email.com"
         aria-label="Email address"
-        className={`flex-1 min-w-[200px] h-12 px-4 rounded-xl bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 ${error ? "border-signal-red/50" : "border-white/[0.1]"}`}
+        aria-invalid={!!error}
+        aria-describedby={error ? "start-signup-error" : undefined}
+        disabled={busy}
+        className={`flex-1 min-w-[200px] h-12 px-4 rounded-xl bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 disabled:opacity-60 ${error ? "border-signal-red/50" : "border-white/[0.1]"}`}
       />
-      <button type="submit" disabled={busy} className="h-12 px-6 rounded-xl bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60">
-        {busy ? "Subscribing…" : buttonLabel}
+      <button type="submit" disabled={busy} aria-busy={busy} className="h-12 px-6 rounded-xl bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60">
+        {busy ? "Subscribing…" : error ? "Try again" : buttonLabel}
       </button>
-      {error && <p className="w-full text-[12px] text-signal-red">{error}</p>}
+      {error && <p id="start-signup-error" role="alert" className="w-full text-[12px] text-signal-red">{error}</p>}
     </form>
   );
 }
