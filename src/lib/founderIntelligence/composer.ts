@@ -6,6 +6,10 @@
 
 import { weekPeriod } from "./period";
 import { weasNorthStar } from "./northStar";
+import { canonicalConversion } from "./metrics/conversion";
+import { growthModule } from "./modules/growth";
+import { journeyModule } from "./modules/journey";
+import { dailyBriefModule } from "./modules/dailyBrief";
 import { factToDataQuality, dedupeDataQuality } from "./dataQuality";
 import {
   FOUNDER_INTELLIGENCE_SCHEMA_VERSION,
@@ -18,14 +22,18 @@ import {
   type ModuleStub,
   type NorthStar,
   type Recommendation,
+  type SharedContext,
 } from "./types";
 
-// The Phase-1 module registry. In PR2 the `planned` stubs are replaced with real
-// `build` functions — the composer and every consumer stay unchanged.
+// The Phase-1 module registry. The three modules are live (PR2); future modules
+// (Lifecycle, Content, Advertising, …) register here as `planned` stubs and swap
+// to `build` when implemented — the composer and every consumer stay unchanged.
 export const PHASE1_PROVIDERS: ModuleProvider[] = [
-  { moduleId: "growth", moduleName: "Growth Intelligence", planned: { status: "not_implemented", reason: "Arrives in Phase 1 · PR2" } },
-  { moduleId: "journeys", moduleName: "Journey Intelligence", planned: { status: "not_implemented", reason: "Arrives in Phase 1 · PR2" } },
-  { moduleId: "daily_briefs", moduleName: "Daily Brief Intelligence", planned: { status: "not_implemented", reason: "Arrives in Phase 1 · PR2" } },
+  { moduleId: "growth", moduleName: "Growth Intelligence", build: growthModule },
+  { moduleId: "journeys", moduleName: "Journey Intelligence", build: journeyModule },
+  { moduleId: "daily_briefs", moduleName: "Daily Brief Intelligence", build: dailyBriefModule },
+  { moduleId: "lifecycle", moduleName: "Lifecycle Intelligence", planned: { status: "not_implemented", reason: "Planned for Phase 2" } },
+  { moduleId: "content", moduleName: "Content Intelligence", planned: { status: "not_implemented", reason: "Planned for Phase 2" } },
 ];
 
 const IMPACT_RANK = { high: 3, medium: 2, low: 1 } as const;
@@ -98,13 +106,16 @@ export function buildFounderReview(northStar: NorthStar, modules: (IntelligenceM
 
 export async function composeFeed(now: number = Date.now(), providers: ModuleProvider[] = PHASE1_PROVIDERS): Promise<FounderIntelligenceFeed> {
   const period = weekPeriod(now);
-  const northStar = await weasNorthStar(now);
+  // Shared primitives computed ONCE and passed to every module, so the North
+  // Star and the single canonical conversion are never re-derived divergently.
+  const [northStar, conversion] = await Promise.all([weasNorthStar(now), canonicalConversion(now)]);
+  const shared: SharedContext = { northStar, conversion };
 
   const modulesArr: (IntelligenceModule | ModuleStub)[] = await Promise.all(
     providers.map(async (p): Promise<IntelligenceModule | ModuleStub> => {
       if (p.build) {
         try {
-          return await p.build(period, now);
+          return await p.build(period, now, shared);
         } catch {
           return { moduleId: p.moduleId, moduleName: p.moduleName, status: "unavailable", reason: "Module failed to build this refresh." };
         }
