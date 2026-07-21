@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
 import { assignVariant, getVariant } from "@/lib/experiments";
 import { fireLead } from "@/lib/marketing";
 import { decideFromResponse, type SubscribeResponseBody, type UiState } from "@/lib/subscription";
+import { SignupConfirmation } from "./SignupConfirmation";
 
 const GOLD = "#d9b96a";
 
@@ -151,18 +152,6 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
   const done = state === "success" || state === "existing";
   const error = state === "invalid" || state === "rate_limited" || state === "error" ? message : null;
 
-  // Once genuinely subscribed (or recognised as already subscribed), send them
-  // into the app so they get the full site menu — the paid landings are
-  // deliberately chrome-free. They read the confirmation for a moment first; the
-  // button lets them go immediately. A failure never redirects.
-  // (Note: this auto-redirect is slated for replacement with a dedicated
-  // confirmation page in PR5 — out of scope for PR1.)
-  useEffect(() => {
-    if (!done) return;
-    const t = setTimeout(() => { window.location.assign("/"); }, 3500);
-    return () => clearTimeout(t);
-  }, [done]);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return; // prevent duplicate submissions while in-flight
@@ -209,25 +198,7 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
   };
 
   if (done) {
-    return (
-      <div className="space-y-3" role="status" aria-live="polite">
-        <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[14px]">
-          <Check size={16} /> {message}
-        </div>
-        <p className="text-[12px] text-ink-400 leading-relaxed max-w-md">
-          If it&apos;s not in your inbox, check your spam or junk folder and add{" "}
-          <span className="text-ink-200">brief@halvinglens.com</span> to your contacts so you don&apos;t miss
-          tomorrow&apos;s research.
-        </p>
-        <a
-          href="/"
-          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors"
-        >
-          Enter HalvingLens <ArrowRight size={16} />
-        </a>
-        <p className="text-[11px] text-ink-500">Taking you there automatically…</p>
-      </div>
-    );
+    return <SignupConfirmation variant={state === "existing" ? "existing" : "success"} />;
   }
 
   return (
