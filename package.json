@@ -24,6 +24,7 @@
     "test-resend-webhook": "tsx scripts/test-resend-webhook.ts",
     "test-subscribe": "tsx scripts/test-subscribe.ts",
     "test-social-proof": "tsx scripts/test-social-proof.ts",
+    "test-testimonials": "tsx scripts/test-testimonials.ts",
     "send-intelligence": "tsx scripts/send-intelligence.ts",
     "test-intelligence": "tsx scripts/test-intelligence.ts",
     "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\""

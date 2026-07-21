@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { AdminLogin } from "@/components/AdminLogin";
+import { TestimonialModeration } from "@/components/TestimonialModeration";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
+import { pendingTestimonials } from "@/lib/testimonials";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin — halvinglens.com", robots: { index: false } };
@@ -95,14 +97,17 @@ const SECTIONS: AdminSection[] = [
   },
 ];
 
-export default function AdminHub() {
+export default async function AdminHub() {
   if (!isAdmin())
     return (
       <Shell>{adminConfigured() ? <AdminLogin /> : <p className="text-[14px] text-ink-300">Set ANALYTICS_DASHBOARD_KEY to enable.</p>}</Shell>
     );
 
+  const pending = await pendingTestimonials();
+
   return (
     <Shell>
+      <TestimonialModeration pending={pending} />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {SECTIONS.map((s) => (
           <div key={s.title} className="card p-5">

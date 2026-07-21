@@ -3,6 +3,7 @@ import { Check, X } from "lucide-react";
 import { FreeHero, LandingCta, StartSignup } from "@/components/LandingClient";
 import { DailyBriefPreview } from "@/components/DailyBriefPreview";
 import { SocialProof } from "@/components/SocialProof";
+import { Testimonials } from "@/components/Testimonials";
 import { editionContent } from "@/lib/emailBrief";
 import { libraryStats } from "@/lib/research";
 import { FOUNDING_MEMBER_LIMIT, FOUNDING_MEMBER_BENEFITS } from "@/lib/entitlements";
@@ -90,6 +91,9 @@ export default function FreePage() {
         <Proof label="Cost, forever" value="Free" />
         <Proof label="Predictions made" value="0" />
       </section>
+
+      {/* Reader testimonials — renders only once approved ones exist */}
+      <Testimonials />
 
       {/* Founding Members — honest programme, no fake scarcity, no live count */}
       <section className="card-glow p-6 sm:p-8">
