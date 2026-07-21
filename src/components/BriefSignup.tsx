@@ -7,6 +7,7 @@ import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
 import { fireLead } from "@/lib/marketing";
 import { decideFromResponse, type SubscribeResponseBody, type UiState } from "@/lib/subscription";
+import { SignupConfirmation } from "./SignupConfirmation";
 
 // Real email capture for the daily brief. POSTs to /api/subscribe and shows a
 // success state ONLY when the server confirms the subscriber was durably
@@ -109,21 +110,8 @@ export function BriefSignup({
         )}
 
         {done ? (
-          <div className="mt-5 space-y-2.5" role="status" aria-live="polite">
-            <div className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[13px]">
-              <Check size={15} /> {message}
-            </div>
-            <p className="text-[11.5px] text-ink-400 leading-relaxed max-w-md">
-              {state === "existing"
-                ? "Nothing more to do — your daily brief keeps arriving each morning."
-                : "If it’s not there in a minute, check your spam or junk folder and add "}
-              {state !== "existing" && (
-                <>
-                  <span className="text-ink-200">brief@halvinglens.com</span> to your contacts, so the daily brief
-                  always reaches your inbox.
-                </>
-              )}
-            </p>
+          <div className="mt-5">
+            <SignupConfirmation variant={state === "existing" ? "existing" : "success"} />
           </div>
         ) : (
           <form onSubmit={submit} className="mt-5 space-y-3" noValidate>
