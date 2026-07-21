@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { ShareButtons } from "@/components/ShareButtons";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { ArticleSubscribe } from "@/components/ArticleSubscribe";
 import { getWeekly, allWeeklySlugs, allWeeklies, latestWeekly } from "@/lib/weekly";
 import { absoluteUrl } from "@/lib/site";
 
@@ -82,6 +83,8 @@ export default function WeeklySlugPage({ params }: { params: { slug: string } })
           </Link>
         ) : <div />}
       </nav>
+
+      <ArticleSubscribe />
 
       <FeedbackWidget section="weekly_edition" contentType="weekly" label="Was this weekly useful?" />
     </div>
