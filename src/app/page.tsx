@@ -3,8 +3,6 @@ import { ArrowUpRight, Play } from "lucide-react";
 import { HomeHero } from "@/components/HomeHero";
 import { CycleSummaryHero } from "@/components/CycleSummaryHero";
 import { WhyCheckToday } from "@/components/WhyCheckToday";
-import { AccumulationIndexModule } from "@/components/AccumulationIndexModule";
-import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
 import { WhatChanged } from "@/components/WhatChanged";
 import { WhatToWatch } from "@/components/WhatToWatch";
 import { CycleScorecard } from "@/components/CycleScorecard";
@@ -108,14 +106,6 @@ export default function CycleDashboardPage() {
         </Link>
       </section>
 
-      {/* 3b. Accumulation Index teaser — curiosity + click-through */}
-      <TrackedSection id="accumulation-index" feedback="accumulation_index">
-        <AccumulationIndexModule />
-      </TrackedSection>
-
-      {/* 4. The moat in numbers — current cycle vs prior cycles */}
-      <TrackedSection id="today-vs-prior" feedback="today_vs_prior_cycles"><TodayVsPriorCycles /></TrackedSection>
-
       {/* 5. What changed since yesterday */}
       <TrackedSection id="what-changed" feedback="what_changed"><WhatChanged /></TrackedSection>
 
@@ -131,14 +121,37 @@ export default function CycleDashboardPage() {
       {/* 9. What happened next historically */}
       <TrackedSection id="what-happened-next"><WhatHappenedNext /></TrackedSection>
 
-      {/* 9b. Downside risk context — if it corrected like prior cycles */}
+      {/* 9b. Downside risk context — kept inline (no dedicated page for it) */}
       <TrackedSection id="downside" feedback="downside_preview"><DownsidePreview /></TrackedSection>
 
       {/* 10. What makes this cycle different */}
       <TrackedSection id="whats-different"><WhatsDifferent /></TrackedSection>
 
-      {/* 11. The evidence behind the read */}
+      {/* 11. The evidence behind the read — kept inline */}
       <TrackedSection id="evidence"><EvidenceDashboard /></TrackedSection>
+
+      {/* Flagship teasers — the modules that DO have a dedicated page (Accumulation,
+          Cycle comparison) are linked here instead of stacked inline (P4 simplification). */}
+      <TrackedSection id="flagship-teasers">
+        <section>
+          <SectionHeader
+            eyebrow="Go deeper"
+            title="The full analysis, on dedicated pages"
+            subtitle="Each of these has its own page with the complete read — the homepage keeps things brief."
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {FLAGSHIP_TEASERS.map((s) => (
+              <Link key={s.href} href={s.href} className="card card-interactive p-5 flex items-center justify-between gap-4 group hover:border-accent/30">
+                <div>
+                  <div className="text-[14px] font-medium text-ink-100">{s.title}</div>
+                  <div className="text-[12.5px] text-ink-400 mt-0.5">{s.desc}</div>
+                </div>
+                <ArrowUpRight size={16} className="text-accent shrink-0" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      </TrackedSection>
 
       {/* Daily brief capture */}
       <div id="subscribe" className="scroll-mt-24">
@@ -184,6 +197,11 @@ export default function CycleDashboardPage() {
     </div>
   );
 }
+
+const FLAGSHIP_TEASERS = [
+  { title: "Accumulation Index", desc: "How attractive today is versus Bitcoin's whole history.", href: "/accumulation" },
+  { title: "Cycle comparison", desc: "Today's cycle against 2012, 2016 and 2020, aligned to halving day.", href: "/cycles" },
+];
 
 function SectionHeader({
   eyebrow,
