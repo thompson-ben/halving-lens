@@ -60,8 +60,14 @@ export default async function AdminMetricsPage() {
       <div className="-mt-2 flex items-center gap-3 flex-wrap">
         <ExcludeToggle />
         <a
-          href="/admin/content"
+          href="/admin/social"
           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-accent/25 bg-accent/[0.06] text-accent text-[12.5px] hover:bg-accent/[0.1] transition-colors"
+        >
+          Intelligence Queue →
+        </a>
+        <a
+          href="/admin/content"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-white/[0.1] text-ink-200 text-[12.5px] hover:border-white/25 hover:text-ink-50 transition-colors"
         >
           Content Pack Generator →
         </a>

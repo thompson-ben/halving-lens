@@ -50,8 +50,10 @@ function canShareImages(): boolean {
   }
 }
 
-export function ContentPackStudio({ packs }: { packs: StudioPack[] }) {
-  const [activeId, setActiveId] = useState(packs[0]?.id);
+export function ContentPackStudio({ packs, initialPackId }: { packs: StudioPack[]; initialPackId?: string }) {
+  // Honour a pre-selected pack (e.g. arriving from the Intelligence Queue's
+  // "Generate Creative" → /admin/content?pack=…), falling back to the first pack.
+  const [activeId, setActiveId] = useState(packs.some((p) => p.id === initialPackId) ? initialPackId : packs[0]?.id);
   const [version, setVersion] = useState(() => Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [shareable, setShareable] = useState(false);
