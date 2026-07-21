@@ -48,19 +48,22 @@ export function HomeHero() {
           <CycleContextChart height={250} compact />
         </div>
 
-        {/* Paths deeper */}
-        <div className="mt-6 flex items-center gap-3 flex-wrap">
+        {/* Primary path: subscribe. Exploration stays available but subordinate. */}
+        <p className="mt-7 text-[13.5px] text-ink-200">
+          One clear Bitcoin cycle update each morning. No hype. No predictions.
+        </p>
+        <div className="mt-3 flex items-center gap-4 flex-wrap">
           <Link
-            href="/price"
+            href="/#subscribe"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors"
           >
-            Explore full cycle analysis <ArrowUpRight size={16} />
+            Get the free daily brief <ArrowUpRight size={16} />
           </Link>
           <Link
-            href="/similar-moments"
+            href="/price"
             className="inline-flex items-center gap-1.5 text-[13px] text-ink-300 hover:text-ink-100"
           >
-            Have we seen this before? <ArrowUpRight size={13} />
+            Explore full cycle analysis <ArrowUpRight size={13} />
           </Link>
         </div>
 

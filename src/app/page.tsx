@@ -14,6 +14,8 @@ import { DownsidePreview } from "@/components/DownsidePreview";
 import { WhatsDifferent } from "@/components/WhatsDifferent";
 import { EvidenceDashboard } from "@/components/EvidenceDashboard";
 import { BriefSignup } from "@/components/BriefSignup";
+import { DailyBriefPreview } from "@/components/DailyBriefPreview";
+import { editionContent } from "@/lib/emailBrief";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { TrackedSection } from "@/components/TrackedSection";
 import { FeatureVote } from "@/components/FeatureVote";
@@ -22,30 +24,53 @@ import { ResearchFindingCard } from "@/components/ResearchFindingCard";
 import { latestFindings } from "@/lib/findings";
 
 export default function CycleDashboardPage() {
+  const edition = editionContent();
   return (
     <div className="space-y-14 lg:space-y-20">
       {/* 1. Demonstrate first — dynamic insight + mini cycle-context chart */}
-      <HomeHero />
+      <TrackedSection id="hero"><HomeHero /></TrackedSection>
 
       {/* 2. The moat visual — every cycle lined up from day zero */}
-      <section>
-        <SectionHeader
-          eyebrow="The signature view"
-          title="Every halving cycle, lined up from day zero"
-          subtitle="All four cycles on the same axis, aligned to halving day — the comparison that doesn't exist anywhere else free."
-          link={{ href: "/cycles", label: "Open full overlay" }}
-        />
-        <div className="card p-4 sm:p-7 relative">
-          <CycleOverlayChart mode="normalized" height={340} />
-          <div className="watermark">halvinglens.com · price · normalised</div>
-        </div>
-        <Link
-          href="/cycles"
-          className="sm:hidden mt-4 inline-flex items-center gap-1.5 text-[13px] text-accent"
-        >
-          Open full overlay <ArrowUpRight size={14} />
-        </Link>
-      </section>
+      <TrackedSection id="signature-view">
+        <section>
+          <SectionHeader
+            eyebrow="The signature view"
+            title="Every halving cycle, lined up from day zero"
+            subtitle="All four cycles on the same axis, aligned to halving day — the comparison that doesn't exist anywhere else free."
+            link={{ href: "/cycles", label: "Open full overlay" }}
+          />
+          <div className="card p-4 sm:p-7 relative">
+            <CycleOverlayChart mode="normalized" height={340} />
+            <div className="watermark">halvinglens.com · price · normalised</div>
+          </div>
+          <Link
+            href="/cycles"
+            className="sm:hidden mt-4 inline-flex items-center gap-1.5 text-[13px] text-accent"
+          >
+            Open full overlay <ArrowUpRight size={14} />
+          </Link>
+        </section>
+      </TrackedSection>
+
+      {/* 3. Show the product — a live example of the daily brief (P4.3) */}
+      <TrackedSection id="brief-preview">
+        <section>
+          <SectionHeader
+            eyebrow="The daily brief"
+            title="The Bitcoin cycle, explained in one morning brief"
+            subtitle="Free, evidence-led, and written without hype or predictions. Here's a live example of what lands in your inbox."
+          />
+          <DailyBriefPreview edition={edition} label="A live example — today's actual brief" />
+          <div className="mt-6">
+            <Link
+              href="/#subscribe"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors"
+            >
+              Get the free daily brief <ArrowUpRight size={16} />
+            </Link>
+          </div>
+        </section>
+      </TrackedSection>
 
       {/* 2b. The full cycle read — detailed thermometer + numbers */}
       <section>
