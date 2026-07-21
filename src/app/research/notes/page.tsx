@@ -15,12 +15,12 @@ const GOLD = "#d9b96a";
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: "Research Notes · HalvingLens Research",
+  title: "Research Notes",
   description:
     "Short, citable Bitcoin research notes — desk observations grounded in the historical record. Citable as HL-N###. Historical context, not prediction.",
   alternates: { canonical: "/research/notes" },
   openGraph: {
-    title: "Research Notes · HalvingLens Research",
+    title: "Research Notes",
     description: "Short desk observations grounded in the historical record. Historical context, not prediction.",
     url: "/research/notes",
     type: "website",

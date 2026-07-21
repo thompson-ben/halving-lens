@@ -23,7 +23,7 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const n = noteBySlug(params.slug);
-  if (!n) return { title: "Research Note — halvinglens.com" };
+  if (!n) return { title: "Research Note" };
   const title = `${n.id} — ${n.title} · HalvingLens Research`;
   const path = `/research/notes/${n.slug}`;
   return {

@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { editionsByMonth, libraryStats } from "@/lib/research";
 
 export const metadata = {
-  title: "Research Timeline — halvinglens.com",
+  title: "Research Timeline",
   description:
     "Scroll through Bitcoin's history one research note per day. Every edition of HalvingLens Research, in order. Educational context, not advice.",
   alternates: { canonical: "/research/timeline" },

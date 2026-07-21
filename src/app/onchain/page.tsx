@@ -21,7 +21,7 @@ import {
 } from "@/lib/onchain";
 
 export const metadata = {
-  title: "On-chain — halvinglens.com",
+  title: "On-chain Activity",
 };
 
 const ZONE_TEXT: Record<string, string> = {

@@ -13,7 +13,7 @@ import type { Dir } from "@/lib/dailyChange";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Bitcoin Market Health — halvinglens.com",
+  title: "Bitcoin Market Health",
   description:
     "How healthy does today's Bitcoin market look versus its own history? A composite 0–100 health score built from cycle timing, price structure, ETF demand, sentiment and miner health. Educational context — not a prediction, not financial advice.",
   alternates: { canonical: "/market-health" },

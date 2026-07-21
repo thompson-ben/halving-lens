@@ -20,7 +20,7 @@ export function generateStaticParams() {
 }
 
 export function generateMetadata({ params }: { params: { date: string } }): Metadata {
-  if (!isValidSlug(params.date)) return { title: "Brief — halvinglens.com" };
+  if (!isValidSlug(params.date)) return { title: "Daily Brief" };
   const label = formatSlugDate(params.date);
   const stored = storedBrief(params.date);
   const desc = stored

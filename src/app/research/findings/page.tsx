@@ -31,12 +31,12 @@ const LIBRARY_TIERS: { key: string; label: string; blurb: string; href: string |
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: "Research Findings · HalvingLens Research",
+  title: "Research Findings",
   description:
     "Original, citable Bitcoin research from HalvingLens. A permanent library of historical findings — evidence first, conclusions second. Historical context, not prediction.",
   alternates: { canonical: "/research/findings" },
   openGraph: {
-    title: "Research Findings · HalvingLens Research",
+    title: "Research Findings",
     description: "Original, citable Bitcoin research. Historical context, not prediction.",
     url: "/research/findings",
     type: "website",

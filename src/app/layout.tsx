@@ -33,8 +33,8 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "halvinglens.com — the clearest view of the Bitcoin cycle",
-    template: "%s · halvinglens.com",
+    default: "HalvingLens — The Clearest View of the Bitcoin Cycle",
+    template: "%s | HalvingLens",
   },
   description:
     "Every Bitcoin cycle metric, aligned to halving day zero, across all four cycles. Free.",

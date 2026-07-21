@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { allWeeklies, weeklyStats } from "@/lib/weekly";
 
 export const metadata = {
-  title: "Weekly Research Archive — halvinglens.com",
+  title: "Weekly Research Archive",
   description: "Every edition of HalvingLens Weekly Research, permanently archived. Educational historical context, not advice.",
   alternates: { canonical: "/weekly/archive" },
 };

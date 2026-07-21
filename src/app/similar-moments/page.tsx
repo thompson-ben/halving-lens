@@ -3,7 +3,7 @@ import { SimilarityChange } from "@/components/SimilarityChange";
 import { similarMoments, similarityTrend } from "@/lib/similarity";
 
 export const metadata = {
-  title: "Similar moments — have we seen this before? — halvinglens.com",
+  title: "Similar Moments — have we seen this before?",
   description:
     "Find the most similar moments in Bitcoin history based on current market conditions. Historical context, not prediction.",
 };

@@ -19,7 +19,7 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: { params: { n: string } }): Metadata {
   const e = getEdition(Number(params.n));
-  if (!e) return { title: "Research — halvinglens.com" };
+  if (!e) return { title: "Research" };
   const title = `Edition #${e.edition} — ${e.dateLabel} · HalvingLens Research`;
   const desc = e.take;
   return {

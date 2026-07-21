@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { archiveIndex } from "@/lib/briefArchive";
 
 export const metadata = {
-  title: "Bitcoin Cycle Brief — Archive · halvinglens.com",
+  title: "Daily Brief Archive",
   description: "Browse the daily Bitcoin Cycle Brief archive by date.",
 };
 

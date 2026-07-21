@@ -6,7 +6,7 @@ import { priceStats } from "@/lib/btcPrice";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 export const metadata = {
-  title: "Bitcoin price — halvinglens.com",
+  title: "Bitcoin Price",
 };
 
 export default function PricePage() {

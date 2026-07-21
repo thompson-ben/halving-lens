@@ -22,7 +22,7 @@ import { SITE_HOST } from "@/lib/site";
 import { fmtUsd } from "@/lib/format";
 
 export const metadata = {
-  title: "Bitcoin Accumulation Index — halvinglens.com",
+  title: "Bitcoin Accumulation Index",
   description:
     "A price-only, historically-backtested gauge of how attractive Bitcoin's accumulation environment looks versus its own history. Educational context — not a prediction, not financial advice.",
 };

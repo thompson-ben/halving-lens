@@ -16,7 +16,7 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const w = getWeekly(params.slug);
-  if (!w) return { title: "Weekly Research — halvinglens.com" };
+  if (!w) return { title: "Weekly Research" };
   const title = `Weekly Research — ${w.weekLabel} · HalvingLens`;
   return {
     title,

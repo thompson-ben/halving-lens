@@ -7,7 +7,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 export const metadata = {
-  title: "Morning Research Library — halvinglens.com",
+  title: "Morning Research Library",
   description:
     "Every edition of HalvingLens Research, permanently archived. A daily Bitcoin cycle research note — searchable, dated and historically accurate forever. Educational context, not advice.",
   alternates: { canonical: "/research" },
