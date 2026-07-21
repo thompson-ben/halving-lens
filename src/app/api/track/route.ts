@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sbInsert } from "@/lib/supabase";
 import { isBot } from "@/lib/botCheck";
+import { currentProfile } from "@/lib/profile";
 
 // First-party, privacy-friendly event collection. No cookies, no PII — just an
 // anonymous per-session id (random, client-generated). Fails open: if Supabase
@@ -94,10 +95,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, skipped: "internal" });
   }
 
+  const props: Record<string, unknown> = body.props && typeof body.props === "object" ? { ...body.props } : {};
+
+  // WEAS instrumentation: when the request carries a valid member session cookie,
+  // stamp the recognised subscriber's privacy-safe hash (same emailHash the email
+  // events use) onto the event, so on-site engagement becomes attributable to a
+  // subscriber for the Weekly Engaged Active Subscribers North Star. Server-side
+  // (the token is httpOnly), aggregate-safe, and FAIL-OPEN — a recognition error
+  // must never drop the event or break tracking. `props.sub` is never overwritten
+  // if the client already set it (e.g. email-link events).
+  if (props.sub == null) {
+    try {
+      const sub = currentProfile()?.hash;
+      if (sub) props.sub = sub;
+    } catch {
+      /* recognition is best-effort — analytics must never break */
+    }
+  }
+
   await sbInsert("events", {
     name,
     path,
-    props: body.props && typeof body.props === "object" ? body.props : {},
+    props,
     session_id: typeof body.sessionId === "string" ? body.sessionId.slice(0, 64) : null,
     is_new: body.isNew === true,
   });
