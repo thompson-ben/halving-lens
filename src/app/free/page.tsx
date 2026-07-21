@@ -1,53 +1,40 @@
 import Link from "next/link";
-import { ArrowUpRight, Check, X } from "lucide-react";
-import { LandingHero, LandingCta, StartSignup } from "@/components/LandingClient";
+import { Check, X } from "lucide-react";
+import { FreeHero, LandingCta, StartSignup } from "@/components/LandingClient";
+import { DailyBriefPreview } from "@/components/DailyBriefPreview";
 import { editionContent } from "@/lib/emailBrief";
-import { sentimentRead, SENTIMENT_AVAILABLE } from "@/lib/sentiment";
 import { libraryStats } from "@/lib/research";
+import { FOUNDING_MEMBER_LIMIT, FOUNDING_MEMBER_BENEFITS } from "@/lib/entitlements";
 
-// /free — the paid-acquisition (Meta) landing. Conversion-first, "free" as the
-// hook. Its own funnel attribution (source="/free") so its conversion can be
-// compared against /start. Kept out of organic sitemap (paid entry point).
+// /free — the paid-acquisition (Meta) landing. Conversion-first: capture is
+// above the fold (FreeHero), the actual daily brief is shown (DailyBriefPreview),
+// and there is no leave-the-site route before the first signup. Kept out of the
+// organic sitemap and marked noindex (paid entry point, not organic content).
 
 const DESC =
-  "Free daily Bitcoin cycle research — understand where Bitcoin sits today in under 60 seconds. No hype, no predictions, no price targets. Always free.";
+  "Free daily Bitcoin cycle research — know where Bitcoin sits in its cycle in under 60 seconds. No hype, no predictions, no price targets. Always free.";
 export const metadata = {
   title: "Free Bitcoin Cycle Research — HalvingLens",
   description: DESC,
   alternates: { canonical: "/free" },
-  openGraph: { title: "Free Bitcoin cycle research, every morning.", description: DESC, url: "/free", type: "website" },
-  twitter: { card: "summary_large_image", title: "Free Bitcoin cycle research, every morning.", description: DESC },
+  robots: { index: false, follow: true }, // paid landing — keep out of organic index
+  openGraph: { title: "Know where Bitcoin sits in its cycle.", description: DESC, url: "/free", type: "website" },
+  twitter: { card: "summary_large_image", title: "Know where Bitcoin sits in its cycle.", description: DESC },
 };
 
 const GOLD = "#d9b96a";
 
 export default function FreePage() {
   const e = editionContent();
-  const sr = SENTIMENT_AVAILABLE ? sentimentRead() : null;
   const stats = libraryStats();
 
   return (
     <div className="space-y-20 sm:space-y-24">
-      <LandingHero
-        source="/free"
-        eyebrow="Free · daily Bitcoin research"
-        headline="Bitcoin cycle research. Completely free."
-        sub="One clear, calm read on where Bitcoin sits in its cycle — every morning, grounded in 13+ years of history. No hype. No predictions. No paywall."
-      />
+      <FreeHero previewHref="#preview" />
 
-      {/* Today's free read — immediate proof of value */}
-      <section>
-        <SectionLabel>Today&apos;s free read</SectionLabel>
-        <div className="card-glow p-6 sm:p-8">
-          <p className="font-display text-[20px] sm:text-[26px] text-ink-50 leading-snug max-w-3xl">{e.take}</p>
-          <div className="mt-7 grid grid-cols-2 lg:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-            <Stat label="Context Score" value={`${e.contextScore.score}/100`} sub={e.contextScore.label} />
-            <Stat label="Accumulation Index" value={`${e.metrics.accumulationScore}/100`} sub={e.metrics.accumulationBand.replace("Historically ", "")} />
-            <Stat label="Fear & Greed" value={sr ? `${sr.value}` : "—"} sub={sr ? sr.band.label : "Sentiment"} />
-            <Stat label="Closest moment" value={e.historicalContext ? e.historicalContext.match : "—"} sub={e.historicalContext ? `${e.historicalContext.similarity}% match` : "Similar moments"} />
-          </div>
-          <p className="mt-5 text-[12px] text-ink-500">This is today&apos;s actual read — historical context, not a prediction or financial advice.</p>
-        </div>
+      {/* The actual product — a live example of tomorrow's brief */}
+      <section id="preview" className="scroll-mt-24">
+        <DailyBriefPreview edition={e} />
       </section>
 
       {/* What you get, free */}
@@ -103,18 +90,44 @@ export default function FreePage() {
         <Proof label="Predictions made" value="0" />
       </section>
 
+      {/* Founding Members — honest programme, no fake scarcity, no live count */}
+      <section className="card-glow p-6 sm:p-8">
+        <div className="text-[10.5px] uppercase tracking-[0.22em] mb-3" style={{ color: GOLD }}>Founding Members</div>
+        <h2 className="font-display text-[22px] sm:text-[28px] font-medium tracking-tight-2 text-ink-50 leading-snug">
+          Join the first {FOUNDING_MEMBER_LIMIT.toLocaleString()} HalvingLens Founding Members.
+        </h2>
+        <p className="mt-3 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">
+          The first {FOUNDING_MEMBER_LIMIT.toLocaleString()} members to subscribe and create a free investor profile
+          become Founding Members — permanent status, recognised in the{" "}
+          <Link href="/founders" className="text-accent">Hall of Founders</Link>.
+        </p>
+        <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 max-w-2xl">
+          {FOUNDING_MEMBER_BENEFITS.slice(0, 4).map((b) => (
+            <li key={b} className="flex items-center gap-2 text-[12.5px] text-ink-300">
+              <Check size={13} className="text-accent shrink-0" strokeWidth={2.4} /> {b}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-5">
+          <LandingCta href="#signup" label="founding_primary" source="/free">Claim your place — free</LandingCta>
+        </div>
+      </section>
+
       {/* Email capture */}
-      <section id="signup" className="card-glow p-7 sm:p-10 text-center">
+      <section id="signup" className="card-glow p-7 sm:p-10 text-center scroll-mt-24">
         <h2 className="font-display text-[26px] sm:text-[34px] font-medium tracking-tight-2 text-ink-50 leading-tight">
-          Get tomorrow&apos;s research, free.
+          Get tomorrow&apos;s brief, free.
         </h2>
         <p className="mt-3 text-[14px] text-ink-300 max-w-lg mx-auto">
-          Join readers who start every day with historical context instead of hype. One email each morning. Unsubscribe anytime.
+          One clear Bitcoin cycle update each morning — historical context instead of hype. Unsubscribe anytime.
         </p>
         <div className="mt-6 flex justify-center">
-          <StartSignup source="/free" buttonLabel="Get my free research" />
+          <StartSignup source="/free" buttonLabel="Get my free brief" />
         </div>
-        <p className="mt-3 text-[11px] text-ink-500">100% free. No spam. Historical context, not advice.</p>
+        <p className="mt-3 text-[11px] text-ink-500">
+          100% free · No hype or predictions · Unsubscribe anytime ·{" "}
+          <Link href="/privacy" className="underline decoration-white/20 underline-offset-2 hover:text-ink-300">Privacy</Link>
+        </p>
       </section>
 
       {/* FAQ */}
@@ -136,7 +149,7 @@ export default function FreePage() {
           The clearest view of the Bitcoin cycle — and it costs nothing.
         </h2>
         <div className="mt-6 flex justify-center">
-          <LandingCta href="#signup" label="final_primary" source="/free">Get my free research</LandingCta>
+          <LandingCta href="#signup" label="final_primary" source="/free">Get my free brief</LandingCta>
         </div>
         <p className="mt-8 text-[11px] text-ink-500">Historical context. Not prediction. No price targets. Not financial advice.</p>
       </section>
@@ -154,15 +167,6 @@ const FAQ = [
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <div className="text-[10.5px] uppercase tracking-[0.22em] mb-5" style={{ color: GOLD }}>{children}</div>;
-}
-function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div className="bg-[#0b0f15] px-4 py-5">
-      <div className="text-[9.5px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
-      <div className="mt-1.5 font-display text-[24px] text-ink-50 leading-none">{value}</div>
-      <div className="mt-1.5 text-[11.5px]" style={{ color: GOLD }}>{sub}</div>
-    </div>
-  );
 }
 function Proof({ label, value }: { label: string; value: string }) {
   return (
