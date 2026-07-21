@@ -202,7 +202,7 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
   }
 
   return (
-    <form onSubmit={submit} className="flex gap-2 flex-wrap max-w-md" noValidate>
+    <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 w-full max-w-md" noValidate>
       <input
         type="email"
         value={email}
@@ -212,9 +212,9 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
         aria-invalid={!!error}
         aria-describedby={error ? "start-signup-error" : undefined}
         disabled={busy}
-        className={`flex-1 min-w-[200px] h-12 px-4 rounded-xl bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 disabled:opacity-60 ${error ? "border-signal-red/50" : "border-white/[0.1]"}`}
+        className={`w-full sm:flex-1 sm:min-w-0 h-12 px-4 rounded-xl bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 disabled:opacity-60 ${error ? "border-signal-red/50" : "border-white/[0.1]"}`}
       />
-      <button type="submit" disabled={busy} aria-busy={busy} className="h-12 px-6 rounded-xl bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60">
+      <button type="submit" disabled={busy} aria-busy={busy} className="w-full sm:w-auto h-12 px-6 rounded-xl bg-accent text-ink-950 text-[14px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60 shrink-0">
         {busy ? "Subscribing…" : error ? "Try again" : buttonLabel}
       </button>
       {error && <p id="start-signup-error" role="alert" className="w-full text-[12px] text-signal-red">{error}</p>}
