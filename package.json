@@ -20,6 +20,7 @@
     "send-roundup": "tsx scripts/send-roundup.ts",
     "send-founder-report": "tsx scripts/send-founder-report.ts",
     "test-founder-intelligence": "tsx scripts/test-founder-intelligence.ts",
+    "test-intelligence-api": "tsx scripts/test-intelligence-api.ts",
     "send-intelligence": "tsx scripts/send-intelligence.ts",
     "test-intelligence": "tsx scripts/test-intelligence.ts",
     "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\""
