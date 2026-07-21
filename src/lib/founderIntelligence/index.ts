@@ -9,3 +9,5 @@ export { canonicalConversion, computeConversion, type CanonicalConversion, type 
 export { growthModule, mapGrowth } from "./modules/growth";
 export { journeyModule, mapJourney } from "./modules/journey";
 export { dailyBriefModule, mapDailyBrief } from "./modules/dailyBrief";
+export { API_VERSION, INTELLIGENCE_SECTIONS, SECTION_TO_MODULE, isSection, shapeSection, intelligenceApiResponse, type IntelligenceEnvelope, type IntelligenceSection } from "./api";
+export { authorizeIntelligence, type AuthResult, type IntelligencePrincipal } from "./apiAuth";
