@@ -7,6 +7,7 @@ import { HalvingCountdownMini } from "./HalvingCountdownMini";
 import { lastUpdatedShort } from "./LastUpdated";
 import { MobileNav } from "./MobileNav";
 import { ShareTrigger } from "./ShareTrigger";
+import { NavSubscribeCta } from "./NavSubscribeCta";
 
 const PHASE_DOT: Record<string, string> = {
   blue: "bg-signal-blue",
@@ -41,6 +42,8 @@ export function TopBar() {
         <MobileStatus spot={spot} />
 
         <div className="flex items-center gap-2">
+          <NavSubscribeCta placement="topbar" />
+
           <ShareTrigger />
 
           <Link

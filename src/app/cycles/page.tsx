@@ -13,6 +13,16 @@ import { fmtPct, fmtUsd } from "@/lib/format";
 const fmtMult = (m: number) => (m >= 10 ? `${m.toFixed(0)}×` : `${m.toFixed(1)}×`);
 const fmtWin = (iso: string) => format(new Date(iso), "MMM yyyy");
 
+const DESC =
+  "Compare all four Bitcoin halving cycles side by side, aligned to halving day zero — price, drawdowns and recoveries across 13+ years of history.";
+export const metadata = {
+  title: { absolute: "Bitcoin Halving Cycle Comparison | HalvingLens" },
+  description: DESC,
+  alternates: { canonical: "/cycles" },
+  openGraph: { title: "Bitcoin Halving Cycle Comparison", description: DESC, url: "/cycles", type: "website" },
+  twitter: { card: "summary_large_image", title: "Bitcoin Halving Cycle Comparison", description: DESC },
+};
+
 export default function CyclesPage() {
   const headline = cycleTrackingHeadline();
   const divergence = cycleDivergence();

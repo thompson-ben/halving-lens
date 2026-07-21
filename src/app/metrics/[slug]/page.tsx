@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { SITE_URL } from "@/lib/site";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { MetricChart } from "@/components/MetricChart";
 import { MetricGauge } from "@/components/MetricGauge";
@@ -17,6 +19,48 @@ export function generateStaticParams() {
   return METRICS.map((m) => ({ slug: m.slug }));
 }
 
+// Unique, search-intent metadata per metric (P3.1) — never the homepage default.
+export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+  const metric = metricBySlug(params.slug);
+  if (!metric) return {};
+  const desc = metric.description;
+  return {
+    title: { absolute: `${metric.name} | HalvingLens` },
+    description: desc,
+    alternates: { canonical: `/metrics/${metric.slug}` },
+    openGraph: { title: metric.name, description: desc, url: `/metrics/${metric.slug}`, type: "article" },
+    twitter: { card: "summary_large_image", title: metric.name, description: desc },
+  };
+}
+
+// Breadcrumb + DefinedTerm structured data for a metric page (P3.4).
+function metricJsonLd(slug: string, name: string, description: string) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "HalvingLens", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "Metrics", item: `${SITE_URL}/metrics` },
+          { "@type": "ListItem", position: 3, name, item: `${SITE_URL}/metrics/${slug}` },
+        ],
+      },
+      {
+        "@type": "DefinedTerm",
+        name,
+        description,
+        inDefinedTermSet: `${SITE_URL}/metrics`,
+        url: `${SITE_URL}/metrics/${slug}`,
+      },
+    ],
+  };
+}
+
+function JsonLd({ data }: { data: object }) {
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
+
 export default function MetricPage({ params }: { params: { slug: string } }) {
   const metric = metricBySlug(params.slug);
   if (!metric) return notFound();
@@ -26,6 +70,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
   if (metricStatus(metric.slug) === "coming-soon") {
     return (
       <div className="space-y-10">
+        <JsonLd data={metricJsonLd(metric.slug, metric.name, metric.description)} />
         <div>
           <Link
             href="/metrics"
@@ -86,6 +131,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
 
   return (
     <div className="space-y-12">
+      <JsonLd data={metricJsonLd(metric.slug, metric.name, metric.description)} />
       <RecordView kind="metric" title={metric.name} href={`/metrics/${metric.slug}`} />
       <div>
         <Link

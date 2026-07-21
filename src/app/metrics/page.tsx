@@ -2,6 +2,16 @@ import { MetricCard } from "@/components/MetricCard";
 import { METRICS } from "@/lib/metrics";
 import { metricStatus } from "@/lib/cycleIntel";
 
+const DESC =
+  "Every major Bitcoin cycle and valuation metric — MVRV Z-Score, Mayer Multiple, Puell Multiple, Reserve Risk and more — aligned to halving day zero. Free.";
+export const metadata = {
+  title: { absolute: "Bitcoin Cycle Metrics Library | HalvingLens" },
+  description: DESC,
+  alternates: { canonical: "/metrics" },
+  openGraph: { title: "Bitcoin Cycle Metrics Library", description: DESC, url: "/metrics", type: "website" },
+  twitter: { card: "summary_large_image", title: "Bitcoin Cycle Metrics Library", description: DESC },
+};
+
 export default function MetricsPage() {
   const live = METRICS.filter((m) => metricStatus(m.slug) !== "coming-soon");
   const comingSoon = METRICS.filter((m) => metricStatus(m.slug) === "coming-soon");
