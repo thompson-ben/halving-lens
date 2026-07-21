@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { FreeHero, LandingCta, StartSignup } from "@/components/LandingClient";
 import { DailyBriefPreview } from "@/components/DailyBriefPreview";
+import { SocialProof } from "@/components/SocialProof";
 import { editionContent } from "@/lib/emailBrief";
 import { libraryStats } from "@/lib/research";
 import { FOUNDING_MEMBER_LIMIT, FOUNDING_MEMBER_BENEFITS } from "@/lib/entitlements";
@@ -123,6 +124,9 @@ export default function FreePage() {
         </p>
         <div className="mt-6 flex justify-center">
           <StartSignup source="/free" buttonLabel="Get my free brief" />
+        </div>
+        <div className="mt-4 flex justify-center">
+          <SocialProof />
         </div>
         <p className="mt-3 text-[11px] text-ink-500">
           100% free · No hype or predictions · Unsubscribe anytime ·{" "}

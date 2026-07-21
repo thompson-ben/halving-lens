@@ -127,6 +127,8 @@ export default async function FindingPage({ params }: { params: { slug: string }
         <p className="mt-3 text-[11px] text-ink-500">
           HalvingLens Research · Published {dateLabel(f.datePublished)}
           {f.status === "updated" && f.lastUpdated && <> · Updated {dateLabel(f.lastUpdated)}</>}
+          {" · "}
+          <Link href="/methodology" className="underline decoration-white/20 underline-offset-2 hover:text-ink-300">Methodology</Link>
         </p>
         {f.status === "updated" && f.lastUpdated && (
           <p className="mt-2 text-[12px] text-ink-500">The permanent ID {f.id} is unchanged.</p>
