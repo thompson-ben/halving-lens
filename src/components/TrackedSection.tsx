@@ -19,6 +19,11 @@ export function TrackedSection({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useRef(false);
+  // Dwell tracking: accumulate how long the section is actually on screen, and
+  // flush once on unmount/leave. This is the pre-simplification signal (P4.5) —
+  // "which sections hold attention" — alongside section_view and section_click.
+  const dwellMs = useRef(0);
+  const visibleSince = useRef<number | null>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -26,17 +31,30 @@ export function TrackedSection({
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting && !seen.current) {
-            seen.current = true;
-            track("section_view", { section: id });
-            io.disconnect();
+          if (e.isIntersecting) {
+            if (!seen.current) {
+              seen.current = true;
+              track("section_view", { section: id });
+            }
+            if (visibleSince.current == null) visibleSince.current = Date.now();
+          } else if (visibleSince.current != null) {
+            dwellMs.current += Date.now() - visibleSince.current;
+            visibleSince.current = null;
           }
         }
       },
       { threshold: 0.4 },
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      if (visibleSince.current != null) {
+        dwellMs.current += Date.now() - visibleSince.current;
+        visibleSince.current = null;
+      }
+      const seconds = Math.round(dwellMs.current / 1000);
+      if (seconds >= 1) track("section_dwell", { section: id, seconds });
+    };
   }, [id]);
 
   return (

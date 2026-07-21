@@ -9,7 +9,6 @@ const OPTIONS: { key: string; label: string }[] = [
   { key: "daily_emails", label: "Daily email brief" },
   { key: "etf_tracking", label: "Deeper ETF tracking" },
   { key: "more_cycle_comparisons", label: "More cycle comparisons" },
-  { key: "portfolio_tracking", label: "Portfolio tracking" },
   { key: "other", label: "Something else" },
 ];
 
