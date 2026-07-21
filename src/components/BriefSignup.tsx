@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Mail, Check } from "lucide-react";
+import { Mail, Check, AlertCircle } from "lucide-react";
 import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
 import { fireLead } from "@/lib/marketing";
+import { decideFromResponse, type SubscribeResponseBody, type UiState } from "@/lib/subscription";
 
-// Real email capture for the daily brief / future alerts. POSTs to
-// /api/subscribe (validates + forwards to a configured destination). Falls back
-// to localStorage if the request fails, so a signup is never lost.
+// Real email capture for the daily brief. POSTs to /api/subscribe and shows a
+// success state ONLY when the server confirms the subscriber was durably
+// captured (outcome "created" or "existing"). Any failure — validation, rate
+// limit, server error or network error — shows a clear, retryable error and
+// preserves the entered email. Meta Lead + the canonical `signup` conversion
+// fire only for a confirmed NEW subscriber.
 export function BriefSignup({
   compact = false,
   heading,
@@ -22,46 +26,55 @@ export function BriefSignup({
   const pathname = usePathname();
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(true);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<UiState | "idle">("idle");
+  const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const done = state === "success" || state === "existing";
+  const error = state === "invalid" || state === "rate_limited" || state === "error" ? message : null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return; // prevent duplicate submissions while in-flight
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email.");
+      setState("invalid");
+      setMessage("Please enter a valid email address.");
       return;
     }
     setSubmitting(true);
-    setError(null);
+    setMessage(null);
+
+    const attr = getAttribution();
+    track("subscription_submit_attempt", { source: pathname, ...attr });
+
+    // Resolve to a definite (status, body) pair; a thrown fetch → status null.
+    let status: number | null = null;
+    let body: SubscribeResponseBody | null = null;
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, source: pathname, consent }),
       });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error ?? "Something went wrong.");
-      }
-      track("signup", { source: pathname, ...getAttribution() });
-      fireLead({ source: pathname });
-      setDone(true);
-    } catch (err) {
-      // Don't lose the signup — stash locally and still confirm.
-      try {
-        const key = "halvinglens.brief.waitlist";
-        const list = JSON.parse(localStorage.getItem(key) ?? "[]");
-        if (!list.includes(email)) list.push(email);
-        localStorage.setItem(key, JSON.stringify(list));
-      } catch {
-        /* ignore */
-      }
-      void err;
-      setDone(true);
-    } finally {
-      setSubmitting(false);
+      status = res.status;
+      body = (await res.json().catch(() => null)) as SubscribeResponseBody | null;
+    } catch {
+      status = null; // network failure / timeout
     }
+
+    const d = decideFromResponse(status, body);
+    if (d.fireConversion) {
+      // Confirmed NEW subscriber only: canonical conversion event + ad platforms.
+      track("signup", { source: pathname, ...attr });
+      track("subscription_success", { source: pathname, ...attr });
+      fireLead({ source: pathname, ...attr });
+    } else {
+      track(d.analyticsEvent, { source: pathname, category: d.failureCategory ?? null, ...attr });
+    }
+
+    setState(d.state);
+    setMessage(d.message);
+    setSubmitting(false);
   };
 
   return (
@@ -96,38 +109,48 @@ export function BriefSignup({
         )}
 
         {done ? (
-          <div className="mt-5 space-y-2.5">
+          <div className="mt-5 space-y-2.5" role="status" aria-live="polite">
             <div className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-signal-green/25 bg-signal-green/[0.08] text-signal-green text-[13px]">
-              <Check size={15} /> You&apos;re subscribed — check your inbox for a welcome email.
+              <Check size={15} /> {message}
             </div>
             <p className="text-[11.5px] text-ink-400 leading-relaxed max-w-md">
-              If it&apos;s not there in a minute, check your spam or junk folder and add{" "}
-              <span className="text-ink-200">brief@halvinglens.com</span> to your contacts, so the daily brief
-              always reaches your inbox.
+              {state === "existing"
+                ? "Nothing more to do — your daily brief keeps arriving each morning."
+                : "If it’s not there in a minute, check your spam or junk folder and add "}
+              {state !== "existing" && (
+                <>
+                  <span className="text-ink-200">brief@halvinglens.com</span> to your contacts, so the daily brief
+                  always reaches your inbox.
+                </>
+              )}
             </p>
           </div>
         ) : (
-          <form onSubmit={submit} className="mt-5 space-y-3">
+          <form onSubmit={submit} className="mt-5 space-y-3" noValidate>
             <div className="flex gap-2 flex-wrap">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  setError(null);
+                  if (state !== "idle") setState("idle");
                 }}
                 placeholder="you@email.com"
                 aria-label="Email address"
-                className={`flex-1 min-w-[200px] h-11 px-3.5 rounded-lg bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 transition-colors ${
+                aria-invalid={!!error}
+                aria-describedby={error ? "brief-signup-error" : undefined}
+                disabled={submitting}
+                className={`flex-1 min-w-[200px] h-11 px-3.5 rounded-lg bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-accent/40 transition-colors disabled:opacity-60 ${
                   error ? "border-signal-red/50" : "border-white/[0.08]"
                 }`}
               />
               <button
                 type="submit"
                 disabled={submitting}
+                aria-busy={submitting}
                 className="h-11 px-5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors disabled:opacity-60"
               >
-                {submitting ? "Subscribing…" : "Subscribe free"}
+                {submitting ? "Subscribing…" : error ? "Try again" : "Subscribe free"}
               </button>
             </div>
             <label className="flex items-start gap-2 text-[11px] text-ink-400 cursor-pointer">
@@ -144,7 +167,11 @@ export function BriefSignup({
             </label>
           </form>
         )}
-        {error && <p className="mt-2 text-[12px] text-signal-red">{error}</p>}
+        {error && (
+          <p id="brief-signup-error" role="alert" className="mt-2 flex items-center gap-1.5 text-[12px] text-signal-red">
+            <AlertCircle size={13} className="shrink-0" /> {error}
+          </p>
+        )}
         {!done && (
           <>
             <div className="mt-3 flex items-center gap-3 flex-wrap text-[11px] text-ink-400">
