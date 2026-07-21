@@ -216,10 +216,18 @@ export interface FounderIntelligenceFeed {
   review: FounderReview;
 }
 
+// Shared primitives computed once per feed and passed to every module, so the
+// North Star and the single canonical conversion are never re-derived divergently.
+import type { CanonicalConversion } from "./metrics/conversion";
+export interface SharedContext {
+  northStar: NorthStar;
+  conversion: CanonicalConversion;
+}
+
 // A registered module producer: either a real async builder or a planned stub.
 export interface ModuleProvider {
   moduleId: string;
   moduleName: string;
   planned?: { status: Exclude<ModuleStatus, "ok">; reason: string }; // present ⇒ not built yet
-  build?: (period: Period, now: number) => Promise<IntelligenceModule>;
+  build?: (period: Period, now: number, shared: SharedContext) => Promise<IntelligenceModule>;
 }
