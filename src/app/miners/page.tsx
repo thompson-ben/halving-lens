@@ -9,7 +9,7 @@ import { SPOT, TODAY } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
 
 export const metadata = {
-  title: "Miners — halvinglens.com",
+  title: "Bitcoin Miners",
 };
 
 export default function MinersPage() {

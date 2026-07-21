@@ -10,7 +10,7 @@ import { latestWeekly, weeklyStats } from "@/lib/weekly";
 import { absoluteUrl } from "@/lib/site";
 
 export const metadata = {
-  title: "HalvingLens Weekly Research — halvinglens.com",
+  title: "Weekly Research",
   description:
     "A premium weekly Bitcoin cycle research report, published every Sunday. The week's story in historical context — not predictions, not advice.",
   alternates: { canonical: "/weekly" },

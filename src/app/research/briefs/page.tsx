@@ -15,12 +15,12 @@ const GOLD = "#d9b96a";
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: "Evidence Briefs · HalvingLens Research",
+  title: "Evidence Briefs",
   description:
     "One-page Bitcoin evidence briefs — a single question, a single figure recomputed live from source. Citable as HL-E###. Historical context, not prediction.",
   alternates: { canonical: "/research/briefs" },
   openGraph: {
-    title: "Evidence Briefs · HalvingLens Research",
+    title: "Evidence Briefs",
     description: "A single question, a single figure, recomputed live. Historical context, not prediction.",
     url: "/research/briefs",
     type: "website",

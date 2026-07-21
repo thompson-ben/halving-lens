@@ -8,12 +8,12 @@ import { absoluteUrl } from "@/lib/site";
 const GOLD = "#d9b96a";
 
 export const metadata: Metadata = {
-  title: "Myth vs Reality — HalvingLens Research",
+  title: "Myth vs Reality",
   description:
     "Common Bitcoin assumptions tested against the historical record. Each myth links to the full HalvingLens research paper behind it. Evidence over folklore.",
   alternates: { canonical: "/research/myths" },
   openGraph: {
-    title: "Myth vs Reality — HalvingLens Research",
+    title: "Myth vs Reality",
     description: "Common Bitcoin assumptions tested against the historical record. Evidence over folklore.",
     url: "/research/myths",
     type: "website",

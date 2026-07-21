@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { HalvingCountdown } from "@/components/HalvingCountdown";
 
 export const metadata = {
-  title: "The halving — halvinglens.com",
+  title: "The Halving",
 };
 
 const HALVINGS_PAST = [

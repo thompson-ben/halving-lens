@@ -11,7 +11,7 @@ import { EARLY_SUPPORTER_LIMIT } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Hall of Founders — HalvingLens",
+  title: "Hall of Founders",
   description: "The earliest supporters of HalvingLens. Founding Members, recognised permanently.",
   robots: { index: false },
 };

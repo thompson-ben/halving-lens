@@ -9,7 +9,7 @@ import { ProfileSignInForm } from "@/components/ProfileSignInForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Founder's Collection · HalvingLens",
+  title: "Founder's Collection",
   description: "Downloadable premium branded assets — a reward for introducing genuinely engaged readers.",
   robots: { index: false },
 };

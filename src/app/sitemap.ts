@@ -45,9 +45,15 @@ const STATIC_PATHS = [
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
+  // Evergreen / informational / legal pages don't change with the daily data
+  // refresh, so their lastModified must NOT churn on every deploy (P3.6). Give
+  // them a stable "last reviewed" date; bump it only when their content changes.
+  const EVERGREEN = new Set(["/about", "/methodology", "/privacy", "/terms", "/learn", "/halving"]);
+  const evergreenLastMod = new Date("2026-07-21");
+
   const staticEntries = STATIC_PATHS.map((path) => ({
     url: `${SITE_URL}${path}`,
-    lastModified: now,
+    lastModified: EVERGREEN.has(path) ? evergreenLastMod : now,
     changeFrequency: (path === "/" || path === "/brief" ? "daily" : "weekly") as
       | "daily"
       | "weekly",

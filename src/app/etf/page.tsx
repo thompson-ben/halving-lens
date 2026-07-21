@@ -16,7 +16,7 @@ import { fmtUsd } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Bitcoin ETF Flows — halvinglens.com",
+  title: "Bitcoin ETF Flows",
   description:
     "The institutional demand hub: daily US spot Bitcoin ETF net flows, 7/30/90-day trends, cumulative total, streaks and historical context. Educational context — not a prediction, not financial advice.",
   alternates: { canonical: "/etf" },

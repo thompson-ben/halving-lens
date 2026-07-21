@@ -14,7 +14,7 @@ import { FOUNDING_MEMBER_LIMIT, FOUNDING_MEMBER_BENEFITS } from "@/lib/entitleme
 const DESC =
   "Free daily Bitcoin cycle research — know where Bitcoin sits in its cycle in under 60 seconds. No hype, no predictions, no price targets. Always free.";
 export const metadata = {
-  title: "Free Bitcoin Cycle Research — HalvingLens",
+  title: "Free Bitcoin Cycle Research",
   description: DESC,
   alternates: { canonical: "/free" },
   robots: { index: false, follow: true }, // paid landing — keep out of organic index

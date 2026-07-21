@@ -6,7 +6,7 @@ import { METRICS } from "@/lib/metrics";
 import { metricStatus, type DataStatus } from "@/lib/cycleIntel";
 
 export const metadata = {
-  title: "Learn — halvinglens.com",
+  title: "Learn",
 };
 
 const CYCLE_BASICS: { term: string; def: string }[] = [
