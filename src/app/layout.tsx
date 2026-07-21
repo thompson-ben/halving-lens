@@ -74,6 +74,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){try{var p=location.pathname,n=new URLSearchParams(location.search).get('nav');if((p==='/start'||p==='/free')&&n!=='1'){document.documentElement.setAttribute('data-bare','1');}}catch(e){}})();`,
           }}
         />
+        {/* Site-wide structured data (P3.4): publisher + site identity. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": `${SITE_URL}/#organization`,
+                  name: "HalvingLens",
+                  url: SITE_URL,
+                  logo: `${SITE_URL}/og`,
+                  description:
+                    "Independent Bitcoin research publication — evidence-based historical cycle analysis, without hype or price predictions.",
+                  founder: { "@type": "Person", name: "Ben Thompson" },
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": `${SITE_URL}/#website`,
+                  name: "HalvingLens",
+                  url: SITE_URL,
+                  publisher: { "@id": `${SITE_URL}/#organization` },
+                },
+              ],
+            }),
+          }}
+        />
         <div className="flex min-h-screen">
           <div className="site-chrome" style={{ display: "contents" }}>
             <Sidebar />

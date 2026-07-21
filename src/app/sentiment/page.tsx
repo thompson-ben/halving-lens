@@ -32,6 +32,16 @@ function changeArrow(dir: "rising" | "falling" | "flat"): string {
   return dir === "rising" ? "↑" : dir === "falling" ? "↓" : "→";
 }
 
+const DESC =
+  "Where Bitcoin market sentiment sits today, set against the whole cycle — calm, evidence-led context with no hype and no price predictions.";
+export const metadata = {
+  title: { absolute: "Bitcoin Market Sentiment | HalvingLens" },
+  description: DESC,
+  alternates: { canonical: "/sentiment" },
+  openGraph: { title: "Bitcoin Market Sentiment", description: DESC, url: "/sentiment", type: "website" },
+  twitter: { card: "summary_large_image", title: "Bitcoin Market Sentiment", description: DESC },
+};
+
 export default function SentimentPage() {
   const read = SENTIMENT_AVAILABLE ? sentimentRead() : null;
   const overlay = SENTIMENT_AVAILABLE ? pricedSentimentSeries() : [];

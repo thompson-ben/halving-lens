@@ -1,5 +1,15 @@
 import { CycleReplay } from "@/components/CycleReplay";
 
+const DESC =
+  "Replay Bitcoin's halving cycles day by day and see where the current cycle sits against every prior cycle — historical context, not prediction.";
+export const metadata = {
+  title: { absolute: "Bitcoin Cycle Replay | HalvingLens" },
+  description: DESC,
+  alternates: { canonical: "/replay" },
+  openGraph: { title: "Bitcoin Cycle Replay", description: DESC, url: "/replay", type: "website" },
+  twitter: { card: "summary_large_image", title: "Bitcoin Cycle Replay", description: DESC },
+};
+
 export default function ReplayPage() {
   return (
     <div className="space-y-12">

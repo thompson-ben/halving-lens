@@ -115,7 +115,9 @@ export default function CycleDashboardPage() {
       <TrackedSection id="evidence"><EvidenceDashboard /></TrackedSection>
 
       {/* Daily brief capture */}
-      <BriefSignup />
+      <div id="subscribe" className="scroll-mt-24">
+        <BriefSignup />
+      </div>
 
       <section>
         <Link

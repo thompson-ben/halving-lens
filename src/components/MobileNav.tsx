@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
 import { NAV_SECTIONS, type NavLink } from "./navItems";
+import { NavSubscribeCta } from "./NavSubscribeCta";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -84,6 +85,9 @@ export function MobileNav() {
             </div>
 
             <div className="flex-1 px-3 py-7 flex flex-col gap-0.5 overflow-y-auto">
+              <div className="px-1 pb-5" onClick={() => setOpen(false)}>
+                <NavSubscribeCta placement="mobilenav" />
+              </div>
               {NAV_SECTIONS.map((section, i) => (
                 <div key={section.label} className="contents">
                   <SectionLabel className={`${section.accent ? "text-accent" : ""} ${i > 0 ? "mt-7" : ""}`}>

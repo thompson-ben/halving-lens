@@ -3,6 +3,16 @@ import { HodlWavesChart } from "@/components/HodlWavesChart";
 import { DataBadge } from "@/components/DataBadge";
 import { HODL_BANDS, HODL_LIVE, HODL_SOURCE, HODL_UPDATED } from "@/lib/hodlWaves";
 
+const DESC =
+  "Bitcoin HODL Waves — the share of supply by how long coins have been held, across every halving cycle. See accumulation and distribution in historical context.";
+export const metadata = {
+  title: { absolute: "Bitcoin HODL Waves | HalvingLens" },
+  description: DESC,
+  alternates: { canonical: "/hodl-waves" },
+  openGraph: { title: "Bitcoin HODL Waves", description: DESC, url: "/hodl-waves", type: "website" },
+  twitter: { card: "summary_large_image", title: "Bitcoin HODL Waves", description: DESC },
+};
+
 export default function HodlWavesPage() {
   return (
     <div className="space-y-12">
