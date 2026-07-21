@@ -7,6 +7,7 @@
 // Historical context, not advice.
 
 import { SITE_URL, SITE_HOST } from "./site";
+import { unsubToken } from "./emailToken";
 import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
 import { YOUTUBE_URL, YOUTUBE_LIVE } from "./lifecycleConfig";
 
@@ -323,6 +324,46 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
           [
             "Your Investor Profile brings your reading streak, achievements and referral progress into one view.",
             `Open it: ${SITE_URL}/profile`,
+          ],
+          ctx,
+        ),
+      };
+    },
+  },
+  // Day 14 — feedback / testimonial request (P6.2). Warm, low-pressure; the link
+  // carries a signed token so a reply can be attributed (as a hash) without
+  // asking for the email again. Nothing published without admin approval.
+  {
+    id: "day14_feedback",
+    dayOffset: 14,
+    subject: "How's the daily brief working for you?",
+    build: (ctx) => {
+      const url = `${SITE_URL}/testimonial?e=${encodeURIComponent(ctx.email)}&t=${unsubToken(ctx.email)}`;
+      const body =
+        `<div style="font:400 15px/1.65 ${SANS};color:${C.sub};margin-bottom:12px;">If it's earning a place in your morning, I'd love to hear how — a sentence or two is perfect:</div>` +
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">` +
+        bullet("Does it save you research time?") +
+        bullet("Does the historical context help you keep perspective?") +
+        bullet("Has it made the cycle easier to follow, with less noise?") +
+        `</table>` +
+        `<div style="font:400 13px/1.6 ${SANS};color:${C.dim};margin-top:12px;">Nothing formal needed — and please skip specific returns or price calls, just how it helps. If we ever feature it, only the display name you choose is shown.</div>`;
+      return {
+        html: shell({
+          eyebrow: "Two weeks in",
+          tag: "Day 14",
+          title: "How's it working for you?",
+          intro: "You've had the Daily Brief for a couple of weeks now.",
+          body,
+          cta: { label: "Share your experience", url },
+          ctx,
+          preheader: "A quick question after your first two weeks.",
+        }),
+        text: simpleText(
+          "How's the daily brief working for you?",
+          [
+            "You've had the Daily Brief for two weeks. If it helps, I'd love to hear how — a sentence is perfect.",
+            "Please skip specific returns or price calls — just how it helps.",
+            `Share your experience: ${url}`,
           ],
           ctx,
         ),
