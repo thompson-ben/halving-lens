@@ -59,6 +59,55 @@ export function LandingHero({
   );
 }
 
+// Above-the-fold hero for the paid /free landing: headline + what/when/how-long
+// + the email field itself (no scroll-to-find), honest reassurance, and a
+// stay-on-page "see a sample" anchor instead of a leave-the-site secondary CTA
+// (P1.1/P1.3/P1.4). Fires landing_view so /free's funnel is measured separately.
+export function FreeHero({ previewHref = "#preview" }: { previewHref?: string }) {
+  const fired = useRef(false);
+  useEffect(() => {
+    if (fired.current) return;
+    fired.current = true;
+    track("landing_view", { variant: "free", source: "/free", ...getAttribution() });
+  }, []);
+
+  return (
+    <section className="pt-6 max-w-2xl mx-auto text-center">
+      <div className="text-[10.5px] uppercase tracking-[0.24em] mb-5" style={{ color: GOLD }}>Free · daily Bitcoin research</div>
+      <h1 className="font-display text-[38px] sm:text-[56px] font-medium tracking-tightest text-ink-50 leading-[1.04]">
+        Know where Bitcoin sits in its cycle.
+      </h1>
+      <p className="mt-5 text-[15px] sm:text-[17px] text-ink-300 leading-relaxed max-w-xl mx-auto">
+        Get one clear Bitcoin cycle update each morning — what changed, what history shows, and what to watch
+        next. Free, evidence-led, and written without hype or predictions.
+      </p>
+      <p className="mt-3 text-[12.5px] text-ink-500">Delivered around 8am UK. Read in under 60 seconds.</p>
+
+      <div className="mt-7 flex justify-center">
+        <StartSignup source="/free" buttonLabel="Get today’s free brief" />
+      </div>
+
+      {/* Honest reassurance — no urgency, no inflated claims */}
+      <div className="mt-4 flex items-center justify-center gap-x-3 gap-y-1.5 flex-wrap text-[11px] text-ink-400">
+        <span>Free forever</span>
+        <span aria-hidden>·</span>
+        <span>No hype or predictions</span>
+        <span aria-hidden>·</span>
+        <span>Unsubscribe anytime</span>
+        <span aria-hidden>·</span>
+        <a href="/privacy" className="underline decoration-white/20 underline-offset-2 hover:text-ink-200">Privacy</a>
+      </div>
+
+      {/* Stay-on-page: inspect the product without navigating away */}
+      <div className="mt-6">
+        <a href={previewHref} className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-300 hover:text-accent transition-colors">
+          See a sample brief <ArrowRight size={14} className="rotate-90" />
+        </a>
+      </div>
+    </section>
+  );
+}
+
 export function LandingCta({
   href,
   label,

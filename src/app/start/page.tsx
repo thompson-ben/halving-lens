@@ -12,6 +12,7 @@ export const metadata = {
   title: "HalvingLens — The Clearest View of the Bitcoin Cycle",
   description: DESC,
   alternates: { canonical: "/start" },
+  robots: { index: false, follow: true }, // paid landing — keep out of organic index
   openGraph: { title: "The clearest view of the Bitcoin cycle.", description: DESC, url: "/start", type: "website" },
   twitter: { card: "summary_large_image", title: "The clearest view of the Bitcoin cycle.", description: DESC },
 };
