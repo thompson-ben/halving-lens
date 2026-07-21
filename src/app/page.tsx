@@ -15,6 +15,7 @@ import { WhatsDifferent } from "@/components/WhatsDifferent";
 import { EvidenceDashboard } from "@/components/EvidenceDashboard";
 import { BriefSignup } from "@/components/BriefSignup";
 import { DailyBriefPreview } from "@/components/DailyBriefPreview";
+import { SocialProof } from "@/components/SocialProof";
 import { editionContent } from "@/lib/emailBrief";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { TrackedSection } from "@/components/TrackedSection";
@@ -142,6 +143,9 @@ export default function CycleDashboardPage() {
       {/* Daily brief capture */}
       <div id="subscribe" className="scroll-mt-24">
         <BriefSignup />
+        <div className="mt-4">
+          <SocialProof />
+        </div>
       </div>
 
       <section>
