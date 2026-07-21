@@ -17,6 +17,7 @@ const STATIC_PATHS = [
   "/accumulation",
   "/market-health",
   "/similar-moments",
+  "/downside-scenarios",
   "/historical-price-paths",
   "/brief",
   "/brief/archive",
