@@ -8,7 +8,9 @@ import { AttributionCapture } from "@/components/AttributionCapture";
 import { ProfileBeacon } from "@/components/ProfileBeacon";
 import { BareChromeSync } from "@/components/ChromeGate";
 import { MarketingScripts } from "@/components/MarketingScripts";
+import { Footer } from "@/components/Footer";
 import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { SOCIAL_LINKS } from "@/lib/socialLinks";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const fraunces = Fraunces({
@@ -90,6 +92,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   description:
                     "Independent Bitcoin research publication — evidence-based historical cycle analysis, without hype or price predictions.",
                   founder: { "@type": "Person", name: "Ben Thompson" },
+                  sameAs: SOCIAL_LINKS.map((s) => s.href),
                 },
                 {
                   "@type": "WebSite",
@@ -113,6 +116,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="flex-1 px-8 lg:px-14 py-10 lg:py-14">
               <div className="max-w-[1320px] mx-auto">{children}</div>
             </main>
+            <div className="site-chrome" style={{ display: "contents" }}>
+              <Footer />
+            </div>
           </div>
         </div>
         <PageTracker />
