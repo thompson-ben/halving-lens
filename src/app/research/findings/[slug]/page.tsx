@@ -18,6 +18,7 @@ import { RecordView } from "@/components/RecordView";
 import { SaveButton } from "@/components/SaveButton";
 import { ResearchFindingCard } from "@/components/ResearchFindingCard";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { ArticleSubscribe } from "@/components/ArticleSubscribe";
 import { absoluteUrl } from "@/lib/site";
 
 const GOLD = "#d9b96a";
@@ -270,6 +271,8 @@ export default async function FindingPage({ params }: { params: { slug: string }
           and not a recommendation to buy or sell any asset. Figures describe how mechanical rules would have behaved on
           past data, within the assumptions stated. Past behaviour is not a guide to future results.
         </p>
+
+        <ArticleSubscribe />
 
         <FeedbackWidget section="research_finding" contentType="finding" label="Was this research useful?" />
       </div>

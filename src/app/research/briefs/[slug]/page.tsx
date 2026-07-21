@@ -12,6 +12,7 @@ import { FindingStatusBadge } from "@/components/FindingStatusBadge";
 import { RecordView } from "@/components/RecordView";
 import { SaveButton } from "@/components/SaveButton";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { ArticleSubscribe } from "@/components/ArticleSubscribe";
 import { SOURCE } from "@/lib/btcData";
 import { absoluteUrl } from "@/lib/site";
 
@@ -183,6 +184,8 @@ export default function BriefPage({ params }: { params: { slug: string } }) {
           and not a recommendation to buy or sell any asset. Figures describe how the historical record behaved, within
           the assumptions stated. Past behaviour is not a guide to future results.
         </p>
+
+        <ArticleSubscribe />
 
         <FeedbackWidget section="research_brief" contentType="finding" label="Was this brief useful?" />
       </div>
