@@ -115,7 +115,7 @@ export function BriefSignup({
           </div>
         ) : (
           <form onSubmit={submit} className="mt-5 space-y-3" noValidate>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email"
                 value={email}
