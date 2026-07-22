@@ -202,7 +202,7 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 w-full max-w-md" noValidate>
+    <form onSubmit={submit} className="flex flex-col sm:flex-row gap-3 w-full max-w-md" noValidate>
       <input
         type="email"
         value={email}
