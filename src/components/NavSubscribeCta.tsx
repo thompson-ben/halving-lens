@@ -20,8 +20,8 @@ export function NavSubscribeCta({ placement, className }: { placement: "topbar" 
 
   const base =
     placement === "topbar"
-      ? "hidden md:inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-accent text-ink-950 text-[12.5px] font-medium hover:bg-accent-soft transition-colors"
-      : "inline-flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors";
+      ? "hidden md:inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-accent text-ink-950 text-[12.5px] font-medium leading-none whitespace-nowrap shrink-0 hover:bg-accent-soft transition-colors"
+      : "inline-flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-accent text-ink-950 text-[13px] font-medium leading-none whitespace-nowrap hover:bg-accent-soft transition-colors";
 
   return (
     <Link

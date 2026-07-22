@@ -7,7 +7,8 @@ import { roundedReaders, SOCIAL_PROOF_MIN_DEFAULT } from "@/lib/socialProof";
 // would be frozen at build). Reads the REAL active-subscriber count, rounds DOWN,
 // and gates on SOCIAL_PROOF_MIN — returns { readers: null } when below the
 // threshold or unknown, so the UI shows nothing. CDN-cached (10 min) so it never
-// hammers the database. Hit it directly to debug: /api/social-proof
+// hammers the database. Named neutrally (not "social"/"proof") so privacy
+// blockers don't false-positive and drop the in-page fetch. Debug: /api/readers
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 

@@ -7,7 +7,13 @@
 export const SOCIAL_PROOF_MIN_DEFAULT = 100;
 
 // Rounded-down bands — we only ever claim a number we've genuinely passed.
-const BANDS = [100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000, 20000, 25000, 50000, 100000];
+// Fine steps of 10 through the low hundreds so the figure tracks the real count
+// (e.g. 112 → "110+", not a floor-looking "100+"), then coarser as it grows.
+const BANDS = [
+  100, 110, 120, 130, 140, 150, 160, 170, 180, 190,
+  200, 225, 250, 300, 350, 400, 450, 500, 600, 750,
+  1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000, 20000, 25000, 50000, 100000,
+];
 
 // Largest band <= count, provided count meets the minimum threshold. Otherwise null.
 export function roundedReaders(count: number | null | undefined, min: number = SOCIAL_PROOF_MIN_DEFAULT): number | null {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 
 // Truthful subscriber-count social proof (P6.1). Client component: fetches the
-// REAL active count from /api/social-proof on mount, which rounds DOWN to a
+// REAL active count from /api/readers on mount, which rounds DOWN to a
 // band and gates on SOCIAL_PROOF_MIN server-side. Renders nothing until a
 // number arrives, and nothing at all when below threshold / store unconfigured
 // — so it can never show a fabricated or tiny number, and never exposes
@@ -15,7 +15,7 @@ export function SocialProof({ className, label }: { className?: string; label?: 
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/social-proof")
+    fetch("/api/readers")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (alive && d && typeof d.readers === "number") setReaders(d.readers);
