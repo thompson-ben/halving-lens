@@ -9,9 +9,10 @@ import { RecordModeButton } from "@/components/RecordModeButton";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { FlagshipShare } from "@/components/FlagshipShare";
 import { WhereAreWe } from "@/components/WhereAreWe";
+import { WeekInContext } from "@/components/WeekInContext";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { metricChange, type MetricChange } from "@/lib/metricChange";
-import { snapshotWhatChanged, snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
+import { snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
 import { todaysVerdict, matchReasons, weekChangeSummary, metricMeaning, rankedWatch } from "@/lib/stateOfBitcoin";
 import { pathExplorer } from "@/lib/pathExplorer";
 import { upsideScenarios } from "@/lib/upside";
@@ -66,13 +67,6 @@ const DATA_STATUS: Record<string, "live" | "live-derived" | "coming-soon"> = { l
 // ── small presentation helpers ───────────────────────────────────────────────
 const TONE: Record<"good" | "bad" | "neutral", string> = { good: "text-accent", bad: "text-signal-red", neutral: "text-ink-300" };
 const ARROW: Record<"up" | "down" | "flat", string> = { up: "↑", down: "↓", flat: "→" };
-const FLAG_TONE: Record<"good" | "bad" | "neutral" | "flag", string> = {
-  good: "text-accent",
-  bad: "text-signal-red",
-  neutral: "text-ink-300",
-  flag: "text-signal-amber",
-};
-
 // Self-explanatory signed return (e.g. "+2%", "+0.2%", "−14%"). One decimal
 // when small so a near-flat cycle doesn't collapse to a bare "+0%".
 function fmtSignedPct(n: number): string {
@@ -153,7 +147,6 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   const accumulation = metricChange("accumulation");
   const etf = metricChange("etf_flow");
   const pos = snapshotCyclePosition();
-  const changed = snapshotWhatChanged(5);
   const ctx = snapshotContext();
   const watch = rankedWatch();
   const cotw = selectChartOfWeek();
@@ -262,30 +255,15 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         </div>
       </section>
 
-      {/* ── What changed this week ── */}
+      {/* ── This week in context ── */}
       <section>
-        <SectionHead n="03" title="What changed this week?" note="The most meaningful developments of the past seven days." />
+        <SectionHead n="03" title="This week in context" note="The week's biggest developments, ranked — what changed, why it matters, and whether the cycle thesis moved." />
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[12px] text-ink-200">
             {weekChange.headline}
           </span>
         </div>
-        <div className="card p-5 sm:p-6">
-          {changed.length === 0 ? (
-            <p className="text-[14px] text-ink-400">A quiet week — no material shifts across the core readings.</p>
-          ) : (
-            <ul className="space-y-3">
-              {changed.map((c, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className={`mt-1.5 text-[12px] ${FLAG_TONE[c.tone]}`} aria-hidden>
-                    {c.tone === "flag" ? "◆" : "•"}
-                  </span>
-                  <span className="text-[14.5px] text-ink-100 leading-snug">{c.title}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <WeekInContext />
       </section>
 
       {/* ── How has history behaved from here? — the evidence for the chapter ── */}
