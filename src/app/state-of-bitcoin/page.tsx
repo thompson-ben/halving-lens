@@ -17,6 +17,9 @@ import { EvidenceSweep } from "@/components/sob/EvidenceSweep";
 import { CycleStatusSection } from "@/components/sob/CycleStatusSection";
 import { WeeklyConclusion } from "@/components/sob/WeeklyConclusion";
 import { PresenterHud } from "@/components/sob/PresenterHud";
+import { JournalMasthead } from "@/components/journal/JournalMasthead";
+import { ChapterNav } from "@/components/journal/ChapterNav";
+import { currentChapter, previousChapter } from "@/lib/journal";
 import { metricChange } from "@/lib/metricChange";
 import { snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
 import { weekAgoBrief } from "@/lib/weekComparison";
@@ -114,6 +117,10 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       {presenter && <PresenterHud episodeScript={episodeBriefText()} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
+      {/* Publication identity — this is the current Chapter of The Journal.
+          Additive chrome only; hidden in presenter mode to keep the recording clean. */}
+      {!presenter && <JournalMasthead chapter={currentChapter()} />}
+
       {/* ── Section 1 — State of Bitcoin Today ── */}
       <section data-sob-section="today">
         <header className="pt-2">
@@ -138,7 +145,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           <TodayStat label="Bitcoin price" value={fmtUsd(price.current)} sub={p7 ? <span className={TONE[p7.good]}>{p7.pctLabel ?? p7.absLabel} · 7d</span> : undefined} />
           <TodayStat label="Cycle day" value={`Day ${pos.cycleDay}`} sub={`${pos.progressPct}% through`} />
           <TodayStat label="Since halving" value={fmtSignedPct(pos.gainFromHalving)} sub={`${Math.round(pos.drawdownFromAth)}% from high`} />
-          <TodayStat label="Chapter" value={pos.phaseLabel} sub={health.band?.label ?? undefined} />
+          <TodayStat label="Cycle phase" value={pos.phaseLabel} sub={health.band?.label ?? undefined} />
         </div>
 
         {/* The signature orientation visual */}
@@ -274,6 +281,9 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       {!presenter && (
         <FlagshipShare page="/state-of-bitcoin" label="The State of Bitcoin" blurb="Where Bitcoin stands today, explained through the story of the last seven days." />
       )}
+
+      {/* Chapter connection — read the previous edition, or browse the archive. */}
+      {!presenter && <ChapterNav prev={previousChapter()} />}
 
       {!presenter && <FlagshipJourney current="state-of-bitcoin" />}
 

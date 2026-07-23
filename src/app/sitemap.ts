@@ -12,6 +12,8 @@ import { allNotes } from "@/lib/researchNotes";
 // intentionally left out (paid-ad landing, kept out of organic discovery).
 const STATIC_PATHS = [
   "/",
+  "/journal",
+  "/journal/archive",
   "/state-of-bitcoin",
   "/cycles",
   "/accumulation",

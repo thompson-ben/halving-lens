@@ -77,6 +77,18 @@ function weeklyEditionNumber(d: Date): number {
   return Math.max(1, Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - LAUNCH) / (7 * 86_400_000)) + 1);
 }
 
+// Exposed for The Journal, so a Chapter's number and week-slug are computed from
+// the exact same weekly cadence the reports use (no parallel numbering).
+export function editionForDate(d: Date): number {
+  return weeklyEditionNumber(d);
+}
+export function weekSlugForDate(d: Date): string {
+  return weekSlug(d);
+}
+export function weekLabelForDate(d: Date): string {
+  return weekLabel(d);
+}
+
 // ── Build this week's report from the latest data + last week's frozen report ─
 export function weeklyContent(): WeeklyReport {
   const e = editionContent();
