@@ -195,7 +195,7 @@ function CompactSignal({ signal }: { signal: WeekSignal }) {
 }
 
 // ── Cycle Status — the most valuable line: did the thesis change? ────────────
-function CycleStatusCard({ status }: { status: ReturnType<typeof weekStory>["cycleStatus"] }) {
+export function CycleStatusCard({ status }: { status: ReturnType<typeof weekStory>["cycleStatus"] }) {
   const accent = STATUS_ACCENT[status.tone];
   return (
     <div className="card-glow relative overflow-hidden p-5 sm:p-6">
@@ -215,7 +215,7 @@ function CycleStatusCard({ status }: { status: ReturnType<typeof weekStory>["cyc
   );
 }
 
-export function WeekInContext() {
+export function WeekInContext({ showCycleStatus = true }: { showCycleStatus?: boolean } = {}) {
   const story = weekStory();
   const lead = story.signals[0];
   const secondary = story.signals.slice(1, 3);
@@ -258,8 +258,9 @@ export function WeekInContext() {
         </>
       )}
 
-      {/* the verdict — did the week change the thesis? */}
-      <CycleStatusCard status={story.cycleStatus} />
+      {/* the verdict — did the week change the thesis? (own section on the
+          State of Bitcoin page; inline elsewhere) */}
+      {showCycleStatus && <CycleStatusCard status={story.cycleStatus} />}
     </div>
   );
 }
