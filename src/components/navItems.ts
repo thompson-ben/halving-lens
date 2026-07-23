@@ -1,6 +1,7 @@
 import {
   Activity,
   Award,
+  BookMarked,
   BookOpen,
   Boxes,
   FlaskConical,
@@ -42,6 +43,9 @@ export interface NavSection {
 // how attractive conditions are vs history, and the full historical range from
 // here. Surfaced first, on their own, so they stand out.
 export const FLAGSHIP: readonly NavLink[] = [
+  // The Journal is the publication and the primary destination; The State of
+  // Bitcoin is its current Chapter, read live.
+  { href: "/journal", label: "The Journal", icon: BookMarked },
   { href: "/state-of-bitcoin", label: "The State of Bitcoin", icon: Radar },
   { href: "/accumulation", label: "Accumulation Index", icon: Sprout },
   { href: "/historical-price-paths", label: "Historical Price Paths", icon: TrendingDown },
