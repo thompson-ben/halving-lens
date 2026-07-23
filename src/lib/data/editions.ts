@@ -6,6 +6,102 @@ import type { Edition } from "../research";
 
 export const EDITIONS: Edition[] = [
   {
+    "edition": 418,
+    "slug": "2026-07-23",
+    "dateLabel": "Thursday 23 July 2026",
+    "feature": {
+      "key": "historical",
+      "day": "Thursday",
+      "title": "Historical Context"
+    },
+    "subject": "Today's biggest change isn't the price",
+    "take": "By the historical record, Bitcoin still sits in one of its cheapest regions.",
+    "contextScore": {
+      "score": 72,
+      "label": "Clear historical context",
+      "stars": 4
+    },
+    "oneThing": "By the historical record, Bitcoin is cheaper than 77% of all weeks it has ever traded — a combination the record shows only a handful of times.",
+    "confidence": {
+      "level": "HIGH",
+      "blurb": "Today's core signals are in full agreement.",
+      "detail": "Valuation, ETF flows all point the same way."
+    },
+    "marketHealth": [
+      {
+        "label": "Historical value",
+        "value": "Attractive",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "22/100"
+      },
+      {
+        "label": "Sentiment",
+        "value": "Fear",
+        "color": "#e0a64f",
+        "strength": 2,
+        "metric": "31/100"
+      },
+      {
+        "label": "Cycle position",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "26/100"
+      },
+      {
+        "label": "ETF demand",
+        "value": "Improving",
+        "color": "#5fd0a0",
+        "strength": 2,
+        "metric": "+$999.39M/wk"
+      },
+      {
+        "label": "Momentum",
+        "value": "Neutral",
+        "color": "#8c919c",
+        "strength": 1,
+        "metric": "-0.6%"
+      }
+    ],
+    "historicalContext": {
+      "match": "Jun 2022",
+      "similarity": 86,
+      "body": "Today most closely resembles Jun 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. What followed then is context, not a forecast."
+    },
+    "whyToday": "If history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon.",
+    "analyst": {
+      "quote": "Cheap and boring is an underrated combination.",
+      "body": "Bitcoin sits cheaper than 77% of its history with little drama attached. History suggests the quiet stretches, not the loud ones, are where positioning is quietly decided."
+    },
+    "watching": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles"
+      }
+    ],
+    "memory": "The word “HODL” began life as a typo in a 2013 Bitcoin forum post.",
+    "heroNarrative": "similar",
+    "readMin": 2,
+    "metrics": {
+      "price": 65983.186049,
+      "fearGreed": 31,
+      "accumulationScore": 22,
+      "accumulationBand": "Historically Attractive",
+      "accumulationPercentile": 23,
+      "cycleDay": 825,
+      "etf": "Improving",
+      "sentiment": "Fear"
+    },
+    "search": "by the historical record, bitcoin still sits in one of its cheapest regions. by the historical record, bitcoin is cheaper than 77% of all weeks it has ever traded — a combination the record shows only a handful of times. cheap and boring is an underrated combination. bitcoin sits cheaper than 77% of its history with little drama attached. history suggests the quiet stretches, not the loud ones, are where positioning is quietly decided. today most closely resembles jun 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. what followed then is context, not a forecast. if history rhymes, today deserves attention — not because it predicts tomorrow, but because environments this cheap have historically been uncommon. the word “hodl” began life as a typo in a 2013 bitcoin forum post. historical context clear historical context fear historically attractive divergence from historical cycle timing diverging — later by time, cooler by price than prior cycles",
+    "freshness": {
+      "subject": 89,
+      "take": 0,
+      "oneThing": 0,
+      "overall": 30
+    }
+  },
+  {
     "edition": 417,
     "slug": "2026-07-22",
     "dateLabel": "Wednesday 22 July 2026",
