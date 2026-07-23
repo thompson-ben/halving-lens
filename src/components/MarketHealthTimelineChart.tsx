@@ -44,7 +44,8 @@ export function MarketHealthTimelineChart({ data, height = 380 }: { data: Health
   }
 
   return (
-    <div className="fade-up" style={{ width: "100%", height }}>
+    <div className="fade-up" style={{ width: "100%" }}>
+      <div style={{ width: "100%", height }}>
       <ResponsiveContainer>
         <ComposedChart data={data} margin={{ top: 10, right: 16, bottom: 8, left: 6 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.025)" vertical={false} />
@@ -103,6 +104,7 @@ export function MarketHealthTimelineChart({ data, height = 380 }: { data: Health
           />
         </ComposedChart>
       </ResponsiveContainer>
+      </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10.5px] text-ink-500">
         <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#3ddc97", opacity: 0.55 }} /> Calm / healthy</span>
         <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#f5b942", opacity: 0.55 }} /> Warming</span>

@@ -21,7 +21,8 @@ export function EtfFlowChart({ points, height = 360 }: { points: EtfFlowPoint[];
   const data = points.map((p) => ({ ts: new Date(p.date).getTime(), netFlow: p.netFlow, cumulative: p.cumulative }));
 
   return (
-    <div className="fade-up" style={{ width: "100%", height }}>
+    <div className="fade-up" style={{ width: "100%" }}>
+      <div style={{ width: "100%", height }}>
       <ResponsiveContainer>
         <ComposedChart data={data} margin={{ top: 10, right: 8, bottom: 8, left: 6 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.025)" vertical={false} />
@@ -83,6 +84,7 @@ export function EtfFlowChart({ points, height = 360 }: { points: EtfFlowPoint[];
           />
         </ComposedChart>
       </ResponsiveContainer>
+      </div>
       <div className="flex items-center gap-5 mt-4 text-[11px] text-ink-350 flex-wrap">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-2.5 h-2.5 rounded-sm bg-signal-green" /> Inflow day
