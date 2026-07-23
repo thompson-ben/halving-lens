@@ -13,6 +13,7 @@ import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { cycleDivergence } from "./cycleIntel";
 import { reelPackage, type ReelPackage } from "./reel";
 import { accumulationRead } from "./accumulation";
+import { snapshotWatchItems } from "./snapshot";
 
 // One-line Accumulation Index summary, shared across the brief's channels
 // (web, email, X, LinkedIn). Historical context framing only.
@@ -249,6 +250,12 @@ export interface StoredBrief {
   conclusion: string;
   insights: { title: string; body: string }[];
   watchSignals: { signal: string; status: string; level: string; confidence: string }[];
+  // The page's "What we're watching" items, archived so the weekly "last week
+  // we were watching X — here's what happened" continuity can compare against
+  // the exact thresholds shown to visitors. Optional: only briefs written after
+  // this shipped carry it, so continuity reads it when present and falls back to
+  // the always-present watchSignals otherwise.
+  watchItems?: { title: string; current: string; trigger: string }[];
   shortPost: string;
   // Cross-channel content pack, generated once and stored with the brief.
   // Optional: entries persisted before the content engine won't have it.
@@ -298,6 +305,7 @@ export function serializeBrief(): StoredBrief {
       level: w.level,
       confidence: w.confidence,
     })),
+    watchItems: snapshotWatchItems().map((w) => ({ title: w.title, current: w.current, trigger: w.trigger })),
     shortPost: shortPost(),
     content: contentPack(),
     reel: reelPackage(),

@@ -11,46 +11,49 @@ import { FlagshipShare } from "@/components/FlagshipShare";
 import { WhereAreWe } from "@/components/WhereAreWe";
 import { WeekInContext } from "@/components/WeekInContext";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
-import { metricChange, type MetricChange } from "@/lib/metricChange";
+import { SinceLastWeek } from "@/components/sob/SinceLastWeek";
+import { LeadChart } from "@/components/sob/LeadChart";
+import { EvidenceSweep } from "@/components/sob/EvidenceSweep";
+import { CycleStatusSection } from "@/components/sob/CycleStatusSection";
+import { WeeklyConclusion } from "@/components/sob/WeeklyConclusion";
+import { PresenterHud } from "@/components/sob/PresenterHud";
+import { metricChange } from "@/lib/metricChange";
 import { snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
-import { todaysVerdict, matchReasons, weekChangeSummary, metricMeaning, rankedWatch } from "@/lib/stateOfBitcoin";
+import { weekAgoBrief } from "@/lib/weekComparison";
+import { todaysVerdict, matchReasons, weekChangeSummary, rankedWatch } from "@/lib/stateOfBitcoin";
 import { pathExplorer } from "@/lib/pathExplorer";
 import { upsideScenarios } from "@/lib/upside";
 import { downsideScenarios } from "@/lib/downside";
 import { selectChartOfWeek } from "@/lib/chartOfWeek";
-import { episodeBrief } from "@/lib/episodeBrief";
+import { episodeBriefText } from "@/lib/episodeBrief";
 import { latestFindings } from "@/lib/findings";
+import { ETF } from "@/lib/etf";
 import { SOURCE } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
+const DESC =
+  "Where Bitcoin stands today — what changed over the last seven days, why it matters, and how current conditions compare with previous Bitcoin cycles.";
+
 export const metadata = {
   title: "The State of Bitcoin | HalvingLens",
-  description:
-    "Daily Bitcoin market analysis showing what changed today, why it matters, and how today's market compares with previous Bitcoin cycles.",
+  description: DESC,
   alternates: { canonical: "https://halvinglens.com/state-of-bitcoin" },
   openGraph: {
     title: "The State of Bitcoin | HalvingLens",
-    description: "Everything that changed in Bitcoin today, why it matters, and how today's market compares with history.",
+    description: DESC,
     url: "https://halvinglens.com/state-of-bitcoin",
     type: "website",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "The State of Bitcoin | HalvingLens",
-    description: "Everything that changed in Bitcoin today, why it matters, and how today's market compares with history.",
-  },
+  twitter: { card: "summary_large_image", title: "The State of Bitcoin | HalvingLens", description: DESC },
 };
 
-// WebPage + breadcrumb structured data, so search engines index the page under
-// its new, descriptive name. Descriptive only — no ratings or claims.
 const JSON_LD = {
   "@context": "https://schema.org",
   "@type": "WebPage",
   name: "The State of Bitcoin",
-  description:
-    "Daily Bitcoin market analysis showing what changed today, why it matters, and how today's market compares with previous Bitcoin cycles.",
+  description: DESC,
   url: "https://halvinglens.com/state-of-bitcoin",
   isPartOf: { "@type": "WebSite", name: "HalvingLens", url: "https://halvinglens.com" },
   breadcrumb: {
@@ -63,212 +66,121 @@ const JSON_LD = {
 };
 
 const DATA_STATUS: Record<string, "live" | "live-derived" | "coming-soon"> = { live: "live", mixed: "live-derived", synthetic: "coming-soon" };
-
-// ── small presentation helpers ───────────────────────────────────────────────
 const TONE: Record<"good" | "bad" | "neutral", string> = { good: "text-accent", bad: "text-signal-red", neutral: "text-ink-300" };
-const ARROW: Record<"up" | "down" | "flat", string> = { up: "↑", down: "↓", flat: "→" };
-// Self-explanatory signed return (e.g. "+2%", "+0.2%", "−14%"). One decimal
-// when small so a near-flat cycle doesn't collapse to a bare "+0%".
+
 function fmtSignedPct(n: number): string {
   const digits = Math.abs(n) >= 10 ? 0 : 1;
   const sign = n > 0 ? "+" : n < 0 ? "−" : "";
   return `${sign}${Math.abs(n).toFixed(digits)}%`;
 }
 
-function Spark({ values, tone }: { values: number[]; tone: "good" | "bad" | "neutral" }) {
-  if (values.length < 2) return null;
-  const w = 108,
-    h = 30,
-    pad = 3;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const rng = max - min || 1;
-  const hex = tone === "good" ? "#5eead4" : tone === "bad" ? "#ff5d5d" : "#5a6677";
-  const pts = values
-    .map((v, i) => `${(pad + (i / (values.length - 1)) * (w - 2 * pad)).toFixed(1)},${(pad + (1 - (v - min) / rng) * (h - 2 * pad)).toFixed(1)}`)
-    .join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0" aria-hidden>
-      <polyline points={pts} fill="none" stroke={hex} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" opacity={0.9} />
-    </svg>
-  );
-}
-
-function Delta({ label, c }: { label: string; c?: MetricChange["changes"][number] }) {
-  if (!c || !c.available) return <div className="text-[11px] text-ink-600">{label} —</div>;
-  return (
-    <div className="text-[12px]" title={c.asOfLabel ? `vs ${c.asOfLabel}` : undefined}>
-      <span className="text-ink-500">{label} </span>
-      <span className={`tabular-nums ${TONE[c.good]}`}>
-        {ARROW[c.dir]} {c.pctLabel ?? c.absLabel}
-      </span>
-    </div>
-  );
-}
-
-const METRIC_DEST: Record<string, string> = {
-  price: "/price",
-  market_health: "/market-health",
-  sentiment: "/sentiment",
-  accumulation: "/accumulation",
-  drawdown: "/historical-price-paths",
-  etf_flow: "/etf",
-};
-
-function MetricCard({ m }: { m: MetricChange }) {
-  const sparkTone: "good" | "bad" | "neutral" = m.status === "improving" ? "good" : m.status === "weakening" ? "bad" : "neutral";
-  const c1 = m.changes.find((c) => c.period === 1);
-  const c7 = m.changes.find((c) => c.period === 7);
-  return (
-    <TrackedLink href={METRIC_DEST[m.id] ?? "/state-of-bitcoin"} event="snapshot_card_click" props={{ metric: m.id }} className="card card-interactive p-4 sm:p-5 flex flex-col">
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">{m.name}</span>
-        {m.band && <span className="text-[10.5px] px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-300">{m.band.label}</span>}
-      </div>
-      <div className="mt-2 font-display text-[32px] leading-none text-ink-50 tabular-nums">{m.currentLabel}</div>
-      <div className="mt-3 flex items-center gap-4">
-        <Delta label={m.frequency === "trading-day" ? "Latest" : "1d"} c={c1} />
-        <Delta label={m.frequency === "trading-day" ? "7d net" : "7d"} c={c7} />
-      </div>
-      <p className="mt-3 text-[11.5px] text-ink-300 leading-snug">{metricMeaning(m)}</p>
-      <div className="mt-auto pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3">
-        <span className="text-[10.5px] text-ink-500 leading-tight">{m.percentileLabel ?? (m.band ? m.band.label : "")}</span>
-        <Spark values={m.spark} tone={sparkTone} />
-      </div>
-    </TrackedLink>
-  );
+// Days between a YYYY-MM-DD publish date and the snapshot's "today" (deterministic
+// against the committed snapshot, not wall-clock).
+function daysSince(dateStr: string, today: Date): number {
+  const d = new Date(dateStr);
+  return Math.floor((today.getTime() - d.getTime()) / 86_400_000);
 }
 
 export default function SnapshotPage({ searchParams }: { searchParams: { presenter?: string } }) {
   const presenter = searchParams?.presenter === "true";
+
   const price = metricChange("price");
-  const health = metricChange("market_health");
-  const sentiment = metricChange("sentiment");
-  const accumulation = metricChange("accumulation");
-  const etf = metricChange("etf_flow");
+  const p7 = price.changes.find((c) => c.period === 7 && c.available);
   const pos = snapshotCyclePosition();
+  const health = metricChange("market_health");
   const ctx = snapshotContext();
   const watch = rankedWatch();
   const cotw = selectChartOfWeek();
-  const finding = latestFindings(1)[0];
-  const episode = presenter ? episodeBrief() : null;
-
-  const verdict = todaysVerdict();
   const reasons = matchReasons();
   const weekChange = weekChangeSummary();
   const explorer = pathExplorer();
+  const verdict = todaysVerdict();
+
+  // "Since last <weekday>" — a rolling 7-day comparison relative to today, named
+  // for the actual weekday of the comparison point (not hard-anchored to any day).
+  const weekAgo = weekAgoBrief();
+  const sinceTitle = weekAgo ? `Since last ${weekAgo.weekday}` : "Since this time last week";
+
+  const today = SOURCE.fetchedAt ? new Date(SOURCE.fetchedAt) : new Date();
+  const finding = latestFindings(1)[0];
+  // Research Corner only counts as "this week's finding" when genuinely recent.
+  const freshFinding = finding && daysSince(finding.datePublished, today) <= 14 ? finding : null;
 
   const asOf = SOURCE.fetchedAt ? format(new Date(SOURCE.fetchedAt), "d MMM yyyy, HH:mm 'UTC'") : "—";
-  const sinceHalving = fmtSignedPct(pos.gainFromHalving);
 
   return (
     <div className={presenter ? "presenter-stage space-y-10 max-w-5xl mx-auto" : "space-y-12 lg:space-y-14"}>
       {presenter && <PresenterMode page="The State of Bitcoin" />}
+      {presenter && <PresenterHud episodeScript={episodeBriefText()} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
-      {/* ── Hero ── */}
-      <header className="pt-2">
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
-            {presenter ? "The State of Bitcoin — Presenter Mode" : "Daily Bitcoin market analysis"}
-          </span>
-          <DataBadge status={DATA_STATUS[SOURCE.mode] ?? "live-derived"} source={`As of ${asOf}`} />
-          {!presenter && <ShareTrigger />}
-          {!presenter && <RecordModeButton page="/state-of-bitcoin" />}
+      {/* ── Section 1 — State of Bitcoin Today ── */}
+      <section data-sob-section="today">
+        <header className="pt-2">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
+              {presenter ? "Documenting the Cycle — Presenter Mode" : "The definitive weekly read"}
+            </span>
+            <DataBadge status={DATA_STATUS[SOURCE.mode] ?? "live-derived"} source={`As of ${asOf}`} />
+            {!presenter && <ShareTrigger />}
+            {!presenter && <RecordModeButton page="/state-of-bitcoin" />}
+          </div>
+          <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.04] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[42px] lg:text-[54px]"}`}>
+            The State of Bitcoin
+          </h1>
+          <p className={`mt-3 text-ink-200 leading-relaxed max-w-2xl ${presenter ? "text-[19px]" : "text-[15px] sm:text-[17px]"}`}>
+            Where Bitcoin stands today — and the story of the last seven days that brought it here, placed in historical context.
+          </p>
+        </header>
+
+        {/* Compact orientation strip — the current position at a glance */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+          <TodayStat label="Bitcoin price" value={fmtUsd(price.current)} sub={p7 ? <span className={TONE[p7.good]}>{p7.pctLabel ?? p7.absLabel} · 7d</span> : undefined} />
+          <TodayStat label="Cycle day" value={`Day ${pos.cycleDay}`} sub={`${pos.progressPct}% through`} />
+          <TodayStat label="Since halving" value={fmtSignedPct(pos.gainFromHalving)} sub={`${Math.round(pos.drawdownFromAth)}% from high`} />
+          <TodayStat label="Chapter" value={pos.phaseLabel} sub={health.band?.label ?? undefined} />
         </div>
-        <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.04] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[42px] lg:text-[54px]"}`}>
-          The State of Bitcoin
-        </h1>
-        <p className={`mt-3 font-display text-ink-100 leading-snug max-w-2xl ${presenter ? "text-[23px]" : "text-[17px] sm:text-[19px]"}`}>
-          Understand today&rsquo;s market in two minutes.
-        </p>
-        <p className={`mt-2.5 text-ink-400 max-w-2xl leading-relaxed ${presenter ? "text-[16px]" : "text-[14px] lg:text-[14.5px]"}`}>
-          Everything that changed in Bitcoin today, why it matters, and how today&rsquo;s market compares with history.
-        </p>
-      </header>
 
-      {/* ── Where are we? — the orientation hero (the visual identity) ── */}
-      <WhereAreWe />
-
-      {/* ── Presenter talking points (episode running order) ── */}
-      {episode && (
-        <section className="card-glow p-5 sm:p-6">
-          <div className="text-[11px] uppercase tracking-[0.2em] text-accent mb-3">Talking points · Documenting the Bitcoin Cycle</div>
-          <ol className="space-y-3 text-[15px] text-ink-200 leading-snug">
-            <li><span className="text-ink-500">Opening — </span>{episode.opening}</li>
-            <li>
-              <span className="text-ink-500">Market state — </span>
-              <ul className="mt-1 space-y-1 text-[14px] text-ink-300">
-                {episode.scoreboard.map((l, i) => (
-                  <li key={i}>• {l}</li>
-                ))}
-              </ul>
-            </li>
-            <li>
-              <span className="text-ink-500">What changed — </span>
-              {episode.whatChanged.length ? (
-                <ul className="mt-1 space-y-1 text-[14px] text-ink-300">
-                  {episode.whatChanged.map((l, i) => (
-                    <li key={i}>• {l}</li>
-                  ))}
-                </ul>
-              ) : (
-                "A quiet week across the core readings."
-              )}
-            </li>
-            <li><span className="text-ink-500">Chart of the week — </span>{episode.chartOfWeek.title}. {episode.chartOfWeek.why}</li>
-            <li><span className="text-ink-500">Historical context — </span>{episode.context}</li>
-            {episode.research && (
-              <li><span className="text-ink-500">Research corner — </span>{episode.research.id}: {episode.research.conclusion}</li>
-            )}
-            <li>
-              <span className="text-ink-500">Watching next — </span>
-              <ul className="mt-1 space-y-1 text-[14px] text-ink-300">
-                {episode.watch.map((l, i) => (
-                  <li key={i}>• {l}</li>
-                ))}
-              </ul>
-            </li>
-          </ol>
-        </section>
-      )}
-
-      {/* ── What does that mean? — Today's Verdict ── */}
-      <section aria-label="Today's verdict">
-        <SectionHead n="01" title="What does that mean?" note="Today's chapter, in plain English." />
-        <div className="card-glow p-5 sm:p-6">
-          <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-2.5">Today's verdict</div>
-          <p className={`font-display text-ink-50 leading-relaxed ${presenter ? "text-[22px]" : "text-[17px] sm:text-[20px]"}`}>{verdict}</p>
+        {/* The signature orientation visual */}
+        <div className="mt-8">
+          <WhereAreWe />
         </div>
       </section>
 
-      {/* ── Why? — the scoreboard, as the evidence behind the chapter ── */}
-      <section>
-        <SectionHead n="02" title="Why?" note="The evidence behind today's chapter — the core HalvingLens readings." />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <MetricCard m={price} />
-          <CyclePositionCard sinceHalving={sinceHalving} pos={pos} />
-          <MetricCard m={health} />
-          <MetricCard m={sentiment} />
-          <MetricCard m={accumulation} />
-          <MetricCard m={etf} />
-        </div>
-      </section>
-
-      {/* ── This week in context ── */}
-      <section>
-        <SectionHead n="03" title="This week in context" note="The week's biggest developments, ranked — what changed, why it matters, and whether the cycle thesis moved." />
+      {/* ── Section 2 — The Story of the Last Seven Days ── */}
+      <section data-sob-section="week-story">
+        <SectionHead n="01" title="The story of the last seven days" note="The week's biggest developments, ranked — what changed, why it matters, and how the moves relate." />
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[12px] text-ink-200">
-            {weekChange.headline}
-          </span>
+          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[12px] text-ink-200">{weekChange.headline}</span>
         </div>
-        <WeekInContext />
+        <WeekInContext showCycleStatus={false} />
       </section>
 
-      {/* ── How has history behaved from here? — the evidence for the chapter ── */}
-      <section>
-        <SectionHead n="04" title="How has history behaved from here?" note="The evidence behind the chapter — real completed cycles replayed from today's point. Historical context, not a forecast." />
+      {/* ── Section 3 — Since Last Wednesday ── */}
+      <section data-sob-section="since-last-week">
+        <SectionHead n="02" title={sinceTitle} note="A rolling seven-day, then-vs-now of the core readings — and how last week's watch item actually played out." />
+        <SinceLastWeek />
+      </section>
+
+      {/* ── Section 4 — The Week's Lead Chart ── */}
+      <section data-sob-section="lead-chart">
+        <SectionHead n="03" title="The week's lead chart" note="The single chart that best captures the week — shown inline." />
+        <LeadChart pick={cotw} />
+      </section>
+
+      {/* ── Section 5 — Evidence Sweep ── */}
+      <section data-sob-section="evidence">
+        <SectionHead n="04" title="The evidence" note="The core HalvingLens readings, ranked by how much they moved this week." />
+        <EvidenceSweep />
+      </section>
+
+      {/* ── Section 6 — Historical Context ── */}
+      <section data-sob-section="history">
+        <SectionHead n="05" title="How has history behaved from here?" note="Real completed cycles replayed from today's point. Historical context, not a forecast." />
+        <p className="mb-4 text-[13px] text-ink-300 leading-relaxed max-w-2xl">
+          Each prior-cycle line shows what actually happened after the same stage of an earlier Bitcoin cycle. Dashed
+          sections are the paths after a cycle&rsquo;s peak.
+        </p>
         {explorer.available && (
           <div className="card p-4 sm:p-7 relative mb-4">
             <HistoricalPathExplorer data={explorer} />
@@ -296,51 +208,24 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             </div>
           )}
           <p className="mt-5 pt-4 border-t border-white/[0.06] text-[14px] text-ink-200 leading-relaxed">{ctx.summary}</p>
+          {ETF.connected && (
+            <p className="mt-3 text-[12px] text-ink-500 leading-relaxed max-w-2xl">
+              Note: spot ETF demand is new to this cycle, so there is no like-for-like precedent in earlier halving cycles.
+            </p>
+          )}
         </div>
         <HistoricalRangeCard />
       </section>
 
-      {/* ── Chart of the week ── */}
-      <section>
-        <SectionHead n="05" title="Chart of the week" note="The single chart worth looking at right now." />
-        <TrackedLink href={cotw.link} event="snapshot_chart_click" props={{ chart: cotw.key }} className="card-glow card-interactive p-6 sm:p-8 block">
-          <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent">Chart of the week</div>
-          <div className="mt-2 font-display text-[28px] sm:text-[34px] text-ink-50 leading-tight tracking-tight-2">{cotw.title}</div>
-          {cotw.why.length > 0 && (
-            <ul className="mt-4 space-y-2 max-w-2xl">
-              {cotw.why.slice(0, 2).map((w, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-[13.5px] text-ink-200 leading-relaxed">
-                  <span className="mt-1.5 text-accent" aria-hidden>•</span>
-                  <span>{w}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="mt-4 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">{cotw.context}</p>
-          <p className="mt-4 pt-4 border-t border-white/[0.06] text-[13.5px] text-ink-100 leading-relaxed max-w-2xl">{cotw.takeaway}</p>
-          <span className="mt-4 inline-block text-[12.5px] text-accent">View the live chart →</span>
-        </TrackedLink>
+      {/* ── Section 7 — What did not change? ── */}
+      <section data-sob-section="cycle-status">
+        <SectionHead n="06" title="What did not change?" note="Whether this week actually moved the broader cycle interpretation." />
+        <CycleStatusSection />
       </section>
 
-      {/* ── Research corner ── */}
-      {finding && (
-        <section>
-          <SectionHead n="06" title="Research corner" note="This week's finding from the research library." />
-          <TrackedLink href={`/research/findings/${finding.slug}`} event="snapshot_research_click" props={{ id: finding.id }} className="card card-interactive p-5 sm:p-6 block">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-accent/25 text-accent">{finding.id}</span>
-              <span className="text-[11px] text-ink-500">{finding.datePublished}</span>
-            </div>
-            <div className="mt-2 font-display text-[20px] sm:text-[23px] text-ink-50 leading-tight">{finding.title}</div>
-            <p className="mt-2 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">{finding.headline}</p>
-            <span className="mt-3 inline-block text-[12.5px] text-accent">Read the research →</span>
-          </TrackedLink>
-        </section>
-      )}
-
-      {/* ── What we're watching (ranked by significance) ── */}
-      <section>
-        <SectionHead n="07" title="What we're watching" note="Objective signals to monitor next week, ranked by significance — observations, not predictions." />
+      {/* ── Section 8 — What we're watching next ── */}
+      <section data-sob-section="watching">
+        <SectionHead n="07" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {watch.map((w, i) => (
             <div key={i} className={`card p-5 ${w.top ? "ring-1 ring-accent/30" : ""}`}>
@@ -357,10 +242,37 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             </div>
           ))}
         </div>
+        {presenter && (
+          <p className="mt-4 text-[12.5px] text-ink-500 italic">
+            &ldquo;These are not forecasts — they are the objective thresholds that would tell us whether the current interpretation is changing.&rdquo;
+          </p>
+        )}
       </section>
 
+      {/* ── Section 9 — Weekly Conclusion ── */}
+      <section data-sob-section="conclusion">
+        <SectionHead n="08" title="The verdict" note="Everything above, combined into one weekly read." />
+        <WeeklyConclusion presenter={presenter} verdict={verdict} />
+      </section>
+
+      {/* ── Research corner — secondary; only when genuinely recent ── */}
+      {freshFinding && (
+        <section>
+          <SectionHead n="09" title="Research corner" note="This week's finding from the research library." />
+          <TrackedLink href={`/research/findings/${freshFinding.slug}`} event="snapshot_research_click" props={{ id: freshFinding.id }} className="card card-interactive p-5 sm:p-6 block">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-accent/25 text-accent">{freshFinding.id}</span>
+              <span className="text-[11px] text-ink-500">{freshFinding.datePublished}</span>
+            </div>
+            <div className="mt-2 font-display text-[20px] sm:text-[23px] text-ink-50 leading-tight">{freshFinding.title}</div>
+            <p className="mt-2 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">{freshFinding.headline}</p>
+            <span className="mt-3 inline-block text-[12.5px] text-accent">Read the research →</span>
+          </TrackedLink>
+        </section>
+      )}
+
       {!presenter && (
-        <FlagshipShare page="/state-of-bitcoin" label="The State of Bitcoin" blurb="Everything that changed in Bitcoin today, and how it compares with history." />
+        <FlagshipShare page="/state-of-bitcoin" label="The State of Bitcoin" blurb="Where Bitcoin stands today, explained through the story of the last seven days." />
       )}
 
       {!presenter && <FlagshipJourney current="state-of-bitcoin" />}
@@ -371,9 +283,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
       {presenter ? (
         <div className="pt-4">
-          <Link href="/state-of-bitcoin" className="text-[12px] text-ink-500 hover:text-ink-300">
-            ← Exit presenter mode
-          </Link>
+          <Link href="/state-of-bitcoin" className="text-[12px] text-ink-500 hover:text-ink-300">← Exit presenter mode</Link>
         </div>
       ) : (
         <FeedbackWidget section="snapshot" contentType="page" />
@@ -395,6 +305,16 @@ function SectionHead({ n, title, note }: { n: string; title: string; note: strin
   );
 }
 
+function TodayStat({ label, value, sub }: { label: string; value: string; sub?: React.ReactNode }) {
+  return (
+    <div className="bg-[#0b0f15] px-4 py-4">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">{label}</div>
+      <div className="mt-1 font-display text-[19px] text-ink-50 tabular-nums leading-tight">{value}</div>
+      {sub && <div className="mt-0.5 text-[10.5px] text-ink-400 leading-tight">{sub}</div>}
+    </div>
+  );
+}
+
 function ContextStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div>
@@ -405,8 +325,6 @@ function ContextStat({ label, value, sub }: { label: string; value: string; sub?
   );
 }
 
-// Compact "full range of historical outcomes" — answers the fourth question the
-// page exists to answer, linking through to the full Historical Price Paths.
 function HistoricalRangeCard() {
   const up = upsideScenarios();
   const down = downsideScenarios();
@@ -435,27 +353,6 @@ function HistoricalRangeCard() {
         How far previous halving cycles went from today&rsquo;s point — both up and down. Historical paths, not forecasts.
       </p>
       <span className="mt-2 inline-block text-[12.5px] text-accent">See Historical Price Paths →</span>
-    </TrackedLink>
-  );
-}
-
-function CyclePositionCard({ sinceHalving, pos }: { sinceHalving: string; pos: ReturnType<typeof snapshotCyclePosition> }) {
-  return (
-    <TrackedLink href="/cycles" event="snapshot_card_click" props={{ metric: "cycle_position" }} className="card card-interactive p-4 sm:p-5 flex flex-col">
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">Cycle Position</span>
-        <span className="text-[10.5px] px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-ink-300">{pos.phaseLabel}</span>
-      </div>
-      <div className="mt-2 font-display text-[32px] leading-none text-ink-50 tabular-nums">Day {pos.cycleDay}</div>
-      <div className="mt-3 flex items-center gap-4 text-[12px]">
-        <span className="text-ink-500">
-          <span className="text-accent tabular-nums">{sinceHalving}</span> since halving day
-        </span>
-        <span className="text-ink-500">
-          From high <span className="text-signal-red tabular-nums">{Math.round(pos.drawdownFromAth)}%</span>
-        </span>
-      </div>
-      <div className="mt-auto pt-3 border-t border-white/[0.06] text-[10.5px] text-ink-500">{pos.progressPct}% through the four-year cycle</div>
     </TrackedLink>
   );
 }

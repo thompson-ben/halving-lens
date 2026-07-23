@@ -19,7 +19,7 @@
 // weekly episode brief already share, so nothing drifts.
 
 import { allMetricChanges, type MetricChange, type MetricId, type Materiality, type PeriodChange } from "./metricChange";
-import { weekChangeSummary } from "./stateOfBitcoin";
+import { weekChangeSummary, rankedWatch } from "./stateOfBitcoin";
 import { cyclePhase, cycleDivergence } from "./cycleIntel";
 import { accumulationRead } from "./accumulation";
 import type { HeatLevel } from "./cycleSummary";
@@ -285,6 +285,37 @@ function cycleStatusFor(metrics: MetricChange[]): WeekCycleStatus {
     headline: "The cycle read shifted this week",
     detail: `${named}. The broader chapter is still the ${phase.label.toLowerCase()}, but this is the kind of change worth noting.`,
   };
+}
+
+// ── weekly conclusion — one verdict that combines the evidence ───────────────
+export interface WeeklyConclusion {
+  takeaway: string; // one-sentence weekly verdict
+  thesisChanged: boolean;
+  nextSignal: string; // the single most important thing to monitor next
+  hook: string; // restrained next-week hook (non-predictive)
+}
+
+export function weeklyConclusion(): WeeklyConclusion {
+  const story = weekStory();
+  const cs = story.cycleStatus;
+  const lead = story.signals[0];
+  const metrics = allMetricChanges();
+  const price = metrics.find((m) => m.id === "price");
+  const c7 = price?.changes.find((c) => c.period === 7 && c.available);
+
+  const priceClause =
+    c7 && c7.pctChange != null && Math.abs(c7.pctChange) >= 0.1
+      ? `Bitcoin ${c7.pctChange >= 0 ? "strengthened" : "softened"} ${Math.abs(c7.pctChange).toFixed(1)}% over the last seven days`
+      : "Bitcoin was little changed over the last seven days";
+  const leadClause = lead ? `, led by ${lead.name.toLowerCase()} at ${lead.factValue}` : "";
+  const thesisClause = cs.changed ? "and the cycle read shifted this week" : "but the broader cycle position is unchanged";
+  const takeaway = `${priceClause}${leadClause}, ${thesisClause}.`;
+
+  const top = rankedWatch()[0];
+  const nextSignal = top ? `${top.title} — ${top.trigger}` : "Whether the core readings hold their bands.";
+  const hook = top ? `The key check next week: ${top.title.charAt(0).toLowerCase()}${top.title.slice(1)}.` : "We'll check whether the picture held.";
+
+  return { takeaway, thesisChanged: cs.changed, nextSignal, hook };
 }
 
 export function weekStory(): WeekStory {
