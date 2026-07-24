@@ -1,19 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
-  AreaChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { format } from "date-fns";
-import { PRICE_RANGES, priceSeries, type PricePoint, type PriceRangeKey } from "@/lib/btcPrice";
+import { PRICE_RANGES, type PricePoint, type PriceRangeKey } from "@/lib/btcPrice";
+import { contextSeries, referenceValuesAt, type ContextPoint } from "@/lib/priceContext";
 import { fmtUsd } from "@/lib/format";
 import { SegmentedControl } from "./SegmentedControl";
+
+// Price in Context (PR129): the price line stays the hero, joined by two thin
+// reference lines — the 200-day moving average (long-term trend, muted
+// blue-grey, dashed so identity never rests on colour alone) and realized
+// price (aggregate on-chain cost basis, gold). Three lines, nothing else.
+// Styling, interaction, ranges and animation are unchanged from Price History.
 
 // Live intraday (hourly) series for the 1D/1W views — keyless CryptoCompare, so
 // the recent window is genuinely current rather than a day-stale snapshot.
@@ -28,6 +36,17 @@ async function fetchIntraday(hours: number): Promise<PricePoint[]> {
 }
 
 const INTRADAY_RANGES: Record<string, number> = { "1D": 24, "1W": 168 };
+
+const MA_COLOR = "#8893a4"; // ink-300 — deliberately recessive
+const RP_COLOR = "#f5b942"; // house amber
+
+const SERIES_EXPLAIN = {
+  price: "The current market price of Bitcoin.",
+  ma200:
+    "The average closing price across the previous 200 days — a slow-moving line that shows Bitcoin's long-term trend.",
+  realized:
+    "The average on-chain acquisition cost of all Bitcoin currently in circulation — the network's aggregate cost basis.",
+} as const;
 
 export function BtcPriceChart({ height = 380 }: { height?: number }) {
   const [range, setRange] = useState<PriceRangeKey>("1Y");
@@ -62,11 +81,14 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
   }, [range, intradayHours, cache, status.loadingKey]);
 
   const liveData = cache[range];
-  // 1D needs the live fetch; 1W falls back to the daily snapshot until hourly loads.
-  const data = useMemo(() => {
-    if (range === "1D") return liveData ?? [];
-    if (range === "1W") return liveData ?? priceSeries("1W");
-    return priceSeries(range);
+  // 1D needs the live fetch; 1W falls back to the daily snapshot until hourly
+  // loads. Intraday points get the latest daily reference values attached —
+  // both references are daily metrics, so within a day they are constants.
+  const data: ContextPoint[] = useMemo(() => {
+    const attach = (pts: PricePoint[]) => pts.map((p) => ({ ...p, ...referenceValuesAt(p.ts) }));
+    if (range === "1D") return liveData ? attach(liveData) : [];
+    if (range === "1W") return liveData ? attach(liveData) : contextSeries("1W");
+    return contextSeries(range);
   }, [range, liveData]);
 
   const isIntraday = range === "1D";
@@ -80,6 +102,9 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
   const changePct = first > 0 ? (last / first - 1) * 100 : 0;
   const log = range === "All";
   const longSpan = range === "All" || range === "1Y";
+
+  const hasMa = data.some((d) => d.ma200 != null);
+  const hasRealized = data.some((d) => d.realized != null);
 
   const rangeWord = range === "All" ? "all time" : range === "1D" ? "the last 24h" : range;
 
@@ -126,7 +151,7 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
 
         {data.length > 1 && (
           <ResponsiveContainer>
-            <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 8, left: 6 }}>
+            <ComposedChart data={data} margin={{ top: 10, right: 10, bottom: 8, left: 6 }}>
               <defs>
                 <linearGradient id="btc-price-fill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={stroke} stopOpacity={0.28} />
@@ -164,11 +189,12 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
                 labelFormatter={(v) =>
                   format(new Date(v as number), isIntraday ? "MMM d, HH:mm" : "MMM d, yyyy")
                 }
-                formatter={(value: number) => [fmtUsd(value as number), "BTC price"]}
+                formatter={(value: number) => fmtUsd(value as number)}
               />
               <Area
                 type="monotone"
                 dataKey="price"
+                name="Bitcoin price"
                 stroke={stroke}
                 strokeWidth={2}
                 fill="url(#btc-price-fill)"
@@ -176,10 +202,88 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
                 isAnimationActive
                 animationDuration={700}
               />
-            </AreaChart>
+              {hasMa && (
+                <Line
+                  type="monotone"
+                  dataKey="ma200"
+                  name="200-day average"
+                  stroke={MA_COLOR}
+                  strokeWidth={1.25}
+                  strokeDasharray="5 4"
+                  strokeOpacity={0.8}
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive
+                  animationDuration={700}
+                />
+              )}
+              {hasRealized && (
+                <Line
+                  type="monotone"
+                  dataKey="realized"
+                  name="Realized price"
+                  stroke={RP_COLOR}
+                  strokeWidth={1.25}
+                  strokeOpacity={0.85}
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive
+                  animationDuration={700}
+                />
+              )}
+            </ComposedChart>
           </ResponsiveContainer>
         )}
       </div>
+
+      {data.length > 1 && (
+        <div className="mt-3 flex items-center gap-x-5 gap-y-2 flex-wrap">
+          <LegendKey label="Bitcoin price" explain={SERIES_EXPLAIN.price}>
+            <svg width="18" height="10" aria-hidden="true">
+              <rect x="0" y="4" width="18" height="6" rx="1.5" fill={stroke} opacity="0.25" />
+              <line x1="0" y1="3" x2="18" y2="3" stroke={stroke} strokeWidth="2" />
+            </svg>
+          </LegendKey>
+          {hasMa && (
+            <LegendKey label="200-day average" explain={SERIES_EXPLAIN.ma200}>
+              <svg width="18" height="10" aria-hidden="true">
+                <line x1="0" y1="5" x2="18" y2="5" stroke={MA_COLOR} strokeWidth="1.5" strokeDasharray="4 3" />
+              </svg>
+            </LegendKey>
+          )}
+          {hasRealized && (
+            <LegendKey label="Realized price" explain={SERIES_EXPLAIN.realized}>
+              <svg width="18" height="10" aria-hidden="true">
+                <line x1="0" y1="5" x2="18" y2="5" stroke={RP_COLOR} strokeWidth="1.5" />
+              </svg>
+            </LegendKey>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+// Legend entry with a beginner-friendly hover/focus explanation of the line.
+function LegendKey({
+  label,
+  explain,
+  children,
+}: {
+  label: string;
+  explain: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className="relative group inline-flex items-center gap-1.5 cursor-help" tabIndex={0}>
+      {children}
+      <span className="text-[10.5px] uppercase tracking-[0.1em] text-ink-400">{label}</span>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-0 mb-2 w-60 rounded-lg border border-white/[0.08] bg-ink-850 px-3 py-2 text-[11px] normal-case tracking-normal leading-relaxed text-ink-250 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-150 shadow-card z-10"
+      >
+        {explain}
+      </span>
+    </span>
   );
 }
