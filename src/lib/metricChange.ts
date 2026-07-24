@@ -501,7 +501,7 @@ function etfFlowChange(): MetricChange {
     available: true,
     current: latest.netFlow,
     currentLabel: usd(latest.netFlow),
-    band: { key: streakWord, label: `${streak}-day ${streakWord}` },
+    band: { key: streakWord, label: sign !== 0 ? `${streak}-day ${streakWord} streak` : "flat latest day" },
     bandChanged: null,
     percentile: pctile,
     percentileLabel: pctile != null ? `${ord(pctile)} percentile of daily flows` : null,
