@@ -27,7 +27,8 @@
     "test-testimonials": "tsx scripts/test-testimonials.ts",
     "send-intelligence": "tsx scripts/send-intelligence.ts",
     "test-intelligence": "tsx scripts/test-intelligence.ts",
-    "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\""
+    "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\"",
+    "check:headings": "node scripts/check-headings.mjs"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

@@ -21,7 +21,9 @@ export default function PricePage() {
     <div className="space-y-10">
       <header className="pt-2">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">Bitcoin price</span>
+          {/* h1: the page previously had no h1 at all — the eyebrow is its one
+              meaningful, visible page title (PR132); styling unchanged */}
+          <h1 className="text-[10.5px] uppercase tracking-[0.22em] text-accent">Bitcoin price</h1>
           <DataBadge status="live" source={dailyCloseSource()} />
         </div>
 

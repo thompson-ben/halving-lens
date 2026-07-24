@@ -39,9 +39,9 @@ export function CycleSummaryHero() {
           </span>
           <span className="text-[15px] text-ink-300 mb-2.5">through Cycle 5 · day {s.cycleDay}</span>
         </div>
-        <h1 className="mt-3 font-display text-[26px] sm:text-[32px] lg:text-[38px] font-medium tracking-tight-2 text-ink-50 leading-[1.08] max-w-3xl">
+        <h2 className="mt-3 font-display text-[26px] sm:text-[32px] lg:text-[38px] font-medium tracking-tight-2 text-ink-50 leading-[1.08] max-w-3xl">
           {s.phaseLabel}
-        </h1>
+        </h2>
 
         {/* The cycle thermometer — the signature visual */}
         <div className="mt-7 max-w-xl">

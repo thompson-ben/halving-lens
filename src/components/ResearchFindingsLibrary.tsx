@@ -121,6 +121,7 @@ export function ResearchFindingsLibrary({
               key={f.id}
               f={f}
               badges={findingBadges(f, { engagement, leaders, todayISO })}
+            headingLevel="h2"
             />
           ))}
         </div>

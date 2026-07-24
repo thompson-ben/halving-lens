@@ -13,7 +13,17 @@ import { ResearchBadges } from "./ResearchBadges";
 
 const ACCENT = "#5eead4";
 
-export function BriefCard({ b, badges }: { b: EvidenceBrief; badges?: ResearchBadge[] }) {
+// headingLevel: h2 on the briefs index (cards sit directly under the page h1),
+// h3 as related content beneath an h2 section heading (PR132).
+export function BriefCard({
+  b,
+  badges,
+  headingLevel: Heading = "h3",
+}: {
+  b: EvidenceBrief;
+  badges?: ResearchBadge[];
+  headingLevel?: "h2" | "h3";
+}) {
   const stat = briefStat(b);
   let dateLabel = b.datePublished;
   try {
@@ -28,7 +38,7 @@ export function BriefCard({ b, badges }: { b: EvidenceBrief; badges?: ResearchBa
         <span className="text-[10px] uppercase tracking-[0.14em] text-ink-500">Evidence Brief</span>
       </div>
       {badges && badges.length > 0 && <ResearchBadges badges={badges} className="mt-2.5" />}
-      <h3 className="mt-3 font-display text-[18px] leading-snug text-ink-50">{b.question}</h3>
+      <Heading className="mt-3 font-display text-[18px] leading-snug text-ink-50">{b.question}</Heading>
       {stat.available && (
         <div className="mt-3 flex items-baseline gap-2">
           <span className="font-display text-[30px] leading-none" style={{ color: ACCENT }}>

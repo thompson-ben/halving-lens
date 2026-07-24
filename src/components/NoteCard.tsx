@@ -9,7 +9,17 @@ import { ResearchBadges } from "./ResearchBadges";
 // Evergreen framing: leads with the permanent HL-N id and the tier label, then
 // the observation; the publication date is demoted to dim secondary metadata.
 
-export function NoteCard({ n, badges }: { n: ResearchNote; badges?: ResearchBadge[] }) {
+// headingLevel: h2 on the notes index (cards sit directly under the page h1),
+// h3 as related content beneath an h2 section heading (PR132).
+export function NoteCard({
+  n,
+  badges,
+  headingLevel: Heading = "h3",
+}: {
+  n: ResearchNote;
+  badges?: ResearchBadge[];
+  headingLevel?: "h2" | "h3";
+}) {
   let dateLabel = n.datePublished;
   try {
     dateLabel = format(new Date(n.datePublished), "d MMM yyyy");
@@ -23,7 +33,7 @@ export function NoteCard({ n, badges }: { n: ResearchNote; badges?: ResearchBadg
         <span className="text-[10px] uppercase tracking-[0.14em] text-ink-500">Research Note</span>
       </div>
       {badges && badges.length > 0 && <ResearchBadges badges={badges} className="mt-2.5" />}
-      <h3 className="mt-3 font-display text-[18px] leading-snug text-ink-50">{n.title}</h3>
+      <Heading className="mt-3 font-display text-[18px] leading-snug text-ink-50">{n.title}</Heading>
       <p className="mt-2 text-[13px] leading-relaxed text-ink-400 flex-1">{n.summary}</p>
       <div className="mt-4 flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-accent">
