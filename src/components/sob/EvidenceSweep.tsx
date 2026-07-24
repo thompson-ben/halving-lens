@@ -10,7 +10,9 @@ import { EtfDemandCard } from "@/components/sob/EtfDemandCard";
 // fast-moving readings (price, Market Health, sentiment) also carry a SECONDARY
 // 24-hour line so a weekly move can be told apart from a calm week that moved
 // yesterday — the 7-day read always stays primary. Unchanged readings collapse
-// into a single stability line.
+// into a single stability card that spans whatever remains of the grid's last
+// row, so the section always forms a complete rectangle however many readings
+// moved that week.
 
 const METRIC_DEST: Record<MetricId, string> = {
   price: "/price",
@@ -105,6 +107,28 @@ export function EvidenceSweep() {
     .sort((a, b) => (WEIGHT[b.materiality] + (b.bandChanged ? 2 : 0)) - (WEIGHT[a.materiality] + (a.bandChanged ? 2 : 0)));
   const unchanged = rest.filter((m) => m.materiality === "none" && !m.bandChanged);
 
+  // Span for the stability card so the grid's last row is always complete:
+  // it fills the leftover cells of the movers' row, or a full row of its own
+  // when the movers already fill theirs. Computed per breakpoint.
+  const rem2 = changed.length % 2;
+  const rem3 = changed.length % 3;
+  const steadySpan = [
+    rem2 === 1 ? "" : "sm:col-span-2",
+    rem3 === 1 ? "lg:col-span-2" : rem3 === 2 ? "lg:col-span-1" : "lg:col-span-3",
+  ]
+    .join(" ")
+    .trim();
+
+  const steadyCard = unchanged.length > 0 && (
+    <div className={`card p-4 sm:p-5 flex items-center ${changed.length > 0 ? steadySpan : ""}`}>
+      <p className="text-[13.5px] text-ink-200 leading-relaxed">
+        <span className="text-ink-100 font-medium">{unchanged.length} reading{unchanged.length === 1 ? "" : "s"} held steady</span>{" "}
+        <span className="text-ink-400">({unchanged.map((m) => m.name).join(", ")})</span> — within their previous bands.
+        Stability is itself information: the broader cycle interpretation did not materially change on these.
+      </p>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {etf?.available && <EtfDemandCard />}
@@ -114,19 +138,13 @@ export function EvidenceSweep() {
           {changed.map((m) => (
             <EvidenceCard key={m.id} m={m} />
           ))}
+          {steadyCard}
         </div>
       ) : (
-        <p className="text-[13.5px] text-ink-300">No core reading beyond ETF demand moved materially this week.</p>
-      )}
-
-      {unchanged.length > 0 && (
-        <div className="card p-4 sm:p-5">
-          <p className="text-[13.5px] text-ink-200 leading-relaxed">
-            <span className="text-ink-100 font-medium">{unchanged.length} reading{unchanged.length === 1 ? "" : "s"} held steady</span>{" "}
-            <span className="text-ink-400">({unchanged.map((m) => m.name).join(", ")})</span> — within their previous bands.
-            Stability is itself information: the broader cycle interpretation did not materially change on these.
-          </p>
-        </div>
+        <>
+          <p className="text-[13.5px] text-ink-300">No core reading beyond ETF demand moved materially this week.</p>
+          {steadyCard}
+        </>
       )}
     </div>
   );
