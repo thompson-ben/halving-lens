@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
+import { SOURCE } from "@/lib/btcData";
 import { METRICS } from "@/lib/metrics";
 import { STORED_BRIEFS } from "@/lib/data/briefs";
 import { allEditions } from "@/lib/research";
@@ -8,8 +9,11 @@ import { allFindings } from "@/lib/findings";
 import { allBriefs } from "@/lib/evidenceBriefs";
 import { allNotes } from "@/lib/researchNotes";
 
-// Public routes only — admin/metrics is excluded (noindex), and /start is
-// intentionally left out (paid-ad landing, kept out of organic discovery).
+// Public, indexable, canonical, 200-status routes only (PR131). Excluded on
+// purpose: /admin/* and /api/* (robots-disallowed), noindex pages (/start,
+// /free, /dashboard*, /profile*, /founders, /testimonial, /alerts,
+// /derivatives, print views), and /downside-scenarios + /snapshot, which
+// 308-redirect — a sitemap must never advertise a redirecting URL.
 const STATIC_PATHS = [
   "/",
   "/journal",
@@ -19,7 +23,6 @@ const STATIC_PATHS = [
   "/accumulation",
   "/market-health",
   "/similar-moments",
-  "/downside-scenarios",
   "/historical-price-paths",
   "/brief",
   "/brief/archive",
@@ -46,17 +49,37 @@ const STATIC_PATHS = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+  // Truthful lastModified only (PR131). The site deploys daily, so stamping
+  // build time would mark every URL "modified" every day and teach crawlers to
+  // ignore the signal. Instead:
+  //   - live-data pages    → the data snapshot's fetchedAt (content genuinely
+  //                          changes when the sync runs, and only then)
+  //   - evergreen pages    → a manually-bumped "last reviewed" date
+  //   - archived content   → the item's own publication/generation date
+  //   - no truthful date   → omit lastModified entirely
+  const snapshotAt = SOURCE.fetchedAt ? new Date(SOURCE.fetchedAt) : undefined;
 
-  // Evergreen / informational / legal pages don't change with the daily data
-  // refresh, so their lastModified must NOT churn on every deploy (P3.6). Give
-  // them a stable "last reviewed" date; bump it only when their content changes.
+  // Bump only when these pages' content actually changes.
   const EVERGREEN = new Set(["/about", "/methodology", "/privacy", "/terms", "/learn", "/halving"]);
   const evergreenLastMod = new Date("2026-07-21");
 
+  const lastMod = (d: Date | undefined) => (d ? { lastModified: d } : {});
+
+  // Latest research publication date — the truthful "last changed" for pages
+  // derived from the research corpus (/research/myths, /research/timeline).
+  const researchDates = [
+    ...allFindings().map((f) => f.datePublished),
+    ...allBriefs().map((b) => b.datePublished),
+    ...allNotes().map((n) => n.datePublished),
+  ]
+    .map((d) => new Date(d))
+    .filter((d) => !Number.isNaN(d.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime());
+  const latestResearchAt = researchDates[0];
+
   const staticEntries = STATIC_PATHS.map((path) => ({
     url: `${SITE_URL}${path}`,
-    lastModified: EVERGREEN.has(path) ? evergreenLastMod : now,
+    ...lastMod(EVERGREEN.has(path) ? evergreenLastMod : snapshotAt),
     changeFrequency: (path === "/" || path === "/brief" ? "daily" : "weekly") as
       | "daily"
       | "weekly",
@@ -65,21 +88,28 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const mythsEntry = {
     url: `${SITE_URL}/research/myths`,
-    lastModified: now,
+    ...lastMod(latestResearchAt),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   };
 
+  const timelineEntry = {
+    url: `${SITE_URL}/research/timeline`,
+    ...lastMod(latestResearchAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  };
+
   const metricEntries = METRICS.map((m) => ({
     url: `${SITE_URL}/metrics/${m.slug}`,
-    lastModified: now,
+    ...lastMod(snapshotAt),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));
 
   const briefEntries = STORED_BRIEFS.map((b) => ({
     url: `${SITE_URL}/brief/${b.slug}`,
-    lastModified: b.generatedAt ? new Date(b.generatedAt) : now,
+    ...lastMod(b.generatedAt ? new Date(b.generatedAt) : undefined),
     changeFrequency: "monthly" as const,
     priority: 0.5,
   }));
@@ -100,7 +130,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const findingEntries = allFindings().map((f) => ({
     url: `${SITE_URL}/research/findings/${f.slug}`,
-    lastModified: new Date(f.datePublished),
+    lastModified: new Date(f.lastUpdated ?? f.datePublished),
     changeFrequency: "monthly" as const,
     priority: 0.8,
   }));
@@ -122,6 +152,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...staticEntries,
     mythsEntry,
+    timelineEntry,
     ...metricEntries,
     ...briefEntries,
     ...researchEntries,

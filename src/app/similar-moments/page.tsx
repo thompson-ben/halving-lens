@@ -6,6 +6,7 @@ export const metadata = {
   title: "Similar Moments — have we seen this before?",
   description:
     "Find the most similar moments in Bitcoin history based on current market conditions. Historical context, not prediction.",
+  alternates: { canonical: "/similar-moments" },
 };
 
 export default function SimilarMomentsPage() {

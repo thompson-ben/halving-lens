@@ -22,6 +22,9 @@ import {
 
 export const metadata = {
   title: "On-chain Activity",
+  description:
+    "What on-chain activity says about the Bitcoin cycle — long-term holder behaviour and network usage, shown only where live data is connected.",
+  alternates: { canonical: "/onchain" },
 };
 
 const ZONE_TEXT: Record<string, string> = {

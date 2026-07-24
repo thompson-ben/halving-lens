@@ -23,7 +23,9 @@ export function generateMetadata({ params }: { params: { n: string } }): Metadat
   const title = `Edition #${e.edition} — ${e.dateLabel} · HalvingLens Research`;
   const desc = e.take;
   return {
-    title,
+    // Absolute: the title already carries the brand; the layout template would
+    // append a second "| HalvingLens" (PR131).
+    title: { absolute: title },
     description: desc,
     alternates: { canonical: `/research/${e.edition}` },
     openGraph: { title, description: desc, url: `/research/${e.edition}`, type: "article" },

@@ -38,7 +38,10 @@ export const metadata: Metadata = {
   },
   description:
     "Every Bitcoin cycle metric, aligned to halving day zero, across all four cycles. Free.",
-  alternates: { canonical: "/" },
+  // No canonical here (PR131): a layout-level canonical is inherited by every
+  // page that doesn't set its own `alternates`, silently marking those pages as
+  // duplicates of the homepage. Each page declares its own canonical instead;
+  // the homepage's lives in src/app/page.tsx.
   applicationName: SITE_NAME,
   manifest: "/manifest.webmanifest",
   openGraph: {

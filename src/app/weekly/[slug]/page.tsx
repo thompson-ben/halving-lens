@@ -20,7 +20,9 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   if (!w) return { title: "Weekly Research" };
   const title = `Weekly Research — ${w.weekLabel} · HalvingLens`;
   return {
-    title,
+    // Absolute: the title already carries the brand; the layout template would
+    // append a second "| HalvingLens" (PR131).
+    title: { absolute: title },
     description: w.biggestStory.title,
     alternates: { canonical: `/weekly/${w.slug}` },
     openGraph: { title, description: w.biggestStory.title, url: `/weekly/${w.slug}`, type: "article" },

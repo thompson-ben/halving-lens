@@ -21,7 +21,7 @@ import { pathExplorer } from "@/lib/pathExplorer";
 import { fmtUsd, fmtPct } from "@/lib/format";
 
 export const metadata = {
-  title: "Historical Price Paths — how far Bitcoin has gone from here | HalvingLens",
+  title: { absolute: "Historical Price Paths — how far Bitcoin has gone from here | HalvingLens" },
   description:
     "The full historical range of Bitcoin outcomes from today's point in the cycle — both upside continuations and downside corrections — drawn only from how previous halving cycles behaved. Historical paths, not forecasts.",
   alternates: { canonical: "https://halvinglens.com/historical-price-paths" },

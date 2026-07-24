@@ -1,5 +1,15 @@
 import { PlannedView } from "@/components/PlannedView";
 
+// Planned-feature preview (PR131): honest metadata, kept out of the index until
+// the feature ships — a placeholder page should never rank or inherit the
+// homepage's metadata.
+export const metadata = {
+  title: "Derivatives — planned",
+  description:
+    "A planned HalvingLens feature: funding, basis and open interest with historical cycle context. Not yet available.",
+  robots: { index: false, follow: true },
+};
+
 export default function DerivativesPage() {
   return (
     <PlannedView

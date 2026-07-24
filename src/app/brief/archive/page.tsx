@@ -5,6 +5,7 @@ import { archiveIndex } from "@/lib/briefArchive";
 export const metadata = {
   title: "Daily Brief Archive",
   description: "Browse the daily Bitcoin Cycle Brief archive by date.",
+  alternates: { canonical: "/brief/archive" },
 };
 
 export default function BriefArchivePage() {

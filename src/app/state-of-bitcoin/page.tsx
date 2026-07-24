@@ -41,7 +41,7 @@ const DESC =
   "Where Bitcoin stands today — what changed over the last seven days, why it matters, and how current conditions compare with previous Bitcoin cycles.";
 
 export const metadata = {
-  title: "The State of Bitcoin | HalvingLens",
+  title: { absolute: "The State of Bitcoin | HalvingLens" },
   description: DESC,
   alternates: { canonical: "https://halvinglens.com/state-of-bitcoin" },
   openGraph: {

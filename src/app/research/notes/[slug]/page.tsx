@@ -28,7 +28,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   const title = `${n.id} — ${n.title} · HalvingLens Research`;
   const path = `/research/notes/${n.slug}`;
   return {
-    title,
+    title: { absolute: title },
     description: n.summary,
     alternates: { canonical: path },
     openGraph: {
