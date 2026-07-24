@@ -33,8 +33,10 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   const title = `${f.id} — ${f.title} · HalvingLens Research`;
   const desc = f.summary;
   const path = `/research/findings/${f.slug}`;
+  // Absolute title below: it already carries the brand; the layout template
+  // would append a second "| HalvingLens" (PR131).
   return {
-    title,
+    title: { absolute: title },
     description: desc,
     alternates: { canonical: path },
     openGraph: { title, description: desc, url: path, type: "article", images: [{ url: `${path}/opengraph-image`, width: 1200, height: 630 }] },

@@ -22,6 +22,12 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { ResearchFindingCard } from "@/components/ResearchFindingCard";
 import { latestFindings } from "@/lib/findings";
 
+// Title/description/OG inherit the site defaults from the root layout; the
+// canonical is declared here because the layout no longer sets one (PR131).
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
 export default function CycleDashboardPage() {
   const edition = editionContent();
   return (

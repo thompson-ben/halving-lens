@@ -10,6 +10,9 @@ import { fmtUsd } from "@/lib/format";
 
 export const metadata = {
   title: "Bitcoin Miners",
+  description:
+    "Who secures the Bitcoin network and what it costs them — hashrate, issuance and miner economics in historical context.",
+  alternates: { canonical: "/miners" },
 };
 
 export default function MinersPage() {

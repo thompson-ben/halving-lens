@@ -9,7 +9,7 @@ import { absoluteUrl } from "@/lib/site";
 const DESC =
   "Understand today's Bitcoin market in under 60 seconds. Daily research grounded in historical context — no hype, no predictions, no price targets.";
 export const metadata = {
-  title: "HalvingLens — The Clearest View of the Bitcoin Cycle",
+  title: { absolute: "HalvingLens — The Clearest View of the Bitcoin Cycle" },
   description: DESC,
   alternates: { canonical: "/start" },
   robots: { index: false, follow: true }, // paid landing — keep out of organic index

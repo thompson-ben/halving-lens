@@ -27,7 +27,7 @@ export function generateMetadata({ params }: { params: { date: string } }): Meta
     ? `${stored.headline} — Bitcoin cycle brief for ${label}.`
     : `Bitcoin cycle summary for ${label}: where Bitcoin sits in the halving cycle, in plain English.`;
   return {
-    title: `Bitcoin Cycle Brief — ${label} · halvinglens.com`,
+    title: `Bitcoin Cycle Brief — ${label}`,
     description: desc,
     alternates: { canonical: `/brief/${params.date}` },
     openGraph: {

@@ -25,6 +25,7 @@ export const metadata = {
   title: "Bitcoin Accumulation Index",
   description:
     "A price-only, historically-backtested gauge of how attractive Bitcoin's accumulation environment looks versus its own history. Educational context — not a prediction, not financial advice.",
+  alternates: { canonical: "/accumulation" },
 };
 
 const DISCLAIMER =

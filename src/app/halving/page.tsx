@@ -3,6 +3,9 @@ import { HalvingCountdown } from "@/components/HalvingCountdown";
 
 export const metadata = {
   title: "The Halving",
+  description:
+    "The Bitcoin halving explained: what it changes, every past halving with dates and block heights, and a live countdown to the next one.",
+  alternates: { canonical: "/halving" },
 };
 
 const HALVINGS_PAST = [

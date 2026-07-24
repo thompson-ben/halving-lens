@@ -8,6 +8,9 @@ import { fmtPct, fmtUsd } from "@/lib/format";
 
 export const metadata = {
   title: "Bitcoin Price",
+  description:
+    "Live Bitcoin price in historical context — today's price against its 200-day moving average and realized price, across ranges from 24 hours to all time.",
+  alternates: { canonical: "/price" },
 };
 
 export default function PricePage() {

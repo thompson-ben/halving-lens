@@ -7,6 +7,9 @@ import { metricStatus, type DataStatus } from "@/lib/cycleIntel";
 
 export const metadata = {
   title: "Learn",
+  description:
+    "Bitcoin's cycle explained in plain English — halvings, drawdowns, realized price, sentiment and the metrics HalvingLens tracks, each tied to live data.",
+  alternates: { canonical: "/learn" },
 };
 
 const CYCLE_BASICS: { term: string; def: string }[] = [

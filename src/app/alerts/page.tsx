@@ -1,5 +1,15 @@
 import { PlannedView } from "@/components/PlannedView";
 
+// Planned-feature preview (PR131): honest metadata, kept out of the index until
+// the feature ships — a placeholder page should never rank or inherit the
+// homepage's metadata.
+export const metadata = {
+  title: "Cycle Alerts — planned",
+  description:
+    "A planned HalvingLens feature: alerts when cycle metrics cross historically significant zones. Not yet available.",
+  robots: { index: false, follow: true },
+};
+
 export default function AlertsPage() {
   return (
     <PlannedView
