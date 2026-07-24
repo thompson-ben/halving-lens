@@ -20,6 +20,7 @@ import { PresenterHud } from "@/components/sob/PresenterHud";
 import { JournalMasthead } from "@/components/journal/JournalMasthead";
 import { ChapterNav } from "@/components/journal/ChapterNav";
 import { currentChapter, previousChapter } from "@/lib/journal";
+import { dailyVsWeeklyPrice } from "@/lib/dayContext";
 import { metricChange } from "@/lib/metricChange";
 import { snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
 import { weekAgoBrief } from "@/lib/weekComparison";
@@ -89,6 +90,8 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
   const price = metricChange("price");
   const p7 = price.changes.find((c) => c.period === 7 && c.available);
+  const p1 = price.changes.find((c) => c.period === 1 && c.available);
+  const dailyNote = dailyVsWeeklyPrice();
   const pos = snapshotCyclePosition();
   const health = metricChange("market_health");
   const ctx = snapshotContext();
@@ -142,11 +145,30 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
         {/* Compact orientation strip — the current position at a glance */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-          <TodayStat label="Bitcoin price" value={fmtUsd(price.current)} sub={p7 ? <span className={TONE[p7.good]}>{p7.pctLabel ?? p7.absLabel} · 7d</span> : undefined} />
+          <TodayStat
+            label="Bitcoin price"
+            value={fmtUsd(price.current)}
+            sub={
+              p7 ? (
+                <span className="flex flex-col gap-0.5">
+                  <span className={TONE[p7.good]}>{p7.pctLabel ?? p7.absLabel} · Last 7 days</span>
+                  {p1 && (
+                    <span className="text-ink-600">
+                      {p1.dir === "flat" ? "No change" : p1.pctLabel ?? p1.absLabel} · Last 24h
+                    </span>
+                  )}
+                </span>
+              ) : undefined
+            }
+          />
           <TodayStat label="Cycle day" value={`Day ${pos.cycleDay}`} sub={`${pos.progressPct}% through`} />
           <TodayStat label="Since halving" value={fmtSignedPct(pos.gainFromHalving)} sub={`${Math.round(pos.drawdownFromAth)}% from high`} />
           <TodayStat label="Cycle phase" value={pos.phaseLabel} sub={health.band?.label ?? undefined} />
         </div>
+
+        {/* One deterministic line relating today's move to the week's — only when
+            it materially aids understanding (7-day stays the primary lens). */}
+        {dailyNote && <p className="mt-3 text-[12.5px] text-ink-400 leading-relaxed">{dailyNote}</p>}
 
         {/* The signature orientation visual */}
         <div className="mt-8">
