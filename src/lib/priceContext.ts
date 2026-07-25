@@ -12,6 +12,7 @@
 import { CURRENT_CYCLE, CYCLES, ONCHAIN, PRICE_HISTORY, SPOT } from "./btcData";
 import { PRICE_RANGES, type PriceRangeKey } from "./btcPrice";
 import { metricStatus } from "./cycleIntel";
+import { miningCostDailyPoints } from "./productionCost";
 
 const MS_DAY = 86_400_000;
 const MA_WINDOW = 200;
@@ -23,6 +24,7 @@ export interface ContextPoint {
   price: number;
   ma200?: number;
   realized?: number;
+  mining?: number; // Estimated Mining Cost (modelled) — absent when unavailable/stale
 }
 
 interface RefPoint {
@@ -68,6 +70,18 @@ function ma200Daily(): RefPoint[] | null {
   return maDailyCache;
 }
 
+let miningCache: RefPoint[] | null | undefined;
+
+// Estimated Mining Cost central series (modelled; see data/productionCost).
+// null when the metric is unavailable or its hashrate observation is stale —
+// the chart then omits the series entirely.
+function miningSeries(): RefPoint[] | null {
+  if (miningCache !== undefined) return miningCache;
+  const pts = miningCostDailyPoints();
+  miningCache = pts ? pts.map((p) => ({ ts: p.ts, value: p.value })) : null;
+  return miningCache;
+}
+
 let weeklyCache: ContextPoint[] | undefined;
 
 // All-time weekly series with both reference lines attached.
@@ -85,6 +99,7 @@ function weeklyContext(): ContextPoint[] {
         price: s.price,
         ma200: s.mayer > 0 ? s.price / s.mayer : undefined,
         realized: valueAt(realized, ts),
+        mining: valueAt(miningSeries(), ts),
       });
     }
   }
@@ -139,18 +154,24 @@ export function contextSeries(key: PriceRangeKey): ContextPoint[] {
   const ma = ma200Series();
   const realized = realizedSeries();
   const last = PRICE_HISTORY[PRICE_HISTORY.length - 1].ts;
+  const mining = miningSeries();
   return PRICE_HISTORY.filter((p) => p.ts >= last - cfg.days * MS_DAY).map((p) => ({
     ts: p.ts,
     price: p.price,
     ma200: valueAt(ma, p.ts),
     realized: valueAt(realized, p.ts),
+    mining: valueAt(mining, p.ts),
   }));
 }
 
 // Reference values for an intraday timestamp (the 1D/1W hourly views). Both
 // are daily metrics, so within a day they are constants, not curves.
-export function referenceValuesAt(ts: number): { ma200?: number; realized?: number } {
-  return { ma200: valueAt(ma200Series(), ts), realized: valueAt(realizedSeries(), ts) };
+export function referenceValuesAt(ts: number): { ma200?: number; realized?: number; mining?: number } {
+  return {
+    ma200: valueAt(ma200Series(), ts),
+    realized: valueAt(realizedSeries(), ts),
+    mining: valueAt(miningSeries(), ts),
+  };
 }
 
 // ── Today's read ────────────────────────────────────────────────────────────
@@ -159,8 +180,10 @@ export interface PriceContext {
   price: number | null;
   ma200: number | null;
   realized: number | null;
+  mining: number | null; // Estimated Mining Cost (modelled); null when unavailable
   vsMa200Pct: number | null;
   vsRealizedPct: number | null;
+  vsMiningPct: number | null;
   summary: string | null;
 }
 
@@ -169,46 +192,52 @@ export function priceContext(): PriceContext {
     SPOT?.price ?? CURRENT_CYCLE.samples[CURRENT_CYCLE.samples.length - 1]?.price ?? null;
   const ma = ma200Series();
   const rp = realizedSeries();
+  const mc = miningSeries();
   const ma200 = ma?.length ? ma[ma.length - 1].value : null;
   const realized = rp?.length ? rp[rp.length - 1].value : null;
+  const mining = mc?.length ? mc[mc.length - 1].value : null;
   const vsMa200Pct = price != null && ma200 ? (price / ma200 - 1) * 100 : null;
   const vsRealizedPct = price != null && realized ? (price / realized - 1) * 100 : null;
+  const vsMiningPct = price != null && mining ? (price / mining - 1) * 100 : null;
   return {
     price,
     ma200,
     realized,
+    mining,
     vsMa200Pct,
     vsRealizedPct,
-    summary: summarize(vsMa200Pct, vsRealizedPct),
+    vsMiningPct,
+    summary: summarize(vsMa200Pct, vsRealizedPct, vsMiningPct),
   };
 }
 
-// One sentence describing where today's price sits relative to the two
-// reference lines. Templates are purely descriptive of the present — where
-// they reach for history it is "historically associated with", never a call.
-function summarize(vsMa: number | null, vsRp: number | null): string | null {
-  if (vsMa == null && vsRp == null) return null;
-  if (vsRp == null) {
-    return vsMa! >= 0
-      ? "Bitcoin is trading above its 200-day moving average, keeping price above its long-term trend."
-      : "Bitcoin is trading below its 200-day moving average, leaving price under its long-term trend.";
+// One sentence describing where today's price sits relative to its reference
+// prices — the 200-day moving average and Realised Price (observed), plus
+// Estimated Mining Cost (modelled) when available. Clauses compose so the
+// sentence stays grammatical when the estimated line is withheld. Purely
+// descriptive of the present; "historically associated" is as far as it
+// reaches. Never a forecast.
+function summarize(vsMa: number | null, vsRp: number | null, vsMining: number | null): string | null {
+  if (vsMa == null && vsRp == null && vsMining == null) return null;
+  const parts: string[] = [];
+  if (vsMa != null) parts.push(`${vsMa >= 0 ? "above" : "below"} its 200-day moving average`);
+  if (vsRp != null) parts.push(`${vsRp >= 0 ? "above" : "below"} Realised Price`);
+  if (vsMining != null) {
+    parts.push(
+      Math.abs(vsMining) < 10
+        ? "near its Estimated Mining Cost"
+        : `${vsMining >= 0 ? "above" : "below"} its Estimated Mining Cost`,
+    );
   }
-  if (vsMa == null) {
-    return vsRp >= 0
-      ? "Bitcoin is trading above its realized price, so the average coin in circulation is held in profit."
-      : "Bitcoin is trading below its realized price — a condition historically associated with deep bear markets.";
-  }
-  const aboveMa = vsMa >= 0;
-  const aboveRp = vsRp >= 0;
-  if (aboveMa && aboveRp) {
-    const comfortably = vsMa >= 10 && vsRp >= 10 ? "comfortably " : "";
-    return `Bitcoin is trading ${comfortably}above both its 200-day moving average and its realized price — the long-term trend is intact and the average holder is in profit.`;
-  }
-  if (!aboveMa && aboveRp) {
-    return "Price has slipped below the 200-day moving average but holds above realized price — momentum has cooled while the average holder remains in profit.";
-  }
-  if (aboveMa && !aboveRp) {
-    return "Price sits above its 200-day moving average but below realized price — an uncommon configuration where the average holder is under water despite a rising trend.";
-  }
-  return "Bitcoin is trading below both its 200-day moving average and its realized price — conditions historically associated with periods of market stress.";
+  const joined =
+    parts.length === 1
+      ? parts[0]
+      : parts.length === 2
+        ? `${parts[0]} and ${parts[1]}`
+        : `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
+  const explain =
+    vsMining != null
+      ? "These reference prices show the market trend, the average holder's cost basis, and the modelled electricity cost of producing new supply"
+      : "These reference prices show the market trend and the average holder's cost basis";
+  return `Bitcoin currently trades ${joined}. ${explain} — historical context, not a prediction.`;
 }

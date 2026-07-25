@@ -1,14 +1,16 @@
 import { TrackedLink } from "@/components/TrackedLink";
 import { TrackedSection } from "@/components/TrackedSection";
 import { referencePrices } from "@/lib/productionCost";
+import { priceContext } from "@/lib/priceContext";
 import { fmtUsd } from "@/lib/format";
 
-// Reference Prices — the three HalvingLens reference prices side by side:
-// Market Price (what Bitcoin trades for), Realised Price (aggregate holder
-// cost basis), Estimated Mining Cost (modelled electricity cost to mine one
-// Bitcoin). Plus one deterministic "Today's Context" paragraph relating them.
-// Descriptive, never predictive. Rows drop out cleanly when a source is
-// unavailable.
+// Reference Prices — the full HalvingLens reference-price set side by side:
+// Market Price (what Bitcoin trades for), 200-Day Moving Average (long-term
+// trend, observed), Realised Price (aggregate holder cost basis, observed),
+// Estimated Mining Cost (modelled electricity cost to mine one Bitcoin,
+// estimated). Plus one deterministic "Today's Context" paragraph relating
+// them. Descriptive, never predictive. Rows drop out cleanly when a source
+// is unavailable — the estimated row also drops when its data is stale.
 
 function Row({
   label,
@@ -55,19 +57,30 @@ function Row({
 }
 
 export function ReferencePrices() {
-  const r = referencePrices();
+  const r = referencePrices({ ma200: priceContext().ma200 });
   if (r.marketPrice == null) return null;
 
   const rel = (pct: number | null) =>
     pct == null ? null : `Market Price is ${Math.abs(pct).toFixed(0)}% ${pct >= 0 ? "above" : "below"}`;
+
+  // The intro names only the rows actually shown, so it stays truthful when a
+  // source is unavailable and its row has dropped out.
+  const introParts = ["what Bitcoin trades for"];
+  if (r.ma200 != null) introParts.push("its long-term trend");
+  if (r.realisedPrice != null) introParts.push("what the average holder paid");
+  if (r.productionAvailable && r.productionCost != null)
+    introParts.push("roughly what it costs to produce a new one");
+  const intro =
+    introParts.length === 1
+      ? introParts[0]
+      : `${introParts.slice(0, -1).join(", ")} and ${introParts[introParts.length - 1]}`;
 
   return (
     <TrackedSection id="reference-prices">
       <div className="card p-5 sm:p-6">
         <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-1">Reference Prices</div>
         <p className="text-[12px] text-ink-400 mb-2 max-w-xl">
-          The three prices HalvingLens reads the market against — what Bitcoin trades for, what the
-          average holder paid, and roughly what it costs to produce a new one.
+          The prices HalvingLens reads the market against — {intro}.
         </p>
         <div className="divide-y divide-white/[0.06]">
           <Row
@@ -76,6 +89,15 @@ export function ReferencePrices() {
             value={fmtUsd(r.marketPrice, { compact: true })}
             href="/price"
           />
+          {r.ma200 != null && (
+            <Row
+              label="200-Day Moving Average"
+              sub="The long-term price trend, averaged over 200 days"
+              value={fmtUsd(r.ma200, { compact: true })}
+              relation={rel(r.vsMa200Pct)}
+              href="/price"
+            />
+          )}
           {r.realisedPrice != null && (
             <Row
               label="Realised Price"

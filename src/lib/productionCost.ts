@@ -168,10 +168,22 @@ export function productionChartSeries(key: ProductionRangeKey): ProductionChartP
   return merged.filter((p) => p.ts >= last - cfg.days * MS_DAY);
 }
 
+// Dated central-estimate series for other reference-price surfaces (Price in
+// Context). Gated by the same availability/staleness rules as the read —
+// returns null when the metric is unavailable so consumers omit the series
+// entirely (never zero, never stale).
+export function miningCostDailyPoints(): Array<{ ts: number; value: number }> | null {
+  const read = productionCostRead();
+  if (!read.available || !BLOCK) return null;
+  return BLOCK.points.map((p) => ({ ts: Date.parse(`${p.date}T00:00:00Z`), value: p.value }));
+}
+
 // ── Reference Prices (State of Bitcoin) ─────────────────────────────────────
 
 export interface ReferencePrices {
   marketPrice: number | null;
+  ma200: number | null;
+  vsMa200Pct: number | null;
   realisedPrice: number | null;
   vsRealisedPct: number | null;
   productionCost: number | null;
@@ -181,50 +193,81 @@ export interface ReferencePrices {
   todaysContext: string | null;
 }
 
-export function referencePrices(): ReferencePrices {
+// ma200 is passed in by the caller (from priceContext) rather than imported —
+// priceContext imports this module for the mining series, so importing back
+// would create a cycle.
+export function referencePrices(opts?: { ma200?: number | null }): ReferencePrices {
   const read = productionCostRead();
   const market = read.marketPrice;
+  const ma200 = opts?.ma200 ?? null;
+  const vsMa200Pct = market != null && ma200 ? (market / ma200 - 1) * 100 : null;
   const realisedAvailable = metricStatus("realized-price") !== "coming-soon";
   const realised = realisedAvailable && Number.isFinite(TODAY.realizedPrice) ? TODAY.realizedPrice : null;
   const vsRealisedPct = market != null && realised ? (market / realised - 1) * 100 : null;
   return {
     marketPrice: market,
+    ma200,
+    vsMa200Pct,
     realisedPrice: realised,
     vsRealisedPct,
     productionCost: read.central,
     vsProductionPct: read.premiumPct,
     productionAvailable: read.available,
     realisedAvailable: realised != null,
-    todaysContext: todaysContext(market, vsRealisedPct, read),
+    todaysContext: todaysContext(market, vsMa200Pct, vsRealisedPct, read),
   };
 }
 
-// One deterministic, descriptive paragraph relating the three reference
-// prices. Historical context only — no forecasts, no targets, no universal
-// claims about miner profitability.
+// One deterministic, descriptive paragraph relating the reference prices.
+// Clauses compose dynamically so the paragraph stays grammatical whether the
+// estimated row is present or withheld. Historical context only — no
+// forecasts, no universal claims about miner profitability.
 function todaysContext(
   market: number | null,
+  vsMaPct: number | null,
   vsRealisedPct: number | null,
   read: ProductionCostRead,
 ): string | null {
-  if (market == null || vsRealisedPct == null || !read.available || read.premiumPct == null) {
-    return null;
+  if (market == null) return null;
+  const clauses: string[] = [];
+  if (vsMaPct != null) {
+    clauses.push(`${vsMaPct >= 0 ? "above" : "below"} its 200-day moving average (${Math.abs(vsMaPct).toFixed(0)}%)`);
   }
-  const aboveRealised = vsRealisedPct >= 0;
-  const rp = `${aboveRealised ? "above" : "below"} Realised Price (${Math.abs(vsRealisedPct).toFixed(0)}% ${aboveRealised ? "above" : "below"} the average holder's cost basis)`;
-  const premium = read.premiumPct;
-  let miners: string;
-  if (premium <= -33) {
-    miners = `and below its estimated mining cost — a configuration that has historically coincided with periods of miner stress, though the estimate should not be read as a guaranteed support level or price floor`;
-  } else if (premium < 33) {
-    miners = `and near its estimated mining cost (${premium >= 0 ? "+" : ""}${premium.toFixed(0)}%), meaning modelled average mining margins are compressed`;
-  } else {
-    miners = `and ${premium.toFixed(0)}% above its estimated mining cost, meaning mining remains economically favourable for the modelled average operator`;
+  if (vsRealisedPct != null) {
+    clauses.push(`${vsRealisedPct >= 0 ? "above" : "below"} Realised Price (${Math.abs(vsRealisedPct).toFixed(0)}% ${vsRealisedPct >= 0 ? "above" : "below"} the average holder's cost basis)`);
   }
-  const structure = aboveRealised
-    ? "the average holder is in profit"
-    : "the average holder is under water";
-  return `Bitcoin trades ${rp} ${miners}. Taken together, ${structure} while new supply is ${premium >= 33 ? "being produced well below the market price" : premium <= -33 ? "modelled as costing more to produce than it sells for" : "being produced near its modelled cost"} — historical context, not a prediction.`;
+  const premium = read.available ? read.premiumPct : null;
+  if (premium != null) {
+    if (premium <= -33) {
+      clauses.push("below its Estimated Mining Cost — a configuration that has historically coincided with periods of miner stress, though the estimate is not a guaranteed support level or price floor");
+    } else if (premium < 33) {
+      clauses.push(`near its Estimated Mining Cost (${premium >= 0 ? "+" : ""}${premium.toFixed(0)}%), meaning modelled average mining margins are compressed`);
+    } else {
+      clauses.push(`${premium.toFixed(0)}% above its Estimated Mining Cost, meaning mining remains economically favourable for the modelled average operator`);
+    }
+  }
+  if (clauses.length === 0) return null;
+  const joined =
+    clauses.length === 1
+      ? clauses[0]
+      : clauses.length === 2
+        ? `${clauses[0]} and ${clauses[1]}`
+        : `${clauses.slice(0, -1).join(", ")}, and ${clauses[clauses.length - 1]}`;
+  const closers: string[] = [];
+  if (vsRealisedPct != null) {
+    closers.push(vsRealisedPct >= 0 ? "the average holder is in profit" : "the average holder is under water");
+  }
+  if (premium != null) {
+    closers.push(
+      premium >= 33
+        ? "new supply is being produced well below the market price"
+        : premium <= -33
+          ? "new supply is modelled as costing more to produce than it sells for"
+          : "new supply is being produced near its modelled cost",
+    );
+  }
+  const closing = closers.length ? ` Taken together, ${closers.join(" while ")} — historical context, not a prediction.` : " Historical context, not a prediction.";
+  return `Bitcoin trades ${joined}.${closing}`;
 }
 
 // ── Miners page context line ────────────────────────────────────────────────

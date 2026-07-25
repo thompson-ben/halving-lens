@@ -17,10 +17,13 @@ import { contextSeries, referenceValuesAt, type ContextPoint } from "@/lib/price
 import { fmtUsd } from "@/lib/format";
 import { SegmentedControl } from "./SegmentedControl";
 
-// Price in Context (PR129): the price line stays the hero, joined by two thin
-// reference lines — the 200-day moving average (long-term trend, muted
-// blue-grey, dashed so identity never rests on colour alone) and realized
-// price (aggregate on-chain cost basis, gold). Three lines, nothing else.
+// Price in Context (PR129/PR135): the price line stays the hero, joined by
+// thin reference lines — the 200-day moving average (long-term trend, muted
+// blue-grey, dashed), realized price (aggregate on-chain cost basis, gold),
+// and Estimated Mining Cost (modelled electricity cost of new supply, violet,
+// dotted — the dot pattern and the violet ESTIMATED colour both mark it as an
+// estimate, so identity never rests on colour alone). The estimated line is
+// omitted entirely when its data is unavailable or stale.
 // Styling, interaction, ranges and animation are unchanged from Price History.
 
 // Live intraday (hourly) series for the 1D/1W views — keyless CryptoCompare, so
@@ -39,6 +42,7 @@ const INTRADAY_RANGES: Record<string, number> = { "1D": 24, "1W": 168 };
 
 const MA_COLOR = "#8893a4"; // ink-300 — deliberately recessive
 const RP_COLOR = "#f5b942"; // house amber
+const MC_COLOR = "#a78bfa"; // signal violet — the ESTIMATED colour
 
 const SERIES_EXPLAIN = {
   price: "The current market price of Bitcoin.",
@@ -46,6 +50,8 @@ const SERIES_EXPLAIN = {
     "The average closing price across the previous 200 days — a slow-moving line that shows Bitcoin's long-term trend.",
   realized:
     "The average on-chain acquisition cost of all Bitcoin currently in circulation — the network's aggregate cost basis.",
+  mining:
+    "A modelled estimate of the average electricity cost of mining one new Bitcoin, from live hashrate and documented assumptions. An estimate — not an exact break-even, support level or price floor.",
 } as const;
 
 export function BtcPriceChart({ height = 380 }: { height?: number }) {
@@ -105,6 +111,7 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
 
   const hasMa = data.some((d) => d.ma200 != null);
   const hasRealized = data.some((d) => d.realized != null);
+  const hasMining = data.some((d) => d.mining != null);
 
   const rangeWord = range === "All" ? "all time" : range === "1D" ? "the last 24h" : range;
 
@@ -231,13 +238,30 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
                   animationDuration={700}
                 />
               )}
+              {hasMining && (
+                <Line
+                  type="monotone"
+                  dataKey="mining"
+                  name="Estimated Mining Cost"
+                  stroke={MC_COLOR}
+                  strokeWidth={1.25}
+                  strokeDasharray="2 3"
+                  strokeOpacity={0.85}
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive
+                  animationDuration={700}
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         )}
       </div>
 
       {data.length > 1 && (
-        <div className="mt-3 flex items-center gap-x-5 gap-y-2 flex-wrap">
+        // pb clears the card's corner watermark on narrow screens, where the
+        // four legend keys wrap onto the watermark's line
+        <div className="mt-3 pb-4 sm:pb-0 flex items-center gap-x-5 gap-y-2 flex-wrap">
           <LegendKey label="Bitcoin price" explain={SERIES_EXPLAIN.price}>
             <svg width="18" height="10" aria-hidden="true">
               <rect x="0" y="4" width="18" height="6" rx="1.5" fill={stroke} opacity="0.25" />
@@ -255,6 +279,13 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
             <LegendKey label="Realized price" explain={SERIES_EXPLAIN.realized}>
               <svg width="18" height="10" aria-hidden="true">
                 <line x1="0" y1="5" x2="18" y2="5" stroke={RP_COLOR} strokeWidth="1.5" />
+              </svg>
+            </LegendKey>
+          )}
+          {hasMining && (
+            <LegendKey label="Est. Mining Cost (estimated)" explain={SERIES_EXPLAIN.mining}>
+              <svg width="18" height="10" aria-hidden="true">
+                <line x1="0" y1="5" x2="18" y2="5" stroke={MC_COLOR} strokeWidth="1.5" strokeDasharray="2 3" />
               </svg>
             </LegendKey>
           )}
