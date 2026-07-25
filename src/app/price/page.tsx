@@ -86,7 +86,7 @@ export default function PricePage() {
           />
           {ctx.vsMiningPct != null && (
             <Stat
-              label="vs est. mining cost"
+              label="vs mining cost"
               value={fmtPct(ctx.vsMiningPct, 1)}
               tone={ctx.vsMiningPct}
               sub={ctx.vsMiningPct >= 0 ? "Above estimate" : "Below estimate"}

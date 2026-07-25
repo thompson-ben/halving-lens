@@ -283,7 +283,7 @@ export function BtcPriceChart({ height = 380 }: { height?: number }) {
             </LegendKey>
           )}
           {hasMining && (
-            <LegendKey label="Est. Mining Cost (estimated)" explain={SERIES_EXPLAIN.mining}>
+            <LegendKey label="Estimated Mining Cost" explain={SERIES_EXPLAIN.mining}>
               <svg width="18" height="10" aria-hidden="true">
                 <line x1="0" y1="5" x2="18" y2="5" stroke={MC_COLOR} strokeWidth="1.5" strokeDasharray="2 3" />
               </svg>
