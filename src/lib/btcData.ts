@@ -25,6 +25,9 @@ export const PRICE_HISTORY = SNAPSHOT.priceHistory ?? [];
 export const ETF_FLOWS = SNAPSHOT.etf ?? null;
 export const ONCHAIN = SNAPSHOT.onchain ?? null;
 export const HODL_WAVES = SNAPSHOT.hodlWaves ?? null;
+// Newest-sample provenance for feed-joined metrics (PR133); null on snapshots
+// generated before provenance existed.
+export const TODAY_PROVENANCE = SNAPSHOT.todayProvenance ?? null;
 export const CYCLES: Cycle[] = SNAPSHOT.cycles;
 export const TODAY_DAY_IN_CYCLE: number = SNAPSHOT.todayDayInCycle;
 export const CURRENT_CYCLE = CYCLES[CYCLES.length - 1];
