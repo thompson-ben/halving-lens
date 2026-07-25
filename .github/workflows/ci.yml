@@ -36,6 +36,11 @@ jobs:
       - name: Data-join tests
         run: npm run test-observed-join
 
+      # Cost of Production model tests (PR134) — offline verification of the
+      # model maths, safe failure modes and classification bands.
+      - name: Production-cost model tests
+        run: npm run test-production-cost
+
       # Build against whatever snapshot is checked in — does not hit the
       # network. Vercel runs `npm run sync` separately on deploy.
       - name: Build

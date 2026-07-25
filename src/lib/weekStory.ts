@@ -73,6 +73,7 @@ const METRIC_DEST: Record<MetricId, string> = {
   accumulation: "/accumulation",
   drawdown: "/historical-price-paths",
   etf_flow: "/etf",
+  production_premium: "/metrics/estimated-mining-cost",
 };
 
 const MATERIALITY_WEIGHT: Record<Materiality, number> = { band: 5, historic: 4, material: 3, modest: 1, none: 0 };

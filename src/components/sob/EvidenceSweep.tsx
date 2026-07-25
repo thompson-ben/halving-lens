@@ -21,6 +21,7 @@ const METRIC_DEST: Record<MetricId, string> = {
   accumulation: "/accumulation",
   drawdown: "/historical-price-paths",
   etf_flow: "/etf",
+  production_premium: "/metrics/estimated-mining-cost",
 };
 
 // Only these move fast enough for a 24-hour read to add anything. Cycle phase /

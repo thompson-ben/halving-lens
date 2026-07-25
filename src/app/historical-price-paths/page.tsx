@@ -299,7 +299,7 @@ function MethodCard({
 }: {
   title: string;
   body: string;
-  quality: "live" | "live-derived" | "coming-soon";
+  quality: import("@/lib/cycleIntel").DataStatus;
 }) {
   return (
     <div className="card p-5">

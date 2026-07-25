@@ -12,6 +12,9 @@
 // prediction). Direction semantics are per-metric — a lower Accumulation Index
 // is constructive, a deeper drawdown is deterioration, higher sentiment is
 // neither good nor bad. Everything degrades honestly when history is short.
+import { productionCostRead } from "./productionCost";
+import { SNAPSHOT } from "./data/snapshot";
+import { classifyPremium } from "./data/productionCost";
 
 import { format } from "date-fns";
 import { PRICE_HISTORY, SPOT, TODAY } from "./btcData";
@@ -31,7 +34,7 @@ import { fmtUsd } from "./format";
 
 const DAY = 86_400_000;
 
-export type MetricId = "price" | "market_health" | "sentiment" | "accumulation" | "drawdown" | "etf_flow";
+export type MetricId = "price" | "market_health" | "sentiment" | "accumulation" | "drawdown" | "etf_flow" | "production_premium";
 
 // How a rise in the raw value maps to constructive / deteriorating / neutral.
 type DirectionMode = "good-up" | "good-down" | "neutral" | "flow";
@@ -553,6 +556,91 @@ function clamp(s: string): string {
 }
 
 // ── public API ───────────────────────────────────────────────────────────────
+// ── Production premium (Market Price vs modelled Cost of Production) ─────────
+// The third reference price's relationship to Market Price, in percentage
+// points of premium/discount. MODELLED input — the whole metric drops out
+// cleanly when the model is unavailable or stale.
+function productionPremiumChange(): MetricChange {
+  const read = productionCostRead();
+  const block = SNAPSHOT.productionCost;
+  if (!read.available || read.premiumPct == null || !block) {
+    return unavailable("production_premium", "Mining Cost Premium", "pp", "daily");
+  }
+  // Daily premium series over the window where both Market Price closes and
+  // the modelled cost exist (cost is daily in the recent window).
+  const costByDate = new Map(block.points.map((p) => [p.date, p.value]));
+  const series: Obs[] = [];
+  for (const p of PRICE_HISTORY) {
+    const iso = new Date(p.ts).toISOString().slice(0, 10);
+    const cost = costByDate.get(iso);
+    if (cost != null && cost > 0 && p.price > 0) {
+      series.push({ ts: p.ts, value: (p.price / cost - 1) * 100 });
+    }
+  }
+  if (series.length < 8) {
+    return unavailable("production_premium", "Mining Cost Premium", "pp", "daily");
+  }
+  const nowObs = series[series.length - 1];
+  const cur = read.premiumPct;
+  const mk = (period: Period): PeriodChange => {
+    const prev = priorAt(series, nowObs.ts - period * 86_400_000);
+    if (!prev) {
+      return { period, available: false, asOfLabel: null, absChange: 0, pctChange: null, absLabel: "—", pctLabel: null, dir: "flat", good: "neutral" };
+    }
+    const delta = nowObs.value - prev.value;
+    const label = `${delta >= 0 ? "+" : "−"}${Math.abs(delta).toFixed(1)} pp`;
+    return {
+      period,
+      available: true,
+      asOfLabel: new Date(prev.ts).toISOString().slice(0, 10),
+      absChange: delta,
+      pctChange: null,
+      absLabel: label,
+      pctLabel: null,
+      dir: rawDir(delta, 0.1),
+      good: semantic("good-up", delta),
+    };
+  };
+  const changes = [mk(1), mk(7), mk(30)];
+  const band = classifyPremium(cur);
+  const prev7 = priorAt(series, nowObs.ts - 7 * 86_400_000);
+  const band7 = prev7 ? classifyPremium(prev7.value) : null;
+  const bandChanged =
+    band7 && band7.band !== band.band ? { from: band7.label, to: band.label, overDays: 7 } : null;
+  const spark = series.slice(-30).map((o) => o.value);
+  const values = series.map((o) => o.value);
+  const pctile = series.length >= 60 ? rankPercentile(values, cur) : null;
+  const move7 = changes[1].available ? Math.abs(changes[1].absChange) : 0;
+  const materiality: Materiality = bandChanged ? "band" : move7 < 4 ? "none" : move7 < 10 ? "modest" : "material";
+  const rel = cur >= 0 ? "above" : "below";
+  const summary = clamp(
+    `Bitcoin trades ${Math.abs(cur).toFixed(0)}% ${rel} its estimated mining cost (modelled). ${band.label}${bandChanged ? ` — moved from "${bandChanged.from}" over the last week` : ""}. A network-level electricity estimate — not a guaranteed support level or price floor.`,
+  );
+  return {
+    id: "production_premium",
+    name: "Mining Cost Premium",
+    unit: "pp",
+    frequency: "daily",
+    available: true,
+    current: cur,
+    currentLabel: `${cur >= 0 ? "+" : "−"}${Math.abs(cur).toFixed(0)}%`,
+    band: { key: band.band, label: band.label },
+    bandChanged,
+    percentile: pctile,
+    percentileLabel: pctile != null ? `higher than ${pctile}% of tracked days` : null,
+    changes,
+    spark,
+    high30: spark.length ? Math.max(...spark) : null,
+    low30: spark.length ? Math.min(...spark) : null,
+    status: statusOf(changes, "good-up", materiality),
+    materiality,
+    summary,
+    drivers: ["Market Price moved against the estimated mining cost"],
+    asOfLabel: `hashrate observed ${read.hashrateObservedAt ?? "—"}`,
+    fresh: true,
+  };
+}
+
 const BUILDERS: Record<MetricId, () => MetricChange> = {
   price: priceChange,
   market_health: marketHealthChange,
@@ -560,6 +648,7 @@ const BUILDERS: Record<MetricId, () => MetricChange> = {
   accumulation: accumulationChange,
   drawdown: drawdownChange,
   etf_flow: etfFlowChange,
+  production_premium: productionPremiumChange,
 };
 
 export function metricChange(id: MetricId): MetricChange {
