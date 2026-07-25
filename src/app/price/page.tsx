@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BtcPriceChart } from "@/components/BtcPriceChart";
 import { CycleChartExperience } from "@/components/CycleChartExperience";
 import { DataBadge } from "@/components/DataBadge";
@@ -53,8 +54,9 @@ export default function PricePage() {
             Price in Context
           </h2>
           <p className="text-[12px] text-ink-400 mt-1">
-            Today&apos;s price against its long-term trend and the network&apos;s average cost basis
-            — what the level means, not just where it is.
+            Today&apos;s price against its long-term trend (200-day average), the network&apos;s
+            average cost basis (Realised Price) and the modelled electricity cost of new supply
+            (Estimated Mining Cost) — what the level means, not just where it is.
           </p>
         </div>
 
@@ -67,7 +69,7 @@ export default function PricePage() {
           <div className="watermark">halvinglens.com · price in context</div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+        <div className={`mt-4 grid grid-cols-2 ${ctx.vsMiningPct != null ? "sm:grid-cols-5" : "sm:grid-cols-4"} gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden`}>
           <Stat label="24h change" value={s.change24h != null ? fmtPct(s.change24h, 1) : "—"} tone={s.change24h} />
           <Stat label="7d change" value={s.change7d != null ? fmtPct(s.change7d, 1) : "—"} tone={s.change7d} />
           <Stat
@@ -82,6 +84,15 @@ export default function PricePage() {
             tone={ctx.vsRealizedPct}
             sub={ctx.vsRealizedPct == null ? undefined : ctx.vsRealizedPct >= 0 ? "Above cost basis" : "Below cost basis"}
           />
+          {ctx.vsMiningPct != null && (
+            <Stat
+              label="vs mining cost"
+              value={fmtPct(ctx.vsMiningPct, 1)}
+              tone={ctx.vsMiningPct}
+              sub={ctx.vsMiningPct >= 0 ? "Above estimate" : "Below estimate"}
+              className="col-span-2 sm:col-span-1"
+            />
+          )}
         </div>
 
         <p className="mt-4 text-[11.5px] text-ink-500 leading-relaxed max-w-2xl">
@@ -90,7 +101,12 @@ export default function PricePage() {
           24h/7d figures are daily closes as of the last sync. The 200-day moving average is computed
           from the same daily closes (recovered from the Mayer-multiple series on the all-time view),
           and realized price comes from the live on-chain feed — it is drawn only across the window
-          that feed covers, so the line starts where the real data starts.
+          that feed covers, so the line starts where the real data starts. Estimated Mining Cost is
+          a modelled estimate (average electricity cost per newly issued bitcoin, from live
+          hashrate and documented assumptions — see its{" "}
+          <Link href="/metrics/estimated-mining-cost" className="text-accent">methodology</Link>);
+          it is an estimate, not an exact break-even or a guaranteed support level, and the line is
+          omitted entirely whenever its data is unavailable or more than seven days stale.
         </p>
       </section>
     </div>
@@ -117,16 +133,18 @@ function Stat({
   value,
   tone,
   sub,
+  className = "",
 }: {
   label: string;
   value: string;
   tone?: number | null;
   sub?: string;
+  className?: string;
 }) {
   const color =
     tone == null ? "text-ink-100" : tone >= 0 ? "text-signal-green" : "text-signal-red";
   return (
-    <div className="bg-[#0b0f15] px-4 py-4">
+    <div className={`bg-[#0b0f15] px-4 py-4 ${className}`}>
       <div className="text-[9.5px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
       <div className={`mt-1.5 font-mono text-[16px] tabular-nums ${color}`}>{value}</div>
       {sub && <div className="mt-1 text-[10px] text-ink-400">{sub}</div>}

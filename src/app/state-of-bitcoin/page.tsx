@@ -176,8 +176,9 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           <WhereAreWe />
         </div>
 
-        {/* Reference Prices — Market Price / Realised Price / Cost of
-            Production, the three prices the market is read against. */}
+        {/* Reference Prices — Market Price / 200-Day Moving Average /
+            Realised Price / Estimated Mining Cost, the full reference-price
+            set the market is read against (observed + estimated together). */}
         <div className="mt-8">
           <ReferencePrices />
         </div>
