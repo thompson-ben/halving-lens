@@ -13,9 +13,11 @@ import {
   SPOT,
   TODAY,
   TODAY_DAY_IN_CYCLE,
+  TODAY_PROVENANCE,
   type Cycle,
   type CycleSample,
 } from "./btcData";
+import type { JoinedMetricKey, MetricProvenance } from "./data/types";
 
 // ── Data status ────────────────────────────────────────────────────────────
 // Single source of truth for "can we show this to a user as real?". Driven by
@@ -52,6 +54,27 @@ export function metricStatus(slug: string): DataStatus {
 export function metricSource(slug: string): string {
   const key = SLUG_TO_SOURCE_KEY[slug];
   return (key ? SOURCE.sources[key] : undefined) ?? "Not yet wired to a source";
+}
+
+// ── Today's-value provenance (PR133) ───────────────────────────────────────
+// For metrics fed by delayed external feeds: which observation fed today's
+// number, how old it was, and whether it is observed or a modelled fallback.
+// Returns null for metrics that aren't feed-joined (price-derived metrics are
+// always current) and on snapshots generated before provenance existed.
+
+const SLUG_TO_PROVENANCE_KEY: Record<string, JoinedMetricKey> = {
+  "mvrv-z-score": "mvrvZ",
+  nupl: "nupl",
+  sopr: "sopr",
+  "realized-price": "realizedPrice",
+  "reserve-risk": "reserveRisk",
+  rhodl: "rhodl",
+};
+
+export function metricTodayProvenance(slug: string): MetricProvenance | null {
+  const key = SLUG_TO_PROVENANCE_KEY[slug];
+  if (!key || !TODAY_PROVENANCE) return null;
+  return TODAY_PROVENANCE[key] ?? null;
 }
 
 // True for on-chain metrics fed by the ~4-year BGeometrics window: their data

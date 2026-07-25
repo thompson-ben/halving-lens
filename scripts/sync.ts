@@ -47,6 +47,7 @@ import {
   type Snapshot,
 } from "../src/lib/data/types";
 import { syntheticSnapshot } from "../src/lib/data/synthetic";
+import { joinObservedSeries } from "../src/lib/data/observedJoin";
 // Previously-committed snapshot — used to carry over rate-limited optional data
 // (on-chain, ETF) on builds that don't re-fetch them.
 import { SNAPSHOT as PREVIOUS_SNAPSHOT } from "../src/lib/data/snapshot";
@@ -860,37 +861,52 @@ async function build(): Promise<Snapshot> {
       }
     : null;
   const onchainLive = { mvrv: false, nupl: false, sopr: false, realizedPrice: false, reserveRisk: false, rhodl: false };
+  const BG = "BGeometrics · bitcoin-data.com (current cycle)";
+  // Newest-sample provenance per joined metric (PR133) — lets the UI say
+  // whether today's number is observed, observed-but-stale, or modelled.
+  const todayProvenance: NonNullable<Snapshot["todayProvenance"]> = {};
   if (effectiveOnchain) {
     const cycle5 = cycles.find((c) => c.id === 5);
     if (cycle5) {
       const base = Date.parse(cycle5.halvingDate);
-      const join = (seriesKey: string, sampleKey: keyof CycleSample): boolean => {
+      // The feed publishes with a 1-2 day lag, so an exact-date join misses
+      // the newest sample and leaks its synthetic placeholder as if observed
+      // (the 25 Jul 2026 realised-price defect). joinObservedSeries carries
+      // the latest observation at-or-before each sample date, capped at 7
+      // days — an old REAL value, never a model wearing a live badge.
+      const join = (
+        seriesKey: string,
+        sampleKey: keyof CycleSample & keyof NonNullable<Snapshot["todayProvenance"]>,
+        modelledLabel: string,
+      ): boolean => {
         const ser = effectiveOnchain.series[seriesKey];
-        if (!ser || !ser.length) return false;
-        const map = new Map(ser.map((p) => [p.date, p.value]));
-        let hit = 0;
-        for (const s of cycle5.samples) {
-          const iso = new Date(base + s.day * MS_PER_DAY).toISOString().slice(0, 10);
-          const v = map.get(iso);
-          if (v != null && Number.isFinite(v)) {
-            (s as unknown as Record<string, number>)[sampleKey as string] = v;
-            hit++;
-          }
-        }
-        return hit > 0;
+        const result = joinObservedSeries({
+          samples: cycle5.samples as unknown as Array<{ day: number } & Record<string, unknown>>,
+          sampleKey,
+          series: ser ?? [],
+          halvingDateMs: base,
+          sourceLabel: BG,
+          modelledLabel,
+        });
+        todayProvenance[sampleKey] = result.newestProvenance;
+        return result.hits > 0;
       };
-      onchainLive.mvrv = join("mvrvZscore", "mvrvZ");
-      onchainLive.nupl = join("nupl", "nupl");
-      onchainLive.sopr = join("sopr", "sopr");
-      onchainLive.realizedPrice = join("realizedPrice", "realizedPrice");
-      onchainLive.reserveRisk = join("reserveRisk", "reserveRisk");
-      onchainLive.rhodl = join("rhodl", "rhodl");
+      onchainLive.mvrv = join("mvrvZscore", "mvrvZ", "modelled — feed unavailable");
+      onchainLive.nupl = join("nupl", "nupl", "modelled — feed unavailable");
+      onchainLive.sopr = join("sopr", "sopr", "modelled — feed unavailable");
+      onchainLive.realizedPrice = join("realizedPrice", "realizedPrice", "modelled — feed unavailable");
+      onchainLive.reserveRisk = join("reserveRisk", "reserveRisk", "modelled — feed unavailable");
+      onchainLive.rhodl = join("rhodl", "rhodl", "modelled — feed unavailable");
       console.log(
         `  [ONCHAIN] joined to cycle 5: ${Object.entries(onchainLive).filter(([, v]) => v).map(([k]) => k).join(", ") || "none"}`,
       );
+      for (const [k, p] of Object.entries(todayProvenance)) {
+        if (p.mode !== "observed") {
+          console.log(`  [ONCHAIN] today's ${k}: ${p.mode}${p.observedAt ? ` (observed ${p.observedAt}, ${p.ageDays}d old)` : ""}`);
+        }
+      }
     }
   }
-  const BG = "BGeometrics · bitcoin-data.com (current cycle)";
 
   // Freshest spot price + true 24h/7d change from the daily close series (the
   // per-cycle samples are weekly and can lag a few days).
@@ -948,6 +964,7 @@ async function build(): Promise<Snapshot> {
     etf: etf ?? PREVIOUS_SNAPSHOT.etf ?? null,
     onchain: effectiveOnchain,
     hodlWaves: hodlWaves ?? PREVIOUS_SNAPSHOT.hodlWaves ?? null,
+    todayProvenance: Object.keys(todayProvenance).length ? todayProvenance : null,
   };
 }
 
