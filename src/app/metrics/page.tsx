@@ -66,7 +66,7 @@ export default function MetricsPage() {
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Link href="/metrics/cost-of-production" className="card card-interactive p-6 block">
+          <Link href="/metrics/estimated-mining-cost" className="card card-interactive p-6 block">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[15px] font-medium text-ink-100">Estimated Mining Cost</span>
               <DataBadge status={prod.available ? "modelled" : "coming-soon"} size="sm" />

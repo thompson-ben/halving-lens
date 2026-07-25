@@ -89,7 +89,7 @@ export default function MinersPage() {
             {productionLine && (
               <p className="text-[12.5px] text-ink-400 mt-2 leading-relaxed">
                 {productionLine}{" "}
-                <Link href="/metrics/cost-of-production" className="text-accent">
+                <Link href="/metrics/estimated-mining-cost" className="text-accent">
                   Estimated Mining Cost →
                 </Link>
               </p>

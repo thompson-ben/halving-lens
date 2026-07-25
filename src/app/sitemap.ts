@@ -101,7 +101,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   };
 
   const productionCostEntry = {
-    url: `${SITE_URL}/metrics/cost-of-production`,
+    url: `${SITE_URL}/metrics/estimated-mining-cost`,
     ...lastMod(snapshotAt),
     changeFrequency: "weekly" as const,
     priority: 0.6,

@@ -30,11 +30,11 @@ const DESC =
 export const metadata: Metadata = {
   title: { absolute: "Bitcoin Estimated Mining Cost | HalvingLens" },
   description: DESC,
-  alternates: { canonical: "/metrics/cost-of-production" },
+  alternates: { canonical: "/metrics/estimated-mining-cost" },
   openGraph: {
     title: "Bitcoin Estimated Mining Cost",
     description: DESC,
-    url: "/metrics/cost-of-production",
+    url: "/metrics/estimated-mining-cost",
     type: "article",
   },
   twitter: { card: "summary_large_image", title: "Bitcoin Estimated Mining Cost", description: DESC },
@@ -59,13 +59,13 @@ export default function CostOfProductionPage() {
     "@type": "WebPage",
     name: "Bitcoin Estimated Mining Cost",
     description: DESC,
-    url: absoluteUrl("/metrics/cost-of-production"),
+    url: absoluteUrl("/metrics/estimated-mining-cost"),
   };
 
   return (
     <div className="space-y-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <RecordView kind="metric" title="Estimated Mining Cost" href="/metrics/cost-of-production" />
+      <RecordView kind="metric" title="Estimated Mining Cost" href="/metrics/estimated-mining-cost" />
 
       <div>
         <Link href="/metrics" className="inline-flex items-center gap-1.5 text-[12px] text-ink-400 hover:text-accent transition-colors">
@@ -239,7 +239,7 @@ export default function CostOfProductionPage() {
         </div>
       </section>
 
-      <FeedbackWidget section="cost-of-production" contentType="metric" />
+      <FeedbackWidget section="estimated-mining-cost" contentType="metric" />
     </div>
   );
 }

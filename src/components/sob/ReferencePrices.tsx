@@ -91,7 +91,7 @@ export function ReferencePrices() {
               sub="Modelled electricity cost to mine one new Bitcoin"
               value={fmtUsd(r.productionCost, { compact: true })}
               relation={rel(r.vsProductionPct)}
-              href="/metrics/cost-of-production"
+              href="/metrics/estimated-mining-cost"
               modelled
             />
           )}

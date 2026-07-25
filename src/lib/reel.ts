@@ -488,12 +488,12 @@ function productionCostAngle(_ctx: Ctx): AngleContent {
     midScenes: [
       {
         action: "Open the Estimated Mining Cost page and let the price-vs-cost chart draw in.",
-        source: "/metrics/cost-of-production",
+        source: "/metrics/estimated-mining-cost",
         onScreenText: `Estimated cost: ${cost} · Modelled`,
       },
       {
         action: "Hover the current reading — price, estimated cost, and the premium side by side.",
-        source: "/metrics/cost-of-production — current reading",
+        source: "/metrics/estimated-mining-cost — current reading",
         onScreenText: `Market Price ${Math.abs(premium).toFixed(0)}% ${rel} estimated cost`,
       },
       {
