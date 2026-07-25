@@ -53,12 +53,12 @@ export default function MetricsPage() {
         </div>
       </section>
 
-      {/* Modelled — documented assumptions applied to observed network data,
-          shown with the MODELLED badge (currently: Cost of Production). */}
+      {/* Estimated — documented assumptions applied to observed network data,
+          shown with the ESTIMATED badge (currently: Estimated Mining Cost). */}
       <section>
         <div className="mb-6">
           <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100">
-            Modelled
+            Estimated
           </h2>
           <p className="text-[12.5px] text-ink-400 mt-1.5 max-w-xl">
             Calculated from documented assumptions and observed network data — historical context
@@ -68,12 +68,12 @@ export default function MetricsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <Link href="/metrics/cost-of-production" className="card card-interactive p-6 block">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[15px] font-medium text-ink-100">Cost of Production</span>
+              <span className="text-[15px] font-medium text-ink-100">Estimated Mining Cost</span>
               <DataBadge status={prod.available ? "modelled" : "coming-soon"} size="sm" />
             </div>
             <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">
-              Estimated electricity cost to mine one Bitcoin — the third reference price, alongside
-              Market Price and Realised Price.
+              A modelled estimate of the electricity cost to mine one new Bitcoin — the third
+              reference price, alongside Market Price and Realised Price.
             </p>
             {prod.available && prod.central != null && (
               <div className="mt-4 font-display text-[26px] tabular-nums text-ink-50">

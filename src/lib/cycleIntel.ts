@@ -101,7 +101,7 @@ export function comingSoonReason(slug: string): string {
 export const STATUS_LABEL: Record<DataStatus, string> = {
   live: "Live",
   "live-derived": "Live-derived",
-  modelled: "Modelled",
+  modelled: "Estimated",
   "coming-soon": "Coming soon",
 };
 

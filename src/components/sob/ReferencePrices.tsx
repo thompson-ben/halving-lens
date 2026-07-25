@@ -5,7 +5,7 @@ import { fmtUsd } from "@/lib/format";
 
 // Reference Prices — the three HalvingLens reference prices side by side:
 // Market Price (what Bitcoin trades for), Realised Price (aggregate holder
-// cost basis), Cost of Production (modelled electricity cost to mine one
+// cost basis), Estimated Mining Cost (modelled electricity cost to mine one
 // Bitcoin). Plus one deterministic "Today's Context" paragraph relating them.
 // Descriptive, never predictive. Rows drop out cleanly when a source is
 // unavailable.
@@ -34,7 +34,7 @@ function Row({
           <span className="text-[13px] font-medium text-ink-100">{label}</span>
           {modelled && (
             <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">
-              Modelled
+              Estimated
             </span>
           )}
         </div>
@@ -87,8 +87,8 @@ export function ReferencePrices() {
           )}
           {r.productionAvailable && r.productionCost != null && (
             <Row
-              label="Cost of Production"
-              sub="Modelled electricity cost to mine one Bitcoin"
+              label="Estimated Mining Cost"
+              sub="Modelled electricity cost to mine one new Bitcoin"
               value={fmtUsd(r.productionCost, { compact: true })}
               relation={rel(r.vsProductionPct)}
               href="/metrics/cost-of-production"

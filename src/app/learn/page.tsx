@@ -131,8 +131,8 @@ export default function LearnPage() {
           </Link>
           <Link href="/metrics/cost-of-production" className="card card-interactive p-5 block">
             <div className="flex items-center gap-2">
-              <span className="text-[13.5px] font-medium text-ink-100">Cost of Production</span>
-              <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">Modelled</span>
+              <span className="text-[13.5px] font-medium text-ink-100">Estimated Mining Cost</span>
+              <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">Estimated</span>
             </div>
             <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">
               An estimate of the average cost required to mine one new Bitcoin, based on network

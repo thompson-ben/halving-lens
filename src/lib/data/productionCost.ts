@@ -140,8 +140,8 @@ export type ProductionCostBand =
   | "elevated-premium";
 
 export function classifyPremium(premiumPct: number): { band: ProductionCostBand; label: string } {
-  if (premiumPct <= -33) return { band: "below-cost", label: "Below estimated production cost" };
-  if (premiumPct < 33) return { band: "near-cost", label: "Near estimated production cost" };
-  if (premiumPct < 67) return { band: "moderate-premium", label: "Moderate production premium" };
-  return { band: "elevated-premium", label: "Elevated production premium" };
+  if (premiumPct <= -33) return { band: "below-cost", label: "Below estimated mining cost" };
+  if (premiumPct < 33) return { band: "near-cost", label: "Near estimated mining cost" };
+  if (premiumPct < 67) return { band: "moderate-premium", label: "Moderate premium to mining cost" };
+  return { band: "elevated-premium", label: "Elevated premium to mining cost" };
 }

@@ -19,25 +19,25 @@ import {
 import { absoluteUrl } from "@/lib/site";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
-// Cost of Production — the third HalvingLens reference price, alongside
+// Estimated Mining Cost — the third HalvingLens reference price, alongside
 // Market Price and Realised Price. MODELLED and labelled as such everywhere:
 // an electricity-only, network-level estimate with documented assumptions.
 // Never a price floor, never intrinsic value, never a prediction.
 
 const DESC =
-  "An estimate of the average electricity cost required to mine one new Bitcoin, from live network hashrate and documented assumptions. A network-level modelled estimate — not any miner's break-even, not a price floor.";
+  "A modelled estimate of the average electricity cost required to produce one new Bitcoin, using current network conditions and documented assumptions. A network-level estimate — not any miner's break-even, not a price floor.";
 
 export const metadata: Metadata = {
-  title: { absolute: "Bitcoin Cost of Production | HalvingLens" },
+  title: { absolute: "Bitcoin Estimated Mining Cost | HalvingLens" },
   description: DESC,
   alternates: { canonical: "/metrics/cost-of-production" },
   openGraph: {
-    title: "Bitcoin Cost of Production",
+    title: "Bitcoin Estimated Mining Cost",
     description: DESC,
     url: "/metrics/cost-of-production",
     type: "article",
   },
-  twitter: { card: "summary_large_image", title: "Bitcoin Cost of Production", description: DESC },
+  twitter: { card: "summary_large_image", title: "Bitcoin Estimated Mining Cost", description: DESC },
 };
 
 function ReferenceStat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "up" | "down" }) {
@@ -57,7 +57,7 @@ export default function CostOfProductionPage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "Bitcoin Cost of Production",
+    name: "Bitcoin Estimated Mining Cost",
     description: DESC,
     url: absoluteUrl("/metrics/cost-of-production"),
   };
@@ -65,7 +65,7 @@ export default function CostOfProductionPage() {
   return (
     <div className="space-y-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <RecordView kind="metric" title="Cost of Production" href="/metrics/cost-of-production" />
+      <RecordView kind="metric" title="Estimated Mining Cost" href="/metrics/cost-of-production" />
 
       <div>
         <Link href="/metrics" className="inline-flex items-center gap-1.5 text-[12px] text-ink-400 hover:text-accent transition-colors">
@@ -80,14 +80,14 @@ export default function CostOfProductionPage() {
           <DataBadge status={r.available ? "modelled" : "coming-soon"} source={r.available ? `HalvingLens electricity-cost model ${r.assumptionsVersion}` : undefined} />
         </div>
         <h1 className="font-display text-[40px] lg:text-[56px] font-medium tracking-tightest text-ink-50 leading-[1.05]">
-          Cost of Production
+          Estimated Mining Cost
         </h1>
         {/* B. Plain-English definition */}
         <p className="mt-5 text-[15.5px] text-ink-300 max-w-2xl leading-relaxed">
-          An estimate of the average electricity cost required to mine one new Bitcoin, based on
-          live network hashrate and the documented assumptions of the model below. Mining costs
-          vary significantly between operators — this is a network-level estimate, not the actual
-          cost faced by every miner, and it is not a guaranteed price floor.
+          A modelled estimate of the average electricity cost required to produce one new Bitcoin
+          using current network conditions and documented assumptions. Mining costs vary
+          significantly between operators — this is a network-level estimate, not the actual cost
+          faced by every miner.
         </p>
         <div className="mt-3 flex items-center gap-4 flex-wrap">
           <LastUpdated prefix="Inputs as of" />
@@ -108,12 +108,12 @@ export default function CostOfProductionPage() {
               value={r.marketPrice != null ? fmtUsd(r.marketPrice, { compact: true }) : "—"}
             />
             <ReferenceStat
-              label="Estimated Cost of Production"
+              label="Estimated Mining Cost"
               value={fmtUsd(r.central!, { compact: true })}
-              sub={`Estimated range ${fmtUsd(r.low!, { compact: true })} – ${fmtUsd(r.high!, { compact: true })} · Modelled`}
+              sub={`Estimated range ${fmtUsd(r.low!, { compact: true })} – ${fmtUsd(r.high!, { compact: true })}`}
             />
             <ReferenceStat
-              label="Price vs Production Cost"
+              label="Price vs Estimated Mining Cost"
               value={
                 r.diffUsd != null && r.premiumPct != null
                   ? `${r.diffUsd >= 0 ? "+" : "−"}${fmtUsd(Math.abs(r.diffUsd), { compact: true })} · ${fmtPct(r.premiumPct, 0)}`
@@ -127,7 +127,7 @@ export default function CostOfProductionPage() {
           {/* D. Historical chart */}
           <section className="card p-4 sm:p-7 relative">
             <ProductionCostChart height={380} />
-            <div className="watermark">halvinglens.com · cost of production</div>
+            <div className="watermark">halvinglens.com · estimated mining cost</div>
           </section>
 
           {/* E. What it's telling us today */}
@@ -139,7 +139,7 @@ export default function CostOfProductionPage() {
               {r.bandLabel}. Market Price is {fmtPct(Math.abs(r.premiumPct!), 0)}{" "}
               {r.premiumPct! >= 0 ? "above" : "below"} the central estimate
               {r.premiumPct! <= -33 &&
-                " — some miners may face financial pressure, but this is not a guaranteed price floor: difficulty can adjust, and operators run very different hardware and energy contracts"}
+                " — some miners may face financial pressure. Historically, Bitcoin has often traded near this level during periods of miner stress, but this estimate should not be interpreted as a guaranteed support level or price floor"}
               {r.premiumPct! > -33 && r.premiumPct! < 33 &&
                 " — modelled average mining margins are compressed; individual operators' economics vary widely"}
               {r.premiumPct! >= 33 &&
@@ -164,8 +164,8 @@ export default function CostOfProductionPage() {
         <ul className="space-y-2.5 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl list-disc pl-5">
           <li>Miners are structural sellers — they have ongoing operating expenses to cover, so mining economics shape a steady flow of potential sell pressure.</li>
           <li>Mining margins can affect miner behaviour and network conditions across the cycle.</li>
-          <li>Periods with Market Price below estimated production cost have historically placed pressure on less efficient operators.</li>
-          <li>Cost of Production is <span className="text-ink-100">not</span> a guaranteed market floor — price has traded below modelled cost for extended periods.</li>
+          <li>Periods with Market Price below the estimated mining cost have historically placed pressure on less efficient operators.</li>
+          <li>Historically, Bitcoin has often traded near this level during periods of miner stress, but this estimate should <span className="text-ink-100">not</span> be interpreted as a guaranteed support level or price floor — price has traded below the modelled cost for extended periods.</li>
           <li>Network difficulty adjusts roughly every two weeks, and miners use very different hardware and energy prices — the modelled average moves with the network.</li>
         </ul>
       </section>
@@ -205,8 +205,9 @@ export default function CostOfProductionPage() {
             withheld rather than shown stale.
           </p>
           <p>
-            <span className="text-ink-100">Limitations.</span> A network-level estimate, not any
-            miner&apos;s break-even; not a price floor; not intrinsic value; not a prediction. See
+            <span className="text-ink-100">Limitations.</span> A network-level modelled estimate, not
+            any miner&apos;s break-even; not a guaranteed support level or price floor; not
+            intrinsic value; not a prediction. See
             the <Link href="/methodology" className="text-accent">methodology page</Link> for how
             modelled metrics are labelled across HalvingLens.
           </p>

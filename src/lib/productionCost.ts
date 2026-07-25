@@ -4,7 +4,7 @@
 // terminology everywhere:
 //   Market Price    — what Bitcoin trades for today
 //   Realised Price  — the aggregate holder cost basis
-//   Cost of Production — the estimated electricity cost to mine one Bitcoin
+//   Estimated Mining Cost — the modelled electricity cost to mine one Bitcoin
 //
 // MODELLED: documented assumptions applied to observed hashrate (see
 // src/lib/data/productionCost.ts). Every surface reading from here inherits
@@ -215,11 +215,11 @@ function todaysContext(
   const premium = read.premiumPct;
   let miners: string;
   if (premium <= -33) {
-    miners = `and below the estimated Cost of Production — a configuration that has historically placed pressure on less efficient mining operators, though it is not a guaranteed price floor`;
+    miners = `and below its estimated mining cost — a configuration that has historically coincided with periods of miner stress, though the estimate should not be read as a guaranteed support level or price floor`;
   } else if (premium < 33) {
-    miners = `and near the estimated Cost of Production (${premium >= 0 ? "+" : ""}${premium.toFixed(0)}%), meaning modelled average mining margins are compressed`;
+    miners = `and near its estimated mining cost (${premium >= 0 ? "+" : ""}${premium.toFixed(0)}%), meaning modelled average mining margins are compressed`;
   } else {
-    miners = `and ${premium.toFixed(0)}% above the estimated Cost of Production, meaning mining remains economically favourable for the modelled average operator`;
+    miners = `and ${premium.toFixed(0)}% above its estimated mining cost, meaning mining remains economically favourable for the modelled average operator`;
   }
   const structure = aboveRealised
     ? "the average holder is in profit"
@@ -234,5 +234,5 @@ export function minersContextLine(): string | null {
   if (!read.available || read.premiumPct == null) return null;
   const p = read.premiumPct;
   const rel = p >= 0 ? "above" : "below";
-  return `Bitcoin currently trades ${Math.abs(p).toFixed(0)}% ${rel} its estimated Cost of Production (${fmtUsd(read.central!, { compact: true })}, electricity-only model).`;
+  return `Bitcoin currently trades ${Math.abs(p).toFixed(0)}% ${rel} its estimated mining cost (${fmtUsd(read.central!, { compact: true })}, electricity-only estimate).`;
 }

@@ -83,7 +83,7 @@ export function ProductionCostChart({ height = 360 }: { height?: number }) {
             <Area
               type="monotone"
               dataKey="costHigh"
-              name="Cost of Production (high, $0.08/kWh)"
+              name="Estimated Mining Cost (high, $0.08/kWh)"
               stroke="none"
               fill={COST_COLOR}
               fillOpacity={0.07}
@@ -94,7 +94,7 @@ export function ProductionCostChart({ height = 360 }: { height?: number }) {
             <Area
               type="monotone"
               dataKey="costLow"
-              name="Cost of Production (low, $0.04/kWh)"
+              name="Estimated Mining Cost (low, $0.04/kWh)"
               stroke="none"
               fill="#05070a"
               fillOpacity={1}
@@ -105,7 +105,7 @@ export function ProductionCostChart({ height = 360 }: { height?: number }) {
             <Line
               type="monotone"
               dataKey="cost"
-              name="Cost of Production (estimate)"
+              name="Estimated Mining Cost"
               stroke={COST_COLOR}
               strokeWidth={1.5}
               dot={false}
@@ -135,7 +135,7 @@ export function ProductionCostChart({ height = 360 }: { height?: number }) {
             <rect x="0" y="2" width="18" height="6" fill={COST_COLOR} opacity="0.15" />
             <line x1="0" y1="5" x2="18" y2="5" stroke={COST_COLOR} strokeWidth="1.5" />
           </svg>
-          Cost of Production (modelled, $0.04–$0.08/kWh band)
+          Estimated Mining Cost ($0.04–$0.08/kWh band, modelled)
         </span>
       </div>
     </div>

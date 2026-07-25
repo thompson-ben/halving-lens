@@ -564,7 +564,7 @@ function productionPremiumChange(): MetricChange {
   const read = productionCostRead();
   const block = SNAPSHOT.productionCost;
   if (!read.available || read.premiumPct == null || !block) {
-    return unavailable("production_premium", "Production Premium", "pp", "daily");
+    return unavailable("production_premium", "Mining Cost Premium", "pp", "daily");
   }
   // Daily premium series over the window where both Market Price closes and
   // the modelled cost exist (cost is daily in the recent window).
@@ -578,7 +578,7 @@ function productionPremiumChange(): MetricChange {
     }
   }
   if (series.length < 8) {
-    return unavailable("production_premium", "Production Premium", "pp", "daily");
+    return unavailable("production_premium", "Mining Cost Premium", "pp", "daily");
   }
   const nowObs = series[series.length - 1];
   const cur = read.premiumPct;
@@ -614,11 +614,11 @@ function productionPremiumChange(): MetricChange {
   const materiality: Materiality = bandChanged ? "band" : move7 < 4 ? "none" : move7 < 10 ? "modest" : "material";
   const rel = cur >= 0 ? "above" : "below";
   const summary = clamp(
-    `Bitcoin trades ${Math.abs(cur).toFixed(0)}% ${rel} its estimated Cost of Production (modelled). ${band.label}${bandChanged ? ` — moved from "${bandChanged.from}" over the last week` : ""}. A network-level electricity estimate, not a price floor.`,
+    `Bitcoin trades ${Math.abs(cur).toFixed(0)}% ${rel} its estimated mining cost (modelled). ${band.label}${bandChanged ? ` — moved from "${bandChanged.from}" over the last week` : ""}. A network-level electricity estimate — not a guaranteed support level or price floor.`,
   );
   return {
     id: "production_premium",
-    name: "Production Premium",
+    name: "Mining Cost Premium",
     unit: "pp",
     frequency: "daily",
     available: true,
@@ -635,7 +635,7 @@ function productionPremiumChange(): MetricChange {
     status: statusOf(changes, "good-up", materiality),
     materiality,
     summary,
-    drivers: ["Market Price moved against the modelled Cost of Production"],
+    drivers: ["Market Price moved against the estimated mining cost"],
     asOfLabel: `hashrate observed ${read.hashrateObservedAt ?? "—"}`,
     fresh: true,
   };

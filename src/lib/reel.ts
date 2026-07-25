@@ -459,7 +459,7 @@ function priceAngle({ s, rc }: Ctx): AngleContent {
   };
 }
 
-// Cost of Production — the evergreen "how much does it cost to mine one
+// Estimated Mining Cost — the evergreen "how much does it cost to mine one
 // Bitcoin?" educational angle, strongest when Market Price crosses or nears
 // the modelled estimate. MODELLED language is baked into every line; never a
 // price floor, never a prediction.
@@ -477,8 +477,8 @@ function productionCostAngle(_ctx: Ctx): AngleContent {
     // low-priority evergreen educational rotation.
     priority: nearOrBelow ? 2 : 6,
     available,
-    angleLabel: "Cost of Production",
-    insight: `Bitcoin trades ${Math.abs(premium).toFixed(0)}% ${rel} its estimated Cost of Production (${cost}, modelled).`,
+    angleLabel: "Estimated Mining Cost",
+    insight: `Bitcoin trades ${Math.abs(premium).toFixed(0)}% ${rel} its estimated mining cost (${cost}, modelled).`,
     title: nearOrBelow ? "Mining Margins Just Compressed" : "How Much Does It Cost to Mine One Bitcoin?",
     hook: nearOrBelow ? "MINING MARGINS ARE COMPRESSED" : "WHAT DOES ONE BITCOIN COST TO MINE?",
     voHook: "How much does it actually cost to mine one Bitcoin?",
@@ -487,7 +487,7 @@ function productionCostAngle(_ctx: Ctx): AngleContent {
       "Every miner's real costs differ, and this is not a price floor — difficulty adjusts and hardware varies. It's historical context for how mining economics sit today, not a prediction.",
     midScenes: [
       {
-        action: "Open the Cost of Production page and let the price-vs-cost chart draw in.",
+        action: "Open the Estimated Mining Cost page and let the price-vs-cost chart draw in.",
         source: "/metrics/cost-of-production",
         onScreenText: `Estimated cost: ${cost} · Modelled`,
       },

@@ -90,7 +90,7 @@ export default function MinersPage() {
               <p className="text-[12.5px] text-ink-400 mt-2 leading-relaxed">
                 {productionLine}{" "}
                 <Link href="/metrics/cost-of-production" className="text-accent">
-                  Cost of Production →
+                  Estimated Mining Cost →
                 </Link>
               </p>
             )}
