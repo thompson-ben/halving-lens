@@ -151,6 +151,24 @@ export interface Snapshot {
   // Per-metric provenance of the NEWEST cycle-5 sample (what "current reading"
   // UIs display). Absent on snapshots generated before PR133.
   todayProvenance?: Partial<Record<JoinedMetricKey, MetricProvenance>> | null;
+  // Cost of Production — MODELLED estimate (electricity-cost model; see
+  // src/lib/data/productionCost.ts). Absent until a sync with hashrate history
+  // has run. points store the CENTRAL estimate only; the low/high band is a
+  // documented scalar of central, derived in code.
+  productionCost?: ProductionCostData | null;
+}
+
+export interface ProductionCostPoint {
+  date: string; // ISO date
+  value: number; // central estimate, USD per BTC
+}
+
+export interface ProductionCostData {
+  source: string; // model label incl. assumptions version
+  fetchedAt: string; // ISO — when the inputs were fetched
+  assumptionsVersion: string;
+  hashrateObservedAt: string; // ISO date of the newest hashrate observation used
+  points: ProductionCostPoint[]; // ascending by date; weekly older + daily recent
 }
 
 // Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.

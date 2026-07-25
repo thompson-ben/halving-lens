@@ -4,6 +4,7 @@ import { MetricChart } from "@/components/MetricChart";
 import { DataBadge } from "@/components/DataBadge";
 import { LastUpdated } from "@/components/LastUpdated";
 import { halvingStats } from "@/lib/halvingStats";
+import { minersContextLine } from "@/lib/productionCost";
 import { metricBySlug, zoneFor } from "@/lib/metrics";
 import { SPOT, TODAY } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
@@ -24,6 +25,7 @@ export default function MinersPage() {
   const puell = metricBySlug("puell-multiple");
   const puellValue = puell ? puell.pick(TODAY) : null;
   const puellZone = puell && puellValue != null ? zoneFor(puell, puellValue) : null;
+  const productionLine = minersContextLine();
 
   return (
     <div className="space-y-12">
@@ -84,6 +86,14 @@ export default function MinersPage() {
               earning far more than usual (historically late-cycle); low readings mean revenue is
               squeezed (historically near lows).
             </p>
+            {productionLine && (
+              <p className="text-[12.5px] text-ink-400 mt-2 leading-relaxed">
+                {productionLine}{" "}
+                <Link href="/metrics/cost-of-production" className="text-accent">
+                  Cost of Production →
+                </Link>
+              </p>
+            )}
           </div>
           {puellValue != null && puellZone && (
             <div className="text-right shrink-0">

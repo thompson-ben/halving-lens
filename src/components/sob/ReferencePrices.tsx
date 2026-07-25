@@ -1,0 +1,108 @@
+import { TrackedLink } from "@/components/TrackedLink";
+import { TrackedSection } from "@/components/TrackedSection";
+import { referencePrices } from "@/lib/productionCost";
+import { fmtUsd } from "@/lib/format";
+
+// Reference Prices — the three HalvingLens reference prices side by side:
+// Market Price (what Bitcoin trades for), Realised Price (aggregate holder
+// cost basis), Cost of Production (modelled electricity cost to mine one
+// Bitcoin). Plus one deterministic "Today's Context" paragraph relating them.
+// Descriptive, never predictive. Rows drop out cleanly when a source is
+// unavailable.
+
+function Row({
+  label,
+  sub,
+  value,
+  relation,
+  href,
+  event,
+  modelled,
+}: {
+  label: string;
+  sub: string;
+  value: string;
+  relation?: string | null;
+  href?: string;
+  event?: string;
+  modelled?: boolean;
+}) {
+  const body = (
+    <div className="flex items-start justify-between gap-4 py-4">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[13px] font-medium text-ink-100">{label}</span>
+          {modelled && (
+            <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">
+              Modelled
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 text-[11.5px] text-ink-500">{sub}</div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="font-display text-[22px] tabular-nums text-ink-50 leading-none">{value}</div>
+        {relation && <div className="mt-1 text-[11px] text-ink-400">{relation}</div>}
+      </div>
+    </div>
+  );
+  if (!href) return body;
+  return (
+    <TrackedLink href={href} event={event ?? "reference_price_row_clicked"} props={{ label }} className="block hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors">
+      {body}
+    </TrackedLink>
+  );
+}
+
+export function ReferencePrices() {
+  const r = referencePrices();
+  if (r.marketPrice == null) return null;
+
+  const rel = (pct: number | null) =>
+    pct == null ? null : `Market Price is ${Math.abs(pct).toFixed(0)}% ${pct >= 0 ? "above" : "below"}`;
+
+  return (
+    <TrackedSection id="reference-prices">
+      <div className="card p-5 sm:p-6">
+        <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-1">Reference Prices</div>
+        <p className="text-[12px] text-ink-400 mb-2 max-w-xl">
+          The three prices HalvingLens reads the market against — what Bitcoin trades for, what the
+          average holder paid, and roughly what it costs to produce a new one.
+        </p>
+        <div className="divide-y divide-white/[0.06]">
+          <Row
+            label="Market Price"
+            sub="What Bitcoin trades for today"
+            value={fmtUsd(r.marketPrice, { compact: true })}
+            href="/price"
+          />
+          {r.realisedPrice != null && (
+            <Row
+              label="Realised Price"
+              sub="The network's aggregate holder cost basis"
+              value={fmtUsd(r.realisedPrice, { compact: true })}
+              relation={rel(r.vsRealisedPct)}
+              href="/metrics/realized-price"
+            />
+          )}
+          {r.productionAvailable && r.productionCost != null && (
+            <Row
+              label="Cost of Production"
+              sub="Modelled electricity cost to mine one Bitcoin"
+              value={fmtUsd(r.productionCost, { compact: true })}
+              relation={rel(r.vsProductionPct)}
+              href="/metrics/cost-of-production"
+              modelled
+            />
+          )}
+        </div>
+        {r.todaysContext && (
+          <div className="mt-4 pt-4 border-t border-white/[0.06]">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500 mb-1.5">Today&apos;s context</div>
+            <p className="text-[12.5px] text-ink-300 leading-relaxed">{r.todaysContext}</p>
+          </div>
+        )}
+      </div>
+    </TrackedSection>
+  );
+}

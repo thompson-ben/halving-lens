@@ -18,6 +18,7 @@ import { SENTIMENT_AVAILABLE, currentSentiment, sentimentChange, bandFor } from 
 import { downsideScenarios } from "./downside";
 import { similarMoments, type SimilarMoment } from "./similarity";
 import { fmtUsd } from "./format";
+import { productionCostRead } from "./productionCost";
 import { todaySlug, priorBrief } from "./briefArchive";
 import { STORED_BRIEFS } from "./data/briefs";
 
@@ -31,6 +32,7 @@ export type ReelAngle =
   | "downside"
   | "similar_moment"
   | "price_move"
+  | "production_cost"
   | "general";
 
 export interface ReelScene {
@@ -108,6 +110,7 @@ const ENGAGEMENT_Q: Record<ReelAngle, string> = {
   cycle_divergence: "Is this cycle genuinely different — or just slower? 👇",
   etf_flows: "Are ETFs permanently rewriting Bitcoin's cycles? 👇",
   sentiment: "Right now — are you fearful or greedy? 👇",
+  production_cost: "Did you expect mining one Bitcoin to cost this much? 👇",
   risk_level: "Does this risk read match how the market feels to you? 👇",
   downside: "What would you call a 'normal' dip from here? 👇",
   similar_moment: "Does history rhyme — or is this time different? 👇",
@@ -456,6 +459,53 @@ function priceAngle({ s, rc }: Ctx): AngleContent {
   };
 }
 
+// Cost of Production — the evergreen "how much does it cost to mine one
+// Bitcoin?" educational angle, strongest when Market Price crosses or nears
+// the modelled estimate. MODELLED language is baked into every line; never a
+// price floor, never a prediction.
+function productionCostAngle(_ctx: Ctx): AngleContent {
+  const r = productionCostRead();
+  const available = r.available && r.premiumPct != null && r.central != null;
+  const premium = r.premiumPct ?? 0;
+  const nearOrBelow = available && premium < 33;
+  const rel = premium >= 0 ? "above" : "below";
+  const cost = available ? fmtUsd(r.central!, { compact: true }) : "";
+  const price = r.marketPrice != null ? fmtUsd(r.marketPrice, { compact: true }) : "";
+  return {
+    angle: "production_cost",
+    // Stronger story when margins are compressed or negative; otherwise a
+    // low-priority evergreen educational rotation.
+    priority: nearOrBelow ? 2 : 6,
+    available,
+    angleLabel: "Cost of Production",
+    insight: `Bitcoin trades ${Math.abs(premium).toFixed(0)}% ${rel} its estimated Cost of Production (${cost}, modelled).`,
+    title: nearOrBelow ? "Mining Margins Just Compressed" : "How Much Does It Cost to Mine One Bitcoin?",
+    hook: nearOrBelow ? "MINING MARGINS ARE COMPRESSED" : "WHAT DOES ONE BITCOIN COST TO MINE?",
+    voHook: "How much does it actually cost to mine one Bitcoin?",
+    voInsight: `Our modelled estimate — live network hashrate, documented efficiency and electricity assumptions — puts the average electricity cost at about ${cost}. Bitcoin trades at ${price}, ${Math.abs(premium).toFixed(0)} percent ${rel} that estimate.`,
+    voExplain:
+      "Every miner's real costs differ, and this is not a price floor — difficulty adjusts and hardware varies. It's historical context for how mining economics sit today, not a prediction.",
+    midScenes: [
+      {
+        action: "Open the Cost of Production page and let the price-vs-cost chart draw in.",
+        source: "/metrics/cost-of-production",
+        onScreenText: `Estimated cost: ${cost} · Modelled`,
+      },
+      {
+        action: "Hover the current reading — price, estimated cost, and the premium side by side.",
+        source: "/metrics/cost-of-production — current reading",
+        onScreenText: `Market Price ${Math.abs(premium).toFixed(0)}% ${rel} estimated cost`,
+      },
+      {
+        action: "Show the Reference Prices panel on the State of Bitcoin — the three prices together.",
+        source: "/state-of-bitcoin — Reference Prices",
+        onScreenText: "Market · Realised · Production",
+      },
+    ],
+    statOverlays: [`Est. cost ${cost}`, `${premium >= 0 ? "+" : "−"}${Math.abs(premium).toFixed(0)}% vs cost`],
+  };
+}
+
 function generalAngle({ s, div }: Ctx): AngleContent {
   const diverging = div.cooler || div.later;
   return {
@@ -577,6 +627,7 @@ export function reelPackage(): ReelPackage {
     downsideAngle(ctx),
     similarAngle(ctx),
     priceAngle(ctx),
+    productionCostAngle(ctx),
     generalAngle(ctx),
   ];
   const chosen = selectAngle(candidates, recentReelAngles(6));

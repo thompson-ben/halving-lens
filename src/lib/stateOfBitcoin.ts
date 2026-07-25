@@ -191,6 +191,8 @@ export function metricMeaning(m: MetricChange): string {
     }
     case "accumulation":
       return "How attractive today looks vs Bitcoin's own history.";
+    case "production_premium":
+      return "Market Price vs the modelled electricity cost of mining one Bitcoin — not a price floor.";
     case "price": {
       const c1 = m.changes.find((c) => c.period === 1);
       const c7 = m.changes.find((c) => c.period === 7);

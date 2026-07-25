@@ -67,7 +67,7 @@ const SENTIMENT_STRUCTURE: { term: string; def: string }[] = [
 ];
 
 export default function LearnPage() {
-  const statuses: DataStatus[] = ["live", "live-derived", "coming-soon"];
+  const statuses: DataStatus[] = ["live", "live-derived", "modelled", "coming-soon"];
 
   return (
     <div className="space-y-14">
@@ -100,6 +100,47 @@ export default function LearnPage() {
               <p className="text-[13px] text-ink-300 leading-relaxed">{STATUS_EXPLAIN[s]}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Understanding Bitcoin Prices — the three reference prices, first.
+          A beginner should meet these before MVRV or NUPL. */}
+      <section>
+        <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100 mb-2">
+          Understanding Bitcoin prices
+        </h2>
+        <p className="text-[13px] text-ink-300 max-w-2xl leading-relaxed mb-6">
+          HalvingLens reads the market against three reference prices. If you learn nothing else
+          on this page, learn these three.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link href="/price" className="card card-interactive p-5 block">
+            <div className="text-[13.5px] font-medium text-ink-100">Market Price</div>
+            <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">
+              What Bitcoin trades for today — the current exchange price you would pay or receive
+              right now.
+            </p>
+          </Link>
+          <Link href="/metrics/realized-price" className="card card-interactive p-5 block">
+            <div className="text-[13.5px] font-medium text-ink-100">Realised Price</div>
+            <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">
+              The average price at which every Bitcoin in circulation last moved — the network&apos;s
+              aggregate holder cost basis. Market Price above it means the average holder is in
+              profit.
+            </p>
+          </Link>
+          <Link href="/metrics/cost-of-production" className="card card-interactive p-5 block">
+            <div className="flex items-center gap-2">
+              <span className="text-[13.5px] font-medium text-ink-100">Cost of Production</span>
+              <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">Modelled</span>
+            </div>
+            <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">
+              An estimate of the average cost required to mine one new Bitcoin, based on network
+              conditions and model assumptions such as mining efficiency and energy costs. Real
+              miners have different costs, so this is a market-wide estimate rather than a
+              universal break-even price.
+            </p>
+          </Link>
         </div>
       </section>
 

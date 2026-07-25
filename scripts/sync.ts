@@ -48,6 +48,11 @@ import {
 } from "../src/lib/data/types";
 import { syntheticSnapshot } from "../src/lib/data/synthetic";
 import { joinObservedSeries } from "../src/lib/data/observedJoin";
+import {
+  ASSUMPTIONS_VERSION,
+  MODEL_START_DATE,
+  productionCostAt,
+} from "../src/lib/data/productionCost";
 // Previously-committed snapshot — used to carry over rate-limited optional data
 // (on-chain, ETF) on builds that don't re-fetch them.
 import { SNAPSHOT as PREVIOUS_SNAPSHOT } from "../src/lib/data/snapshot";
@@ -65,6 +70,7 @@ interface DailyPoint {
   marketCap: number;
   realisedCap?: number;
   supply?: number;
+  hashrateThs?: number; // CM HashRate, TH/s — feeds the Cost of Production model
 }
 
 // A browser-like UA. Keyless crypto APIs (CoinMetrics, CryptoCompare) front
@@ -148,6 +154,7 @@ interface CoinMetricsRow {
   marketCap?: number;
   realisedCap?: number;
   supply?: number;
+  hashrateThs?: number; // CM HashRate — mean network hashrate, TH/s
 }
 
 // Crypto Fear & Greed index — alternative.me. Free, keyless, daily history.
@@ -472,8 +479,8 @@ async function fetchHodlWaves(): Promise<import("../src/lib/data/types").HodlWav
 // supply for BTC. Keyless, full history. Some metrics (notably CapRealUSD,
 // realised cap) require a Pro key — requesting one paid metric 403s the whole
 // batch — so we try the full set then degrade to free-only metrics.
-const CM_METRICS_FULL = ["PriceUSD", "CapMrktCurUSD", "CapRealUSD", "SplyCur"];
-const CM_METRICS_FREE = ["PriceUSD", "CapMrktCurUSD", "SplyCur"];
+const CM_METRICS_FULL = ["PriceUSD", "CapMrktCurUSD", "CapRealUSD", "SplyCur", "HashRate"];
+const CM_METRICS_FREE = ["PriceUSD", "CapMrktCurUSD", "SplyCur", "HashRate"];
 
 async function fetchCoinMetricsMetrics(metrics: string[]): Promise<CoinMetricsRow[]> {
   const base =
@@ -495,6 +502,7 @@ async function fetchCoinMetricsMetrics(metrics: string[]): Promise<CoinMetricsRo
         CapMrktCurUSD?: string;
         CapRealUSD?: string;
         SplyCur?: string;
+        HashRate?: string;
       }>;
       next_page_url?: string;
     } = await fetchJson(next);
@@ -507,6 +515,7 @@ async function fetchCoinMetricsMetrics(metrics: string[]): Promise<CoinMetricsRo
         marketCap: num(row.CapMrktCurUSD),
         realisedCap: num(row.CapRealUSD),
         supply: num(row.SplyCur),
+        hashrateThs: num(row.HashRate),
       });
     }
     next = page.next_page_url;
@@ -770,6 +779,7 @@ async function build(): Promise<Snapshot> {
         marketCap: c?.marketCap ?? p.marketCap,
         realisedCap: c?.realisedCap,
         supply: c?.supply,
+        hashrateThs: c?.hashrateThs,
       };
     });
 
@@ -785,6 +795,7 @@ async function build(): Promise<Snapshot> {
           : r.price! * (r.supply ?? 19_000_000),
         realisedCap: r.realisedCap,
         supply: r.supply,
+        hashrateThs: r.hashrateThs,
       }));
     console.log(
       `  using CoinMetrics price series (${daily.length} days from ${new Date(daily[0].ts).toISOString().slice(0, 10)})`,
@@ -931,6 +942,51 @@ async function build(): Promise<Snapshot> {
     (d) => Number.isFinite(d.realisedCap) && (d.realisedCap as number) > 0,
   );
   const supplyAvailable = daily.some((d) => Number.isFinite(d.supply) && (d.supply as number) > 0);
+  // Cost of Production — MODELLED (electricity-cost model, documented
+  // assumptions in src/lib/data/productionCost.ts). Built from CM HashRate
+  // history; drops out cleanly (null) when hashrate is unavailable. Weekly
+  // resolution before the most recent 400 days, daily after, to keep the
+  // committed snapshot compact.
+  const productionCost = (() => {
+    const withHash = daily.filter(
+      (d) => Number.isFinite(d.hashrateThs) && (d.hashrateThs as number) > 0,
+    );
+    if (!withHash.length) return null;
+    const lastTs = withHash[withHash.length - 1].ts;
+    const points: Array<{ date: string; value: number }> = [];
+    for (const d of withHash) {
+      const iso = new Date(d.ts).toISOString().slice(0, 10);
+      if (iso < MODEL_START_DATE) continue;
+      const recent = lastTs - d.ts <= 400 * MS_PER_DAY;
+      if (!recent && new Date(d.ts).getUTCDay() !== 1) continue; // weekly (Mondays) when old
+      const est = productionCostAt(d.hashrateThs, iso);
+      if (!est) continue; // sanity-failed or pre-model — dropped, never zero
+      // Discontinuity guard: >35% day-over-day jump (outside a halving week)
+      // indicates a broken input; drop the point rather than publish it.
+      const prev = points[points.length - 1];
+      if (prev && recent && Math.abs(est.central / prev.value - 1) > 0.35) {
+        console.warn(`  [PRODCOST] discontinuity at ${iso} dropped (${prev.value} -> ${est.central})`);
+        continue;
+      }
+      points.push({ date: iso, value: est.central });
+    }
+    if (points.length < 30) return null;
+    return {
+      source: `model: HalvingLens electricity-cost model ${ASSUMPTIONS_VERSION} — live hashrate × documented assumptions`,
+      fetchedAt: new Date().toISOString(),
+      assumptionsVersion: ASSUMPTIONS_VERSION,
+      hashrateObservedAt: new Date(lastTs).toISOString().slice(0, 10),
+      points,
+    };
+  })();
+  if (productionCost) {
+    console.log(
+      `  [PRODCOST] ${productionCost.points.length} points, hashrate observed ${productionCost.hashrateObservedAt}, ${ASSUMPTIONS_VERSION}`,
+    );
+  } else {
+    console.log("  [PRODCOST] unavailable (no hashrate history) — metric drops out");
+  }
+
   return {
     source: {
       mode: realisedCapAvailable ? "mixed" : "live",
@@ -965,6 +1021,7 @@ async function build(): Promise<Snapshot> {
     onchain: effectiveOnchain,
     hodlWaves: hodlWaves ?? PREVIOUS_SNAPSHOT.hodlWaves ?? null,
     todayProvenance: Object.keys(todayProvenance).length ? todayProvenance : null,
+    productionCost: productionCost ?? PREVIOUS_SNAPSHOT.productionCost ?? null,
   };
 }
 

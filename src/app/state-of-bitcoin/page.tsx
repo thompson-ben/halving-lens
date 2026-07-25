@@ -14,6 +14,7 @@ import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { SinceLastWeek } from "@/components/sob/SinceLastWeek";
 import { LeadChart } from "@/components/sob/LeadChart";
 import { EvidenceSweep } from "@/components/sob/EvidenceSweep";
+import { ReferencePrices } from "@/components/sob/ReferencePrices";
 import { CycleStatusSection } from "@/components/sob/CycleStatusSection";
 import { WeeklyConclusion } from "@/components/sob/WeeklyConclusion";
 import { PresenterHud } from "@/components/sob/PresenterHud";
@@ -173,6 +174,12 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         {/* The signature orientation visual */}
         <div className="mt-8">
           <WhereAreWe />
+        </div>
+
+        {/* Reference Prices — Market Price / Realised Price / Cost of
+            Production, the three prices the market is read against. */}
+        <div className="mt-8">
+          <ReferencePrices />
         </div>
       </section>
 

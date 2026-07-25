@@ -20,6 +20,7 @@ const GOLD = "#d9b96a";
 const STATUS: Record<string, { label: string; color: string; note: string }> = {
   live: { label: "Live", color: "#5fd0a0", note: "Sourced from live market data, refreshed daily." },
   "live-derived": { label: "Derived", color: "#e0a64f", note: "Computed by HalvingLens from live inputs (e.g. price history)." },
+  modelled: { label: "Modelled", color: "#a78bfa", note: "Calculated from documented, versioned assumptions applied to observed network data (e.g. Cost of Production). Always displayed with the MODELLED badge — historical context, never an exact observable value." },
   "coming-soon": { label: "Modelled — not yet live", color: "#8c919c", note: "Shown as modelled/illustrative only; hidden from the live product until a licensed data source is connected. Never presented as a live reading." },
 };
 
@@ -44,7 +45,7 @@ export default function MethodologyPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Category color="#5fd0a0" title="Live market data" body="Prices and market values fetched from public sources and refreshed daily. Facts, not interpretation." />
           <Category color="#e0a64f" title="Derived metrics" body="Calculated by HalvingLens from live inputs (e.g. drawdowns, cycle-day alignment, accumulation scoring). The formula is ours; the inputs are live." />
-          <Category color="#8c919c" title="Modelled estimates" body="On-chain metrics we cannot yet source live are modelled for illustration and kept out of the live product — clearly marked, never shown as live." />
+          <Category color="#8c919c" title="Modelled estimates" body="On-chain metrics we cannot yet source live are modelled for illustration and kept out of the live product — clearly marked, never shown as live. One clearly-marked exception is published: Cost of Production, a modelled electricity-cost estimate with documented, versioned assumptions, always displayed with the MODELLED badge and a visible methodology." />
           <Category color={GOLD} title="Editorial interpretation" body="The written read — what today's data means in historical context. Judgement, clearly the voice of the publication, never a prediction." />
         </div>
       </section>

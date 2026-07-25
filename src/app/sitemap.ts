@@ -100,6 +100,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.5,
   };
 
+  const productionCostEntry = {
+    url: `${SITE_URL}/metrics/cost-of-production`,
+    ...lastMod(snapshotAt),
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  };
+
   const metricEntries = METRICS.map((m) => ({
     url: `${SITE_URL}/metrics/${m.slug}`,
     ...lastMod(snapshotAt),
@@ -153,6 +160,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...staticEntries,
     mythsEntry,
     timelineEntry,
+    productionCostEntry,
     ...metricEntries,
     ...briefEntries,
     ...researchEntries,

@@ -23,7 +23,7 @@ import type { JoinedMetricKey, MetricProvenance } from "./data/types";
 // Single source of truth for "can we show this to a user as real?". Driven by
 // the snapshot's per-metric source strings so it tracks reality automatically.
 
-export type DataStatus = "live" | "live-derived" | "coming-soon";
+export type DataStatus = "live" | "live-derived" | "modelled" | "coming-soon";
 
 // Metric slug → the snapshot source key it is fed by.
 const SLUG_TO_SOURCE_KEY: Record<string, keyof typeof SOURCE.sources> = {
@@ -41,6 +41,11 @@ const SLUG_TO_SOURCE_KEY: Record<string, keyof typeof SOURCE.sources> = {
 export function classifySource(source: string | undefined): DataStatus {
   if (!source) return "coming-soon";
   const s = source.toLowerCase();
+  // "model:" — a first-class MODELLED metric: documented assumptions applied
+  // to observed network data, shown WITH a modelled badge (e.g. Cost of
+  // Production). Distinct from legacy "modelled —"/"synthetic" strings, which
+  // mean an undisclosed placeholder and stay hidden as coming-soon.
+  if (s.startsWith("model:")) return "modelled";
   if (s.includes("synthetic") || s.includes("modelled")) return "coming-soon";
   if (s.startsWith("derived")) return "live-derived";
   return "live";
@@ -96,6 +101,7 @@ export function comingSoonReason(slug: string): string {
 export const STATUS_LABEL: Record<DataStatus, string> = {
   live: "Live",
   "live-derived": "Live-derived",
+  modelled: "Modelled",
   "coming-soon": "Coming soon",
 };
 
