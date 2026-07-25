@@ -12,7 +12,8 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { RecordView } from "@/components/RecordView";
 import { METRICS, metricBySlug, metricTodayRead, valueAtDay, zoneFor } from "@/lib/metrics";
 import { CYCLES, TODAY, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
-import { comingSoonReason, metricCurrentCycleOnly, metricSource, metricStatus } from "@/lib/cycleIntel";
+import { comingSoonReason, metricCurrentCycleOnly, metricSource, metricStatus, metricTodayProvenance } from "@/lib/cycleIntel";
+import { format } from "date-fns";
 import { fmtUsd } from "@/lib/format";
 
 export function generateStaticParams() {
@@ -182,6 +183,7 @@ export default function MetricPage({ params }: { params: { slug: string } }) {
                 <MetricGauge metric={metric} value={current} />
               </div>
             )}
+            <ProvenanceNote slug={metric.slug} />
             <LastUpdated className="mt-5" />
           </div>
 
@@ -353,5 +355,34 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
       </h3>
       <p className="text-[13.5px] text-ink-300 leading-relaxed">{children}</p>
     </div>
+  );
+}
+
+// Honest label for today's value (PR133): observed / observed-but-stale /
+// modelled. Feed-joined metrics only; price-derived metrics return null and
+// render nothing extra.
+function ProvenanceNote({ slug }: { slug: string }) {
+  const p = metricTodayProvenance(slug);
+  if (!p) return null;
+  if (p.mode === "observed" && p.observedAt) {
+    return (
+      <p className="mt-3 text-[11px] text-ink-500">
+        Observed value · {format(new Date(p.observedAt), "d MMM yyyy")}
+      </p>
+    );
+  }
+  if (p.mode === "observed-stale" && p.observedAt) {
+    return (
+      <p className="mt-3 text-[11px] leading-relaxed text-signal-amber">
+        Observed {format(new Date(p.observedAt), "d MMM yyyy")} — the feed runs {p.ageDays} days
+        behind. This is the latest real observation, not an estimate.
+      </p>
+    );
+  }
+  return (
+    <p className="mt-3 text-[11px] leading-relaxed text-signal-red">
+      Modelled estimate — no recent observed value from the live feed. Treat as illustrative,
+      not an observed reading.
+    </p>
   );
 }

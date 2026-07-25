@@ -114,6 +114,29 @@ export interface SnapshotSource {
   >;
 }
 
+// Provenance of the newest sample's value for metrics fed by delayed external
+// feeds (PR133). Records which observation fed today's number, how old that
+// observation was relative to the sample date, and whether the value is
+// observed or a modelled fallback — so the UI can distinguish observed /
+// observed-but-stale / modelled and never present a model as an observation.
+export type MetricValueMode = "observed" | "observed-stale" | "modelled";
+
+export interface MetricProvenance {
+  source: string; // provider label, or the model label when mode = "modelled"
+  observedAt?: string; // ISO date of the observation used; absent when modelled
+  ageDays?: number; // sample date minus observedAt; absent when modelled
+  mode: MetricValueMode;
+}
+
+// The feed-joined metric keys carried on cycle samples.
+export type JoinedMetricKey =
+  | "mvrvZ"
+  | "nupl"
+  | "sopr"
+  | "realizedPrice"
+  | "reserveRisk"
+  | "rhodl";
+
 export interface Snapshot {
   source: SnapshotSource;
   cycles: Cycle[];
@@ -125,6 +148,9 @@ export interface Snapshot {
   etf?: EtfData | null; // US spot BTC ETF flows; absent until a SoSoValue key is wired
   onchain?: OnchainData | null; // BGeometrics on-chain series; absent until a key is wired
   hodlWaves?: HodlWavesData | null; // BGeometrics HODL waves; weekly refresh
+  // Per-metric provenance of the NEWEST cycle-5 sample (what "current reading"
+  // UIs display). Absent on snapshots generated before PR133.
+  todayProvenance?: Partial<Record<JoinedMetricKey, MetricProvenance>> | null;
 }
 
 // Crypto Fear & Greed index (alternative.me) — free, keyless market sentiment.
