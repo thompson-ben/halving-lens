@@ -52,9 +52,11 @@ function dateLabel(iso: string): string {
 
 function SectionHead({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10.5px] uppercase tracking-[0.22em] mb-3" style={{ color: GOLD }}>
+    // h2: these labels name the document sections (Summary, Related, Cite &
+    // Share…) — real headings, restyled small (PR132)
+    <h2 className="text-[10.5px] uppercase tracking-[0.22em] mb-3" style={{ color: GOLD }}>
       {children}
-    </div>
+    </h2>
   );
 }
 

@@ -28,6 +28,7 @@
     "send-intelligence": "tsx scripts/send-intelligence.ts",
     "test-intelligence": "tsx scripts/test-intelligence.ts",
     "sync:reset": "node -e \"require('fs').writeFileSync('src/lib/data/snapshot.ts', 'import { syntheticSnapshot } from \\\"./synthetic\\\";\\nimport type { Snapshot } from \\\"./types\\\";\\n\\nexport const SNAPSHOT: Snapshot = syntheticSnapshot();\\n')\"",
+    "check:headings": "node scripts/check-headings.mjs",
     "test-observed-join": "tsx scripts/test-observed-join.ts",
     "repair-snapshot-join": "tsx scripts/repair-snapshot-join.ts"
   },

@@ -73,6 +73,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable} dark`}
     >
       <body className="min-h-screen bg-ink-950 text-ink-100 font-sans antialiased">
+        {/* Keyboard bypass for the sidebar/topbar chrome (PR132). Visually
+            hidden until focused; first element in the tab order. */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:border focus:border-accent/40 focus:bg-ink-900 focus:px-4 focus:py-2.5 focus:text-[13px] focus:text-ink-100"
+        >
+          Skip to main content
+        </a>
         {/* Hide site chrome before paint on the paid landings (?nav=1 keeps it). */}
         <script
           dangerouslySetInnerHTML={{
@@ -116,7 +124,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="site-chrome" style={{ display: "contents" }}>
               <TopBar />
             </div>
-            <main className="flex-1 px-8 lg:px-14 py-10 lg:py-14">
+            <main id="main" className="flex-1 px-8 lg:px-14 py-10 lg:py-14">
               <div className="max-w-[1320px] mx-auto">{children}</div>
             </main>
             <div className="site-chrome" style={{ display: "contents" }}>

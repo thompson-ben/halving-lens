@@ -24,7 +24,7 @@ export function Sidebar() {
         </div>
       </Link>
 
-      <nav className="flex-1 px-3 py-7 flex flex-col gap-0.5 overflow-y-auto">
+      <nav aria-label="Primary" className="flex-1 px-3 py-7 flex flex-col gap-0.5 overflow-y-auto">
         {NAV_SECTIONS.map((section, i) => (
           <div key={section.label} className="contents">
             <SectionLabel className={`${section.accent ? "text-accent" : ""} ${i > 0 ? "mt-7" : ""}`}>

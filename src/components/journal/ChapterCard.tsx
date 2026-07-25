@@ -21,11 +21,12 @@ export function ChapterCard({ chapter, featured = false }: { chapter: Chapter; f
         <span className="text-ink-500">{chapter.dateLabel}</span>
       </div>
 
-      <h3
+      {/* h2: chapters are the primary content items of the Journal pages, directly under the page h1 (PR132) */}
+      <h2
         className={`mt-3 font-display font-medium tracking-tight-2 text-ink-50 leading-snug ${featured ? "text-[24px] sm:text-[30px]" : "text-[18px]"}`}
       >
         {chapter.title}
-      </h3>
+      </h2>
       <p className={`mt-2 text-ink-400 leading-relaxed ${featured ? "text-[14px] max-w-2xl" : "text-[12.5px] line-clamp-2"}`}>
         {chapter.subtitle}
       </p>

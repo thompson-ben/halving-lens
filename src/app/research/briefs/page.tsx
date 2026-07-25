@@ -77,7 +77,7 @@ export default function ResearchBriefsPage() {
       <section>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {briefs.map((b) => (
-            <BriefCard key={b.id} b={b} badges={briefBadges(b, todayISO)} />
+            <BriefCard key={b.id} b={b} badges={briefBadges(b, todayISO)} headingLevel="h2" />
           ))}
         </div>
       </section>

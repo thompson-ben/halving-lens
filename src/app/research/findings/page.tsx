@@ -146,7 +146,7 @@ export default async function ResearchFindingsPage() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {foundational.map((f) => (
-              <ResearchFindingCard key={f.id} f={f} badges={findingBadges(f, { engagement, leaders, todayISO })} />
+              <ResearchFindingCard key={f.id} f={f} badges={findingBadges(f, { engagement, leaders, todayISO })} headingLevel="h2" />
             ))}
           </div>
         </section>

@@ -142,9 +142,9 @@ export function CycleReplay() {
       {/* Metric grid at this day */}
       <div className="card p-7">
         <div className="mb-5">
-          <h3 className="font-display text-[18px] font-medium tracking-tight-2 text-ink-100">
+          <h2 className="font-display text-[18px] font-medium tracking-tight-2 text-ink-100">
             Live signals at day {day}, by cycle
-          </h3>
+          </h2>
           <div className="text-[11.5px] text-ink-400 mt-1">
             Drag the timeline to see how each live-derived signal evolved through each halving
             cycle.

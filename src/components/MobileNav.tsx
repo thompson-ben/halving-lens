@@ -61,7 +61,7 @@ export function MobileNav() {
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm"
           />
-          <nav className="absolute left-0 top-0 h-full w-[82%] max-w-[300px] flex flex-col border-r border-white/[0.06] bg-ink-925 shadow-2xl">
+          <nav aria-label="Primary" className="absolute left-0 top-0 h-full w-[82%] max-w-[300px] flex flex-col border-r border-white/[0.06] bg-ink-925 shadow-2xl">
             <div className="flex items-center justify-between px-6 h-[72px] border-b border-white/[0.04]">
               <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
                 <Logo size={26} />
