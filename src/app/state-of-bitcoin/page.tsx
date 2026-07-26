@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import Link from "next/link";
 import { DataBadge } from "@/components/DataBadge";
+import { BriefSignup } from "@/components/BriefSignup";
 import { ShareTrigger } from "@/components/ShareTrigger";
 import { TrackedLink } from "@/components/TrackedLink";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
@@ -306,6 +307,18 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             <span className="mt-3 inline-block text-[12.5px] text-accent">Read the research →</span>
           </TrackedLink>
         </section>
+      )}
+
+      {/* Email conversion — the flagship read's inline capture (PR138). Placed
+          after the verdict, at the point of highest reader conviction; hidden
+          in presenter mode to keep recordings clean. */}
+      {!presenter && (
+        <div id="subscribe" className="scroll-mt-24">
+          <BriefSignup
+            heading="Never miss the State of Bitcoin"
+            blurb="Join the free Daily Bitcoin Cycle Brief — the same evidence-first read, every morning, plus the full weekly research each Sunday. No hype, no predictions."
+          />
+        </div>
       )}
 
       {!presenter && (
