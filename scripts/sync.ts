@@ -48,6 +48,7 @@ import {
 } from "../src/lib/data/types";
 import { syntheticSnapshot } from "../src/lib/data/synthetic";
 import { joinObservedSeries } from "../src/lib/data/observedJoin";
+import { mergeSeriesArchives } from "../src/lib/data/observedArchive";
 import {
   ASSUMPTIONS_VERSION,
   MODEL_START_DATE,
@@ -467,7 +468,9 @@ async function fetchHodlWaves(): Promise<import("../src/lib/data/types").HodlWav
       console.warn(`  [HODL] ${b.id}: ${b.slug} returned no data`);
     }
   }
-  const merged = { ...(prev?.bands ?? {}), ...bands };
+  // Same point-level union as the on-chain series (PR140) — band history
+  // grows past the source's rolling window instead of being replaced by it.
+  const merged = mergeSeriesArchives(prev?.bands ?? {}, bands);
   if (Object.keys(merged).length < slugs.length) {
     console.warn(`  [HODL] only ${Object.keys(merged).length}/${slugs.length} bands — keeping previous (illustrative stays)`);
     return prev ?? null;
@@ -858,12 +861,15 @@ async function build(): Promise<Snapshot> {
   // BGeometrics values onto cycle 5's weekly samples (the free tier covers only
   // ~4 years, so we overwrite the current cycle and mark those metrics live;
   // their pages drop the cross-cycle overlay).
-  // Merge per-series: keep previously-fetched series and overlay freshly fetched
-  // ones, so a rate-limited partial fetch never drops data we already had.
-  const mergedSeries = {
-    ...(PREVIOUS_SNAPSHOT.onchain?.series ?? {}),
-    ...(onchain?.series ?? {}),
-  };
+  // Merge per POINT, not per series (PR140): the free tier returns a rolling
+  // ~4-year window, so wholesale series replacement silently discarded the
+  // oldest observed day on every fetch. Union-merging by date (fresh wins on
+  // conflict) makes the committed snapshot a monotonically growing archive —
+  // observed history, once held, is never lost.
+  const mergedSeries = mergeSeriesArchives(
+    PREVIOUS_SNAPSHOT.onchain?.series ?? {},
+    onchain?.series ?? {},
+  );
   const effectiveOnchain: Snapshot["onchain"] = Object.keys(mergedSeries).length
     ? {
         source: onchain?.source ?? PREVIOUS_SNAPSHOT.onchain?.source ?? "BGeometrics · bitcoin-data.com",
