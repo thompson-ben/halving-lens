@@ -47,6 +47,11 @@ jobs:
       - name: Analytics taxonomy tests
         run: npm run test-analytics-events
 
+      # Observed-archive merge (PR140) — a fresh rolling-window fetch may
+      # never shrink a stored series' date range or drop an observed point.
+      - name: Observed-archive tests
+        run: npm run test-observed-archive
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
