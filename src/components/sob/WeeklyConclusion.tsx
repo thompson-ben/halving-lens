@@ -33,8 +33,10 @@ export function WeeklyConclusion({ presenter = false, verdict }: { presenter?: b
         </p>
       ) : (
         <div className="mt-6 flex flex-wrap items-center gap-3">
+          {/* Anchors to the page's own inline signup (PR138) instead of
+              detouring to the homepage at the moment of highest conviction. */}
           <Link
-            href="/#subscribe"
+            href="#subscribe"
             className="inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-accent text-ink-950 text-[13px] font-medium hover:bg-accent-soft transition-colors"
           >
             Get the Daily Bitcoin Cycle Brief
