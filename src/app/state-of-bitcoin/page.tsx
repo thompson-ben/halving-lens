@@ -315,7 +315,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       {!presenter && (
         <div id="subscribe" className="scroll-mt-24">
           <BriefSignup
-            heading="Get the State of Bitcoin in your inbox"
+            heading="Never miss the State of Bitcoin"
             blurb="Join the free Daily Bitcoin Cycle Brief — the same evidence-first read, every morning, plus the full weekly research each Sunday. No hype, no predictions."
           />
         </div>
