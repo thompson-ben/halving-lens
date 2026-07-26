@@ -41,6 +41,7 @@ const STATIC_PATHS = [
   "/privacy",
   "/terms",
   "/price",
+  "/four-reference-prices",
   "/etf",
   "/halving",
   "/miners",

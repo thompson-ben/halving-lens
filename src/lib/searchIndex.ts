@@ -23,7 +23,7 @@ export interface SearchEntry {
 // alias keywords for what people actually type.
 const EXTRAS: SearchEntry[] = [
   { title: "Estimated Mining Cost", path: "/metrics/estimated-mining-cost", group: "Metric", keywords: "cost of production mining cost electricity" },
-  { title: "Reference Prices", path: "/state-of-bitcoin", group: "The State of Bitcoin", keywords: "realised realized price 200 day moving average mining cost four reference prices" },
+  { title: "Bitcoin's Four Reference Prices", path: "/four-reference-prices", group: "Flagship", keywords: "reference prices realised realized price 200 day moving average mining cost configuration" },
   { title: "Research myths", path: "/research/myths", group: "Research", keywords: "myth debunk" },
   { title: "Research timeline", path: "/research/timeline", group: "Research" },
   { title: "Evidence briefs", path: "/research/briefs", group: "Research" },

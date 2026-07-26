@@ -41,6 +41,15 @@ export const JOURNEY_MAP = {
       { href: "/historical-price-paths", label: "Historical Price Paths" },
     ],
   },
+  "/four-reference-prices": {
+    bridge:
+      "You've seen today's configuration. How does it fit the full weekly read of where Bitcoin stands?",
+    primary: { href: "/state-of-bitcoin", title: "The State of Bitcoin" },
+    secondary: [
+      { href: "/similar-moments", label: "Similar Moments — which past weeks look like today" },
+      { href: "/learn", label: "Learn — the concepts behind the metrics" },
+    ],
+  },
   "/price": {
     bridge:
       "You know where the price sits against its reference prices. What does that level mean in the wider weekly picture?",

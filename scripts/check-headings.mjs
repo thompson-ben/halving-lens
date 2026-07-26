@@ -26,7 +26,7 @@ const ROUTES = [
   "/research/findings", "/research/briefs", "/research/notes",
   "/research/myths", "/research/timeline", "/weekly", "/weekly/archive",
   "/sentiment", "/replay", "/metrics", "/learn", "/about", "/methodology",
-  "/privacy", "/terms", "/price", "/etf", "/halving", "/miners", "/onchain",
+  "/privacy", "/terms", "/price", "/four-reference-prices", "/etf", "/halving", "/miners", "/onchain",
   "/hodl-waves", "/start", "/free", "/alerts", "/derivatives",
 ];
 
