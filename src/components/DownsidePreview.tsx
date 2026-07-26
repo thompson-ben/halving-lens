@@ -28,7 +28,7 @@ export function DownsidePreview() {
           </p>
         </div>
         <Link
-          href="/downside-scenarios"
+          href="/historical-price-paths"
           className="hidden sm:inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft whitespace-nowrap"
         >
           View downside scenarios <ArrowUpRight size={13} />
@@ -43,7 +43,7 @@ export function DownsidePreview() {
             prediction, not a price target, not advice.
           </p>
           <Link
-            href="/downside-scenarios"
+            href="/historical-price-paths"
             className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft whitespace-nowrap"
           >
             View downside scenarios <ArrowUpRight size={13} />

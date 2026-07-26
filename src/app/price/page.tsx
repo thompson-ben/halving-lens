@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BtcPriceChart } from "@/components/BtcPriceChart";
+import { JourneyNext } from "@/components/JourneyNext";
 import { CycleChartExperience } from "@/components/CycleChartExperience";
 import { DataBadge } from "@/components/DataBadge";
 import { LastUpdated, dailyCloseSource } from "@/components/LastUpdated";
@@ -109,6 +110,8 @@ export default function PricePage() {
           omitted entirely whenever its data is unavailable or more than seven days stale.
         </p>
       </section>
+
+      <JourneyNext from="/price" />
     </div>
   );
 }

@@ -498,7 +498,7 @@ function providers(): RawStory[] {
           { label: "Off cycle high", value: `−${Math.round(cur)}%`, tone: "down" },
           { label: "Vs stage average", value: rel },
         ],
-        link: "/downside-scenarios",
+        link: "/historical-price-paths",
         ctaLabel: "See drawdowns",
         signals: { confidence: 0.85 },
         available: true,
