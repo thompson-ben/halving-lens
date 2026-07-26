@@ -57,6 +57,12 @@ jobs:
       - name: Observed-window tests
         run: npm run test-observed-windows
 
+      # Four Reference Prices engine (Phase A) — configuration naming,
+      # evidence-tiered statistics, and the deterministic interpretation
+      # (no banned vocabulary, never a forecast, always the standing close).
+      - name: Reference-framework tests
+        run: npm run test-reference-framework
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
