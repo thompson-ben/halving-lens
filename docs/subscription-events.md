@@ -45,14 +45,13 @@ UX guarantees:
 | Event | Trigger | Represents | Fires Meta `Lead` / GA4 `sign_up`? |
 |---|---|---|---|
 | `subscription_submit_attempt` | Form submitted (passed client validation) | attempt | No |
-| `signup` | Confirmed `created` | success (canonical conversion event — retained; consumed by the Founder Intelligence canonical-conversion metric) | — |
-| `subscription_success` | Confirmed `created` | success (funnel) | **Yes** (`fireLead`) |
+| `signup` | Confirmed `created` | success — the **single canonical conversion event**, chosen by `decideFromResponse` (consumed by analytics + Founder Intelligence conversion/WEAS metrics) | **Yes** (`fireLead`) |
 | `subscription_existing` | Confirmed `existing` | recognised returning subscriber | **No** |
 | `subscription_failure` | `invalid` / `rate_limited` / `error` / network | failure (with `category`: validation \| rate_limit \| server \| network) | **No** |
 
 Notes:
 - **Meta `Lead` and GA4 `sign_up` fire only on `created`.** They no longer fire for existing subscribers, failures, or unconfirmed client success. (Previously `StartSignup` fired them in a `finally` block — i.e. on every submit including failures; that is fixed.)
-- The canonical internal `signup` event is retained (and fired only on `created`) so the Founder Intelligence conversion/WEAS metrics keep working; it is aliased to `subscription_success` in the contract.
+- **Exactly one first-party event per outcome (PR136).** The former `subscription_success` event was removed: it fired alongside `signup` on the same successful submit, so once the taxonomy accepted it every new subscriber would have been counted twice. `decideFromResponse` now returns `signup` directly as the success event, and the components fire `d.analyticsEvent` exactly once per submit — `scripts/test-subscribe.ts` and `scripts/test-analytics-events.ts` both guard this.
 - **No raw email is ever sent to analytics or ad platforms** (unchanged). First-party `track()` posts to `/api/track` with no email; `fireLead()` sends no PII. First-touch attribution (`getAttribution()`) rides along and is not overwritten.
 
 ## Structured logging (P0.3)

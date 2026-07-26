@@ -11,7 +11,7 @@ const assert = (c: boolean, m: string) => { if (!c) failures++; console.log(`${c
 
 // ── Pure UI decision: success + conversion ONLY on confirmed durable capture ──
 const created = decideFromResponse(200, { ok: true, outcome: "created" });
-assert(created.state === "success" && created.fireConversion === true && created.analyticsEvent === "subscription_success", "created → success + fires conversion");
+assert(created.state === "success" && created.fireConversion === true && created.analyticsEvent === "signup", "created → success + fires the canonical signup conversion event");
 
 const existing = decideFromResponse(200, { ok: true, outcome: "existing" });
 assert(existing.state === "existing" && existing.fireConversion === false && existing.analyticsEvent === "subscription_existing", "existing → existing state, NO conversion event");

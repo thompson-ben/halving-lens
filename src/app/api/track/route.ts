@@ -2,66 +2,17 @@ import { NextResponse } from "next/server";
 import { sbInsert } from "@/lib/supabase";
 import { isBot } from "@/lib/botCheck";
 import { currentProfile } from "@/lib/profile";
+import { isTrackedEvent } from "@/lib/analyticsEvents";
 
 // First-party, privacy-friendly event collection. No cookies, no PII — just an
 // anonymous per-session id (random, client-generated). Fails open: if Supabase
 // isn't configured, returns ok without storing (so the UI never breaks).
+//
+// Accepted event names derive from the shared taxonomy in
+// src/lib/analyticsEvents — the same module the client tracker is typed
+// against — so the two sides cannot drift (PR136). Unknown names still 400.
 
 export const runtime = "nodejs";
-
-const ALLOWED = new Set([
-  "page_view",
-  "section_view",
-  "section_click",
-  "cta_click",
-  "signup",
-  "copy_post",
-  "copy_thread",
-  "copy_instagram",
-  "copy_linkedin",
-  "copy_email",
-  "share_image",
-  "content_download_card",
-  "content_download_zip",
-  "content_share_card",
-  "content_share_all",
-  "feature_vote",
-  "feedback",
-  // Engagement + Accumulation-specific (growth sprint)
-  "engagement",
-  "copy_summary",
-  "dca_change",
-  "timeline_range",
-  // Morning Research Library
-  "research_view",
-  "research_search",
-  "research_filter",
-  "research_share",
-  // Research Findings (library + finding pages + share kit)
-  "findings_search",
-  "findings_filter",
-  "findings_sort",
-  "copy_x",
-  "copy_carousel",
-  "copy_link",
-  "copy_citation",
-  // Personalised dashboard
-  "dashboard_view",
-  "favourite_toggle",
-  // Profile (magic-link identity)
-  "profile_request",
-  "profile_signin",
-  // Weekly Research + /start landing
-  "weekly_view",
-  "weekly_share",
-  "landing_view",
-  "landing_cta",
-  // Universal share system (button + modal + QR)
-  "share_open", // Share modal opened on a page
-  "share", // a share action fired (method in props: copy|native|x|linkedin|email|qr)
-  "qr_view", // branded QR shown for a page/campaign
-  "campaign_create", // founder created a share campaign
-]);
 
 // Internal / non-content paths that should never count as a viewer page view.
 const SKIP_PATH = /^\/(admin|api|og)(\/|$)/;
@@ -88,7 +39,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
   const name = (body.name ?? "").slice(0, 40);
-  if (!ALLOWED.has(name)) return NextResponse.json({ ok: false }, { status: 400 });
+  if (!isTrackedEvent(name)) return NextResponse.json({ ok: false }, { status: 400 });
 
   const path = typeof body.path === "string" ? body.path.slice(0, 200) : null;
   if (path && SKIP_PATH.test(path)) {

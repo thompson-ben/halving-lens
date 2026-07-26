@@ -1,4 +1,5 @@
 import { TrackedLink } from "@/components/TrackedLink";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 import { TrackedSection } from "@/components/TrackedSection";
 import { referencePrices } from "@/lib/productionCost";
 import { priceContext } from "@/lib/priceContext";
@@ -26,7 +27,7 @@ function Row({
   value: string;
   relation?: string | null;
   href?: string;
-  event?: string;
+  event?: TrackedEvent;
   modelled?: boolean;
 }) {
   const body = (

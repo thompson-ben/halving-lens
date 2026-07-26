@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download, RefreshCw, Copy, Check, Package, Image as ImageIcon, Share2, Layers, CheckCircle2 } from "lucide-react";
 import { makeZip, type ZipEntry } from "@/lib/zip";
 import { track } from "@/lib/track";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 
 export interface StudioCard {
   id: string;
@@ -112,7 +113,7 @@ export function ContentPackStudio({ packs, initialPackId }: { packs: StudioPack[
     };
   }, [shareable, version, cards, slug, cardUrl, active.id]);
 
-  const shareFiles = async (files: File[], title: string, event: string, props?: Record<string, unknown>) => {
+  const shareFiles = async (files: File[], title: string, event: TrackedEvent, props?: Record<string, unknown>) => {
     if (!files.length) return;
     try {
       await navigator.share({ files, title });
@@ -321,7 +322,7 @@ export function ContentPackStudio({ packs, initialPackId }: { packs: StudioPack[
   );
 }
 
-function CopyBlock({ label, text, event }: { label: string; text: string; event: string }) {
+function CopyBlock({ label, text, event }: { label: string; text: string; event: TrackedEvent }) {
   const [copied, setCopied] = useState(false);
   const onCopy = async () => {
     try {

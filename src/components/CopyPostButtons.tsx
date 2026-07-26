@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { track } from "@/lib/track";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 
 // Copy buttons for the X post + thread + LinkedIn summary from the daily brief.
 export function CopyPostButtons({
@@ -31,7 +32,7 @@ export function CopyPostButtons({
   );
 }
 
-function CopyButton({ label, text, event }: { label: string; text: string; event: string }) {
+function CopyButton({ label, text, event }: { label: string; text: string; event: TrackedEvent }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {

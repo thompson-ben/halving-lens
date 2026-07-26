@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, Check, Link2, ImageDown, Package, RefreshCw, Share2 } from "lucide-react";
 import { track } from "@/lib/track";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 import { makeZip, type ZipEntry } from "@/lib/zip";
 import type { FindingContentPack } from "@/lib/findingContent";
 
@@ -217,7 +218,7 @@ function CopyButton({
   id: string;
   label: string;
   text: string;
-  event: string;
+  event: TrackedEvent;
   icon?: React.ReactNode;
   prominent?: boolean;
 }) {

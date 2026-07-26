@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Copy, Check, Clapperboard, Clock, Type, Film } from "lucide-react";
 import type { ReelPackage } from "@/lib/reel";
 import { track } from "@/lib/track";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 
 // Admin viewer for the Daily Reel package — every section as a copy-paste block
 // so a creator can build the reel in CapCut in a few minutes. Generated
@@ -96,7 +97,7 @@ function storyboardText(reel: ReelPackage): string {
     .join("\n");
 }
 
-function Block({ label, text, event }: { label: string; text: string; event: string }) {
+function Block({ label, text, event }: { label: string; text: string; event: TrackedEvent }) {
   return (
     <div className="card p-4 flex flex-col">
       <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -115,7 +116,7 @@ function CopyButton({
   prominent,
 }: {
   text: string;
-  event: string;
+  event: TrackedEvent;
   label: string;
   prominent?: boolean;
 }) {

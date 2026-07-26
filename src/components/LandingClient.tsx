@@ -184,9 +184,10 @@ export function StartSignup({ source = "/start", buttonLabel = "Get today's free
     }
 
     const d = decideFromResponse(status, respBody);
+    // One analytics event per outcome — `signup` on a confirmed new
+    // subscriber, else the failure/existing event (see BriefSignup).
     if (d.fireConversion) {
-      track("signup", { source, variant, ...attr });
-      track("subscription_success", { source, variant, ...attr });
+      track(d.analyticsEvent, { source, variant, ...attr });
       fireLead({ source, variant, ...attr });
     } else {
       track(d.analyticsEvent, { source, variant, category: d.failureCategory ?? null, ...attr });
