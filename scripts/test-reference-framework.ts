@@ -6,6 +6,7 @@
 import { ONCHAIN } from "../src/lib/btcData";
 import {
   weeklyConfigurationTable,
+  configurationId,
   configurationName,
   tierStats,
   lastSimilarWeek,
@@ -20,6 +21,19 @@ const assert = (c: boolean, m: string) => { if (!c) failures++; console.log(`${c
 // site only inside negated disclaimers, which this engine does not produce).
 const BANNED = ["support", "floor", "fair value", "break-even", "breakeven", "target", "will rise", "will fall", "guaranteed"];
 const clean = (s: string) => BANNED.every((b) => !s.toLowerCase().includes(b));
+
+// ── Stable configuration identifiers ─────────────────────────────────────────
+
+assert(configurationId(true, true, true) === "above-trend_above-holders_above-miners", "id: full above");
+assert(configurationId(false, true, true) === "below-trend_above-holders_above-miners", "id: mixed state");
+assert(configurationId(false, null, true) === "below-trend_above-miners", "id: partial availability composes");
+assert(configurationId(true, null, null) === "above-trend", "id: trend-only composes");
+{
+  // Ids are unique across the full 8-state space and stable by construction.
+  const ids = new Set<string>();
+  for (const t of [true, false]) for (const h of [true, false]) for (const m of [true, false]) ids.add(configurationId(t, h, m));
+  assert(ids.size === 8, "id: all eight full configurations are distinct");
+}
 
 // ── configurationName truth table ────────────────────────────────────────────
 
@@ -132,6 +146,7 @@ for (const tier of ["full", "trend-miners", "trend-only"] as const) {
   const t = frameworkToday();
   assert(t.price != null && t.price > 0, "today's price present");
   assert(!!t.configuration && clean(t.configuration), "today's configuration named cleanly");
+  assert(!!t.configurationId && /^(above|below)-trend(_(above|below)-holders)?(_(above|below)-miners)?$/.test(t.configurationId), "today's configuration carries a stable machine id");
   assert(!!t.nearest && Number.isFinite(t.nearest.gapPct), "nearest reference identified");
   assert(!!t.paragraph, "interpretation paragraph generated");
   if (t.paragraph) {

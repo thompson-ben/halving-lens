@@ -107,8 +107,24 @@ export function weeklyConfigurationTable(): WeeklyRow[] {
 // ── Configuration naming ────────────────────────────────────────────────────
 
 // A configuration is the above/below pattern vs whichever references are
-// available. Names are plain English, stable, and compose from parts so the
-// vocabulary stays small.
+// available. Each has a STABLE machine identifier (for analytics, tests,
+// historical tables and any future API) and a human-readable name generated
+// from the same flags — id and description can never disagree. The id grammar
+// composes, so partial-availability tiers produce valid ids of the same form:
+//   "above-trend_above-holders_above-miners"  (full)
+//   "below-trend_above-miners"                (with-mining tier)
+//   "above-trend"                             (trend-only tier)
+export function configurationId(
+  aboveTrend: boolean,
+  aboveHolders: boolean | null,
+  aboveMiners: boolean | null,
+): string {
+  const parts = [`${aboveTrend ? "above" : "below"}-trend`];
+  if (aboveHolders != null) parts.push(`${aboveHolders ? "above" : "below"}-holders`);
+  if (aboveMiners != null) parts.push(`${aboveMiners ? "above" : "below"}-miners`);
+  return parts.join("_");
+}
+
 export function configurationName(
   aboveTrend: boolean,
   aboveHolders: boolean | null,
@@ -151,12 +167,14 @@ function rowsForTier(tier: TierStats["tier"]): WeeklyRow[] {
   return t;
 }
 
+// A row's stable configuration id ON a tier — references outside the tier
+// are masked so counting compares like with like.
 function rowKey(r: WeeklyRow, tier: TierStats["tier"]): string {
-  return [
-    r.aboveTrend ? "T" : "t",
-    tier === "full" ? (r.aboveHolders ? "H" : "h") : "",
-    tier !== "trend-only" ? (r.aboveMiners ? "M" : "m") : "",
-  ].join("");
+  return configurationId(
+    r.aboveTrend,
+    tier === "full" ? r.aboveHolders : null,
+    tier !== "trend-only" ? r.aboveMiners : null,
+  );
 }
 
 export function tierStats(tier: TierStats["tier"]): TierStats | null {
@@ -164,8 +182,8 @@ export function tierStats(tier: TierStats["tier"]): TierStats | null {
   if (rows.length < 8) return null; // too few weeks for any honest statistic
   const last = rows[rows.length - 1];
   const todayKey = rowKey(last, tier);
-  const aboveAll = rows.filter((r) => r.aboveTrend && r.aboveHolders !== false && r.aboveMiners !== false && rowKey(r, tier).toUpperCase() === rowKey(r, tier));
-  const belowAll = rows.filter((r) => rowKey(r, tier).toLowerCase() === rowKey(r, tier));
+  const aboveAll = rows.filter((r) => !rowKey(r, tier).includes("below-"));
+  const belowAll = rows.filter((r) => !rowKey(r, tier).includes("above-"));
   const matching = rows.filter((r) => rowKey(r, tier) === todayKey);
   let spell = 0;
   for (let i = rows.length - 1; i >= 0 && rowKey(rows[i], tier) === todayKey; i--) spell++;
@@ -204,6 +222,8 @@ export function lastSimilarWeek(): { date: string; name: string } | null {
 
 export interface FrameworkToday {
   price: number | null;
+  /** Stable machine id of today's configuration (see configurationId). */
+  configurationId: string | null;
   configuration: string | null;
   /** The reference nearest to today's price, with its signed gap. */
   nearest: { label: string; gapPct: number } | null;
@@ -218,17 +238,18 @@ export function frameworkToday(): FrameworkToday {
   const r = referencePrices({ ma200: ctx.ma200 });
   const price = r.marketPrice ?? SPOT?.price ?? null;
   if (price == null || ctx.vsMa200Pct == null) {
-    return { price, configuration: null, nearest: null, paragraph: null };
+    return { price, configurationId: null, configuration: null, nearest: null, paragraph: null };
   }
   const gaps: Array<{ k: "trend" | "holders" | "miners"; pct: number }> = [{ k: "trend", pct: ctx.vsMa200Pct }];
   if (r.vsRealisedPct != null) gaps.push({ k: "holders", pct: r.vsRealisedPct });
   if (r.productionAvailable && r.vsProductionPct != null) gaps.push({ k: "miners", pct: r.vsProductionPct });
 
-  const configuration = configurationName(
+  const flags: [boolean, boolean | null, boolean | null] = [
     ctx.vsMa200Pct >= 0,
     r.vsRealisedPct != null ? r.vsRealisedPct >= 0 : null,
     r.productionAvailable && r.vsProductionPct != null ? r.vsProductionPct >= 0 : null,
-  );
+  ];
+  const configuration = configurationName(...flags);
   const nearestGap = [...gaps].sort((a, b) => Math.abs(a.pct) - Math.abs(b.pct))[0];
   const nearest = { label: label(nearestGap.k), gapPct: nearestGap.pct };
 
@@ -259,7 +280,7 @@ export function frameworkToday(): FrameworkToday {
     .filter(Boolean)
     .join(" ");
 
-  return { price, configuration, nearest, paragraph };
+  return { price, configurationId: configurationId(...flags), configuration, nearest, paragraph };
 }
 
 // Internal — exposed for the deterministic test-suite only.
