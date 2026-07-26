@@ -1,5 +1,6 @@
 import { SimilarMomentsExplorer } from "@/components/SimilarMomentsExplorer";
 import { SimilarityChange } from "@/components/SimilarityChange";
+import { JourneyNext } from "@/components/JourneyNext";
 import { similarMoments, similarityTrend } from "@/lib/similarity";
 
 export const metadata = {
@@ -59,6 +60,8 @@ export default function SimilarMomentsPage() {
           prior cycles. This is historical pattern context, not financial advice.
         </p>
       </div>
+
+      <JourneyNext from="/similar-moments" />
     </div>
   );
 }

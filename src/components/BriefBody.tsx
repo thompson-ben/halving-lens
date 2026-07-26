@@ -367,7 +367,7 @@ function DownsideBriefLine() {
   if (!support && !avg) return null;
   return (
     <Link
-      href="/downside-scenarios"
+      href="/historical-price-paths"
       className="card card-interactive p-5 flex items-start justify-between gap-4 group hover:border-accent/25"
     >
       <div className="max-w-2xl">

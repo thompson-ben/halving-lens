@@ -8,6 +8,7 @@ import { cycleDivergence, cycleTrackingHeadline } from "@/lib/cycleIntel";
 import { cycleTiming } from "@/lib/cycleTiming";
 import { drawdownAnalysis } from "@/lib/drawdowns";
 import { SnapshotStrip } from "@/components/SnapshotStrip";
+import { JourneyNext } from "@/components/JourneyNext";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 const fmtMult = (m: number) => (m >= 10 ? `${m.toFixed(0)}×` : `${m.toFixed(1)}×`);
@@ -299,6 +300,8 @@ export default function CyclesPage() {
           </p>
         </div>
       </section>
+
+      <JourneyNext from="/cycles" />
     </div>
   );
 }

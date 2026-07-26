@@ -75,7 +75,7 @@ export default function StartPage() {
             { t: "Research Library", d: "Every edition, permanently archived and searchable.", href: "/research" },
             { t: "Accumulation Index", d: "How attractive today is versus Bitcoin's whole history.", href: "/accumulation" },
             { t: "Similar Moments", d: "The historical moments today most resembles.", href: "/similar-moments" },
-            { t: "Historical Drawdowns", d: "Where prior cycles would imply support.", href: "/downside-scenarios" },
+            { t: "Historical Drawdowns", d: "How far prior cycles fell from points like this.", href: "/historical-price-paths" },
             { t: "Dynamic DCA", d: "How leaning into cheap conditions behaved historically.", href: "/accumulation" },
           ].map((s) => (
             <Link key={s.t} href={s.href} className="card card-interactive p-5 flex items-center justify-between gap-4 group hover:border-accent/30">

@@ -659,7 +659,7 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
 
   // The Signature Read chart rotates by narrative — deep-link it to the matching page.
   const heroPage =
-    ({ similar: "/similar-moments", drawdown: "/downside-scenarios", fear_greed: "/sentiment" } as Record<string, string>)[
+    ({ similar: "/similar-moments", drawdown: "/historical-price-paths", fear_greed: "/sentiment" } as Record<string, string>)[
       featureHeroNarrative()
     ] ?? "/accumulation";
 

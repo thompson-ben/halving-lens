@@ -316,7 +316,7 @@ export default function AccumulationPage({ searchParams }: { searchParams: { pre
 
       {/* Cross-links */}
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Link href="/downside-scenarios" className="card card-interactive p-5 flex items-center justify-between gap-4 group hover:border-accent/30">
+        <Link href="/historical-price-paths" className="card card-interactive p-5 flex items-center justify-between gap-4 group hover:border-accent/30">
           <div>
             <div className="text-[13.5px] font-medium text-ink-100">Downside scenarios</div>
             <div className="text-[12px] text-ink-400 mt-0.5">Where history would imply support if price fell.</div>
