@@ -52,6 +52,11 @@ jobs:
       - name: Observed-archive tests
         run: npm run test-observed-archive
 
+      # Observed-window registry (PR141) — the registry faithfully mirrors
+      # the committed snapshot's windows and never exposes synthetic history.
+      - name: Observed-window tests
+        run: npm run test-observed-windows
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

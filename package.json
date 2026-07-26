@@ -33,7 +33,8 @@
     "repair-snapshot-join": "tsx scripts/repair-snapshot-join.ts",
     "test-production-cost": "tsx scripts/test-production-cost.ts",
     "test-analytics-events": "tsx scripts/test-analytics-events.ts",
-    "test-observed-archive": "tsx scripts/test-observed-archive.ts"
+    "test-observed-archive": "tsx scripts/test-observed-archive.ts",
+    "test-observed-windows": "tsx scripts/test-observed-windows.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",
