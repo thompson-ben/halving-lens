@@ -46,7 +46,7 @@ export function JourneyNext({ from }: { from: JourneyFrom }) {
 
       <Link
         href={entry.primary.href}
-        onClick={() => track("journey_next_click", { from, to: entry.primary.href })}
+        onClick={() => track("journey_next_click", { from, to: entry.primary.href, position: "primary" })}
         className="group block rounded-xl border border-white/[0.06] bg-white/[0.015] hover:bg-white/[0.03] hover:border-accent/30 px-5 py-4 transition-colors"
       >
         {/* Lead with the question this page leaves you asking, then answer it
@@ -67,7 +67,7 @@ export function JourneyNext({ from }: { from: JourneyFrom }) {
             <Link
               key={s.href}
               href={s.href}
-              onClick={() => track("journey_next_click", { from, to: s.href })}
+              onClick={() => track("journey_next_click", { from, to: s.href, position: "secondary" })}
               className="text-[12.5px] text-ink-400 hover:text-accent transition-colors"
             >
               {s.label} <span aria-hidden>→</span>
