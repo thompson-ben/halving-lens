@@ -64,10 +64,11 @@ export function BriefSignup({
     }
 
     const d = decideFromResponse(status, body);
+    // Exactly ONE analytics event per outcome — `signup` (the canonical
+    // conversion) on a confirmed new subscriber, else the failure/existing
+    // event. The decision function is the single authority on which fires.
     if (d.fireConversion) {
-      // Confirmed NEW subscriber only: canonical conversion event + ad platforms.
-      track("signup", { source: pathname, ...attr });
-      track("subscription_success", { source: pathname, ...attr });
+      track(d.analyticsEvent, { source: pathname, ...attr });
       fireLead({ source: pathname, ...attr });
     } else {
       track(d.analyticsEvent, { source: pathname, category: d.failureCategory ?? null, ...attr });

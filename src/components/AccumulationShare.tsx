@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Copy, Check, ImageDown } from "lucide-react";
 import { track } from "@/lib/track";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 
 // "Copy Summary" + per-channel share for the Accumulation page. Reuses the
 // site's copy-button pattern; all strings are generated server-side from the
@@ -52,7 +53,7 @@ function CopyButton({
 }: {
   label: string;
   text: string;
-  event: string;
+  event: TrackedEvent;
   prominent?: boolean;
 }) {
   const [copied, setCopied] = useState(false);

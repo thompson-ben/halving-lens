@@ -171,7 +171,7 @@ export default function CostOfProductionPage() {
       </section>
 
       {/* G. Methodology — visible, expandable, versioned */}
-      <MethodologyDisclosure eventName="production_cost_methodology_opened" summary={`Methodology & assumptions — HalvingLens electricity-cost model ${ASSUMPTIONS_VERSION}`}>
+      <MethodologyDisclosure eventName="mining_cost_methodology_opened" summary={`Methodology & assumptions — HalvingLens electricity-cost model ${ASSUMPTIONS_VERSION}`}>
         <div className="space-y-4 text-[13px] text-ink-300 leading-relaxed max-w-2xl">
           <p>
             <span className="text-ink-100">Formula.</span> Daily network energy = hashrate (TH/s) ×
@@ -229,7 +229,7 @@ export default function CostOfProductionPage() {
             <TrackedLink
               key={l.href}
               href={l.href}
-              event="cost_of_production_related_metric_clicked"
+              event="mining_cost_related_metric_clicked"
               props={{ target: l.href }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.1] text-[12.5px] text-ink-300 hover:text-ink-100 hover:border-accent/30 transition-colors"
             >

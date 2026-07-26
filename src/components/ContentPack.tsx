@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { track } from "@/lib/track";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 import type { ContentPack as Pack } from "@/lib/brief";
 
 // Cross-channel content engine: one brief → ready-to-paste copy for every
 // channel. No auto-posting, no APIs — just copy buttons that cut content time
 // to near zero while keeping the message consistent.
 export function ContentPack({ pack }: { pack: Pack }) {
-  const tabs = [
+  const tabs: Array<{ key: string; label: string; text: string; event: TrackedEvent }> = [
     { key: "xPost", label: "X post", text: pack.xPost, event: "copy_post" },
     { key: "xThread", label: "X thread", text: pack.xThread.join("\n\n———\n\n"), event: "copy_thread" },
     { key: "instagram", label: "Instagram", text: pack.instagram, event: "copy_instagram" },
@@ -67,7 +68,7 @@ export function ContentPack({ pack }: { pack: Pack }) {
   );
 }
 
-function CopyButton({ label, text, event }: { label: string; text: string; event: string }) {
+function CopyButton({ label, text, event }: { label: string; text: string; event: TrackedEvent }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { track } from "@/lib/track";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 
 // A Link that fires a first-party analytics event on click. Lets server
 // components (e.g. the Market Snapshot) record click-through without becoming
@@ -14,7 +15,7 @@ export function TrackedLink({
   children,
 }: {
   href: string;
-  event: string;
+  event: TrackedEvent;
   props?: Record<string, unknown>;
   className?: string;
   children: React.ReactNode;

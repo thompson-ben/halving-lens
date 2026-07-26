@@ -16,7 +16,11 @@ export interface SubscribeResponseBody {
 
 export type UiState = "success" | "existing" | "invalid" | "rate_limited" | "error";
 export type FailureCategory = "network" | "validation" | "rate_limit" | "server";
-export type SubscriptionAnalyticsEvent = "subscription_success" | "subscription_existing" | "subscription_failure";
+// `signup` is the canonical conversion event (consumed by the analytics and
+// Founder Intelligence dashboards). PR136 removed the former
+// `subscription_success` alias, which fired ALONGSIDE `signup` on the same
+// successful submit and would have double-counted conversions once accepted.
+export type SubscriptionAnalyticsEvent = "signup" | "subscription_existing" | "subscription_failure";
 
 export interface UiDecision {
   state: UiState;
@@ -48,7 +52,7 @@ export function decideFromResponse(status: number | null, body: SubscribeRespons
   const is2xx = status >= 200 && status < 300;
 
   if (is2xx && outcome === "created") {
-    return { state: "success", message: MESSAGES.success, fireConversion: true, analyticsEvent: "subscription_success", retryable: false };
+    return { state: "success", message: MESSAGES.success, fireConversion: true, analyticsEvent: "signup", retryable: false };
   }
   if (is2xx && outcome === "existing") {
     return { state: "existing", message: MESSAGES.existing, fireConversion: false, analyticsEvent: "subscription_existing", retryable: false };

@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { track } from "@/lib/track";
+import type { TrackedEvent } from "@/lib/analyticsEvents";
 
 // Expandable methodology block. Fires production_cost_methodology_opened once
 // per page view when first expanded (existing first-party analytics).
@@ -10,7 +11,7 @@ export function MethodologyDisclosure({
   summary,
   children,
 }: {
-  eventName: string;
+  eventName: TrackedEvent;
   summary: string;
   children: React.ReactNode;
 }) {

@@ -31,7 +31,8 @@
     "check:headings": "node scripts/check-headings.mjs",
     "test-observed-join": "tsx scripts/test-observed-join.ts",
     "repair-snapshot-join": "tsx scripts/repair-snapshot-join.ts",
-    "test-production-cost": "tsx scripts/test-production-cost.ts"
+    "test-production-cost": "tsx scripts/test-production-cost.ts",
+    "test-analytics-events": "tsx scripts/test-analytics-events.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

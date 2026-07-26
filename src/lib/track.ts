@@ -3,6 +3,12 @@
 // Lightweight client tracker. Anonymous per-session id in sessionStorage (no
 // cookies, no PII). Fire-and-forget POST to /api/track via sendBeacon when
 // available (survives navigation), else fetch keepalive.
+//
+// Event names are typed against the shared taxonomy (src/lib/analyticsEvents),
+// which the /api/track allowlist also derives from — an unknown name fails the
+// build instead of silently returning 400 in production.
+
+import type { TrackedEvent } from "./analyticsEvents";
 
 const SESSION_KEY = "hl.sid";
 const VISITOR_KEY = "hl.seen"; // localStorage: have we seen this visitor before?
@@ -93,7 +99,7 @@ export function setOptOut(on: boolean): void {
 }
 
 export function track(
-  name: string,
+  name: TrackedEvent,
   props: Record<string, unknown> = {},
   opts: { isNew?: boolean; path?: string } = {},
 ): void {
@@ -115,6 +121,17 @@ export function track(
     isNew: opts.isNew ?? false,
   });
   try {
+    // In development, use fetch and surface any server rejection loudly — a
+    // silent 400 here is how 26 events went unrecorded for weeks. Production
+    // keeps sendBeacon (survives navigation) and stays fire-and-forget.
+    if (process.env.NODE_ENV !== "production") {
+      void fetch("/api/track", { method: "POST", body: payload, keepalive: true, headers: { "Content-Type": "application/json" } })
+        .then((res) => {
+          if (!res.ok) console.error(`[track] /api/track rejected "${name}" (HTTP ${res.status}) — is it in src/lib/analyticsEvents.ts?`);
+        })
+        .catch(() => {});
+      return;
+    }
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/track", new Blob([payload], { type: "application/json" }));
     } else {

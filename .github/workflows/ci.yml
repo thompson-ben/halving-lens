@@ -41,6 +41,17 @@ jobs:
       - name: Production-cost model tests
         run: npm run test-production-cost
 
+      # Analytics taxonomy integrity (PR136) — client and server derive from
+      # one shared event list; unknown events still 400; one conversion event
+      # per signup. Guards against the silent-rejection drift this PR fixed.
+      - name: Analytics taxonomy tests
+        run: npm run test-analytics-events
+
+      # Subscription decision contract — success/conversion only on confirmed
+      # durable capture; canonical `signup` is the single conversion event.
+      - name: Subscription contract tests
+        run: npm run test-subscribe
+
       # Build against whatever snapshot is checked in — does not hit the
       # network. Vercel runs `npm run sync` separately on deploy.
       - name: Build
