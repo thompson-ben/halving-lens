@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
 import { SOURCE, TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
+import { searchIndex } from "@/lib/searchIndex";
 import { cyclePhase, headlineSpot } from "@/lib/cycleIntel";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { HalvingCountdownMini } from "./HalvingCountdownMini";
@@ -8,6 +8,7 @@ import { lastUpdatedShort } from "./LastUpdated";
 import { MobileNav } from "./MobileNav";
 import { ShareTrigger } from "./ShareTrigger";
 import { NavSubscribeCta } from "./NavSubscribeCta";
+import { SiteSearch } from "./SiteSearch";
 
 const PHASE_DOT: Record<string, string> = {
   blue: "bg-signal-blue",
@@ -26,18 +27,9 @@ export function TopBar() {
       <div className="h-full px-4 md:px-8 lg:px-14 flex items-center gap-3 md:gap-6">
         <MobileNav />
 
-        <div className="relative flex-1 max-w-md">
-          <Search
-            size={14}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none"
-            strokeWidth={1.8}
-          />
-          <input
-            type="text"
-            placeholder="Jump to metric — MVRV, NUPL, SOPR…"
-            className="w-full h-10 pl-10 pr-3 rounded-lg bg-white/[0.025] border border-white/[0.04] text-[13px] text-ink-100 placeholder:text-ink-400 focus:outline-none focus:border-accent/30 focus:bg-white/[0.04] transition-colors"
-          />
-        </div>
+        {/* Working site search (PR139) — index built server-side, filtered
+            client-side. Replaces the former non-functional placeholder input. */}
+        <SiteSearch entries={searchIndex()} />
 
         <MobileStatus spot={spot} />
 
