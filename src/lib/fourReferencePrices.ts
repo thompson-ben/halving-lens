@@ -283,5 +283,47 @@ export function frameworkToday(): FrameworkToday {
   return { price, configurationId: configurationId(...flags), configuration, nearest, paragraph };
 }
 
+// ── What happened after (Phase C) ───────────────────────────────────────────
+
+export interface ConfigurationPath {
+  /** ISO date of the matching historical week. */
+  startDate: string;
+  /** Price indexed to 100 at the matching week, one point per following week.
+   *  Shorter than `weeksAfter`+1 when history ran out (recent matches). */
+  path: number[];
+}
+
+/** Price paths that followed each PRIOR week sharing today's configuration
+ *  (on the fullest tier with enough weeks), excluding the current unbroken
+ *  spell. Presented as historical paths — never averaged into an
+ *  expectation. */
+export function matchingWeekPaths(weeksAfter = 26): ConfigurationPath[] {
+  const tier: TierStats["tier"] =
+    rowsForTier("full").length >= 8 ? "full" : rowsForTier("trend-miners").length >= 8 ? "trend-miners" : "trend-only";
+  const rows = rowsForTier(tier);
+  if (rows.length < 8) return [];
+  const all = weeklyConfigurationTable();
+  const indexOfTs = new Map(all.map((r, i) => [r.ts, i] as const));
+  const todayKey = rowKey(rows[rows.length - 1], tier);
+  // Skip the current unbroken spell — those weeks ARE today, not precedent.
+  let spellStart = rows.length - 1;
+  while (spellStart >= 0 && rowKey(rows[spellStart], tier) === todayKey) spellStart--;
+  const out: ConfigurationPath[] = [];
+  for (let i = 0; i <= spellStart; i++) {
+    if (rowKey(rows[i], tier) !== todayKey) continue;
+    const start = indexOfTs.get(rows[i].ts);
+    if (start == null) continue;
+    const base = all[start].price;
+    const path: number[] = [];
+    for (let k = 0; k <= weeksAfter && start + k < all.length; k++) {
+      // Only contiguous weekly steps — a gap between cycles ends the path.
+      if (k > 0 && all[start + k].ts - all[start + k - 1].ts > MS_WEEK * 1.5) break;
+      path.push((all[start + k].price / base) * 100);
+    }
+    if (path.length >= 2) out.push({ startDate: rows[i].date, path });
+  }
+  return out;
+}
+
 // Internal — exposed for the deterministic test-suite only.
 export const _internals = { valueAt, rowKey, rowsForTier, NEAR_PCT, JOIN_MAX_DAYS, MS_WEEK };

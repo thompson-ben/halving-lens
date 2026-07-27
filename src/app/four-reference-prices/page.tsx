@@ -4,7 +4,16 @@ import { ReferenceAltimeter } from "@/components/ReferenceAltimeter";
 import { JourneyNext } from "@/components/JourneyNext";
 import { BriefSignup } from "@/components/BriefSignup";
 import { TrackedLink } from "@/components/TrackedLink";
-import { frameworkToday } from "@/lib/fourReferencePrices";
+import { ConfigurationRibbon } from "@/components/frp/ConfigurationRibbon";
+import { GapChart, type GapPoint } from "@/components/frp/GapChart";
+import { WhatHappenedAfter } from "@/components/frp/WhatHappenedAfter";
+import {
+  frameworkToday,
+  lastSimilarWeek,
+  matchingWeekPaths,
+  tierStats,
+  weeklyConfigurationTable,
+} from "@/lib/fourReferencePrices";
 import { priceContext } from "@/lib/priceContext";
 import { referencePrices } from "@/lib/productionCost";
 import { fmtPct, fmtUsd } from "@/lib/format";
@@ -142,6 +151,9 @@ export default function FourReferencePricesPage() {
         </div>
       </section>
 
+      {/* ── Historical context (Phase C) ── */}
+      <HistoricalSection />
+
       {/* ── Education — why these four ── */}
       <section>
         <h2 className="font-display text-[20px] sm:text-[24px] font-medium tracking-tight-2 text-ink-100 mb-1">
@@ -189,6 +201,92 @@ export default function FourReferencePricesPage() {
       </div>
 
       <JourneyNext from="/four-reference-prices" />
+    </div>
+  );
+}
+
+// The historical section (Phase C): how unusual today is, whether the gaps
+// are widening or narrowing, and what actually followed similar weeks.
+// Everything derives from the tested engine; every claim carries its window.
+function HistoricalSection() {
+  const stats = tierStats("full");
+  if (!stats) return null;
+  const sim = lastSimilarWeek();
+  const paths = matchingWeekPaths(26);
+  const sinceLabel = stats.windowFirst.slice(0, 7).replace("-", "·");
+
+  const gapData: GapPoint[] = weeklyConfigurationTable()
+    .filter((r) => r.date >= "2016-01-01")
+    .map((r) => ({
+      ts: r.ts,
+      trend: Number((((r.price / r.ma200) - 1) * 100).toFixed(1)),
+      holders: r.realised != null ? Number((((r.price / r.realised) - 1) * 100).toFixed(1)) : undefined,
+      miners: r.mining != null ? Number((((r.price / r.mining) - 1) * 100).toFixed(1)) : undefined,
+    }));
+
+  return (
+    <section>
+      <h2 className="font-display text-[20px] sm:text-[24px] font-medium tracking-tight-2 text-ink-100 mb-1">
+        How unusual is today?
+      </h2>
+      <p className="text-[12px] text-ink-400 mb-5 max-w-2xl">
+        Every week since {stats.windowFirst} — the earliest date all four reference prices are
+        observed together — classified by its configuration. Historical record, not a forecast.
+      </p>
+
+      <div className="card p-5 sm:p-6">
+        <ConfigurationRibbon />
+        <div className="mt-5 pt-4 border-t border-white/[0.06] grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <HistStat label="Weeks on record" value={`${stats.weeks}`} sub={`since ${stats.windowFirst}`} />
+          <HistStat label="In today's configuration" value={stats.matchingTodayPct != null ? `${stats.matchingTodayPct}%` : "—"} sub="of all weeks" />
+          <HistStat label="Current spell" value={stats.currentSpellWeeks != null ? `${stats.currentSpellWeeks} wk${stats.currentSpellWeeks === 1 ? "" : "s"}` : "—"} sub="unbroken" />
+          <HistStat label="Above all three" value={`${stats.aboveAllPct}%`} sub="of all weeks" />
+        </div>
+        {sim && (
+          <p className="mt-4 pt-4 border-t border-white/[0.06] text-[12.5px] text-ink-300 leading-relaxed">
+            The last time Bitcoin held this configuration before the current spell was the week of{" "}
+            <span className="text-ink-100">{sim.date}</span>. See{" "}
+            <TrackedLink href="/similar-moments" event="journey_next_click" props={{ from: "/four-reference-prices", to: "/similar-moments", position: "secondary" }} className="text-accent">
+              Similar Moments
+            </TrackedLink>{" "}
+            for the full analogue read.
+          </p>
+        )}
+      </div>
+
+      <div className="card p-4 sm:p-6 mt-4 relative">
+        <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-3">
+          The gaps over time · since 2016
+        </div>
+        <GapChart data={gapData} />
+        <div className="watermark">halvinglens.com · four reference prices</div>
+      </div>
+
+      {paths.length >= 3 && (
+        <div className="card p-4 sm:p-6 mt-4 relative">
+          <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-1">
+            What actually happened next
+          </div>
+          <p className="text-[12px] text-ink-400 mb-3 max-w-2xl">
+            The real price paths that followed each of the {paths.length} prior weeks sharing
+            today&rsquo;s configuration (since {sinceLabel.replace("·", "-")}), indexed to 100 at the
+            matching week. The most recent match is highlighted. Historical paths — never an
+            average, never a forecast.
+          </p>
+          <WhatHappenedAfter paths={paths} />
+          <div className="watermark">halvinglens.com · four reference prices</div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function HistStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">{label}</div>
+      <div className="mt-1 font-display text-[22px] text-ink-50 tabular-nums leading-tight">{value}</div>
+      {sub && <div className="text-[10.5px] text-ink-500 leading-tight">{sub}</div>}
     </div>
   );
 }

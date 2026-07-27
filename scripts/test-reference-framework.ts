@@ -11,6 +11,7 @@ import {
   tierStats,
   lastSimilarWeek,
   frameworkToday,
+  matchingWeekPaths,
   _internals,
 } from "../src/lib/fourReferencePrices";
 
@@ -156,6 +157,24 @@ for (const tier of ["full", "trend-miners", "trend-only"] as const) {
     assert(t.paragraph === frameworkToday().paragraph, "output is deterministic");
     console.log(`  info  today: "${t.configuration}" — ${t.paragraph.slice(0, 120)}…`);
   }
+}
+
+// ── What happened after (Phase C) ────────────────────────────────────────────
+
+{
+  const paths = matchingWeekPaths(26);
+  assert(paths.every((p) => Math.abs(p.path[0] - 100) < 1e-9), "every path is indexed to 100 at its matching week");
+  assert(paths.every((p) => p.path.length >= 2 && p.path.length <= 27), "paths span up to 26 following weeks");
+  assert(paths.every((p) => p.path.every((v) => Number.isFinite(v) && v > 0)), "paths contain only finite positive values");
+  assert(paths.every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.startDate)), "every path carries an ISO start date");
+  const sim = lastSimilarWeek();
+  if (sim) {
+    assert(paths.some((p) => p.startDate === sim.date), "the last similar week appears among the paths");
+  }
+  const table = weeklyConfigurationTable();
+  const lastDate = table[table.length - 1].date;
+  assert(paths.every((p) => p.startDate < lastDate), "no path starts at the current week");
+  console.log(`  info  ${paths.length} historical paths share today's configuration`);
 }
 
 console.log(failures === 0 ? "\nAll reference-framework tests passed." : `\n${failures} FAILURE(S)`);
