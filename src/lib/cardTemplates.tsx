@@ -60,7 +60,7 @@ import type {
   FrpRarityCard,
   FrpCtaCard,
 } from "./contentCards";
-import { T, ruleStyle, FactRow } from "./cardSystem";
+import { T, Rule, FactRow } from "./cardSystem";
 import { format as fmtDate } from "date-fns";
 
 const SENT_TONE: Record<string, string> = {
@@ -631,7 +631,7 @@ function FrpScale({ c }: { c: FrpScaleCard }) {
                   </div>
                 )}
               </div>
-              <div style={{ ...ruleStyle(color, variant(r.key)), flex: 1 }} />
+              <Rule color={color} variant={variant(r.key)} />
               <div style={{ display: "flex", fontSize: isMarket ? 48 : 38, fontWeight: 700, color: isMarket ? T.ink : T.inkDim, flexShrink: 0 }}>
                 {`$${(r.value / 1000).toFixed(1)}K`}
               </div>

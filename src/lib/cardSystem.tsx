@@ -42,18 +42,23 @@ export const T = {
   heroGap: 120, // mandatory emptiness between hero block and support block
 } as const;
 
-// A dashed/dotted horizontal rule, Satori-safe (no SVG strokeDasharray):
-// rendered as a repeating-linear-gradient strip.
-export function ruleStyle(color: string, variant: "solid" | "dashed" | "dotted"): Record<string, string | number> {
-  if (variant === "solid") return { display: "flex", height: 3, background: color, borderRadius: 2 };
-  const on = variant === "dashed" ? 16 : 5;
-  const off = variant === "dashed" ? 12 : 9;
-  return {
-    display: "flex",
-    height: 3,
-    borderRadius: 2,
-    backgroundImage: `repeating-linear-gradient(90deg, ${color} 0px, ${color} ${on}px, transparent ${on}px, transparent ${on + off}px)`,
-  };
+// A dashed/dotted horizontal rule, Satori-safe: Satori rejects
+// repeating-linear-gradient and SVG strokeDasharray, so the pattern is a
+// clipped flex row of fixed segments (oversupplied, overflow-hidden).
+export function Rule({ color, variant }: { color: string; variant: "solid" | "dashed" | "dotted" }) {
+  if (variant === "solid") {
+    return <div style={{ display: "flex", flex: 1, height: 3, background: color, borderRadius: 2 }} />;
+  }
+  const seg = variant === "dashed" ? { w: 16, gap: 12, h: 3, r: 2 } : { w: 5, gap: 9, h: 5, r: 3 };
+  return (
+    <div style={{ display: "flex", flex: 1, height: seg.h, overflow: "hidden", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: seg.gap, flexShrink: 0 }}>
+        {Array.from({ length: 60 }).map((_, i) => (
+          <div key={i} style={{ display: "flex", width: seg.w, height: seg.h, background: color, borderRadius: seg.r, flexShrink: 0 }} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // Caps label + value fact row — the quiet supporting tier of BIG NUMBER slides.
