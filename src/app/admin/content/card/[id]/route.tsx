@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { buildCard, isCardId, type BuildCtx, type CardId, type PackId } from "@/lib/contentCards";
+import { buildCard, isCardId, PACK_LABELS, type BuildCtx, type CardId, type PackId } from "@/lib/contentCards";
 import { renderCard, CARD_W, CARD_H } from "@/lib/cardTemplates";
 import { brandFonts } from "@/lib/ogFonts";
 import { isAdmin } from "@/lib/adminAuth";
@@ -21,27 +21,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (!isCardId(id)) {
     return new Response("Unknown card", { status: 404 });
   }
+  // Validate the pack against the shared registry rather than a hand-written
+  // ladder — a new pack (e.g. four_prices) is recognised the moment it exists
+  // in PACK_LABELS, instead of silently falling through to "daily" and
+  // rendering with the wrong slide numbering.
   const packParam = new URL(req.url).searchParams.get("pack");
-  const pack: PackId =
-    packParam === "historical"
-      ? "historical"
-      : packParam === "similar"
-        ? "similar"
-        : packParam === "accumulation"
-          ? "accumulation"
-          : packParam === "market_health"
-            ? "market_health"
-            : packParam === "etf"
-              ? "etf"
-              : packParam === "metric"
-                ? "metric"
-                : packParam === "cycles"
-                  ? "cycles"
-                  : packParam === "week"
-                    ? "week"
-                    : packParam === "chart_week"
-                      ? "chart_week"
-                      : "daily";
+  const pack: PackId = packParam && packParam in PACK_LABELS ? (packParam as PackId) : "daily";
 
   // Story-driven packs get the history-aware engine decision so the rendered
   // hero (chart + headline + layout) matches the studio and respects diversity.
