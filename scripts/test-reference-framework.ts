@@ -13,8 +13,11 @@ import {
   frameworkToday,
   matchingWeekPaths,
   todaysConfigurationPack,
+  STANDING_CLOSE,
   _internals,
 } from "../src/lib/fourReferencePrices";
+import { readFileSync } from "node:fs";
+import { packOrder, buildPack, frpHistoryPoints, PACK_LABELS } from "../src/lib/contentCards";
 
 let failures = 0;
 const assert = (c: boolean, m: string) => { if (!c) failures++; console.log(`${c ? "  ok   " : "  FAIL "} ${m}`); };
@@ -198,6 +201,35 @@ for (const tier of ["full", "trend-miners", "trend-only"] as const) {
   } else {
     assert(p.rows.length === 0 && p.configuration === null && p.paragraph === null, "unavailable pack is fully empty — never partial");
   }
+}
+
+// ── Four Reference Prices studio pack (PR147) ────────────────────────────────
+
+{
+  const p = todaysConfigurationPack();
+  if (p.available) {
+    const points = frpHistoryPoints(p);
+    assert(points.length >= 1 && points[points.length - 1] === STANDING_CLOSE, "history slide ends with the shared standing close when available");
+    assert(points.filter((x) => x === STANDING_CLOSE).length === 1, "standing close appears exactly once");
+    assert(p.paragraph != null && p.paragraph.endsWith(STANDING_CLOSE), "pack paragraph and slide share ONE close constant");
+  }
+  const unavailable = frpHistoryPoints({
+    available: false, configurationId: null, configuration: null, paragraph: null,
+    rows: [], frequencyPct: null, windowFirst: null, spellWeeks: null, lastSimilarDate: null,
+  });
+  assert(unavailable.length === 0, "unavailable pack yields no points — the close is omitted cleanly, never a partial slide");
+
+  assert(
+    JSON.stringify(packOrder("four_prices")) === JSON.stringify(["frp_cover", "frp_prices", "frp_history", "cta"]),
+    "four_prices produces exactly four slides in the correct order",
+  );
+  const deck = buildPack("four_prices");
+  assert(deck.cards.length === 4 && deck.cards.every((c, i) => c.index === i + 1 && c.total === 4), "deck numbering is n of 4");
+  assert("four_prices" in PACK_LABELS, "four_prices is registered in PACK_LABELS");
+
+  const routeSrc = readFileSync("src/app/admin/content/card/[id]/route.tsx", "utf8");
+  assert(routeSrc.includes("in PACK_LABELS"), "card-image route recognises packs via PACK_LABELS");
+  assert(!routeSrc.includes('packParam === "historical"'), "the hand-written pack ladder is gone");
 }
 
 console.log(failures === 0 ? "\nAll reference-framework tests passed." : `\n${failures} FAILURE(S)`);

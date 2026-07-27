@@ -527,7 +527,7 @@ function WeekChanged({ c }: { c: WeekChangedCard }) {
 function CotwWhy({ c }: { c: CotwWhyCard }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-      <Kicker>Why this chart</Kicker>
+      <Kicker>{c.kicker ?? "Why this chart"}</Kicker>
       <div style={{ display: "flex", fontFamily: DISPLAY, fontSize: 52, fontWeight: 700, color: INK, marginTop: 14, marginBottom: 34, lineHeight: 1.08, maxWidth: 920 }}>
         {c.title}
       </div>

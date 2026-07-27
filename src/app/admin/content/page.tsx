@@ -4,7 +4,7 @@ import { AdminLogin } from "@/components/AdminLogin";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 import { ContentPackStudio, type StudioPack } from "@/components/ContentPackStudio";
 import { ReelStudio } from "@/components/ReelStudio";
-import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, metricContentPack, cyclesContentPack, weekContentPack, chartOfWeekContentPack, type BuildCtx, type Deck, type PackId } from "@/lib/contentCards";
+import { buildPack, CARD_LABELS, accumulationContentPack, marketHealthContentPack, etfContentPack, metricContentPack, cyclesContentPack, weekContentPack, chartOfWeekContentPack, fourPricesContentPack, type BuildCtx, type Deck, type PackId } from "@/lib/contentCards";
 import { contentPack } from "@/lib/brief";
 import { historicalContentPack, similarContentPack } from "@/lib/historicalPack";
 import { reelPackage, reelScriptText } from "@/lib/reel";
@@ -79,6 +79,7 @@ export default async function ContentPackPage({ searchParams }: { searchParams?:
     toStudioPack("market_health", "Generate Market Health Pack", buildPack("market_health"), marketHealthContentPack()),
     toStudioPack("etf", "Generate ETF Flow Pack", buildPack("etf"), etfContentPack()),
     toStudioPack("metric", "Generate Metric Deep Dive Pack", buildPack("metric"), metricContentPack()),
+    toStudioPack("four_prices", "Generate Four Reference Prices Pack", buildPack("four_prices"), fourPricesContentPack()),
   ];
 
   const reel = reelPackage();

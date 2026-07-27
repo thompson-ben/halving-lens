@@ -23,6 +23,11 @@ import { miningCostDailyPoints, referencePrices } from "./productionCost";
 import { priceContext } from "./priceContext";
 import { fmtUsd } from "./format";
 
+// The standing close every framework surface ends with — exported so
+// consumers (the content-pack cards, future social assets) render the SAME
+// string the engine writes, never an independently duplicated literal.
+export const STANDING_CLOSE = "Historical context, not a prediction.";
+
 const MS_DAY = 86_400_000;
 const MS_WEEK = 7 * MS_DAY;
 // A reference value joined to a weekly sample must be at most this stale.
@@ -275,7 +280,7 @@ export function frameworkToday(): FrameworkToday {
     `Bitcoin trades at ${fmtUsd(price, { compact: true })} — ${joined}.`,
     nearSentence,
     freqSentence,
-    "Historical context, not a prediction.",
+    STANDING_CLOSE,
   ]
     .filter(Boolean)
     .join(" ");

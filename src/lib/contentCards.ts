@@ -23,6 +23,7 @@ import { accumulationRead, ACCUMULATION_BANDS } from "./accumulation";
 import { runAccumulationBacktest } from "./accumulationBacktest";
 import { SITE_HOST } from "./site";
 import { latestWeekly } from "./weekly";
+import { todaysConfigurationPack, STANDING_CLOSE, type TodaysConfigurationPack } from "./fourReferencePrices";
 import { STORED_BRIEFS } from "./data/briefs";
 import type { StoredBrief } from "./brief";
 import { selectTopStory, type Story } from "./storyEngine";
@@ -119,7 +120,12 @@ export type CardId =
   | "cotw_context"
   | "cotw_takeaway"
   // Editorial Story Engine — the layout-rotating hero that leads the story
-  | "story_hero";
+  | "story_hero"
+  // Four Reference Prices assets (bodies reuse existing card kinds, so the
+  // templates and image route need no changes)
+  | "frp_cover"
+  | "frp_prices"
+  | "frp_history";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -186,6 +192,9 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   cotw_context: { kicker: "Historical context", name: "Historical context" },
   cotw_takeaway: { kicker: "The takeaway", name: "Key takeaway" },
   story_hero: { kicker: "Chart of the week", name: "Story hero" },
+  frp_cover: { kicker: "Today's Configuration", name: "Configuration cover" },
+  frp_prices: { kicker: "The Four Reference Prices", name: "The four prices" },
+  frp_history: { kicker: "Four Reference Prices", name: "Historical context" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -601,6 +610,8 @@ export interface WeekContextCard {
 // ── Chart of the Week assets ─────────────────────────────────────────────────
 export interface CotwWhyCard {
   kind: "cotw_why";
+  /** Internal eyebrow; defaults to "Why this chart" for Chart of the Week. */
+  kicker?: string;
   title: string;
   points: string[];
 }
@@ -2102,6 +2113,9 @@ const BUILDERS: Record<CardId, (ctx?: BuildCtx) => CardBody> = {
   cotw_context: cotwContextCard,
   cotw_takeaway: cotwTakeawayCard,
   story_hero: storyHeroCard,
+  frp_cover: frpCoverCard,
+  frp_prices: frpPricesCard,
+  frp_history: frpHistoryCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -2111,7 +2125,7 @@ const BUILDERS: Record<CardId, (ctx?: BuildCtx) => CardBody> = {
 // narrative). Selection is deterministic, so the image route and the studio
 // always agree on the same ordering for the same data snapshot.
 
-export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric" | "cycles" | "week" | "chart_week";
+export type PackId = "daily" | "historical" | "similar" | "accumulation" | "market_health" | "etf" | "metric" | "cycles" | "week" | "chart_week" | "four_prices";
 
 export const PACK_LABELS: Record<PackId, string> = {
   daily: "Daily Brief Pack",
@@ -2124,7 +2138,137 @@ export const PACK_LABELS: Record<PackId, string> = {
   cycles: "Every Cycle Compared",
   week: "This Week in the Bitcoin Cycle",
   chart_week: "Chart of the Week",
+  four_prices: "Four Reference Prices Pack",
 };
+
+// ── Four Reference Prices pack ───────────────────────────────────────────────
+// Carousel from the same deterministic pack read every surface uses
+// (todaysConfigurationPack) — the studio can never tell a different story
+// than the site or the email. Bodies reuse existing card kinds, so the
+// templates and the card-image route render them with no changes.
+export const FOUR_PRICES_PACK: CardId[] = ["frp_cover", "frp_prices", "frp_history", "cta"];
+
+function frpCoverCard(): CotwContextCard {
+  const p = todaysConfigurationPack();
+  return {
+    kind: "cotw_context",
+    heading: p.configuration ?? "Configuration unavailable",
+    text:
+      p.paragraph ??
+      "The reference-price data behind today's configuration hasn't synced — the read is withheld rather than shown stale.",
+  };
+}
+
+function frpPricesCard(): WeekSnapshotCard {
+  const p = todaysConfigurationPack();
+  return {
+    kind: "week_snapshot",
+    stats: p.rows.map((r) => ({
+      label: r.estimated ? `${r.label} · estimated` : r.label,
+      value:
+        r.gapPct != null
+          ? `${fmtUsd(r.value, { compact: true })} · ${fmtPct(r.gapPct, 1)} vs market`
+          : fmtUsd(r.value, { compact: true }),
+      tone: r.gapPct == null ? "accent" : r.gapPct >= 0 ? "green" : "red",
+    })),
+  };
+}
+
+// Pure and exported for the test-suite: the historical slide's bullet list.
+// The standing close comes from the engine's shared constant (never an
+// independently duplicated literal) and is present exactly when the pack is —
+// an unavailable pack yields no points at all, never a partial slide.
+export function frpHistoryPoints(p: TodaysConfigurationPack): string[] {
+  if (!p.available) return [];
+  const points: string[] = [];
+  if (p.frequencyPct != null && p.windowFirst) {
+    points.push(`Bitcoin has spent ${p.frequencyPct}% of weeks in this configuration since ${p.windowFirst.slice(0, 7)}.`);
+  }
+  if (p.spellWeeks != null) {
+    points.push(`The current unbroken spell is ${p.spellWeeks} week${p.spellWeeks === 1 ? "" : "s"}.`);
+  }
+  if (p.lastSimilarDate) {
+    points.push(`The last similar week before this spell was ${p.lastSimilarDate}.`);
+  }
+  points.push(STANDING_CLOSE);
+  return points;
+}
+
+function frpHistoryCard(): CotwWhyCard {
+  return {
+    kind: "cotw_why",
+    kicker: "The record",
+    title: "How unusual is today?",
+    points: frpHistoryPoints(todaysConfigurationPack()),
+  };
+}
+
+// Cross-channel copy for the Four Reference Prices pack. Same careful framing
+// as every other pack: descriptive of today, never a forecast.
+export function fourPricesContentPack(): import("./brief").ContentPack {
+  const p = todaysConfigurationPack();
+  const link = `https://${SITE_HOST}/four-reference-prices`;
+  const config = p.configuration ?? "unavailable";
+  const rowLines = p.rows.map(
+    (r) =>
+      `${r.label}${r.estimated ? " (estimated)" : ""}: ${fmtUsd(r.value, { compact: true })}${r.gapPct != null ? ` (${fmtPct(r.gapPct, 1)} vs market)` : ""}`,
+  );
+  const freqLine =
+    p.frequencyPct != null && p.windowFirst
+      ? `Bitcoin has spent ${p.frequencyPct}% of weeks in this configuration since ${p.windowFirst.slice(0, 7)}.`
+      : "";
+  const xPost = `Bitcoin's Four Reference Prices — Today's Configuration:\n\n${config}.\n\n${freqLine}\n\nHistorical context, not a prediction.\n\n${link}`;
+  const xThread = [
+    `Where does Bitcoin trade against the market's four most important reference prices?\n\nToday's Configuration: ${config}.`,
+    rowLines.join("\n"),
+    `${freqLine}${p.lastSimilarDate ? ` The last similar week was ${p.lastSimilarDate}.` : ""}`,
+    `The four references answer four different questions — the market, the trend, the holders, the miners.\n\nFull framework → ${link}`,
+  ];
+  const instagram = [
+    `TODAY'S CONFIGURATION — ${config}.`,
+    "",
+    rowLines.join("\n"),
+    "",
+    freqLine,
+    "Historical context, not a prediction. Not financial advice.",
+    "",
+    `Full framework → ${link}`,
+    "",
+    "#bitcoin #btc #crypto #bitcoinprice #onchain",
+  ].join("\n");
+  const linkedin = [
+    `Bitcoin's Four Reference Prices — Today's Configuration: ${config}.`,
+    "",
+    rowLines.join("\n"),
+    "",
+    freqLine,
+    "",
+    "One framework, four constituencies: what traders pay, where the trend sits, what holders paid, and what new supply costs to produce.",
+    "",
+    `Explore the full framework: ${link}`,
+    "",
+    "Historical context only. Not financial advice.",
+  ].join("\n");
+  const emailSubject = `Today's Configuration: ${config}`;
+  const emailBody = [
+    `Today's Configuration: ${config}.`,
+    "",
+    p.paragraph ?? "",
+    "",
+    rowLines.join("\n"),
+    "",
+    `Full framework: ${link}`,
+  ].join("\n");
+  return {
+    xPost,
+    xThread,
+    instagram,
+    linkedin,
+    emailSubject,
+    emailBody,
+    storyCaption: `Today's Configuration: ${config}`,
+  };
+}
 
 // This Week in the Bitcoin Cycle — the flagship Sunday publication. The chart
 // slide reuses whichever chart the live narrative selector deems strongest this
@@ -2297,6 +2441,7 @@ export function packOrder(packId: PackId, ctx?: BuildCtx): CardId[] {
   if (packId === "cycles") return CYCLES_PACK;
   if (packId === "week") return weekPackOrder();
   if (packId === "chart_week") return chartWeekPackOrder(ctx);
+  if (packId === "four_prices") return FOUR_PRICES_PACK;
   return CARD_ORDER;
 }
 
