@@ -12,6 +12,7 @@ import {
   lastSimilarWeek,
   frameworkToday,
   matchingWeekPaths,
+  todaysConfigurationPack,
   _internals,
 } from "../src/lib/fourReferencePrices";
 
@@ -175,6 +176,28 @@ for (const tier of ["full", "trend-miners", "trend-only"] as const) {
   const lastDate = table[table.length - 1].date;
   assert(paths.every((p) => p.startDate < lastDate), "no path starts at the current week");
   console.log(`  info  ${paths.length} historical paths share today's configuration`);
+}
+
+// ── Today's Configuration content pack ───────────────────────────────────────
+
+{
+  const p = todaysConfigurationPack();
+  const t = frameworkToday();
+  if (p.available) {
+    assert(p.configuration === t.configuration && p.configurationId === t.configurationId, "pack mirrors the engine's configuration exactly");
+    assert(p.paragraph === t.paragraph, "pack passes the engine paragraph through verbatim — the language can never fork");
+    assert(p.rows.length >= 2 && p.rows[0].key === "market" && p.rows[0].gapPct === null, "rows lead with the market anchor");
+    assert(p.rows.every((r) => r.value > 0 && (r.gapPct == null || Number.isFinite(r.gapPct)), ), "rows carry finite values and gaps");
+    assert(p.rows.every((r) => (r.key === "miners") === (r.estimated === true)), "only the mining row carries the estimated flag");
+    assert(new Set(p.rows.map((r) => r.key)).size === p.rows.length, "no duplicate rows");
+    assert(p.frequencyPct == null || (p.frequencyPct > 0 && p.frequencyPct <= 100), "frequency is a sane share");
+    assert(p.lastSimilarDate == null || /^\d{4}-\d{2}-\d{2}$/.test(p.lastSimilarDate), "last-similar date is ISO");
+    assert(p.paragraph != null && clean(p.paragraph) && p.paragraph.endsWith("Historical context, not a prediction."), "pack language rules hold");
+    assert(JSON.stringify(p) === JSON.stringify(todaysConfigurationPack()), "pack output is deterministic");
+    console.log(`  info  pack rows: ${p.rows.map((r) => r.key).join(", ")} · freq ${p.frequencyPct}% · spell ${p.spellWeeks}wk`);
+  } else {
+    assert(p.rows.length === 0 && p.configuration === null && p.paragraph === null, "unavailable pack is fully empty — never partial");
+  }
 }
 
 console.log(failures === 0 ? "\nAll reference-framework tests passed." : `\n${failures} FAILURE(S)`);

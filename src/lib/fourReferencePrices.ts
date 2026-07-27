@@ -325,5 +325,74 @@ export function matchingWeekPaths(weeksAfter = 26): ConfigurationPath[] {
   return out;
 }
 
+// ── Today's Configuration content pack ──────────────────────────────────────
+// The first-class pack read, in the house content-pack architecture: one
+// deterministic composition over the tested engine, consumed unchanged by
+// every surface (Daily Brief card, email, and any future consumer — founder
+// intelligence, homepage, social assets, API). Composes only; computes
+// nothing new.
+
+export interface PackRow {
+  key: "market" | "trend" | "holders" | "miners";
+  label: string;
+  value: number;
+  /** Signed % of market vs this reference; null for the market row itself. */
+  gapPct: number | null;
+  estimated?: boolean;
+}
+
+export interface TodaysConfigurationPack {
+  available: boolean;
+  configurationId: string | null;
+  configuration: string | null;
+  /** The engine's deterministic 2–4 sentence read, standing close included. */
+  paragraph: string | null;
+  /** Market first, then whichever references are available today. */
+  rows: PackRow[];
+  /** Share of weeks in today's configuration, with its evidence window. */
+  frequencyPct: number | null;
+  windowFirst: string | null;
+  spellWeeks: number | null;
+  lastSimilarDate: string | null;
+}
+
+export function todaysConfigurationPack(): TodaysConfigurationPack {
+  const today = frameworkToday();
+  const ctx = priceContext();
+  const r = referencePrices({ ma200: ctx.ma200 });
+  const empty: TodaysConfigurationPack = {
+    available: false,
+    configurationId: null,
+    configuration: null,
+    paragraph: null,
+    rows: [],
+    frequencyPct: null,
+    windowFirst: null,
+    spellWeeks: null,
+    lastSimilarDate: null,
+  };
+  if (today.price == null || !today.configuration) return empty;
+
+  const rows: PackRow[] = [{ key: "market", label: "Market Price", value: today.price, gapPct: null }];
+  if (ctx.ma200 != null) rows.push({ key: "trend", label: "200-Day Average", value: ctx.ma200, gapPct: ctx.vsMa200Pct });
+  if (r.realisedPrice != null) rows.push({ key: "holders", label: "Realised Price", value: r.realisedPrice, gapPct: r.vsRealisedPct });
+  if (r.productionAvailable && r.productionCost != null) {
+    rows.push({ key: "miners", label: "Est. Mining Cost", value: r.productionCost, gapPct: r.vsProductionPct, estimated: true });
+  }
+
+  const stats = tierStats("full") ?? tierStats("trend-miners") ?? tierStats("trend-only");
+  return {
+    available: true,
+    configurationId: today.configurationId,
+    configuration: today.configuration,
+    paragraph: today.paragraph,
+    rows,
+    frequencyPct: stats?.matchingTodayPct ?? null,
+    windowFirst: stats?.windowFirst ?? null,
+    spellWeeks: stats?.currentSpellWeeks ?? null,
+    lastSimilarDate: lastSimilarWeek()?.date ?? null,
+  };
+}
+
 // Internal — exposed for the deterministic test-suite only.
 export const _internals = { valueAt, rowKey, rowsForTier, NEAR_PCT, JOIN_MAX_DAYS, MS_WEEK };
