@@ -638,8 +638,10 @@ function FrpScale({ c }: { c: FrpScaleCard }) {
             </div>
             {!isMarket && r.gapPct != null && (
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, fontSize: 23, color: T.inkFaint }}>
-                {/* The reference's position vs the market, phrased from the reference's side */}
-                {`${r.gapPct <= 0 ? "▲" : "▼"} ${Math.abs(r.gapPct).toFixed(0)}% ${r.gapPct <= 0 ? "above" : "below"} market price`}
+                {/* The reference's position vs the market, phrased from the
+                    reference's side. Plain words — the loaded font subsets
+                    don't carry arrow glyphs, and the words are clearer. */}
+                {`${Math.abs(r.gapPct).toFixed(0)}% ${r.gapPct <= 0 ? "above" : "below"} market price`}
               </div>
             )}
           </div>
