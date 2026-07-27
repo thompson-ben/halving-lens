@@ -167,6 +167,7 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
         "<span style=\"color:" + C.ink + "\">Evidence before opinions.</span> Every figure traces to real market and on-chain data.",
         "<span style=\"color:" + C.ink + "\">Historical context.</span> We show you what past cycles did, not what this one “will” do.",
         "<span style=\"color:" + C.ink + "\">Honest uncertainty.</span> When the data is unclear, we say so.",
+        "<span style=\"color:" + C.ink + "\">One shared framework.</span> Bitcoin's Four Reference Prices — where price sits against the trend, the holders and the miners — in one picture.",
       ].map(bullet).join("");
       const body = `
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
@@ -180,7 +181,7 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
           title: "Calm evidence, not noise.",
           intro: "Most crypto content is built to make you feel something. HalvingLens is built to help you think clearly.",
           body,
-          cta: { label: "Read the research", url: `${SITE_URL}/research/findings` },
+          cta: { label: "See today's configuration", url: `${SITE_URL}/four-reference-prices` },
           ctx,
           preheader: "No hype, no price targets — evidence and historical context.",
         }),
@@ -192,9 +193,10 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
             "Evidence before opinions — every figure traces to real data.",
             "Historical context, not forecasts.",
             "Honest uncertainty — when the data is unclear, we say so.",
+            "One shared framework: Bitcoin's Four Reference Prices — the trend, the holders and the miners, in one picture.",
             "",
             "Everything answers one question: where are we in the Bitcoin cycle?",
-            `Read the research: ${SITE_URL}/research/findings`,
+            `See today's configuration: ${SITE_URL}/four-reference-prices`,
           ],
           ctx,
         ),

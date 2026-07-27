@@ -125,6 +125,18 @@ export function ReferencePrices() {
             <p className="text-[12.5px] text-ink-300 leading-relaxed">{r.todaysContext}</p>
           </div>
         )}
+        {/* This card is the summary; the framework page is the full read —
+            configuration history, gaps over time, what happened next. */}
+        <div className="mt-4 pt-4 border-t border-white/[0.06]">
+          <TrackedLink
+            href="/four-reference-prices"
+            event="journey_next_click"
+            props={{ from: "/state-of-bitcoin", to: "/four-reference-prices", position: "secondary" }}
+            className="text-[12.5px] text-accent"
+          >
+            Explore the full Four Reference Prices framework →
+          </TrackedLink>
+        </div>
       </div>
     </TrackedSection>
   );
