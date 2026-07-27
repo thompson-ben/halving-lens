@@ -17,7 +17,7 @@ import {
   _internals,
 } from "../src/lib/fourReferencePrices";
 import { readFileSync } from "node:fs";
-import { packOrder, buildPack, frpHistoryPoints, PACK_LABELS } from "../src/lib/contentCards";
+import { packOrder, buildPack, frpRarityBody, PACK_LABELS } from "../src/lib/contentCards";
 
 let failures = 0;
 const assert = (c: boolean, m: string) => { if (!c) failures++; console.log(`${c ? "  ok   " : "  FAIL "} ${m}`); };
@@ -208,24 +208,36 @@ for (const tier of ["full", "trend-miners", "trend-only"] as const) {
 {
   const p = todaysConfigurationPack();
   if (p.available) {
-    const points = frpHistoryPoints(p);
-    assert(points.length >= 1 && points[points.length - 1] === STANDING_CLOSE, "history slide ends with the shared standing close when available");
-    assert(points.filter((x) => x === STANDING_CLOSE).length === 1, "standing close appears exactly once");
+    const rarity = frpRarityBody(p);
+    assert(rarity.close === STANDING_CLOSE, "poster slide carries the shared standing close when available");
+    assert(rarity.configuration === p.configuration, "poster slide is self-standing — it names the configuration");
     assert(p.paragraph != null && p.paragraph.endsWith(STANDING_CLOSE), "pack paragraph and slide share ONE close constant");
   }
-  const unavailable = frpHistoryPoints({
+  const unavailable = frpRarityBody({
     available: false, configurationId: null, configuration: null, paragraph: null,
     rows: [], frequencyPct: null, windowFirst: null, spellWeeks: null, lastSimilarDate: null,
   });
-  assert(unavailable.length === 0, "unavailable pack yields no points — the close is omitted cleanly, never a partial slide");
+  assert(
+    unavailable.close === null && unavailable.pct === null && unavailable.configuration === null,
+    "unavailable pack yields a fully empty poster body — the close is omitted cleanly, never partial",
+  );
 
   assert(
-    JSON.stringify(packOrder("four_prices")) === JSON.stringify(["frp_cover", "frp_prices", "frp_history", "cta"]),
-    "four_prices produces exactly four slides in the correct order",
+    JSON.stringify(packOrder("four_prices")) === JSON.stringify(["frp_cover", "frp_prices", "frp_history", "frp_cta"]),
+    "four_prices produces exactly four slides in the story order (what → why → how unusual → where next)",
   );
   const deck = buildPack("four_prices");
   assert(deck.cards.length === 4 && deck.cards.every((c, i) => c.index === i + 1 && c.total === 4), "deck numbering is n of 4");
   assert("four_prices" in PACK_LABELS, "four_prices is registered in PACK_LABELS");
+
+  // The redesigned bodies stay faithful to the single deterministic read.
+  if (p.available) {
+    const cover = deck.cards[0].body;
+    assert(cover.kind === "frp_statement" && cover.lines.join(" ").replace(/[,.]$/g, "").startsWith(p.configuration!.split(", ")[0]), "statement lines derive from the configuration verbatim");
+    const scale = deck.cards[1].body;
+    assert(scale.kind === "frp_scale" && JSON.stringify(scale.rows) === JSON.stringify(p.rows), "scale rows are the pack rows, raw and unrecomputed");
+    assert(deck.cards[2].body.kind === "frp_rarity" && deck.cards[3].body.kind === "frp_cta", "poster and CTA slides carry their archetype bodies");
+  }
 
   const routeSrc = readFileSync("src/app/admin/content/card/[id]/route.tsx", "utf8");
   assert(routeSrc.includes("in PACK_LABELS"), "card-image route recognises packs via PACK_LABELS");

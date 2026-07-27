@@ -55,7 +55,13 @@ import type {
   TakeawayCard,
   WatchCard,
   WhatNextCard,
+  FrpStatementCard,
+  FrpScaleCard,
+  FrpRarityCard,
+  FrpCtaCard,
 } from "./contentCards";
+import { T, ruleStyle, FactRow } from "./cardSystem";
+import { format as fmtDate } from "date-fns";
 
 const SENT_TONE: Record<string, string> = {
   red: "#ff5d5d",
@@ -538,6 +544,166 @@ function CotwWhy({ c }: { c: CotwWhyCard }) {
             <div style={{ display: "flex", fontSize: 30, color: INK_DIM, lineHeight: 1.4, maxWidth: 880 }}>{pt}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Four Reference Prices — design-system archetypes ─────────────────────────
+// STATEMENT: the configuration IS the headline. One stat-led support line,
+// one quiet meta line. Nothing competes with the words.
+function FrpStatement({ c }: { c: FrpStatementCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {c.lines.map((line, i) => (
+          <div key={i} style={{ display: "flex", fontFamily: T.display, fontSize: T.type.headline, fontWeight: 600, color: T.ink, lineHeight: 1.16, maxWidth: 900 }}>
+            {line}
+          </div>
+        ))}
+      </div>
+      {c.support && (
+        <div style={{ display: "flex", marginTop: T.heroGap, fontSize: T.type.insight, fontWeight: 500, color: T.inkDim, lineHeight: 1.45, maxWidth: 780 }}>
+          {c.support}
+        </div>
+      )}
+      {c.meta && (
+        <div style={{ display: "flex", marginTop: 64, fontSize: T.type.meta, letterSpacing: 3, color: T.inkFaint, textTransform: "uppercase" }}>
+          {c.meta}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// SCALE: the four prices positioned proportionally on a vertical axis — the
+// ordering is the insight, pre-computed for the eye. Market price is the
+// anchored, boxed element; each reference carries its line style identity
+// (dashed trend, solid holders, dotted miners) plus its gap to market.
+function FrpScale({ c }: { c: FrpScaleCard }) {
+  const H = 880;
+  const rows = c.rows.filter((r) => r.value > 0);
+  if (rows.length < 2) {
+    return (
+      <div style={{ display: "flex", flex: 1, alignItems: "center", fontSize: 40, color: T.inkDim }}>
+        The reference-price data hasn&rsquo;t synced — withheld rather than shown stale.
+      </div>
+    );
+  }
+  const values = rows.map((r) => r.value);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const pos = (v: number) => 60 + ((max - v) / (max - min || 1)) * (H - 200);
+  // Nudge overlapping rows apart; the axis stays truthful, labels stay legible.
+  const sorted = [...rows].sort((a, b) => b.value - a.value);
+  const tops: number[] = sorted.map((r) => pos(r.value));
+  for (let i = 1; i < tops.length; i++) if (tops[i] - tops[i - 1] < 175) tops[i] = tops[i - 1] + 175;
+  const variant = (k: string) => (k === "trend" ? "dashed" : k === "miners" ? "dotted" : "solid");
+
+  return (
+    <div style={{ display: "flex", position: "relative", flex: 1, flexDirection: "column" }}>
+      {sorted.map((r, i) => {
+        const color = T.series[r.key];
+        const isMarket = r.key === "market";
+        return (
+          <div
+            key={r.key}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: tops[i],
+              ...(isMarket
+                ? { border: `2px solid ${T.accent}66`, background: "rgba(94,234,212,0.07)", borderRadius: 18, padding: "20px 26px" }
+                : {}),
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, width: isMarket ? 330 : 360, flexShrink: 0 }}>
+                <div style={{ display: "flex", fontSize: isMarket ? 30 : 25, fontWeight: isMarket ? 700 : 600, letterSpacing: 2.5, color: isMarket ? T.accent : color, textTransform: "uppercase" }}>
+                  {r.label}
+                </div>
+                {r.estimated && (
+                  <div style={{ display: "flex", fontSize: 17, letterSpacing: 2, color: T.series.miners, border: `1.5px solid ${T.series.miners}55`, borderRadius: 999, padding: "4px 12px", textTransform: "uppercase" }}>
+                    Est
+                  </div>
+                )}
+              </div>
+              <div style={{ ...ruleStyle(color, variant(r.key)), flex: 1 }} />
+              <div style={{ display: "flex", fontSize: isMarket ? 48 : 38, fontWeight: 700, color: isMarket ? T.ink : T.inkDim, flexShrink: 0 }}>
+                {`$${(r.value / 1000).toFixed(1)}K`}
+              </div>
+            </div>
+            {!isMarket && r.gapPct != null && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, fontSize: 23, color: T.inkFaint }}>
+                {/* The reference's position vs the market, phrased from the reference's side */}
+                {`${r.gapPct <= 0 ? "▲" : "▼"} ${Math.abs(r.gapPct).toFixed(0)}% ${r.gapPct <= 0 ? "above" : "below"} market price`}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// BIG NUMBER: the poster slide — self-standing by design. The rarity numeral
+// is the carousel's one hero element; the configuration line makes a lone
+// screenshot fully legible; the standing close signs it off.
+function FrpRarity({ c }: { c: FrpRarityCard }) {
+  if (c.pct == null) {
+    return (
+      <div style={{ display: "flex", flex: 1, alignItems: "center", fontSize: 44, color: T.inkDim, lineHeight: 1.4 }}>
+        Not enough observed history for a rarity read yet.
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", fontFamily: T.display, fontSize: T.type.hero, fontWeight: 700, color: T.accent, lineHeight: 1, letterSpacing: -4 }}>
+        {`${c.pct}%`}
+      </div>
+      <div style={{ display: "flex", marginTop: 40, fontSize: T.type.insight, fontWeight: 500, color: T.ink, lineHeight: 1.45, maxWidth: 820 }}>
+        {`of all weeks since ${c.sinceLabel ?? "records began"} have matched today's configuration:`}
+      </div>
+      {c.configuration && (
+        <div style={{ display: "flex", marginTop: 14, fontFamily: T.display, fontSize: 34, color: T.inkDim, lineHeight: 1.35, maxWidth: 860 }}>
+          {`${c.configuration}.`}
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", marginTop: T.heroGap }}>
+        {c.streakWeeks != null && <FactRow label="Current streak" value={`${c.streakWeeks} week${c.streakWeeks === 1 ? "" : "s"}`} />}
+        {c.lastSeen && <FactRow label="Last seen" value={fmtDate(new Date(`${c.lastSeen}T00:00:00Z`), "d MMM yyyy")} />}
+      </div>
+      {c.close && (
+        <div style={{ display: "flex", marginTop: 52, fontSize: 28, color: T.inkFaint }}>
+          {c.close}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// CTA: promise the three things only the framework page has — curiosity,
+// not summary. Typography and spacing do the work.
+function FrpCta({ c }: { c: FrpCtaCard }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      <div style={{ display: "flex", fontFamily: T.display, fontSize: 76, fontWeight: 600, color: T.ink, lineHeight: 1.14, maxWidth: 860 }}>
+        {c.headline}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 34, marginTop: 88 }}>
+        {c.promises.map((p, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 22 }}>
+            <div style={{ display: "flex", width: 11, height: 11, borderRadius: 6, background: T.accent, flexShrink: 0 }} />
+            <div style={{ display: "flex", fontSize: 34, color: T.inkDim, lineHeight: 1.4 }}>{p}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", marginTop: T.heroGap, fontSize: 40, fontWeight: 600, color: T.accent }}>
+        {c.url}
       </div>
     </div>
   );
@@ -1576,6 +1742,14 @@ export function renderCard(card: Card): React.ReactElement {
         return <CotwContext c={card.body} />;
       case "cotw_takeaway":
         return <CotwTakeaway c={card.body} />;
+      case "frp_statement":
+        return <FrpStatement c={card.body} />;
+      case "frp_scale":
+        return <FrpScale c={card.body} />;
+      case "frp_rarity":
+        return <FrpRarity c={card.body} />;
+      case "frp_cta":
+        return <FrpCta c={card.body} />;
       case "story_hero":
         return <StoryHero c={card.body} />;
       case "watch":
