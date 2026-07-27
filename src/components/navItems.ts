@@ -47,6 +47,7 @@ export const FLAGSHIP: readonly NavLink[] = [
   // Bitcoin is its current Chapter, read live.
   { href: "/journal", label: "The Journal", icon: BookMarked },
   { href: "/state-of-bitcoin", label: "The State of Bitcoin", icon: Radar },
+  { href: "/four-reference-prices", label: "Four Reference Prices", icon: Layers },
   { href: "/accumulation", label: "Accumulation Index", icon: Sprout },
   { href: "/historical-price-paths", label: "Historical Price Paths", icon: TrendingDown },
 ];
