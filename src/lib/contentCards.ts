@@ -23,7 +23,7 @@ import { accumulationRead, ACCUMULATION_BANDS } from "./accumulation";
 import { runAccumulationBacktest } from "./accumulationBacktest";
 import { SITE_HOST } from "./site";
 import { latestWeekly } from "./weekly";
-import { todaysConfigurationPack, STANDING_CLOSE, type TodaysConfigurationPack } from "./fourReferencePrices";
+import { todaysConfigurationPack, STANDING_CLOSE, type TodaysConfigurationPack, type PackRow } from "./fourReferencePrices";
 import { STORED_BRIEFS } from "./data/briefs";
 import type { StoredBrief } from "./brief";
 import { selectTopStory, type Story } from "./storyEngine";
@@ -121,11 +121,13 @@ export type CardId =
   | "cotw_takeaway"
   // Editorial Story Engine — the layout-rotating hero that leads the story
   | "story_hero"
-  // Four Reference Prices assets (bodies reuse existing card kinds, so the
-  // templates and image route need no changes)
+  // Four Reference Prices assets — purpose-built bodies (the design-system
+  // archetypes STATEMENT → SCALE → BIG NUMBER → CTA), fed by the same
+  // deterministic pack read as every other framework surface
   | "frp_cover"
   | "frp_prices"
-  | "frp_history";
+  | "frp_history"
+  | "frp_cta";
 
 // The Daily Brief Pack — the established 11-card daily carousel (unchanged).
 export const CARD_ORDER: CardId[] = [
@@ -193,8 +195,9 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   cotw_takeaway: { kicker: "The takeaway", name: "Key takeaway" },
   story_hero: { kicker: "Chart of the week", name: "Story hero" },
   frp_cover: { kicker: "Today's Configuration", name: "Configuration cover" },
-  frp_prices: { kicker: "The Four Reference Prices", name: "The four prices" },
-  frp_history: { kicker: "Four Reference Prices", name: "Historical context" },
+  frp_prices: { kicker: "The Four Reference Prices", name: "Where price sits" },
+  frp_history: { kicker: "How rare is this?", name: "Rarity poster" },
+  frp_cta: { kicker: "Go deeper", name: "Framework CTA" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -687,7 +690,11 @@ export type CardBody =
   | CotwWhyCard
   | CotwContextCard
   | CotwTakeawayCard
-  | StoryHeroCard;
+  | StoryHeroCard
+  | FrpStatementCard
+  | FrpScaleCard
+  | FrpRarityCard
+  | FrpCtaCard;
 
 export interface Card {
   id: CardId;
@@ -2113,9 +2120,10 @@ const BUILDERS: Record<CardId, (ctx?: BuildCtx) => CardBody> = {
   cotw_context: cotwContextCard,
   cotw_takeaway: cotwTakeawayCard,
   story_hero: storyHeroCard,
-  frp_cover: frpCoverCard,
-  frp_prices: frpPricesCard,
-  frp_history: frpHistoryCard,
+  frp_cover: frpStatementCard,
+  frp_prices: frpScaleCard,
+  frp_history: frpRarityCard,
+  frp_cta: frpCtaCard,
 };
 
 // ── Packs ─────────────────────────────────────────────────────────────────
@@ -2144,62 +2152,95 @@ export const PACK_LABELS: Record<PackId, string> = {
 // ── Four Reference Prices pack ───────────────────────────────────────────────
 // Carousel from the same deterministic pack read every surface uses
 // (todaysConfigurationPack) — the studio can never tell a different story
-// than the site or the email. Bodies reuse existing card kinds, so the
-// templates and the card-image route render them with no changes.
-export const FOUR_PRICES_PACK: CardId[] = ["frp_cover", "frp_prices", "frp_history", "cta"];
+// than the site or the email. Purpose-built presentation contracts (design
+// system archetypes); the story arc is What → Why → How unusual → Where next.
+export const FOUR_PRICES_PACK: CardId[] = ["frp_cover", "frp_prices", "frp_history", "frp_cta"];
 
-function frpCoverCard(): CotwContextCard {
+// STATEMENT — the configuration IS the headline; one stat-led support line.
+export interface FrpStatementCard {
+  kind: "frp_statement";
+  lines: string[]; // the configuration, broken at its comma into thought-lines
+  support: string | null; // the one supporting sentence (rarity-led)
+  meta: string | null; // "27 Jul 2026 · BTC $65.3K"
+}
+
+// SCALE — the four prices positioned proportionally; the ordering is the insight.
+export interface FrpScaleCard {
+  kind: "frp_scale";
+  rows: PackRow[]; // raw values — the template draws, it never re-computes
+}
+
+// BIG NUMBER — the poster slide. Self-standing by design: it carries the
+// configuration line so a screenshot needs no other slide for context.
+export interface FrpRarityCard {
+  kind: "frp_rarity";
+  pct: number | null;
+  sinceLabel: string | null; // "Aug 2022"
+  streakWeeks: number | null;
+  lastSeen: string | null; // ISO date
+  configuration: string | null;
+  close: string | null; // STANDING_CLOSE when the pack is available, else null
+}
+
+export interface FrpCtaCard {
+  kind: "frp_cta";
+  headline: string;
+  promises: string[]; // what only the framework page has
+  url: string;
+}
+
+function frpStatementCard(): FrpStatementCard {
   const p = todaysConfigurationPack();
+  if (!p.available || !p.configuration) {
+    return { kind: "frp_statement", lines: ["Configuration unavailable."], support: null, meta: null };
+  }
+  const parts = p.configuration.split(", ");
+  const lines = parts.map((s, i) => (i < parts.length - 1 ? `${s},` : `${s}.`));
+  const support =
+    p.frequencyPct != null && p.windowFirst
+      ? `Only ${p.frequencyPct}% of weeks since ${p.windowFirst.slice(0, 4)} have looked like this.`
+      : null;
+  const market = p.rows[0];
+  const meta = market ? `${format(briefDate(), "d MMM yyyy")} · BTC ${fmtUsd(market.value, { compact: true })}` : null;
+  return { kind: "frp_statement", lines, support, meta };
+}
+
+function frpScaleCard(): FrpScaleCard {
+  return { kind: "frp_scale", rows: todaysConfigurationPack().rows };
+}
+
+// Pure and exported for the test-suite: the poster slide's body. The standing
+// close comes from the engine's shared constant and is present exactly when
+// the pack is — an unavailable pack yields a fully empty body, never partial.
+export function frpRarityBody(p: TodaysConfigurationPack): FrpRarityCard {
+  if (!p.available) {
+    return { kind: "frp_rarity", pct: null, sinceLabel: null, streakWeeks: null, lastSeen: null, configuration: null, close: null };
+  }
   return {
-    kind: "cotw_context",
-    heading: p.configuration ?? "Configuration unavailable",
-    text:
-      p.paragraph ??
-      "The reference-price data behind today's configuration hasn't synced — the read is withheld rather than shown stale.",
+    kind: "frp_rarity",
+    pct: p.frequencyPct,
+    sinceLabel: p.windowFirst ? format(new Date(`${p.windowFirst}T00:00:00Z`), "MMM yyyy") : null,
+    streakWeeks: p.spellWeeks,
+    lastSeen: p.lastSimilarDate,
+    configuration: p.configuration,
+    close: STANDING_CLOSE,
   };
 }
 
-function frpPricesCard(): WeekSnapshotCard {
-  const p = todaysConfigurationPack();
-  return {
-    kind: "week_snapshot",
-    stats: p.rows.map((r) => ({
-      label: r.estimated ? `${r.label} · estimated` : r.label,
-      value:
-        r.gapPct != null
-          ? `${fmtUsd(r.value, { compact: true })} · ${fmtPct(r.gapPct, 1)} vs market`
-          : fmtUsd(r.value, { compact: true }),
-      tone: r.gapPct == null ? "accent" : r.gapPct >= 0 ? "green" : "red",
-    })),
-  };
+function frpRarityCard(): FrpRarityCard {
+  return frpRarityBody(todaysConfigurationPack());
 }
 
-// Pure and exported for the test-suite: the historical slide's bullet list.
-// The standing close comes from the engine's shared constant (never an
-// independently duplicated literal) and is present exactly when the pack is —
-// an unavailable pack yields no points at all, never a partial slide.
-export function frpHistoryPoints(p: TodaysConfigurationPack): string[] {
-  if (!p.available) return [];
-  const points: string[] = [];
-  if (p.frequencyPct != null && p.windowFirst) {
-    points.push(`Bitcoin has spent ${p.frequencyPct}% of weeks in this configuration since ${p.windowFirst.slice(0, 7)}.`);
-  }
-  if (p.spellWeeks != null) {
-    points.push(`The current unbroken spell is ${p.spellWeeks} week${p.spellWeeks === 1 ? "" : "s"}.`);
-  }
-  if (p.lastSimilarDate) {
-    points.push(`The last similar week before this spell was ${p.lastSimilarDate}.`);
-  }
-  points.push(STANDING_CLOSE);
-  return points;
-}
-
-function frpHistoryCard(): CotwWhyCard {
+function frpCtaCard(): FrpCtaCard {
   return {
-    kind: "cotw_why",
-    kicker: "The record",
-    title: "How unusual is today?",
-    points: frpHistoryPoints(todaysConfigurationPack()),
+    kind: "frp_cta",
+    headline: "See the full framework.",
+    promises: [
+      "The configuration ribbon, week by week since 2022",
+      "Every gap, charted since 2016",
+      "What actually followed similar weeks",
+    ],
+    url: `${SITE_HOST}/four-reference-prices`,
   };
 }
 
