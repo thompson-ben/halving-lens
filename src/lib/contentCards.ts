@@ -23,7 +23,7 @@ import { accumulationRead, ACCUMULATION_BANDS } from "./accumulation";
 import { runAccumulationBacktest } from "./accumulationBacktest";
 import { SITE_HOST } from "./site";
 import { latestWeekly } from "./weekly";
-import { todaysConfigurationPack } from "./fourReferencePrices";
+import { todaysConfigurationPack, STANDING_CLOSE, type TodaysConfigurationPack } from "./fourReferencePrices";
 import { STORED_BRIEFS } from "./data/briefs";
 import type { StoredBrief } from "./brief";
 import { selectTopStory, type Story } from "./storyEngine";
@@ -194,7 +194,7 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   story_hero: { kicker: "Chart of the week", name: "Story hero" },
   frp_cover: { kicker: "Today's Configuration", name: "Configuration cover" },
   frp_prices: { kicker: "The Four Reference Prices", name: "The four prices" },
-  frp_history: { kicker: "How unusual is today?", name: "Historical context" },
+  frp_history: { kicker: "Four Reference Prices", name: "Historical context" },
 };
 
 export type Dir = "up" | "down" | "flat";
@@ -610,6 +610,8 @@ export interface WeekContextCard {
 // ── Chart of the Week assets ─────────────────────────────────────────────────
 export interface CotwWhyCard {
   kind: "cotw_why";
+  /** Internal eyebrow; defaults to "Why this chart" for Chart of the Week. */
+  kicker?: string;
   title: string;
   points: string[];
 }
@@ -2172,8 +2174,12 @@ function frpPricesCard(): WeekSnapshotCard {
   };
 }
 
-function frpHistoryCard(): CotwWhyCard {
-  const p = todaysConfigurationPack();
+// Pure and exported for the test-suite: the historical slide's bullet list.
+// The standing close comes from the engine's shared constant (never an
+// independently duplicated literal) and is present exactly when the pack is —
+// an unavailable pack yields no points at all, never a partial slide.
+export function frpHistoryPoints(p: TodaysConfigurationPack): string[] {
+  if (!p.available) return [];
   const points: string[] = [];
   if (p.frequencyPct != null && p.windowFirst) {
     points.push(`Bitcoin has spent ${p.frequencyPct}% of weeks in this configuration since ${p.windowFirst.slice(0, 7)}.`);
@@ -2184,8 +2190,17 @@ function frpHistoryCard(): CotwWhyCard {
   if (p.lastSimilarDate) {
     points.push(`The last similar week before this spell was ${p.lastSimilarDate}.`);
   }
-  points.push("Historical context, not a prediction.");
-  return { kind: "cotw_why", title: "How unusual is today?", points };
+  points.push(STANDING_CLOSE);
+  return points;
+}
+
+function frpHistoryCard(): CotwWhyCard {
+  return {
+    kind: "cotw_why",
+    kicker: "The record",
+    title: "How unusual is today?",
+    points: frpHistoryPoints(todaysConfigurationPack()),
+  };
 }
 
 // Cross-channel copy for the Four Reference Prices pack. Same careful framing
