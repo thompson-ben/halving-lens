@@ -19,6 +19,7 @@ import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { similarMoments } from "./similarity";
 import { editorialFeature, editionNumber, featureHeroNarrative } from "./editorial";
 import { latestFindings } from "./findings";
+import { frameworkToday } from "./fourReferencePrices";
 import { briefDate } from "./briefArchive";
 import { dailyChange } from "./dailyChange";
 import {
@@ -719,6 +720,17 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${healthRows}</table>
     ${moreLink("See every metric in full", "/metrics", "daily_market_health")}`;
 
+  // The Four Reference Prices — today's configuration by name (PR-D). One
+  // line, deterministic, straight from the framework engine.
+  const frp = frameworkToday();
+  const frpBlock = frp.configuration
+    ? `
+    ${eyebrow("The Four Reference Prices")}
+    <div style="font:500 20px/1.4 ${SERIF};color:${C.ink};">${esc(frp.configuration)}</div>
+    <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:6px;">Where Bitcoin trades against the trend, the holders and the miners — today&rsquo;s configuration, in one picture.</div>
+    ${moreLink("See today's configuration", "/four-reference-prices", "daily_four_reference_prices")}`
+    : "";
+
   const contextBlock = ctx
     ? `
     ${eyebrow("Today's Historical Context")}
@@ -798,6 +810,7 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
   if (pro) rows.push(section(oneThingCard, "24px 36px"));
   if (pro) rows.push(section(confidenceBlock, "24px 36px"));
   rows.push(section(marketHealthBlock, "24px 36px"));
+  if (frpBlock) rows.push(section(frpBlock, "24px 36px"));
   if (pro && ctx) rows.push(section(contextBlock, "24px 36px"));
   if (pro) rows.push(section(analystBlock, "24px 36px"));
   if (pro && watchBlock) rows.push(section(watchBlock, "24px 36px"));

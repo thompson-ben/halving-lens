@@ -265,7 +265,7 @@ function HistoricalSection() {
       {paths.length >= 3 && (
         <div className="card p-4 sm:p-6 mt-4 relative">
           <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-1">
-            What actually happened next
+            What actually happened next · {paths.length} historical precedents
           </div>
           <p className="text-[12px] text-ink-400 mb-3 max-w-2xl">
             The real price paths that followed each of the {paths.length} prior weeks sharing

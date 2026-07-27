@@ -103,22 +103,31 @@ export default function LearnPage() {
         </div>
       </section>
 
-      {/* Understanding Bitcoin Prices — the three reference prices, first.
+      {/* Bitcoin's Four Reference Prices — the house framework, first.
           A beginner should meet these before MVRV or NUPL. */}
       <section>
         <h2 className="font-display text-[22px] font-medium tracking-tight-2 text-ink-100 mb-2">
-          Understanding Bitcoin prices
+          Bitcoin&apos;s Four Reference Prices
         </h2>
         <p className="text-[13px] text-ink-300 max-w-2xl leading-relaxed mb-6">
-          HalvingLens reads the market against three reference prices. If you learn nothing else
-          on this page, learn these three.
+          HalvingLens reads the market against four reference prices — what traders pay, where the
+          trend sits, what holders paid, and what new supply costs to produce. If you learn nothing
+          else on this page, learn these four.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link href="/price" className="card card-interactive p-5 block">
             <div className="text-[13.5px] font-medium text-ink-100">Market Price</div>
             <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">
               What Bitcoin trades for today — the current exchange price you would pay or receive
               right now.
+            </p>
+          </Link>
+          <Link href="/price" className="card card-interactive p-5 block">
+            <div className="text-[13.5px] font-medium text-ink-100">200-Day Moving Average</div>
+            <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">
+              The average closing price over the previous 200 days — a slow line that shows the
+              long-term trend. Price above it has historically marked established uptrends; below
+              it, downtrends or early recoveries.
             </p>
           </Link>
           <Link href="/metrics/realized-price" className="card card-interactive p-5 block">
@@ -142,6 +151,13 @@ export default function LearnPage() {
             </p>
           </Link>
         </div>
+        <p className="mt-4 text-[13px] text-ink-300">
+          Together they form one picture — today&apos;s configuration, its history, and what followed
+          similar weeks:{" "}
+          <Link href="/four-reference-prices" className="text-accent">
+            explore the Four Reference Prices →
+          </Link>
+        </p>
       </section>
 
       <Glossary title="Cycle basics" terms={CYCLE_BASICS} />
