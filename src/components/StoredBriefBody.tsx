@@ -152,7 +152,10 @@ export function StoredBriefBody({ brief }: { brief: StoredBrief }) {
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-[11px] font-medium text-accent mb-1.5 uppercase tracking-[0.16em]">{title}</h3>
+      {/* h2, not h3: these blocks sit directly under the page h1, and the
+          former h3 produced an h1→h3 outline jump (caught by check-headings
+          when the representative archived brief rotated). Styling unchanged. */}
+      <h2 className="text-[11px] font-medium text-accent mb-1.5 uppercase tracking-[0.16em]">{title}</h2>
       <p className="text-[14px] text-ink-200 leading-relaxed">{children}</p>
     </div>
   );
