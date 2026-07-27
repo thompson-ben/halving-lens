@@ -7,13 +7,13 @@ import {
   sentimentInsight,
   cycleInsight,
 } from "@/lib/brief";
-import { frameworkToday } from "@/lib/fourReferencePrices";
 
 type Insight = { title: string; body: string; available: boolean; href: string };
 import { cycleSummary, HEAT_LABEL } from "@/lib/cycleSummary";
 import { dailyChange, type MetricDelta, type DailyChange } from "@/lib/dailyChange";
 import { ContentPack } from "@/components/ContentPack";
 import { BriefSignup } from "@/components/BriefSignup";
+import { TodaysConfigurationCard } from "@/components/TodaysConfigurationCard";
 import { DataBadge } from "@/components/DataBadge";
 import { SnapshotStrip } from "@/components/SnapshotStrip";
 import { TodayVsPriorCycles } from "@/components/TodayVsPriorCycles";
@@ -39,7 +39,6 @@ const WATCH_TONE: Record<string, string> = {
 export function BriefBody({ dateLabel }: { dateLabel?: string }) {
   const b = buildBrief();
   const s = cycleSummary();
-  const frp = frameworkToday();
   const change = dailyChange();
   const packChanges = change.changed.map((d) => ({ area: d.label, summary: `${d.label}: ${d.changeLabel ?? ""}`.trim() }));
   const pack = contentPack(packChanges.length ? packChanges : undefined);
@@ -64,21 +63,10 @@ export function BriefBody({ dateLabel }: { dateLabel?: string }) {
 
       {!dateLabel && <SnapshotStrip title="What changed — today & this week" />}
 
-      {/* Today's configuration — the Four Reference Prices in one line (PR-D). */}
-      {!dateLabel && frp?.configuration && (
-        <Link
-          href="/four-reference-prices"
-          className="card card-interactive px-5 py-4 flex items-center justify-between gap-4 group"
-        >
-          <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-ink-500">
-              Today&apos;s configuration · Four Reference Prices
-            </div>
-            <div className="mt-1 text-[14.5px] text-ink-100 leading-snug">{frp.configuration}</div>
-          </div>
-          <ArrowUpRight size={16} className="text-accent shrink-0 group-hover:translate-x-0.5 transition-transform" />
-        </Link>
-      )}
+      {/* Today's Configuration — the Four Reference Prices content pack.
+          Replaces the earlier one-line card; the brief carries exactly one
+          FRP surface, and the pack CTA hands off to the framework page. */}
+      {!dateLabel && <TodaysConfigurationCard />}
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
         <Stat label="BTC price" value={fmtUsd(s.price)} />

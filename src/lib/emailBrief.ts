@@ -19,7 +19,7 @@ import { sentimentRead, SENTIMENT_AVAILABLE } from "./sentiment";
 import { similarMoments } from "./similarity";
 import { editorialFeature, editionNumber, featureHeroNarrative } from "./editorial";
 import { latestFindings } from "./findings";
-import { frameworkToday } from "./fourReferencePrices";
+import { todaysConfigurationPack } from "./fourReferencePrices";
 import { briefDate } from "./briefArchive";
 import { dailyChange } from "./dailyChange";
 import {
@@ -722,13 +722,16 @@ export function dailyEmailHtml(unsubUrl: string, tier: EmailTier = "pro", tracki
 
   // The Four Reference Prices — today's configuration by name (PR-D). One
   // line, deterministic, straight from the framework engine.
-  const frp = frameworkToday();
-  const frpBlock = frp.configuration
+  // Today's Configuration content pack, email form — the same deterministic
+  // read as the site card (todaysConfigurationPack), so site and email can
+  // never tell different stories.
+  const frp = todaysConfigurationPack();
+  const frpBlock = frp.available
     ? `
-    ${eyebrow("The Four Reference Prices")}
-    <div style="font:500 20px/1.4 ${SERIF};color:${C.ink};">${esc(frp.configuration)}</div>
-    <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:6px;">Where Bitcoin trades against the trend, the holders and the miners — today&rsquo;s configuration, in one picture.</div>
-    ${moreLink("See today's configuration", "/four-reference-prices", "daily_four_reference_prices")}`
+    ${eyebrow("Today's Configuration")}
+    <div style="font:500 20px/1.4 ${SERIF};color:${C.ink};">${esc(frp.configuration ?? "")}</div>
+    ${frp.paragraph ? `<div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:8px;">${esc(frp.paragraph)}</div>` : ""}
+    ${moreLink("Explore the full Four Reference Prices framework", "/four-reference-prices", "daily_four_reference_prices")}`
     : "";
 
   const contextBlock = ctx
