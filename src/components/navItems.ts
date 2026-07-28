@@ -4,6 +4,7 @@ import {
   BookMarked,
   BookOpen,
   Boxes,
+  Compass,
   FlaskConical,
   Gauge,
   HeartPulse,
@@ -80,6 +81,7 @@ const RESEARCH: readonly NavLink[] = [
 
 // Real, data-backed extra pages.
 export const EXPLORE: readonly NavLink[] = [
+  { href: "/start-here", label: "Start Here", icon: Compass },
   { href: "/price", label: "Bitcoin price", icon: LineChart },
   { href: "/halving", label: "Next halving", icon: Hourglass },
   { href: "/miners", label: "Miners", icon: Pickaxe },

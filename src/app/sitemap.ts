@@ -36,6 +36,7 @@ const STATIC_PATHS = [
   "/replay",
   "/metrics",
   "/learn",
+  "/start-here",
   "/about",
   "/methodology",
   "/privacy",
@@ -61,7 +62,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const snapshotAt = SOURCE.fetchedAt ? new Date(SOURCE.fetchedAt) : undefined;
 
   // Bump only when these pages' content actually changes.
-  const EVERGREEN = new Set(["/about", "/methodology", "/privacy", "/terms", "/learn", "/halving"]);
+  const EVERGREEN = new Set(["/about", "/methodology", "/privacy", "/terms", "/learn", "/halving", "/start-here"]);
   const evergreenLastMod = new Date("2026-07-21");
 
   const lastMod = (d: Date | undefined) => (d ? { lastModified: d } : {});
