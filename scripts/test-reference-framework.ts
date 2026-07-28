@@ -252,5 +252,19 @@ for (const tier of ["full", "trend-miners", "trend-only"] as const) {
   assert(!routeSrc.includes('packParam === "historical"'), "the hand-written pack ladder is gone");
 }
 
+// ── /free trust moment — the conversion-landing pack consumer (PR151) ────────
+// The strip must consume the pack unchanged, stay linkless (no leave-the-site
+// route pre-signup), and single-source the standing close.
+{
+  const stripSrc = readFileSync("src/components/TodaysConfigurationStrip.tsx", "utf8");
+  assert(stripSrc.includes("todaysConfigurationPack"), "the strip reads the first-class pack, not the engine directly");
+  assert(stripSrc.includes("STANDING_CLOSE") && !stripSrc.includes("Historical context, not a prediction"), "the standing close is the shared constant, never a duplicated literal");
+  assert(!/href=|<Link|TrackedLink|<a[\s>]/.test(stripSrc), "the strip is linkless — /free keeps no route away before signup");
+  assert(stripSrc.includes("return null"), "an unavailable pack renders nothing (no apology states on a landing page)");
+  const freeSrc = readFileSync("src/app/free/page.tsx", "utf8");
+  assert(freeSrc.includes("TodaysConfigurationStrip"), "/free renders the trust moment");
+  assert(freeSrc.indexOf("TodaysConfigurationStrip />") < freeSrc.indexOf('id="preview"'), "the trust moment sits above the sample brief");
+}
+
 console.log(failures === 0 ? "\nAll reference-framework tests passed." : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
