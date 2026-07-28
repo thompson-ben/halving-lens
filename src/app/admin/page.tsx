@@ -28,6 +28,7 @@ const SECTIONS: AdminSection[] = [
     title: "Growth",
     emoji: "📈",
     items: [
+      { label: "Founder Intelligence", href: "/admin/founder" },
       { label: "Growth Dashboard", href: "/admin/growth" },
       { label: "Lifecycle Analytics", href: "/admin/lifecycle" },
       { label: "Share campaigns", href: "/admin/campaigns" },
