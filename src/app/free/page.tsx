@@ -160,7 +160,14 @@ export default function FreePage() {
         <div className="mt-6 flex justify-center">
           <LandingCta href="#signup" label="final_primary" source="/free">Get my free brief</LandingCta>
         </div>
-        <p className="mt-8 text-[11px] text-ink-500">Historical context. Not prediction. No price targets. Not financial advice.</p>
+        {/* The beginner exit (audit R8) — a retained learner beats a bounce.
+            Below the final CTA so it never competes with the primary action. */}
+        <p className="mt-8 text-[12.5px] text-ink-400">
+          New to Bitcoin?{" "}
+          <Link href="/start-here" className="text-accent">Start here</Link> — a calm introduction, no
+          jargon.
+        </p>
+        <p className="mt-6 text-[11px] text-ink-500">Historical context. Not prediction. No price targets. Not financial advice.</p>
       </section>
     </div>
   );
