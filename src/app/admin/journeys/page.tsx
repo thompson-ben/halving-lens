@@ -632,6 +632,14 @@ const OPP_STYLE: Record<GrowthOpportunity["level"], { dot: string; label: string
   medium: { dot: "#f5b942", label: "Medium impact" },
   healthy: { dot: "#3ddc97", label: "Healthy" },
 };
+// Recommendation lifecycle (PR150) — the dashboard recognises shipped work:
+// implemented journeys aren't re-recommended, they're evaluated.
+const LIFECYCLE_STYLE: Record<GrowthOpportunity["lifecycle"], { color: string; label: string }> = {
+  not_implemented: { color: "#6f7c8e", label: "Not implemented" },
+  collecting: { color: "#f5b942", label: "Implemented · collecting evidence" },
+  monitoring: { color: "#5eead4", label: "Monitoring effectiveness" },
+};
+
 function Opportunities({ items }: { items: GrowthOpportunity[] }) {
   if (!items.length) return <Empty>No clear optimisation opportunities right now — or not enough data yet to model impact.</Empty>;
   return (
@@ -657,6 +665,15 @@ function Opportunities({ items }: { items: GrowthOpportunity[] }) {
             <p className="mt-1.5 text-[12.5px] text-ink-200 leading-relaxed">
               <span className="text-ink-500">Recommendation: </span>{o.recommendation}
             </p>
+            <div className="mt-2 flex items-start gap-2">
+              <span
+                className="shrink-0 text-[9.5px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full border"
+                style={{ color: LIFECYCLE_STYLE[o.lifecycle].color, borderColor: `${LIFECYCLE_STYLE[o.lifecycle].color}44` }}
+              >
+                {LIFECYCLE_STYLE[o.lifecycle].label}
+              </span>
+              <span className="text-[11px] text-ink-500 leading-relaxed">{o.lifecycleNote}</span>
+            </div>
           </div>
         );
       })}

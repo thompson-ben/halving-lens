@@ -63,6 +63,12 @@ jobs:
       - name: Reference-framework tests
         run: npm run test-reference-framework
 
+      # Growth-opportunity engine — flagship registry completeness, dynamic
+      # recommendation copy, journey-aware lifecycle states, and the
+      # unchanged impact model.
+      - name: Growth-opportunity tests
+        run: npm run test-growth-opportunities
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
