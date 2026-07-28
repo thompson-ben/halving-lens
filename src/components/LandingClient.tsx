@@ -64,6 +64,10 @@ export function LandingHero({
 // + the email field itself (no scroll-to-find), honest reassurance, and a
 // stay-on-page "see a sample" anchor instead of a leave-the-site secondary CTA
 // (P1.1/P1.3/P1.4). Fires landing_view so /free's funnel is measured separately.
+// Mobile vertical rhythm is deliberately tight so the email field AND button
+// clear the effective fold on small phones (measured down to 360x640 with
+// browser chrome); delivery expectations live in the reassurance row below the
+// form rather than above it.
 export function FreeHero({ previewHref = "#preview" }: { previewHref?: string }) {
   const fired = useRef(false);
   useEffect(() => {
@@ -73,26 +77,29 @@ export function FreeHero({ previewHref = "#preview" }: { previewHref?: string })
   }, []);
 
   return (
-    <section className="pt-6 max-w-2xl mx-auto text-center">
-      <div className="text-[10.5px] uppercase tracking-[0.24em] mb-5" style={{ color: GOLD }}>Free · daily Bitcoin research</div>
-      <h1 className="font-display text-[38px] sm:text-[56px] font-medium tracking-tightest text-ink-50 leading-[1.04]">
+    <section className="pt-2 sm:pt-6 max-w-2xl mx-auto text-center">
+      <div className="text-[10.5px] uppercase tracking-[0.24em] mb-3 sm:mb-5" style={{ color: GOLD }}>Free · daily Bitcoin research</div>
+      <h1 className="font-display text-[34px] sm:text-[56px] font-medium tracking-tightest text-ink-50 leading-[1.04]">
         Know where Bitcoin sits in its cycle.
       </h1>
-      <p className="mt-5 text-[15px] sm:text-[17px] text-ink-300 leading-relaxed max-w-xl mx-auto">
+      <p className="mt-4 sm:mt-5 text-[15px] sm:text-[17px] text-ink-300 leading-relaxed max-w-xl mx-auto">
         Get one clear Bitcoin cycle update each morning — what changed, what history shows, and what to watch
         next. Free, evidence-led, and written without hype or predictions.
       </p>
-      <p className="mt-3 text-[12.5px] text-ink-500">Delivered around 8am UK. Read in under 60 seconds.</p>
 
-      <div className="mt-7 flex justify-center">
+      <div className="mt-5 sm:mt-7 flex justify-center">
         <StartSignup source="/free" buttonLabel="Get today’s free brief" />
       </div>
 
-      {/* Honest reassurance — no urgency, no inflated claims */}
+      {/* Honest reassurance + delivery expectations — no urgency, no inflated claims */}
       <div className="mt-4 flex items-center justify-center gap-x-3 gap-y-1.5 flex-wrap text-[11px] text-ink-400">
         <span>Free forever</span>
         <span aria-hidden>·</span>
         <span>No hype or predictions</span>
+        <span aria-hidden>·</span>
+        <span>Arrives ~8am UK</span>
+        <span aria-hidden>·</span>
+        <span>60-second read</span>
         <span aria-hidden>·</span>
         <span>Unsubscribe anytime</span>
         <span aria-hidden>·</span>
