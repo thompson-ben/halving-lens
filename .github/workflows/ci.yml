@@ -69,6 +69,11 @@ jobs:
       - name: Growth-opportunity tests
         run: npm run test-growth-opportunities
 
+      # /free ad-congruent headlines — allowlist-only resolution, house
+      # register (no banned vocabulary, hype or urgency), single-sourced copy.
+      - name: Free-headline tests
+        run: npm run test-free-headlines
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
