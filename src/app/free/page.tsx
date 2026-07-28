@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { FreeHero, LandingCta, StartSignup } from "@/components/LandingClient";
 import { DailyBriefPreview } from "@/components/DailyBriefPreview";
+import { TodaysConfigurationStrip } from "@/components/TodaysConfigurationStrip";
 import { SocialProof } from "@/components/SocialProof";
 import { Testimonials } from "@/components/Testimonials";
 import { editionContent } from "@/lib/emailBrief";
@@ -33,6 +34,10 @@ export default function FreePage() {
   return (
     <div className="space-y-20 sm:space-y-24">
       <FreeHero previewHref="#preview" />
+
+      {/* Live proof before promises: today's configuration, computed — the
+          deterministic trust moment (linkless: no route away pre-signup). */}
+      <TodaysConfigurationStrip />
 
       {/* The actual product — a live example of tomorrow's brief */}
       <section id="preview" className="scroll-mt-24">
