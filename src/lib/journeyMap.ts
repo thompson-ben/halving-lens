@@ -50,6 +50,15 @@ export const JOURNEY_MAP = {
       { href: "/learn", label: "Learn — the concepts behind the metrics" },
     ],
   },
+  "/start-here": {
+    bridge:
+      "You've read the story — and met the four reference points behind today's configuration. See the full framework they come from.",
+    primary: { href: "/four-reference-prices", title: "Four Reference Prices" },
+    secondary: [
+      { href: "/learn", label: "Learn — every term, defined in plain English" },
+      { href: "/state-of-bitcoin", label: "The State of Bitcoin — the full weekly read" },
+    ],
+  },
   "/price": {
     bridge:
       "You know where the price sits against its reference prices. What does that level mean in the wider weekly picture?",

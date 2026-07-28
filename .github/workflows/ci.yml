@@ -74,6 +74,12 @@ jobs:
       - name: Free-headline tests
         run: npm run test-free-headlines
 
+      # Start Here narrative — seven-chapter structure, approved hero, the
+      # bridge ladder (configuration → framework → signup), register and
+      # integration (journey map, nav, sitemap, analytics labels).
+      - name: Start-here tests
+        run: npm run test-start-here
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
