@@ -35,7 +35,8 @@
     "test-analytics-events": "tsx scripts/test-analytics-events.ts",
     "test-observed-archive": "tsx scripts/test-observed-archive.ts",
     "test-observed-windows": "tsx scripts/test-observed-windows.ts",
-    "test-reference-framework": "tsx scripts/test-reference-framework.ts"
+    "test-reference-framework": "tsx scripts/test-reference-framework.ts",
+    "test-growth-opportunities": "tsx scripts/test-growth-opportunities.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

@@ -23,6 +23,7 @@
 //     browse back to an earlier signup, so it too fills in as data accrues.
 
 import { sbSelect, supabaseConfigured } from "./supabase";
+import { JOURNEY_MAP } from "./journeyMap";
 
 // The moment Phase 1 instrumentation (visitor id + entry referrer/UTM) went live
 // on main (PR #97 merge, 20 Jul 2026). Widgets that need the new signals date
@@ -47,6 +48,9 @@ const PAGE_LABEL: Record<string, string> = {
   "/market-health": "Market Health",
   "/etf": "ETF Flows",
   "/hodl-waves": "HODL Waves",
+  "/similar-moments": "Similar Moments",
+  "/four-reference-prices": "Four Reference Prices",
+  "/cycles": "Cycle Comparison",
 };
 
 export function prettyPath(path: string): string {
@@ -62,8 +66,59 @@ export const FLAGSHIP_PAGES: string[] = [
   "/accumulation",
   "/historical-price-paths",
   "/similar-moments",
+  "/four-reference-prices",
 ];
 const FLAGSHIP_SET = new Set(FLAGSHIP_PAGES);
+
+// The flagship destinations as a human-readable list, generated from the
+// registry — recommendation copy names every flagship dynamically, so adding
+// a flagship page updates the advice everywhere at once.
+export function flagshipDestinationsLabel(): string {
+  const names = FLAGSHIP_PAGES.map(prettyPath);
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
+}
+
+// ── Recommendation lifecycle ─────────────────────────────────────────────────
+// The dashboard recognises work that has already shipped: a page with a
+// Continue-your-journey placement (journeyMap is the source of truth) is no
+// longer told to "add links" — instead its journey's EFFECTIVENESS is
+// evaluated from the recorded journey_next_impression/click events, and the
+// lifecycle state explains when more behavioural data is needed.
+export type OppLifecycle = "not_implemented" | "collecting" | "monitoring";
+export const JOURNEY_MIN_IMPRESSIONS = 50;
+
+export function opportunityLifecycle(path: string, journeyImpressions: number): OppLifecycle {
+  if (!(path in JOURNEY_MAP)) return "not_implemented";
+  return journeyImpressions >= JOURNEY_MIN_IMPRESSIONS ? "monitoring" : "collecting";
+}
+
+export function recommendationFor(args: {
+  path: string;
+  lifecycle: OppLifecycle;
+  lowOnward: boolean;
+  subRatePct: number;
+  impressions: number;
+  clicks: number;
+}): string {
+  const label = prettyPath(args.path);
+  if (args.lifecycle === "not_implemented") {
+    return args.lowOnward
+      ? `Strengthen the CTA on ${label} and add clear links into a flagship page (${flagshipDestinationsLabel()}).`
+      : `Visitors explore from ${label} but rarely subscribe (${args.subRatePct}%) — add a subscribe prompt once they've seen a flagship page.`;
+  }
+  if (args.lifecycle === "collecting") {
+    return `Continue your journey is live on ${label} — hold further changes until ~${JOURNEY_MIN_IMPRESSIONS} journey impressions accrue, then judge its effect here.`;
+  }
+  const ctr = args.impressions > 0 ? Math.round((args.clicks / args.impressions) * 100) : 0;
+  if (ctr < 4) {
+    return `Journey links are live on ${label} but rarely followed (${ctr}% of ${args.impressions.toLocaleString()} impressions) — revisit the bridge copy or the primary destination.`;
+  }
+  if (args.subRatePct < 1) {
+    return `The journey on ${label} works (${ctr}% follow a hand-off) — the remaining gap is conversion: add or strengthen the subscribe prompt.`;
+  }
+  return `The journey on ${label} is performing (${ctr}% follow-through) — monitor, and replicate the pattern on weaker pages.`;
+}
 
 // Confidence gates every recommendation on SAMPLE SIZE, not just percentage — so
 // "100% from 2 journeys" reads low while "100% from 48" reads high. One threshold
@@ -216,6 +271,10 @@ export interface GrowthOpportunity {
   evidence: string;
   recommendation: string;
   confidence: Confidence;
+  /** Whether the shipped journey system already covers this page, and how
+   *  far along the evidence is (PR150 — recommendation lifecycle). */
+  lifecycle: OppLifecycle;
+  lifecycleNote: string;
 }
 
 // A composite page-health score — "which pages are healthy, which need work?".
@@ -328,9 +387,15 @@ interface SignupRow {
   props: Record<string, unknown> | null;
 }
 
+export interface JourneyEventRow {
+  name: string; // journey_next_impression | journey_next_click
+  props: Record<string, unknown> | null; // { from, to?, position? }
+}
+
 export interface JourneyInput {
   pageViews: EventRow[];
   signups: SignupRow[];
+  journeyEvents?: JourneyEventRow[];
 }
 
 const pct = (num: number, den: number): number | null => (den > 0 ? Math.round((num / den) * 1000) / 10 : null);
@@ -381,14 +446,20 @@ interface Session {
 
 export async function journeyAnalytics(): Promise<JourneyAnalytics> {
   if (!supabaseConfigured) return emptyJourneys();
-  const [pv, su] = await Promise.all([
+  const [pv, su, jn] = await Promise.all([
     sbSelect<EventRow[]>(
       "events?select=path,session_id,is_new,created_at,props&name=eq.page_view&order=created_at.desc&limit=50000",
     ),
     sbSelect<SignupRow[]>("events?select=session_id,path,created_at,props&name=eq.signup&limit=20000"),
+    // Journey effectiveness (PR150): impressions + clicks of the Continue-your-
+    // journey placements, keyed by props.from. Fail-open — an absent stream
+    // simply leaves every implemented journey in the "collecting" state.
+    sbSelect<JourneyEventRow[]>(
+      "events?select=name,props&name=in.(journey_next_impression,journey_next_click)&limit=20000",
+    ),
   ]);
   if (pv == null) return emptyJourneys();
-  return computeJourneys({ pageViews: pv ?? [], signups: su ?? [] }, Date.now());
+  return computeJourneys({ pageViews: pv ?? [], signups: su ?? [], journeyEvents: jn ?? [] }, Date.now());
 }
 
 function emptyJourneys(): JourneyAnalytics {
@@ -872,22 +943,49 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
     .filter((o) => o.lost >= 5 && o.est > 0)
     .sort((a, b) => b.est - a.est);
 
+  // Journey effectiveness per placement page (from journey_next events; the
+  // props.from of a placement is its page path). Fail-open: no events means
+  // every implemented journey reads as "collecting".
+  const journeyAgg = new Map<string, { impressions: number; clicks: number }>();
+  for (const ev of input.journeyEvents ?? []) {
+    const from = typeof ev.props?.from === "string" ? ev.props.from : null;
+    if (!from) continue;
+    const agg = journeyAgg.get(from) ?? { impressions: 0, clicks: 0 };
+    if (ev.name === "journey_next_impression") agg.impressions++;
+    else if (ev.name === "journey_next_click") agg.clicks++;
+    journeyAgg.set(from, agg);
+  }
+  const lifecycleNoteFor = (lifecycle: OppLifecycle, j: { impressions: number; clicks: number }): string => {
+    if (lifecycle === "not_implemented") return "Not implemented — no Continue-your-journey placement on this page yet.";
+    if (lifecycle === "collecting")
+      return `Implemented — collecting evidence (${j.impressions.toLocaleString()} journey impression${j.impressions === 1 ? "" : "s"} so far; recommendations update as behavioural data accrues).`;
+    const ctr = j.impressions > 0 ? Math.round((j.clicks / j.impressions) * 100) : 0;
+    return `Monitoring effectiveness — ${ctr}% of ${j.impressions.toLocaleString()} journey impressions follow a hand-off.`;
+  };
+
   const topEst = leaky[0]?.est ?? 0;
   const opportunities: GrowthOpportunity[] = leaky.slice(0, 5).map((o) => {
     const leavePct = Math.round(100 - o.onward);
     const subRate = pageSubRate(o.path) ?? 0;
-    const lowOnward = o.onward < 40;
-    const recommendation = lowOnward
-      ? `Strengthen the CTA on ${prettyPath(o.path)} and add clear links into a flagship page (State of Bitcoin or Accumulation Index).`
-      : `Visitors explore from ${prettyPath(o.path)} but rarely subscribe (${subRate}%) — add a subscribe prompt once they've seen a flagship page.`;
+    const j = journeyAgg.get(o.path) ?? { impressions: 0, clicks: 0 };
+    const lifecycle = opportunityLifecycle(o.path, j.impressions);
     return {
       path: o.path,
       label: prettyPath(o.path),
       level: (o.est >= Math.max(3, 0.5 * topEst) ? "high" : "medium") as OppLevel,
       estSubsPerMonth: o.est,
       evidence: `${leavePct}% leave ${prettyPath(o.path)} without another page — about ${Math.round(o.monthlyLost).toLocaleString()} lost visitors/month.`,
-      recommendation,
+      recommendation: recommendationFor({
+        path: o.path,
+        lifecycle,
+        lowOnward: o.onward < 40,
+        subRatePct: subRate,
+        impressions: j.impressions,
+        clicks: j.clicks,
+      }),
       confidence: confidenceFromSample(o.exits),
+      lifecycle,
+      lifecycleNote: lifecycleNoteFor(lifecycle, j),
     };
   });
   // A healthy callout so the backlog isn't only problems — the best-scoring page.
@@ -901,6 +999,11 @@ export function computeJourneys(input: JourneyInput, now: number): JourneyAnalyt
       evidence: `Health ${healthyPage.score}/100 · ${healthyPage.onwardPct ?? 0}% navigate onward, ${healthyPage.subscribeRatePct ?? 0}% subscribe.`,
       recommendation: "Healthy — no action required. Study what works here and replicate it on weaker pages.",
       confidence: healthyPage.confidence,
+      lifecycle: opportunityLifecycle(healthyPage.path, journeyAgg.get(healthyPage.path)?.impressions ?? 0),
+      lifecycleNote: lifecycleNoteFor(
+        opportunityLifecycle(healthyPage.path, journeyAgg.get(healthyPage.path)?.impressions ?? 0),
+        journeyAgg.get(healthyPage.path) ?? { impressions: 0, clicks: 0 },
+      ),
     });
 
   // ── Wins — celebrate (and replicate) what's working ─────────────────────────
