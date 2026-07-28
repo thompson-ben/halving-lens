@@ -7,7 +7,7 @@ import { SocialProof } from "@/components/SocialProof";
 import { Testimonials } from "@/components/Testimonials";
 import { editionContent } from "@/lib/emailBrief";
 import { libraryStats } from "@/lib/research";
-import { FOUNDING_MEMBER_LIMIT, FOUNDING_MEMBER_BENEFITS } from "@/lib/entitlements";
+import { FOUNDING_MEMBER_LIMIT } from "@/lib/entitlements";
 
 // /free — the paid-acquisition (Meta) landing. Conversion-first: capture is
 // above the fold (FreeHero), the actual daily brief is shown (DailyBriefPreview),
@@ -100,29 +100,6 @@ export default function FreePage() {
       {/* Reader testimonials — renders only once approved ones exist */}
       <Testimonials />
 
-      {/* Founding Members — honest programme, no fake scarcity, no live count */}
-      <section className="card-glow p-6 sm:p-8">
-        <div className="text-[10.5px] uppercase tracking-[0.22em] mb-3" style={{ color: GOLD }}>Founding Members</div>
-        <h2 className="font-display text-[22px] sm:text-[28px] font-medium tracking-tight-2 text-ink-50 leading-snug">
-          Join the first {FOUNDING_MEMBER_LIMIT.toLocaleString()} HalvingLens Founding Members.
-        </h2>
-        <p className="mt-3 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">
-          The first {FOUNDING_MEMBER_LIMIT.toLocaleString()} members to subscribe and create a free investor profile
-          become Founding Members — permanent status, recognised in the{" "}
-          <Link href="/founders" className="text-accent">Hall of Founders</Link>.
-        </p>
-        <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 max-w-2xl">
-          {FOUNDING_MEMBER_BENEFITS.slice(0, 4).map((b) => (
-            <li key={b} className="flex items-center gap-2 text-[12.5px] text-ink-300">
-              <Check size={13} className="text-accent shrink-0" strokeWidth={2.4} /> {b}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-5">
-          <LandingCta href="#signup" label="founding_primary" source="/free">Claim your place — free</LandingCta>
-        </div>
-      </section>
-
       {/* Email capture */}
       <section id="signup" className="card-glow p-7 sm:p-10 text-center scroll-mt-24">
         <h2 className="font-display text-[26px] sm:text-[34px] font-medium tracking-tight-2 text-ink-50 leading-tight">
@@ -137,6 +114,13 @@ export default function FreePage() {
         <div className="mt-4 flex justify-center">
           <SocialProof />
         </div>
+        {/* Founding Members — one honest line, one offer, one action (no
+            competing CTA; the same signup earns the place). */}
+        <p className="mt-4 text-[12px] text-ink-400 max-w-lg mx-auto leading-relaxed">
+          Subscribing now also reserves your place among the first{" "}
+          {FOUNDING_MEMBER_LIMIT.toLocaleString()} Founding Members — permanent status, recognised in the{" "}
+          <Link href="/founders" className="text-accent">Hall of Founders</Link>.
+        </p>
         <p className="mt-3 text-[11px] text-ink-500">
           100% free · No hype or predictions · Unsubscribe anytime ·{" "}
           <Link href="/privacy" className="underline decoration-white/20 underline-offset-2 hover:text-ink-300">Privacy</Link>
