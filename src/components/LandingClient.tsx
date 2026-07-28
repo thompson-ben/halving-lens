@@ -7,6 +7,7 @@ import { getAttribution } from "@/lib/attribution";
 import { assignVariant, getVariant } from "@/lib/experiments";
 import { fireLead } from "@/lib/marketing";
 import { decideFromResponse, type SubscribeResponseBody, type UiState } from "@/lib/subscription";
+import { DEFAULT_FREE_HEADLINE, resolveFreeHeadline, type FreeHeadline } from "@/lib/freeHeadlines";
 import { SignupConfirmation } from "./SignupConfirmation";
 
 const GOLD = "#d9b96a";
@@ -68,23 +69,31 @@ export function LandingHero({
 // clear the effective fold on small phones (measured down to 360x640 with
 // browser chrome); delivery expectations live in the reassurance row below the
 // form rather than above it.
+// Message match: the CURRENT visit's utm_content (the ad just clicked — not
+// first-touch attribution, which can be an older ad) resolves against the
+// allowlisted headline map so the hero repeats the clicked ad's promise; the
+// resolved key rides on landing_view for per-creative measurement.
 export function FreeHero({ previewHref = "#preview" }: { previewHref?: string }) {
+  const [copy, setCopy] = useState<FreeHeadline>(DEFAULT_FREE_HEADLINE);
   const fired = useRef(false);
   useEffect(() => {
-    if (fired.current) return;
-    fired.current = true;
-    track("landing_view", { variant: "free", source: "/free", ...getAttribution() });
+    const utmContent = new URLSearchParams(window.location.search).get("utm_content");
+    const resolved = resolveFreeHeadline(utmContent);
+    setCopy(resolved.copy);
+    if (!fired.current) {
+      fired.current = true;
+      track("landing_view", { variant: "free", source: "/free", headline: resolved.key, ...getAttribution() });
+    }
   }, []);
 
   return (
     <section className="pt-2 sm:pt-6 max-w-2xl mx-auto text-center">
       <div className="text-[10.5px] uppercase tracking-[0.24em] mb-3 sm:mb-5" style={{ color: GOLD }}>Free · daily Bitcoin research</div>
       <h1 className="font-display text-[34px] sm:text-[56px] font-medium tracking-tightest text-ink-50 leading-[1.04]">
-        Know where Bitcoin sits in its cycle.
+        {copy.headline}
       </h1>
       <p className="mt-4 sm:mt-5 text-[15px] sm:text-[17px] text-ink-300 leading-relaxed max-w-xl mx-auto">
-        Get one clear Bitcoin cycle update each morning — what changed, what history shows, and what to watch
-        next. Free, evidence-led, and written without hype or predictions.
+        {copy.sub ?? DEFAULT_FREE_HEADLINE.sub}
       </p>
 
       <div className="mt-5 sm:mt-7 flex justify-center">
