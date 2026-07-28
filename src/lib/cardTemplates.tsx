@@ -57,6 +57,7 @@ import type {
   WhatNextCard,
   FrpStatementCard,
   FrpScaleCard,
+  FrpChartCard,
   FrpRarityCard,
   FrpCtaCard,
 } from "./contentCards";
@@ -647,6 +648,56 @@ function FrpScale({ c }: { c: FrpScaleCard }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// CHART LEAD: the last month of all four prices, then today's gap to each
+// reference. One headline stat, one chart, one stat row — nothing to read.
+function FrpChart({ c }: { c: FrpChartCard }) {
+  if (!c.lines.length) {
+    return (
+      <div style={{ display: "flex", flex: 1, alignItems: "center", fontSize: 40, color: T.inkDim }}>
+        The month view hasn&rsquo;t synced — withheld rather than shown stale.
+      </div>
+    );
+  }
+  const upColor = c.changePct != null && c.changePct < 0 ? T.red : T.green;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+      {c.changePct != null && (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 18, marginBottom: 30 }}>
+          {/* Inter, not Fraunces: the display-serif subset has no clean "+" glyph */}
+          <div style={{ display: "flex", fontSize: 54, fontWeight: 700, color: upColor }}>
+            {`${c.changePct >= 0 ? "+" : "−"}${Math.abs(c.changePct).toFixed(1)}%`}
+          </div>
+          <div style={{ display: "flex", fontSize: 30, color: T.inkDim }}>over the last month</div>
+        </div>
+      )}
+      <Chart lines={c.lines} yTicks={[{ label: "", frac: 0.25 }, { label: "", frac: 0.5 }, { label: "", frac: 0.75 }]} width={888} height={560} />
+      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginTop: 18 }}>
+        {c.lines.map((l) => (
+          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", width: 22, height: 4, borderRadius: 2, background: l.color }} />
+            <div style={{ display: "flex", fontSize: 19, letterSpacing: 1.5, color: T.inkFaint, textTransform: "uppercase" }}>
+              {l.label}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", marginTop: 44, borderTop: `1px solid ${T.hairline}`, paddingTop: 30, gap: 0 }}>
+        {c.gaps.map((g, i) => (
+          <div key={g.label} style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, ...(i > 0 ? { borderLeft: `1px solid ${T.hairline}`, paddingLeft: 34 } : {}) }}>
+            <div style={{ display: "flex", fontSize: 21, letterSpacing: 2.5, color: T.inkFaint, textTransform: "uppercase" }}>{g.label}</div>
+            <div style={{ display: "flex", fontSize: 44, fontWeight: 700, color: g.pct >= 0 ? T.green : T.red }}>
+              {`${g.pct >= 0 ? "+" : "−"}${Math.abs(g.pct).toFixed(1)}%`}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", marginTop: 22, fontSize: 20, color: T.inkFaint }}>
+        {`${c.rangeLabel ? `Range ${c.rangeLabel} · ` : ""}${c.estimatedInChart ? "Est. Mining Cost is a modelled estimate. " : ""}Historical context, not a prediction.`}
+      </div>
     </div>
   );
 }
@@ -1748,6 +1799,8 @@ export function renderCard(card: Card): React.ReactElement {
         return <FrpStatement c={card.body} />;
       case "frp_scale":
         return <FrpScale c={card.body} />;
+      case "frp_chart":
+        return <FrpChart c={card.body} />;
       case "frp_rarity":
         return <FrpRarity c={card.body} />;
       case "frp_cta":

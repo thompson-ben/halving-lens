@@ -24,6 +24,7 @@ import { runAccumulationBacktest } from "./accumulationBacktest";
 import { SITE_HOST } from "./site";
 import { latestWeekly } from "./weekly";
 import { todaysConfigurationPack, STANDING_CLOSE, type TodaysConfigurationPack, type PackRow } from "./fourReferencePrices";
+import { contextSeries } from "./priceContext";
 import { STORED_BRIEFS } from "./data/briefs";
 import type { StoredBrief } from "./brief";
 import { selectTopStory, type Story } from "./storyEngine";
@@ -126,6 +127,7 @@ export type CardId =
   // deterministic pack read as every other framework surface
   | "frp_cover"
   | "frp_prices"
+  | "frp_chart"
   | "frp_history"
   | "frp_cta";
 
@@ -196,6 +198,7 @@ export const CARD_LABELS: Record<CardId, { kicker: string; name: string }> = {
   story_hero: { kicker: "Chart of the week", name: "Story hero" },
   frp_cover: { kicker: "Today's Configuration", name: "Configuration cover" },
   frp_prices: { kicker: "The Four Reference Prices", name: "Where price sits" },
+  frp_chart: { kicker: "The last month", name: "Month in view" },
   frp_history: { kicker: "How rare is this?", name: "Rarity poster" },
   frp_cta: { kicker: "Go deeper", name: "Framework CTA" },
 };
@@ -693,6 +696,7 @@ export type CardBody =
   | StoryHeroCard
   | FrpStatementCard
   | FrpScaleCard
+  | FrpChartCard
   | FrpRarityCard
   | FrpCtaCard;
 
@@ -2122,6 +2126,7 @@ const BUILDERS: Record<CardId, (ctx?: BuildCtx) => CardBody> = {
   story_hero: storyHeroCard,
   frp_cover: frpStatementCard,
   frp_prices: frpScaleCard,
+  frp_chart: frpChartCard,
   frp_history: frpRarityCard,
   frp_cta: frpCtaCard,
 };
@@ -2154,7 +2159,7 @@ export const PACK_LABELS: Record<PackId, string> = {
 // (todaysConfigurationPack) — the studio can never tell a different story
 // than the site or the email. Purpose-built presentation contracts (design
 // system archetypes); the story arc is What → Why → How unusual → Where next.
-export const FOUR_PRICES_PACK: CardId[] = ["frp_cover", "frp_prices", "frp_history", "frp_cta"];
+export const FOUR_PRICES_PACK: CardId[] = ["frp_cover", "frp_prices", "frp_chart", "frp_history", "frp_cta"];
 
 // STATEMENT — the configuration IS the headline; one stat-led support line.
 export interface FrpStatementCard {
@@ -2229,6 +2234,64 @@ export function frpRarityBody(p: TodaysConfigurationPack): FrpRarityCard {
 
 function frpRarityCard(): FrpRarityCard {
   return frpRarityBody(todaysConfigurationPack());
+}
+
+// CHART LEAD — the last month of all four prices on one chart, plus today's
+// gap to each reference. The series come from the SAME lib the site's Price
+// in Context chart uses (contextSeries), so the slide can never disagree with
+// the page; the gaps come from the pack rows. All four lines render solid in
+// their identity colours — Satori's SVG support has no dash patterns, so
+// identity rests on colour plus the legend (the estimate is marked there).
+export interface FrpChartCard {
+  kind: "frp_chart";
+  changePct: number | null; // price change over the window
+  rangeLabel: string | null; // "$52.4K – $75.2K"
+  lines: ChartLine[]; // normalised 0..1, price last (drawn on top)
+  gaps: { label: string; pct: number }[];
+  estimatedInChart: boolean; // legend marks the mining line as an estimate
+}
+
+function frpChartCard(): FrpChartCard {
+  const p = todaysConfigurationPack();
+  const series = contextSeries("1M");
+  if (!p.available || series.length < 5) {
+    return { kind: "frp_chart", changePct: null, rangeLabel: null, lines: [], gaps: [], estimatedInChart: false };
+  }
+  const n = series.length;
+  const all: number[] = [];
+  for (const s of series) {
+    all.push(s.price);
+    if (s.ma200 != null) all.push(s.ma200);
+    if (s.realized != null) all.push(s.realized);
+    if (s.mining != null) all.push(s.mining);
+  }
+  const max = Math.max(...all) * 1.02;
+  const min = Math.min(...all) * 0.98;
+  const norm = (v: number) => (v - min) / (max - min || 1);
+  const line = (label: string, color: string, pick: (s: (typeof series)[number]) => number | undefined): ChartLine | null => {
+    const points: [number, number][] = [];
+    series.forEach((s, i) => {
+      const v = pick(s);
+      if (v != null && Number.isFinite(v)) points.push([i / (n - 1), norm(v)]);
+    });
+    return points.length >= 2 ? { label, color, points } : null;
+  };
+  const up = series[n - 1].price >= series[0].price;
+  const lines = [
+    line("200-day average", "#8893a4", (s) => s.ma200),
+    line("Realised Price", "#f5b942", (s) => s.realized),
+    line("Est. Mining Cost", "#a78bfa", (s) => s.mining),
+    line("Bitcoin price", up ? "#16c784" : "#ff5d5d", (s) => s.price),
+  ].filter((l): l is ChartLine => l != null);
+  const gapLabel: Record<string, string> = { trend: "vs trend", holders: "vs holders", miners: "vs mining est." };
+  return {
+    kind: "frp_chart",
+    changePct: series[0].price > 0 ? (series[n - 1].price / series[0].price - 1) * 100 : null,
+    rangeLabel: `${fmtUsd(min, { compact: true })} – ${fmtUsd(max, { compact: true })}`,
+    lines,
+    gaps: p.rows.filter((r) => r.gapPct != null).map((r) => ({ label: gapLabel[r.key] ?? r.label, pct: r.gapPct! })),
+    estimatedInChart: lines.some((l) => l.label === "Est. Mining Cost"),
+  };
 }
 
 function frpCtaCard(): FrpCtaCard {
