@@ -44,6 +44,26 @@ export default function FreePage() {
         <DailyBriefPreview edition={e} />
       </section>
 
+      {/* Self-evidencing proof, directly under the product it evidences.
+          This strip renders unconditionally, so the page always carries a
+          trust layer even while SocialProof/Testimonials are below their
+          honest render thresholds. */}
+      <section>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+          <Proof label="Research editions" value={stats.total > 0 ? `${stats.total}` : "Daily"} />
+          <Proof label="Years of history analysed" value="13+" />
+          <Proof label="Cost, forever" value="Free" />
+          <Proof label="Predictions made" value="0" />
+        </div>
+        <p className="mt-3 text-center text-[11.5px] text-ink-500">
+          Every figure traces to public data —{" "}
+          <Link href="/methodology" className="underline decoration-white/20 underline-offset-2 hover:text-ink-300">
+            here&apos;s how it&apos;s made
+          </Link>
+          .
+        </p>
+      </section>
+
       {/* What you get, free */}
       <section>
         <SectionLabel>What you get — free, every day</SectionLabel>
@@ -87,14 +107,6 @@ export default function FreePage() {
             </div>
           ))}
         </div>
-      </section>
-
-      {/* Social proof */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-        <Proof label="Research editions" value={stats.total > 0 ? `${stats.total}` : "Daily"} />
-        <Proof label="Years of history analysed" value="13+" />
-        <Proof label="Cost, forever" value="Free" />
-        <Proof label="Predictions made" value="0" />
       </section>
 
       {/* Reader testimonials — renders only once approved ones exist */}
