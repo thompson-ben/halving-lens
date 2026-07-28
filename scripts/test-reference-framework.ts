@@ -223,11 +223,11 @@ for (const tier of ["full", "trend-miners", "trend-only"] as const) {
   );
 
   assert(
-    JSON.stringify(packOrder("four_prices")) === JSON.stringify(["frp_cover", "frp_prices", "frp_history", "frp_cta"]),
-    "four_prices produces exactly four slides in the story order (what → why → how unusual → where next)",
+    JSON.stringify(packOrder("four_prices")) === JSON.stringify(["frp_cover", "frp_prices", "frp_chart", "frp_history", "frp_cta"]),
+    "four_prices produces five slides in the story order (what → where → the month → how unusual → where next)",
   );
   const deck = buildPack("four_prices");
-  assert(deck.cards.length === 4 && deck.cards.every((c, i) => c.index === i + 1 && c.total === 4), "deck numbering is n of 4");
+  assert(deck.cards.length === 5 && deck.cards.every((c, i) => c.index === i + 1 && c.total === 5), "deck numbering is n of 5");
   assert("four_prices" in PACK_LABELS, "four_prices is registered in PACK_LABELS");
 
   // The redesigned bodies stay faithful to the single deterministic read.
@@ -236,7 +236,15 @@ for (const tier of ["full", "trend-miners", "trend-only"] as const) {
     assert(cover.kind === "frp_statement" && cover.lines.join(" ").replace(/[,.]$/g, "").startsWith(p.configuration!.split(", ")[0]), "statement lines derive from the configuration verbatim");
     const scale = deck.cards[1].body;
     assert(scale.kind === "frp_scale" && JSON.stringify(scale.rows) === JSON.stringify(p.rows), "scale rows are the pack rows, raw and unrecomputed");
-    assert(deck.cards[2].body.kind === "frp_rarity" && deck.cards[3].body.kind === "frp_cta", "poster and CTA slides carry their archetype bodies");
+    const chart = deck.cards[2].body;
+    assert(chart.kind === "frp_chart" && chart.lines.length >= 2, "month chart carries at least price plus one reference line");
+    if (chart.kind === "frp_chart") {
+      assert(chart.lines.every((l) => l.points.every(([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1)), "chart points are normalised to the unit square");
+      assert(chart.lines[chart.lines.length - 1].label === "Bitcoin price", "the price line draws on top");
+      assert(chart.gaps.length === p.rows.filter((r) => r.gapPct != null).length, "gap stats mirror the pack rows exactly");
+      assert(chart.gaps.every((g) => Number.isFinite(g.pct)), "gap stats are finite");
+    }
+    assert(deck.cards[3].body.kind === "frp_rarity" && deck.cards[4].body.kind === "frp_cta", "poster and CTA slides carry their archetype bodies");
   }
 
   const routeSrc = readFileSync("src/app/admin/content/card/[id]/route.tsx", "utf8");

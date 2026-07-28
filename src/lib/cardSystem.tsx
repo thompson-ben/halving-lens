@@ -53,7 +53,7 @@ export function Rule({ color, variant }: { color: string; variant: "solid" | "da
   return (
     <div style={{ display: "flex", flex: 1, height: seg.h, overflow: "hidden", alignItems: "center" }}>
       <div style={{ display: "flex", gap: seg.gap, flexShrink: 0 }}>
-        {Array.from({ length: 60 }).map((_, i) => (
+        {Array.from({ length: 40 }).map((_, i) => (
           <div key={i} style={{ display: "flex", width: seg.w, height: seg.h, background: color, borderRadius: seg.r, flexShrink: 0 }} />
         ))}
       </div>
