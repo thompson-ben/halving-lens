@@ -12,7 +12,14 @@ export const DEFAULT_TZ = "Europe/London";
 
 // The reporting week: [now-7d, now). Deterministic from `now`.
 export function weekPeriod(now: number, tz: string = DEFAULT_TZ): Period {
-  return { start: new Date(now - 7 * DAY).toISOString(), end: new Date(now).toISOString(), label: "Last 7 days", timezone: tz, days: 7 };
+  return trailingPeriod(7, now, tz);
+}
+
+// A trailing window of any length: [now-days, now). Deterministic from `now`.
+// weekPeriod is the days=7 case; the Founder Intelligence dashboard uses 30
+// (default) and 90.
+export function trailingPeriod(days: number, now: number, tz: string = DEFAULT_TZ): Period {
+  return { start: new Date(now - days * DAY).toISOString(), end: new Date(now).toISOString(), label: `Last ${days} days`, timezone: tz, days };
 }
 
 // The immediately-prior comparable window, same length.

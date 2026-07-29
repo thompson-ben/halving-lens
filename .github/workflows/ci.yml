@@ -80,6 +80,12 @@ jobs:
       - name: Start-here tests
         run: npm run test-start-here
 
+      # Founder Intelligence dashboard — trend-first windows on the spine's
+      # comparison substrate, deterministic verdicts with volume floors,
+      # traffic classification, and the product-release registry.
+      - name: Founder-trends tests
+        run: npm run test-founder-trends
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
