@@ -4,10 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   currentContextFrom,
   deserializeCtx,
+  inFilter,
   insightsFrom,
+  MIN_INSIGHT_N,
   MONTHS,
   shareLabel,
   statsFromCells,
+  type FilterContext,
   type Mode,
   type MonthCell,
   type SeriesKey,
@@ -133,6 +136,15 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
   const activeCell = activePick ? cellAt(activePick.year, activePick.month) : undefined;
   const activeDetail = activePick ? detailFor(activePick.year, activePick.month) : undefined;
 
+  // Filter visibility (UX PR): membership drives cell dimming; the scope line
+  // counts the observations actually feeding the filtered statistics.
+  const filterLabel = FILTERS.find((f) => f.key === filter)?.label ?? "";
+  const filtering = filter !== "all";
+  const isMember = (y: number, m: number) => !filtering || inFilter(y, m, filter, ctx);
+  const observedCells = cells.filter((c) => c.value != null && !c.partial);
+  const memberCount = filtering ? observedCells.filter((c) => inFilter(c.year, c.month, filter, ctx)).length : observedCells.length;
+  const maxFilteredN = stats.length ? Math.max(...stats.map((s) => s.n)) : 0;
+
   return (
     <div className="space-y-8">
       {/* Controls */}
@@ -188,6 +200,16 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
         <div className="card p-6 text-[13.5px] text-ink-300">This series has no observations yet.</div>
       ) : (
         <>
+          {/* Live scope line — what the filter is (and isn't) affecting */}
+          {filtering && (
+            <p className="text-[12px] text-ink-400 leading-relaxed max-w-3xl -mt-3">
+              Statistics and insights below cover the{" "}
+              <span className="text-ink-100 tabular-nums">{memberCount}</span> member months of{" "}
+              <span className="text-ink-100">{filterLabel}</span> (of {observedCells.length} observed).
+              The heatmap always shows the full record — non-member months are dimmed.
+            </p>
+          )}
+
           {/* Desktop heatmap: years × months */}
           <div className="hidden sm:block" onMouseLeave={() => setHover(null)}>
             <div className="grid" style={{ gridTemplateColumns: "3.5rem repeat(12, minmax(0, 1fr))", gap: 2 }}>
@@ -202,6 +224,7 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
                   cellAt={cellAt}
                   curYear={payload.curYear}
                   curMonth={payload.curMonth}
+                  isMember={isMember}
                   onHover={(m, e) => setHover({ year: y, month: m, x: e.clientX, y: e.clientY })}
                   onPick={(m, el) => { pinOrigin.current = el; setPicked({ year: y, month: m }); }}
                 />
@@ -228,8 +251,9 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
                   years={years}
                   curYear={payload.curYear}
                   curMonth={payload.curMonth}
-                  cells={years.map((y) => cellAt(y, mi + 1))}
+                  isMember={isMember}
                   onPick={(yi, el) => { pinOrigin.current = el; setPicked({ year: years[yi], month: mi + 1 }); }}
+                  cells={years.map((y) => cellAt(y, mi + 1))}
                 />
               ))}
             </div>
@@ -244,8 +268,11 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
 
           {/* This month in context */}
           <section className="card-glow p-5 sm:p-6">
-            <div className="text-[10.5px] uppercase tracking-[0.22em] mb-3" style={{ color: GOLD }}>
-              This {current.label} in historical context
+            <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
+              <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>
+                This {current.label} in historical context
+              </div>
+              <div className="text-[10px] text-ink-500">always vs this month&apos;s full record — unfiltered</div>
             </div>
             {current.mtdPct == null || current.stat == null ? (
               <p className="text-[13px] text-ink-400">Not enough completed history for this month yet.</p>
@@ -271,7 +298,9 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
 
           {/* Month-by-month table */}
           <section>
-            <div className="text-[10.5px] uppercase tracking-[0.22em] mb-4" style={{ color: GOLD }}>Month by month</div>
+            <div className="text-[10.5px] uppercase tracking-[0.22em] mb-4" style={{ color: GOLD }}>
+              Month by month{filtering && <span className="text-ink-400 normal-case tracking-normal"> · {filterLabel}</span>}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-[12.5px]">
                 <thead>
@@ -304,10 +333,22 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
             </div>
           </section>
 
-          {/* Insights */}
-          {insights.length > 0 && (
-            <section>
-              <div className="text-[10.5px] uppercase tracking-[0.22em] mb-4" style={{ color: GOLD }}>What the record shows</div>
+          {/* Insights — never vanish silently: when the observation floor
+              empties them, say so instead of unmounting the section. */}
+          <section>
+            <div className="text-[10.5px] uppercase tracking-[0.22em] mb-4" style={{ color: GOLD }}>
+              What the record shows{filtering && <span className="text-ink-400 normal-case tracking-normal"> · {filterLabel}</span>}
+            </div>
+            {insights.length === 0 ? (
+              <div className="card p-4 max-w-2xl">
+                <p className="text-[13px] text-ink-300 leading-relaxed">
+                  No insights at this filter — each month has fewer than {MIN_INSIGHT_N} observations
+                  {maxFilteredN > 0 && <> (largest n = {maxFilteredN})</>}, below the floor for a
+                  deterministic claim. The table above still shows the filtered statistics with their
+                  sample sizes.
+                </p>
+              </div>
+            ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {insights.map((i) => (
                   <div key={i.text} className="card p-4">
@@ -319,8 +360,8 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            )}
+          </section>
         </>
       )}
 
@@ -371,12 +412,13 @@ function cellAriaLabel(year: number, month: number, c: MonthCell | undefined, cu
 }
 
 function YearRow({
-  y, cellAt, curYear, curMonth, onHover, onPick,
+  y, cellAt, curYear, curMonth, isMember, onHover, onPick,
 }: {
   y: number;
   cellAt: (y: number, m: number) => MonthCell | undefined;
   curYear: number;
   curMonth: number;
+  isMember: (y: number, m: number) => boolean;
   onHover: (m: number, e: React.MouseEvent) => void;
   onPick: (m: number, el: HTMLElement) => void;
 }) {
@@ -394,8 +436,8 @@ function YearRow({
             onClick={hasValue ? (e) => onPick(i + 1, e.currentTarget) : undefined}
             disabled={!hasValue}
             aria-label={cellAriaLabel(y, i + 1, c, curYear, curMonth)}
-            className={`h-7 rounded-[4px] text-[10px] tabular-nums transition-transform hover:scale-[1.06] hover:z-10 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
-            style={{ background: bg, color: fg }}
+            className={`h-7 rounded-[4px] text-[10px] tabular-nums transition-[transform,opacity] duration-200 hover:scale-[1.06] hover:z-10 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
+            style={{ background: bg, color: fg, opacity: isMember(y, i + 1) ? 1 : 0.25 }}
           >
             {/* In-cell values only where 12 columns give them room; colour +
                 aria-label carry the meaning below lg. */}
@@ -408,7 +450,7 @@ function YearRow({
 }
 
 function MobileRow({
-  label, month, isCurrent, years, curYear, curMonth, cells, onPick,
+  label, month, isCurrent, years, curYear, curMonth, isMember, cells, onPick,
 }: {
   label: string;
   month: number;
@@ -416,6 +458,7 @@ function MobileRow({
   years: number[];
   curYear: number;
   curMonth: number;
+  isMember: (y: number, m: number) => boolean;
   cells: (MonthCell | undefined)[];
   onPick: (yearIndex: number, el: HTMLElement) => void;
 }) {
@@ -431,8 +474,8 @@ function MobileRow({
             onClick={hasValue ? (e) => onPick(yi, e.currentTarget) : undefined}
             disabled={!hasValue}
             aria-label={cellAriaLabel(years[yi], month, c, curYear, curMonth)}
-            className={`h-7 rounded-[4px] focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
-            style={{ background: bg }}
+            className={`h-7 rounded-[4px] transition-opacity duration-200 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
+            style={{ background: bg, opacity: isMember(years[yi], month) ? 1 : 0.25 }}
           />
         );
       })}

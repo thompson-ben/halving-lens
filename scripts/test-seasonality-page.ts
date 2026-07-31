@@ -107,5 +107,15 @@ assert((explorerSrc.match(/disabled=\{!hasValue\}/g) ?? []).length === 2, "empty
 const globals = readFileSync("src/app/globals.css", "utf8");
 assert(/button:focus-visible/.test(globals), "visible keyboard-focus treatment applies to grid cells via the global focus ring");
 
+// ── Filter visibility contract (UX PR — founder-approved audit fix) ──────────
+
+assert((explorerSrc.match(/opacity: isMember\(/g) ?? []).length === 2, "non-member cells dim via membership on BOTH layouts (the originally designed dimming)");
+assert(explorerSrc.includes('filter !== "all"') && explorerSrc.includes("? 1 : 0.25"), "dimming applies only when a filter is active, at ~25% opacity — values never change");
+assert(explorerSrc.includes("member months of") && explorerSrc.includes("non-member months are dimmed"), "the live scope line explains what is filtered and what never is");
+assert(explorerSrc.includes("No insights at this filter") && explorerSrc.includes("MIN_INSIGHT_N} observations"), "insights never vanish silently — the floor state is explained in place");
+assert(explorerSrc.includes("full record — unfiltered"), "the This-Month card declares itself unfiltered");
+assert((explorerSrc.match(/· \{filterLabel\}/g) ?? []).length >= 2, "the active filter is named in the filtered sections' own headings");
+assert(pageSrc.includes("unaffected by filters"), "the reference-price section declares itself full-record");
+
 console.log(failures === 0 ? "\nAll seasonality-page tests passed." : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);

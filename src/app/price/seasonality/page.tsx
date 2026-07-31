@@ -65,6 +65,7 @@ export default function SeasonalityPage() {
         <section>
           <div className="text-[10.5px] uppercase tracking-[0.22em] mb-4" style={{ color: GOLD }}>
             The reference prices through the year
+            <span className="text-ink-500 normal-case tracking-normal"> · full record, unaffected by filters</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {refAnalysis.map((r) => (
