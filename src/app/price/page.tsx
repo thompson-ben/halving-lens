@@ -111,6 +111,17 @@ export default function PricePage() {
         </p>
       </section>
 
+      {/* Seasonality — the calendar view of the same record */}
+      <section className="card p-5">
+        <p className="text-[13px] text-ink-300 leading-relaxed">
+          How has Bitcoin behaved month by month across the full record?{" "}
+          <Link href="/price/seasonality" className="text-accent">
+            Explore Bitcoin Seasonality →
+          </Link>{" "}
+          — monthly returns and distances from the Four Reference Prices, back to 2010.
+        </p>
+      </section>
+
       <JourneyNext from="/price" />
     </div>
   );
