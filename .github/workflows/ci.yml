@@ -92,6 +92,12 @@ jobs:
       - name: Price-archive tests
         run: npm run test-price-archive
 
+      # Seasonality engine (PR-B) — cell generation, returns + valuation
+      # modes, month statistics, current-month context, filter membership,
+      # insight floors and ties, and honest observed-window enforcement.
+      - name: Seasonality tests
+        run: npm run test-seasonality
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
