@@ -86,6 +86,12 @@ jobs:
       - name: Founder-trends tests
         run: npm run test-founder-trends
 
+      # Permanent daily-close price archive (Seasonality PR-A) — merge
+      # idempotence and retention, UTC daily uniqueness, exact month-boundary
+      # methodology, and real-archive completeness once populated.
+      - name: Price-archive tests
+        run: npm run test-price-archive
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

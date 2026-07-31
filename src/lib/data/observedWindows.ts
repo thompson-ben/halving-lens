@@ -20,6 +20,7 @@
 // (CoinMetrics CapRealUSD needs a paid key) — they are deliberately NOT
 // registered here, so no historical feature can reach them by accident.
 
+import { PRICE_ARCHIVE } from "./priceArchiveData";
 import { SNAPSHOT } from "./snapshot";
 import type { OnchainPoint } from "./types";
 
@@ -85,10 +86,16 @@ export function observedWindows(): SeriesWindow[] {
       }),
     ),
   );
+  // Daily closes: the permanent archive once populated (Seasonality PR-A),
+  // else the snapshot's rolling window — the honest floor either way.
+  const dailyDates =
+    PRICE_ARCHIVE.length > (SNAPSHOT.priceHistory?.length ?? 0)
+      ? PRICE_ARCHIVE.map((p) => p.date)
+      : (SNAPSHOT.priceHistory ?? []).map((p) => isoFromTs(p.ts));
   out.push(
     windowOf(
       { id: "price-daily", label: "Market price (daily closes)", source: "CoinMetrics community PriceUSD", nature: "observed", cadence: "daily" },
-      (SNAPSHOT.priceHistory ?? []).map((p) => isoFromTs(p.ts)),
+      dailyDates,
     ),
   );
 
@@ -97,7 +104,7 @@ export function observedWindows(): SeriesWindow[] {
   out.push(
     windowOf(
       { id: "ma200", label: "200-day moving average", source: "derived: price / 200d SMA", nature: "derived", cadence: "daily" },
-      (SNAPSHOT.priceHistory ?? []).slice(199).map((p) => isoFromTs(p.ts)),
+      dailyDates.slice(199),
     ),
   );
 

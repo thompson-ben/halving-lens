@@ -57,10 +57,18 @@ import {
 // Previously-committed snapshot — used to carry over rate-limited optional data
 // (on-chain, ETF) on builds that don't re-fetch them.
 import { SNAPSHOT as PREVIOUS_SNAPSHOT } from "../src/lib/data/snapshot";
+// Permanent daily-close archive (Seasonality PR-A). The CoinMetrics fetch is
+// full-depth on every run, so union-merging `daily` here makes the first run
+// after this ships the 2010→ backfill and every later run idempotent
+// maintenance. PR140 semantics: fresh wins by date; nothing observed is
+// ever dropped.
+import { PRICE_ARCHIVE as PREVIOUS_PRICE_ARCHIVE } from "../src/lib/data/priceArchiveData";
+import { mergeObservedPoints } from "../src/lib/data/observedArchive";
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(__filename), "..");
 const SNAPSHOT_PATH = resolve(ROOT, "src/lib/data/snapshot.ts");
+const PRICE_ARCHIVE_PATH = resolve(ROOT, "src/lib/data/priceArchiveData.ts");
 
 const MS_PER_DAY = 86_400_000;
 const SAMPLE_STEP_DAYS = 7;
@@ -706,7 +714,7 @@ function daysBetween(a: string, b: number): number {
   return Math.floor((b - Date.parse(a)) / MS_PER_DAY);
 }
 
-async function build(): Promise<Snapshot> {
+async function build(): Promise<{ snapshot: Snapshot; priceArchive: Array<{ date: string; value: number }> }> {
   console.log("→ Fetching CoinMetrics (price + market cap + realised cap + supply)…");
   let cm: CoinMetricsRow[] = [];
   let hadRealisedCap = false;
@@ -993,7 +1001,17 @@ async function build(): Promise<Snapshot> {
     console.log("  [PRODCOST] unavailable (no hashrate history) — metric drops out");
   }
 
-  return {
+  // Union-merge every fetched daily close into the permanent archive. One
+  // point per UTC day (ts is already floored to the UTC day), fresh wins on
+  // conflict, monotonic growth guaranteed by mergeObservedPoints.
+  const priceArchive = mergeObservedPoints(
+    PREVIOUS_PRICE_ARCHIVE,
+    daily
+      .filter((d) => Number.isFinite(d.price) && d.price > 0)
+      .map((d) => ({ date: new Date(d.ts).toISOString().slice(0, 10), value: d.price })),
+  );
+
+  const snapshot: Snapshot = {
     source: {
       mode: realisedCapAvailable ? "mixed" : "live",
       fetchedAt: new Date().toISOString(),
@@ -1029,6 +1047,24 @@ async function build(): Promise<Snapshot> {
     todayProvenance: Object.keys(todayProvenance).length ? todayProvenance : null,
     productionCost: productionCost ?? PREVIOUS_SNAPSHOT.productionCost ?? null,
   };
+  return { snapshot, priceArchive };
+}
+
+function serialiseArchive(points: Array<{ date: string; value: number }>): string {
+  const json = JSON.stringify(points.map((p) => ({ date: p.date, value: Number(p.value.toFixed(6)) })));
+  return `// GENERATED FILE — written by scripts/sync.ts. Do not edit by hand.
+//
+// The permanent daily-close archive (Seasonality PR-A). The sync fetches
+// CoinMetrics community PriceUSD at FULL depth on every run and union-merges
+// it here via the PR140 observed-archive machinery: one point per UTC day,
+// fresh wins on a date conflict, nothing observed is ever dropped.
+
+import type { OnchainPoint } from "./types";
+
+export const PRICE_ARCHIVE: OnchainPoint[] = ${json};
+
+export const PRICE_ARCHIVE_SOURCE = "CoinMetrics community PriceUSD";
+`;
 }
 
 function serialise(snapshot: Snapshot): string {
@@ -1046,9 +1082,17 @@ export const SNAPSHOT: Snapshot = ${json};
 async function main() {
   const strict = process.argv.includes("--strict");
   try {
-    const snapshot = await build();
+    const { snapshot, priceArchive } = await build();
     await mkdir(dirname(SNAPSHOT_PATH), { recursive: true });
     await writeFile(SNAPSHOT_PATH, serialise(snapshot), "utf8");
+    // Safety net on top of the union-merge's own guarantee: never write an
+    // archive smaller than the one already committed.
+    if (priceArchive.length >= PREVIOUS_PRICE_ARCHIVE.length) {
+      await writeFile(PRICE_ARCHIVE_PATH, serialiseArchive(priceArchive), "utf8");
+      console.log(`\n✓ Wrote ${PRICE_ARCHIVE_PATH} (${priceArchive.length} daily closes${priceArchive.length ? `, ${priceArchive[0].date} → ${priceArchive[priceArchive.length - 1].date}` : ""})`);
+    } else {
+      console.warn(`\n! Price archive left untouched (merge produced ${priceArchive.length} < committed ${PREVIOUS_PRICE_ARCHIVE.length})`);
+    }
     console.log(`\n✓ Wrote ${SNAPSHOT_PATH}`);
     console.log(`  mode: ${snapshot.source.mode}`);
     console.log(`  cycles: ${snapshot.cycles.length}`);
