@@ -209,8 +209,11 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
             </div>
           </div>
 
-          {/* Mobile heatmap: transposed, months as rows, sticky labels */}
-          <div className="sm:hidden overflow-x-auto -mx-4 px-4">
+          {/* Mobile heatmap: transposed, months as rows, sticky labels. The
+              scroll container stays inside the content column (no negative
+              margins) so scrolled cells never peek past the sticky labels
+              into the page gutter. */}
+          <div className="sm:hidden overflow-x-auto">
             <div className="inline-grid" style={{ gridTemplateColumns: `2.6rem repeat(${years.length}, 2.4rem)`, gap: 2 }}>
               <div className="sticky left-0 z-10 bg-ink-950" />
               {years.map((y) => (
@@ -394,7 +397,9 @@ function YearRow({
             className={`h-7 rounded-[4px] text-[10px] tabular-nums transition-transform hover:scale-[1.06] hover:z-10 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
             style={{ background: bg, color: fg }}
           >
-            {hasValue ? fmtV(c!.value!) : ""}
+            {/* In-cell values only where 12 columns give them room; colour +
+                aria-label carry the meaning below lg. */}
+            <span className="hidden lg:inline">{hasValue ? fmtV(c!.value!) : ""}</span>
           </button>
         );
       })}
