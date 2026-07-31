@@ -41,7 +41,8 @@
     "test-start-here": "tsx scripts/test-start-here.ts",
     "test-founder-trends": "tsx scripts/test-founder-trends.ts",
     "test-price-archive": "tsx scripts/test-price-archive.ts",
-    "test-seasonality": "tsx scripts/test-seasonality.ts"
+    "test-seasonality": "tsx scripts/test-seasonality.ts",
+    "test-seasonality-page": "tsx scripts/test-seasonality-page.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

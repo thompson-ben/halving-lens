@@ -3,6 +3,7 @@ import {
   Award,
   BookMarked,
   BookOpen,
+  CalendarDays,
   Boxes,
   Compass,
   FlaskConical,
@@ -83,6 +84,7 @@ const RESEARCH: readonly NavLink[] = [
 export const EXPLORE: readonly NavLink[] = [
   { href: "/start-here", label: "Start Here", icon: Compass },
   { href: "/price", label: "Bitcoin price", icon: LineChart },
+  { href: "/price/seasonality", label: "Seasonality", icon: CalendarDays },
   { href: "/halving", label: "Next halving", icon: Hourglass },
   { href: "/miners", label: "Miners", icon: Pickaxe },
   { href: "/founders", label: "Hall of Founders", icon: Award },

@@ -98,6 +98,12 @@ jobs:
       - name: Seasonality tests
         run: npm run test-seasonality
 
+      # Seasonality page layer (PR-C) — payload/engine equality, client-safe
+      # core split, mode-specific user language, framework-language tooltips,
+      # and every ecosystem integration point.
+      - name: Seasonality-page tests
+        run: npm run test-seasonality-page
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

@@ -59,6 +59,15 @@ export const JOURNEY_MAP = {
       { href: "/state-of-bitcoin", label: "The State of Bitcoin — the full weekly read" },
     ],
   },
+  "/price/seasonality": {
+    bridge:
+      "You've seen how the months have behaved across the record. Which past weeks look most like this one right now?",
+    primary: { href: "/similar-moments", title: "Similar Moments" },
+    secondary: [
+      { href: "/four-reference-prices", label: "Four Reference Prices — today's configuration" },
+      { href: "/cycles", label: "Cycle comparison — the same history, halving-aligned" },
+    ],
+  },
   "/price": {
     bridge:
       "You know where the price sits against its reference prices. What does that level mean in the wider weekly picture?",
