@@ -46,12 +46,12 @@ jobs:
 
       - name: Commit snapshot if changed
         run: |
-          if git diff --quiet src/lib/data/snapshot.ts; then
+          if git diff --quiet src/lib/data/snapshot.ts src/lib/data/priceArchiveData.ts; then
             echo "No change — price/sentiment already current."
             exit 0
           fi
           git config user.name "halving-lens-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add src/lib/data/snapshot.ts
+          git add src/lib/data/snapshot.ts src/lib/data/priceArchiveData.ts
           git commit -m "chore(data): intraday refresh ($(date -u +%Y-%m-%dT%H:%MZ))"
           git push

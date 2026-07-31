@@ -99,6 +99,12 @@ assert(syncSrc.includes("priceArchive.length >= PREVIOUS_PRICE_ARCHIVE.length"),
 assert(syncSrc.includes("daily.slice(-730)"), "the snapshot's rolling 730-day window is untouched — existing consumers unaffected");
 const owSrc = readFileSync("src/lib/data/observedWindows.ts", "utf8");
 assert(owSrc.includes("PRICE_ARCHIVE.length > (SNAPSHOT.priceHistory?.length ?? 0)"), "the observed-windows registry reports the archive's window once it is the longer record");
+// The workflows commit explicit path lists — a generated file that is written
+// in the runner but never staged is silently discarded (the PR-A launch bug).
+for (const wf of [".github/workflows/refresh.yml", ".github/workflows/sync.yml"]) {
+  const src = readFileSync(wf, "utf8");
+  assert(src.includes("src/lib/data/priceArchiveData.ts"), `${wf} stages the archive so sync output actually lands on main`);
+}
 
 console.log(failures === 0 ? "\nAll price-archive tests passed." : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
