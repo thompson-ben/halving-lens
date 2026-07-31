@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   currentContextFrom,
   deserializeCtx,
@@ -78,6 +78,27 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
   const [filter, setFilter] = useState<WindowFilter>("all");
   const [picked, setPicked] = useState<{ year: number; month: number } | null>(null);
   const [hover, setHover] = useState<{ year: number; month: number; x: number; y: number } | null>(null);
+  // Accessibility: the cell that opened the detail sheet, so Escape/close can
+  // return focus to it; the sheet's close button takes focus on open.
+  const pinOrigin = useRef<HTMLElement | null>(null);
+  const closeBtn = useRef<HTMLButtonElement | null>(null);
+
+  const closePicked = () => {
+    setPicked(null);
+    pinOrigin.current?.focus();
+    pinOrigin.current = null;
+  };
+
+  useEffect(() => {
+    if (!picked) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closePicked();
+    };
+    window.addEventListener("keydown", onKey);
+    closeBtn.current?.focus();
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked]);
 
   const ctx = useMemo(() => deserializeCtx(payload.ctx), [payload.ctx]);
   const gridKey = `${mode}:${series}` as const;
@@ -180,8 +201,9 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
                   y={y}
                   cellAt={cellAt}
                   curYear={payload.curYear}
+                  curMonth={payload.curMonth}
                   onHover={(m, e) => setHover({ year: y, month: m, x: e.clientX, y: e.clientY })}
-                  onPick={(m) => setPicked({ year: y, month: m })}
+                  onPick={(m, el) => { pinOrigin.current = el; setPicked({ year: y, month: m }); }}
                 />
               ))}
             </div>
@@ -198,9 +220,13 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
                 <MobileRow
                   key={mLabel}
                   label={mLabel}
+                  month={mi + 1}
                   isCurrent={mi + 1 === payload.curMonth}
+                  years={years}
+                  curYear={payload.curYear}
+                  curMonth={payload.curMonth}
                   cells={years.map((y) => cellAt(y, mi + 1))}
-                  onPick={(yi) => setPicked({ year: years[yi], month: mi + 1 })}
+                  onPick={(yi, el) => { pinOrigin.current = el; setPicked({ year: years[yi], month: mi + 1 }); }}
                 />
               ))}
             </div>
@@ -305,13 +331,21 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
         </div>
       )}
 
-      {/* Mobile bottom sheet (also works as a click-pin on desktop) */}
+      {/* Detail sheet (mobile bottom sheet; click-pin on desktop). Dialog
+          semantics: labelled, close button takes focus on open, Escape and
+          the close control both return focus to the activating cell. */}
       {picked && activeCell && (
-        <div className="fixed inset-x-0 bottom-0 z-50 p-3 sm:max-w-sm sm:left-auto sm:right-6 sm:bottom-6">
+        <div
+          role="dialog"
+          aria-modal="false"
+          aria-label={`${MONTHS[activeCell.month - 1]} ${activeCell.year} details`}
+          className="fixed inset-x-0 bottom-0 z-50 p-3 sm:max-w-sm sm:left-auto sm:right-6 sm:bottom-6"
+        >
           <div className="relative">
             <button
-              onClick={() => setPicked(null)}
-              aria-label="Close"
+              ref={closeBtn}
+              onClick={closePicked}
+              aria-label="Close details"
               className="absolute -top-2 -right-2 z-10 w-7 h-7 rounded-full bg-ink-950 border border-white/[0.15] text-ink-300 text-[13px]"
             >
               ×
@@ -324,31 +358,43 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
   );
 }
 
+/** Distinct accessible label per cell state: valued (with month-to-date
+ *  suffix), future, or no observation — meaning never rests on colour alone. */
+function cellAriaLabel(year: number, month: number, c: MonthCell | undefined, curYear: number, curMonth: number): string {
+  const name = `${MONTHS[month - 1]} ${year}`;
+  if (c?.value != null) return `${name}: ${fmtV(c.value)}${c.partial ? ", month to date" : ""}. Open details.`;
+  if (year === curYear && month > curMonth) return `${name}: not yet occurred`;
+  return `${name}: no observation in this series' window`;
+}
+
 function YearRow({
-  y, cellAt, curYear, onHover, onPick,
+  y, cellAt, curYear, curMonth, onHover, onPick,
 }: {
   y: number;
   cellAt: (y: number, m: number) => MonthCell | undefined;
   curYear: number;
+  curMonth: number;
   onHover: (m: number, e: React.MouseEvent) => void;
-  onPick: (m: number) => void;
+  onPick: (m: number, el: HTMLElement) => void;
 }) {
   return (
     <>
       <div className={`text-[10.5px] pr-2 text-right leading-7 ${y === curYear ? "text-accent" : "text-ink-500"}`}>{y}</div>
       {Array.from({ length: 12 }, (_, i) => {
         const c = cellAt(y, i + 1);
+        const hasValue = c?.value != null;
         const { bg, fg } = cellColor(c?.value ?? null, c?.partial ?? false);
         return (
           <button
             key={i}
             onMouseMove={(e) => onHover(i + 1, e)}
-            onClick={() => onPick(i + 1)}
-            aria-label={`${MONTHS[i]} ${y}${c?.value != null ? `: ${fmtV(c.value)}${c.partial ? " month to date" : ""}` : ": no observation"}`}
-            className={`h-7 rounded-[4px] text-[10px] tabular-nums transition-transform hover:scale-[1.06] hover:z-10 ${c?.partial ? "border border-dashed border-white/25" : ""}`}
+            onClick={hasValue ? (e) => onPick(i + 1, e.currentTarget) : undefined}
+            disabled={!hasValue}
+            aria-label={cellAriaLabel(y, i + 1, c, curYear, curMonth)}
+            className={`h-7 rounded-[4px] text-[10px] tabular-nums transition-transform hover:scale-[1.06] hover:z-10 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
             style={{ background: bg, color: fg }}
           >
-            {c?.value != null ? fmtV(c.value) : ""}
+            {hasValue ? fmtV(c!.value!) : ""}
           </button>
         );
       })}
@@ -357,24 +403,30 @@ function YearRow({
 }
 
 function MobileRow({
-  label, isCurrent, cells, onPick,
+  label, month, isCurrent, years, curYear, curMonth, cells, onPick,
 }: {
   label: string;
+  month: number;
   isCurrent: boolean;
+  years: number[];
+  curYear: number;
+  curMonth: number;
   cells: (MonthCell | undefined)[];
-  onPick: (yearIndex: number) => void;
+  onPick: (yearIndex: number, el: HTMLElement) => void;
 }) {
   return (
     <>
       <div className={`sticky left-0 z-10 bg-ink-950 text-[10px] pr-1.5 text-right leading-7 ${isCurrent ? "text-accent" : "text-ink-500"}`}>{label}</div>
       {cells.map((c, yi) => {
+        const hasValue = c?.value != null;
         const { bg } = cellColor(c?.value ?? null, c?.partial ?? false);
         return (
           <button
             key={yi}
-            onClick={() => onPick(yi)}
-            aria-label={c?.value != null ? fmtV(c.value) : "no observation"}
-            className={`h-7 rounded-[4px] ${c?.partial ? "border border-dashed border-white/25" : ""}`}
+            onClick={hasValue ? (e) => onPick(yi, e.currentTarget) : undefined}
+            disabled={!hasValue}
+            aria-label={cellAriaLabel(years[yi], month, c, curYear, curMonth)}
+            className={`h-7 rounded-[4px] focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
             style={{ background: bg }}
           />
         );

@@ -95,5 +95,17 @@ const pageSrc = readFileSync("src/app/price/seasonality/page.tsx", "utf8");
 assert(pageSrc.includes("STANDING_CLOSE") && pageSrc.includes("JourneyNext"), "the page carries the standing close and the journey");
 assert(pageSrc.includes("TrackedSection"), "sections are instrumented with existing events only");
 
+// ── Accessibility wiring (functional, founder-required before merge) ─────────
+
+assert(explorerSrc.includes('e.key === "Escape"') && explorerSrc.includes("closePicked"), "Escape closes the pinned detail view");
+assert(explorerSrc.includes("pinOrigin.current?.focus()"), "closing returns focus to the activating cell");
+assert(explorerSrc.includes("closeBtn.current?.focus()"), "the detail sheet's close control takes focus on open");
+assert(explorerSrc.includes('role="dialog"') && explorerSrc.includes("details`}"), "the detail sheet is a labelled dialog");
+assert(explorerSrc.includes("not yet occurred") && explorerSrc.includes("no observation in this series") && explorerSrc.includes("month to date"), "missing, future and month-to-date cells carry DISTINCT accessible labels");
+assert(explorerSrc.includes("cellAriaLabel"), "one shared label helper covers desktop and mobile cells");
+assert((explorerSrc.match(/disabled=\{!hasValue\}/g) ?? []).length === 2, "empty cells leave the tab order on both layouts; valued cells stay focusable buttons");
+const globals = readFileSync("src/app/globals.css", "utf8");
+assert(/button:focus-visible/.test(globals), "visible keyboard-focus treatment applies to grid cells via the global focus ring");
+
 console.log(failures === 0 ? "\nAll seasonality-page tests passed." : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
