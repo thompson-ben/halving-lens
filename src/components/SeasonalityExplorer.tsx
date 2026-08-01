@@ -17,6 +17,7 @@ import {
   type WindowFilter,
 } from "@/lib/seasonalityCore";
 import type { GridPayload, MonthDetail, SeasonalityPayload } from "@/lib/seasonalityPayload";
+import { HeadingButton, highlightShadow, type Highlight } from "./seasonalityHighlight";
 
 // The Seasonality explorer (PR-C). All maths comes precomputed (cells) or
 // recomputed client-side through the SAME pure core functions the server
@@ -47,22 +48,6 @@ const FILTERS: { key: WindowFilter; label: string }[] = [
 ];
 
 const SERIES_ORDER: SeriesKey[] = ["market", "trend", "holders", "miners"];
-
-/** Row/column/cell highlight — visual reading aid only, never a calculation
- *  input. "cell" carries a full crosshair (the cell plus its month + year). */
-type Highlight =
-  | { kind: "month"; month: number }
-  | { kind: "year"; year: number }
-  | { kind: "cell"; year: number; month: number }
-  | null;
-
-/** The two visual tiers under the selected cell itself: the crosshair ring on
- *  the exact cell, and a quiet inset accent on its row/column companions. */
-function highlightShadow(isCell: boolean, inCross: boolean): string | undefined {
-  if (isCell) return `0 0 0 2px ${GOLD}`;
-  if (inCross) return "inset 0 0 0 1px rgba(217,185,106,0.4)";
-  return undefined;
-}
 
 function cellColor(value: number | null, partial: boolean): { bg: string; fg: string } {
   if (value == null) return { bg: "rgba(255,255,255,0.03)", fg: "#525c6b" };
@@ -478,32 +463,6 @@ function cellAriaLabel(year: number, month: number, c: MonthCell | undefined, cu
   if (c?.value != null) return `${name}: ${fmtV(c.value)}${c.partial ? ", month to date" : ""}.${sel} Open details.`;
   if (year === curYear && month > curMonth) return `${name}: not yet occurred`;
   return `${name}: no observation in this series' window`;
-}
-
-/** A month/year heading as a highlight toggle: aria-pressed carries the
- *  state, the underline marks selection without relying on colour, and the
- *  global focus ring covers keyboard visibility. */
-function HeadingButton({
-  label, fullName, axis, active, isCurrent, onToggle, className,
-}: {
-  label: string;
-  fullName: string;
-  axis: "row" | "column";
-  active: boolean;
-  isCurrent: boolean;
-  onToggle: () => void;
-  className: string;
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      aria-pressed={active}
-      aria-label={`Highlight the ${fullName} ${axis}`}
-      className={`${className} rounded-[4px] transition-colors ${active ? "text-[#d9b96a] underline underline-offset-2 decoration-[#d9b96a]/70" : isCurrent ? "text-accent hover:text-ink-200" : "text-ink-500 hover:text-ink-200"}`}
-    >
-      {label}
-    </button>
-  );
 }
 
 function YearRow({

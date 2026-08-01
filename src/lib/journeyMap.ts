@@ -68,6 +68,15 @@ export const JOURNEY_MAP = {
       { href: "/cycles", label: "Cycle comparison — the same history, halving-aligned" },
     ],
   },
+  "/price/seasonality/cycles": {
+    bridge:
+      "You've compared the cycles month by month. How do those same cycles look as continuous paths, day by day?",
+    primary: { href: "/cycles", title: "Cycle comparison" },
+    secondary: [
+      { href: "/price/seasonality", label: "Seasonality — the calendar view of the same record" },
+      { href: "/four-reference-prices", label: "Four Reference Prices — today's configuration" },
+    ],
+  },
   "/questions": {
     bridge:
       "You've read what the record shows. How do these threads come together into one calm read, each morning?",
