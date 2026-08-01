@@ -310,7 +310,10 @@ export default function AccumulationPage({ searchParams }: { searchParams: { pre
         <p className="mt-4 text-[11px] text-ink-500 leading-relaxed max-w-2xl">
           The score (0 = deep value, 100 = overheated) is a weighted blend of the three price-only
           factors above, computed point-in-time — every historical reading uses only the data
-          available on that date, which is what makes the backtest legitimate. Methodology v1.
+          available on that date, which is what makes the backtest legitimate. Where an input did
+          not yet exist — the 200-week average before mid-2014 — the remaining weights are
+          renormalised, so those early readings are two-input observations, not equivalent to the
+          full three-input score. Methodology v1.
         </p>
       </section>
 

@@ -14,7 +14,7 @@ export const HALVING_QUESTIONS: QuestionEntry[] = [
       "The mechanics, and the measured record: what Bitcoin's price actually did in the months and years after each of its halvings.",
     shortAnswer: [
       "Each halving cuts the reward for mining a new block in half, roughly every four years — slowing the pace at which new bitcoin is created. The halving changes Bitcoin's issuance schedule immediately, but the historical price effects cannot be isolated to the event day itself. The larger moves in the record developed over the months that followed — the same direction after all four halvings so far, with wildly different magnitude, and smaller each time.",
-      "In the year after each halving, price rose {{sc:post-halving-year}}. Today is day {{a:cycle.day}} of cycle {{a:cycle.n}}, which began at the {{a:halving.lastLabel}} halving; the next is projected for {{a:halving.nextLabel}}. The modules below place this cycle against the same stage of the previous three.",
+      "In the year after each halving, price rose {{sc:post-halving-year}}. Today is day {{a:cycle.day}} of cycle {{a:cycle.n}}, which began at the {{a:halving.lastLabel}} halving; the next is due around {{a:halving.nextLabel}}. The modules below place this cycle against the same stage of the previous three.",
     ],
     history: [
       {
