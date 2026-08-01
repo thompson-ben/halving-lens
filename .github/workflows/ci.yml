@@ -112,6 +112,12 @@ jobs:
       - name: Cycle-seasonality tests
         run: npm run test-cycle-seasonality
 
+      # Cycle-aligned seasonality page (PR-V2B) — payload/engine equality,
+      # the five distinct cell states, grid-only navigation, shared
+      # highlight/dialog contracts, honest language, integrations.
+      - name: Cycle-seasonality page tests
+        run: npm run test-cycle-seasonality-page
+
       # Bitcoin Questions (PR-Q1) — registry contract, vocabulary rules,
       # evidence-token discipline, EngineSentence state fixtures, static-claim
       # drift recomputation, the staleness contract, structured-data and

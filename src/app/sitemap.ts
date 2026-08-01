@@ -44,6 +44,7 @@ const STATIC_PATHS = [
   "/terms",
   "/price",
   "/price/seasonality",
+  "/price/seasonality/cycles",
   "/questions",
   "/four-reference-prices",
   "/etf",

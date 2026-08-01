@@ -121,12 +121,14 @@ assert(explorerSrc.includes('"US midterm years"'), "the filter menu offers US mi
 
 // ── Row/column/cell highlighting (interaction PR) ────────────────────────────
 
-assert(explorerSrc.includes('{ kind: "month"; month: number }') && explorerSrc.includes('{ kind: "cell"; year: number; month: number }'), "the highlight is typed state: month, year, or cell crosshair");
+const highlightSrc = readFileSync("src/components/seasonalityHighlight.tsx", "utf8");
+assert(highlightSrc.includes('{ kind: "month"; month: number }') && highlightSrc.includes('{ kind: "cell"; year: number; month: number }'), "the highlight is typed state: month, year, or cell crosshair (shared module)");
 assert((explorerSrc.match(/setHighlight\(\{ kind: "cell"/g) ?? []).length === 2, "picking a cell sets the crosshair on BOTH layouts (detail open preserves it)");
 assert(explorerSrc.includes('highlight?.kind === "month" && highlight.month === m ? null') && explorerSrc.includes('highlight?.kind === "year" && highlight.year === y ? null'), "reselecting the active month/year heading clears it (toggle)");
-assert((explorerSrc.match(/aria-pressed=\{active\}/g) ?? []).length === 1 && (explorerSrc.match(/<HeadingButton/g) ?? []).length >= 4, "month and year headings are one shared pressed-state control, used on both layouts");
-assert(explorerSrc.includes("underline underline-offset-2"), "heading selection is marked by an underline, never colour alone");
-assert(explorerSrc.includes("0 0 0 2px ${GOLD}") && explorerSrc.includes("inset 0 0 0 1px rgba(217,185,106,0.4)"), "visual hierarchy: strongest ring on the selected cell, quiet inset accent on its row/column");
+assert((highlightSrc.match(/aria-pressed=\{active\}/g) ?? []).length === 1 && (explorerSrc.match(/<HeadingButton/g) ?? []).length >= 4, "month and year headings are one shared pressed-state control, used on both layouts");
+assert(highlightSrc.includes("underline underline-offset-2"), "heading selection is marked by an underline, never colour alone");
+assert(highlightSrc.includes("0 0 0 2px ${SEASONALITY_GOLD}") && highlightSrc.includes("inset 0 0 0 1px rgba(217,185,106,0.4)"), "visual hierarchy: strongest ring on the selected cell, quiet inset accent on its row/column");
+assert(explorerSrc.includes('from "./seasonalityHighlight"'), "the calendar explorer consumes the SHARED highlight primitives (one implementation for both grids)");
 assert((explorerSrc.match(/boxShadow: highlightShadow\(/g) ?? []).length === 2, "the highlight treatment applies on both layouts through one shared helper");
 assert(explorerSrc.includes("Selected.") && explorerSrc.includes("selected = false"), "the crosshair cell announces its selection to screen readers");
 assert(explorerSrc.includes("statsFromCells(cells, filter, ctx)") && !/statsFromCells\([^)]*highlight/.test(explorerSrc) && !/inFilter\([^)]*highlight/.test(explorerSrc), "highlighting is pure visual state — it never feeds a calculation");
