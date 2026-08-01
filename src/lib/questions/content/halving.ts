@@ -28,6 +28,7 @@ export const HALVING_QUESTIONS: QuestionEntry[] = [
         body: [
           "New highs took time: {{sc:first-new-high}}",
           "The full cycle advances measured {{sc:gain-to-peaks}}, and the highest close of each cycle came well after the halving itself: {{sc:peak-timing}}",
+          "Measurement: each year-after figure compares the daily close on the halving date with the daily close 365 calendar days later, across all four halvings, rounded to the nearest whole percent.",
         ],
       },
       {
