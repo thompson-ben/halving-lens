@@ -58,6 +58,9 @@ export function monthlyChangeOf(series: readonly OnchainPoint[], year: number, m
 export function buildFilterContext(closes: readonly OnchainPoint[], todayIso: string): FilterContext {
   const electionYears = new Set<number>();
   for (let y = 2012; y <= Number(todayIso.slice(0, 4)); y += 4) electionYears.add(y);
+  // US midterm years — the off-cycle national elections: 2010, 2014, 2018, …
+  const midtermYears = new Set<number>();
+  for (let y = 2010; y <= Number(todayIso.slice(0, 4)); y += 4) midtermYears.add(y);
 
   const currentCycleFrom = latestHalvingOnOrBefore(todayIso);
   const postHalvingYears = new Set(pastHalvingYears(todayIso).map((y) => y + 1));
@@ -73,7 +76,7 @@ export function buildFilterContext(closes: readonly OnchainPoint[], todayIso: st
     const trend = lastInMonth(ma, y, m);
     if (close && trend && close.value > trend.value) aboveTrendMonths.add(key);
   }
-  return { electionYears, postHalvingYears, currentCycleFrom, aboveTrendMonths };
+  return { electionYears, midtermYears, postHalvingYears, currentCycleFrom, aboveTrendMonths };
 }
 
 // ── Assembly ─────────────────────────────────────────────────────────────────

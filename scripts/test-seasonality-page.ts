@@ -39,6 +39,7 @@ if (PRICE_ARCHIVE.length > 0) {
   const ctx = deserializeCtx(payload.ctx);
   assert(JSON.stringify(serializeCtx(ctx)) === JSON.stringify(payload.ctx), "serialize/deserialize round-trips the filter context exactly");
   assert(ctx.electionYears.has(2024) && ctx.currentCycleFrom === "2024-04-19", "the context carries real election years and the current halving");
+  assert(ctx.midtermYears.has(2010) && ctx.midtermYears.has(2026) && !ctx.midtermYears.has(2024), "the context carries the real US midterm years (2010 + 4k, through 2026)");
 
   // ── Payload grids agree with the engine ────────────────────────────────────
   assert(Object.keys(payload.grids).length === 7, "seven grids: returns ×4 series, valuation ×3 references (never market-vs-market)");
@@ -115,6 +116,7 @@ assert(explorerSrc.includes("member months of") && explorerSrc.includes("non-mem
 assert(explorerSrc.includes("No insights at this filter") && explorerSrc.includes("MIN_INSIGHT_N} observations"), "insights never vanish silently — the floor state is explained in place");
 assert(explorerSrc.includes("full record — unfiltered"), "the This-Month card declares itself unfiltered");
 assert((explorerSrc.match(/· \{filterLabel\}/g) ?? []).length >= 2, "the active filter is named in the filtered sections' own headings");
+assert(explorerSrc.includes('"US midterm years"'), "the filter menu offers US midterm years (inherits the full PR164 visibility contract)");
 assert(pageSrc.includes("unaffected by filters"), "the reference-price section declares itself full-record");
 
 console.log(failures === 0 ? "\nAll seasonality-page tests passed." : `\n${failures} FAILURE(S)`);
