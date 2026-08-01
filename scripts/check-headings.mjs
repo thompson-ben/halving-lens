@@ -28,6 +28,7 @@ const ROUTES = [
   "/sentiment", "/replay", "/metrics", "/learn", "/about", "/methodology",
   "/privacy", "/terms", "/price", "/four-reference-prices", "/etf", "/halving", "/miners", "/onchain",
   "/hodl-waves", "/start", "/free", "/alerts", "/derivatives",
+  "/price/seasonality", "/price/seasonality/cycles", "/start-here", "/questions",
 ];
 
 // Downward heading jumps accepted with a documented reason.
@@ -64,6 +65,7 @@ async function dynamicRepresentatives() {
     firstMatching(/^\/research\/briefs\/[a-z0-9-]+$/),
     firstMatching(/^\/research\/notes\/[a-z0-9-]+$/),
     firstMatching(/^\/metrics\/[a-z0-9-]+$/),
+    firstMatching(/^\/questions\/[a-z0-9-]+$/),
   ].filter(Boolean);
 }
 
