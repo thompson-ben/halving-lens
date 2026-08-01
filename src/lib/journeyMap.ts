@@ -68,6 +68,15 @@ export const JOURNEY_MAP = {
       { href: "/cycles", label: "Cycle comparison — the same history, halving-aligned" },
     ],
   },
+  "/questions": {
+    bridge:
+      "You've read what the record shows. How do these threads come together into one calm read, each morning?",
+    primary: { href: "/brief", title: "The Daily Brief" },
+    secondary: [
+      { href: "/start-here", label: "Start Here — Bitcoin, explained calmly" },
+      { href: "/four-reference-prices", label: "Four Reference Prices — today's configuration" },
+    ],
+  },
   "/price": {
     bridge:
       "You know where the price sits against its reference prices. What does that level mean in the wider weekly picture?",

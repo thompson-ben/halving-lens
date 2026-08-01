@@ -53,6 +53,7 @@ const PAGE_LABEL: Record<string, string> = {
   "/cycles": "Cycle Comparison",
   "/start-here": "Start Here",
   "/price/seasonality": "Seasonality",
+  "/questions": "Bitcoin Questions",
 };
 
 export function prettyPath(path: string): string {

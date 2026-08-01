@@ -9,6 +9,7 @@ import { NAV_SECTIONS } from "@/components/navItems";
 import { METRICS } from "./metrics";
 import { allFindings } from "./findings";
 import { allWeeklies } from "./weekly";
+import { questionSearchEntries } from "./questions";
 
 export interface SearchEntry {
   title: string;
@@ -65,6 +66,9 @@ export function searchIndex(): SearchEntry[] {
   for (const f of allFindings()) {
     add({ title: f.title, path: `/research/findings/${f.slug}`, group: "Research finding", keywords: f.slug });
   }
+
+  // Bitcoin Questions — people type the question they're asking.
+  for (const q of questionSearchEntries()) add(q);
   for (const w of allWeeklies().slice(0, 12)) {
     add({ title: `Weekly Research — ${w.slug}`, path: `/weekly/${w.slug}`, group: "Weekly Research" });
   }
