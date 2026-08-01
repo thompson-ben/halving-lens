@@ -166,6 +166,7 @@ function build(m: MoverMetric, globalAnchor: string, period: MoverPeriod): Movem
       cadenceDays: cadence,
     },
     rarityClaimAllowed,
+    rarityState: rarityClaimAllowed ? "available" : observations > 0 ? "maturing" : "unavailable",
     crossing,
     state: m.band ? m.band.label(current) : null,
     href: m.href,

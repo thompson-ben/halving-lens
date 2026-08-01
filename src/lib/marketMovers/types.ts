@@ -86,9 +86,18 @@ export interface Movement {
   observations: number;
   window: ObservedWindow;
   /** False when `observations` is below the floor — the caller must then
-   *  print an honest "comparison not yet available" state instead of a
-   *  rarity claim. */
+   *  print an honest state (see `rarityState`) instead of a rarity claim. */
   rarityClaimAllowed: boolean;
+  /** Three distinct states, because "54 valid observations" and "no
+   *  comparison possible" are not the same thing and must never read the
+   *  same way (founder decision):
+   *   · "available"   — at or above the floor; `rarityPercentile` is set.
+   *   · "maturing"    — real observations, just not enough yet. Callers
+   *                     should say so with the count and window, e.g.
+   *                     "Historical comparison still maturing · 54
+   *                     equivalent observations since June 2026."
+   *   · "unavailable" — no equivalent-period observations exist at all. */
+  rarityState: "available" | "maturing" | "unavailable";
 
   crossing: Crossing | null;
   /** Current band/state label where the metric has one (Fear, Neutral…). */

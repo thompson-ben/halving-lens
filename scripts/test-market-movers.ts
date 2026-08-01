@@ -103,6 +103,12 @@ if (PRICE_ARCHIVE.length > 1000) {
     assert(all.every((m) => m.significance >= 0 && m.significance <= 100), `${period}d: significance stays within 0–100`);
     assert(all.every((m) => m.rarityClaimAllowed === m.observations >= RARITY_MIN_OBSERVATIONS), `${period}d: a rarity claim is permitted exactly when the observation floor is met`);
     assert(all.every((m) => m.rarityClaimAllowed || m.rarityPercentile === null), `${period}d: below the floor NO percentile is exposed — the caller cannot accidentally print a claim`);
+    assert(
+      all.every((m) =>
+        m.rarityState === (m.rarityClaimAllowed ? "available" : m.observations > 0 ? "maturing" : "unavailable"),
+      ),
+      `${period}d: the three rarity states are exact — real-but-insufficient observations read as MATURING, never as unavailable`,
+    );
     assert(all.every((m) => m.window.first <= m.window.last && m.window.points > 1), `${period}d: every movement carries a real observed window`);
     assert(all.every((m) => m.asOf <= r.asOf), `${period}d: a lagging series reports as of its own last observation, never the global anchor`);
     assert(all.every((m) => m.unit !== "pct" || m.previous == null || m.previous > 0), `${period}d: percentages are never computed off a non-positive base`);
@@ -114,6 +120,8 @@ if (PRICE_ARCHIVE.length > 1000) {
   const health = [...marketMovers(7).movements, ...marketMovers(7).steady].find((m) => m.metricId === "market_health");
   assert(health != null && !health.rarityClaimAllowed && health.rarityPercentile === null, "Market Health ranks but withholds any rarity claim — its archive is below the floor");
   assert(health!.observations < RARITY_MIN_OBSERVATIONS, `Market Health's short history is real (n=${health!.observations}), not assumed`);
+  assert(health!.rarityState === "maturing" && health!.observations > 0, "Market Health reads as MATURING with real observations — never as 'comparison unavailable'");
+  assert(health!.current != null && health!.previous != null && health!.state != null, "…while still carrying value, previous value and band so it ranks and renders fully");
 
   // ETF flows: a genuine claim, but always with its short window attached.
   const etf = [...marketMovers(7).movements, ...marketMovers(7).steady].find((m) => m.metricId === "etf_flows")!;
