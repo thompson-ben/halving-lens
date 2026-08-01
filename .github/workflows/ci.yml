@@ -104,6 +104,13 @@ jobs:
       - name: Seasonality-page tests
         run: npm run test-seasonality-page
 
+      # Bitcoin Questions (PR-Q1) — registry contract, vocabulary rules,
+      # evidence-token discipline, EngineSentence state fixtures, static-claim
+      # drift recomputation, the staleness contract, structured-data and
+      # editorial-date rules, and ecosystem integration.
+      - name: Questions tests
+        run: npm run test-questions
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

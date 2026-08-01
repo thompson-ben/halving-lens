@@ -5,6 +5,7 @@ import {
   BookOpen,
   CalendarDays,
   Boxes,
+  CircleHelp,
   Compass,
   FlaskConical,
   Gauge,
@@ -77,6 +78,7 @@ const RESEARCH: readonly NavLink[] = [
   { href: "/weekly", label: "Weekly Research", icon: ScrollText },
   { href: "/replay", label: "Cycle replay", icon: Play },
   { href: "/metrics", label: "Metric library", icon: Sparkles },
+  { href: "/questions", label: "Bitcoin Questions", icon: CircleHelp },
   { href: "/learn", label: "Learn", icon: BookOpen },
 ];
 

@@ -8,6 +8,7 @@ import { allWeeklies } from "@/lib/weekly";
 import { allFindings } from "@/lib/findings";
 import { allBriefs } from "@/lib/evidenceBriefs";
 import { allNotes } from "@/lib/researchNotes";
+import { allQuestions } from "@/lib/questions";
 
 // Public, indexable, canonical, 200-status routes only (PR131). Excluded on
 // purpose: /admin/* and /api/* (robots-disallowed), noindex pages (/start,
@@ -43,6 +44,7 @@ const STATIC_PATHS = [
   "/terms",
   "/price",
   "/price/seasonality",
+  "/questions",
   "/four-reference-prices",
   "/etf",
   "/halving",
@@ -152,6 +154,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  // Question pages: lastModified is the entry's editorial revision date —
+  // truthful by construction (data refreshes update the live blocks, not the
+  // written answer, and must not mark the article "modified").
+  const questionEntries = allQuestions().map((q) => ({
+    url: `${SITE_URL}/questions/${q.slug}`,
+    lastModified: new Date(q.revised),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   const researchNoteEntries = allNotes().map((n) => ({
     url: `${SITE_URL}/research/notes/${n.slug}`,
     lastModified: new Date(n.datePublished),
@@ -171,5 +183,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...findingEntries,
     ...evidenceBriefEntries,
     ...researchNoteEntries,
+    ...questionEntries,
   ];
 }
