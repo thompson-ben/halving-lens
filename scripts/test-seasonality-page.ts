@@ -98,7 +98,8 @@ assert(pageSrc.includes("TrackedSection"), "sections are instrumented with exist
 
 // ── Accessibility wiring (functional, founder-required before merge) ─────────
 
-assert(explorerSrc.includes('e.key === "Escape"') && explorerSrc.includes("closePicked"), "Escape closes the pinned detail view");
+assert(explorerSrc.includes('e.key !== "Escape"') && explorerSrc.includes("if (picked) closePicked();"), "Escape closes the pinned detail view first");
+assert(explorerSrc.includes("else setHighlight(null)"), "Escape then clears the highlight — layered, detail sheet first");
 assert(explorerSrc.includes("pinOrigin.current?.focus()"), "closing returns focus to the activating cell");
 assert(explorerSrc.includes("closeBtn.current?.focus()"), "the detail sheet's close control takes focus on open");
 assert(explorerSrc.includes('role="dialog"') && explorerSrc.includes("details`}"), "the detail sheet is a labelled dialog");
@@ -117,6 +118,19 @@ assert(explorerSrc.includes("No insights at this filter") && explorerSrc.include
 assert(explorerSrc.includes("full record — unfiltered"), "the This-Month card declares itself unfiltered");
 assert((explorerSrc.match(/· \{filterLabel\}/g) ?? []).length >= 2, "the active filter is named in the filtered sections' own headings");
 assert(explorerSrc.includes('"US midterm years"'), "the filter menu offers US midterm years (inherits the full PR164 visibility contract)");
+
+// ── Row/column/cell highlighting (interaction PR) ────────────────────────────
+
+assert(explorerSrc.includes('{ kind: "month"; month: number }') && explorerSrc.includes('{ kind: "cell"; year: number; month: number }'), "the highlight is typed state: month, year, or cell crosshair");
+assert((explorerSrc.match(/setHighlight\(\{ kind: "cell"/g) ?? []).length === 2, "picking a cell sets the crosshair on BOTH layouts (detail open preserves it)");
+assert(explorerSrc.includes('highlight?.kind === "month" && highlight.month === m ? null') && explorerSrc.includes('highlight?.kind === "year" && highlight.year === y ? null'), "reselecting the active month/year heading clears it (toggle)");
+assert((explorerSrc.match(/aria-pressed=\{active\}/g) ?? []).length === 1 && (explorerSrc.match(/<HeadingButton/g) ?? []).length >= 4, "month and year headings are one shared pressed-state control, used on both layouts");
+assert(explorerSrc.includes("underline underline-offset-2"), "heading selection is marked by an underline, never colour alone");
+assert(explorerSrc.includes("0 0 0 2px ${GOLD}") && explorerSrc.includes("inset 0 0 0 1px rgba(217,185,106,0.4)"), "visual hierarchy: strongest ring on the selected cell, quiet inset accent on its row/column");
+assert((explorerSrc.match(/boxShadow: highlightShadow\(/g) ?? []).length === 2, "the highlight treatment applies on both layouts through one shared helper");
+assert(explorerSrc.includes("Selected.") && explorerSrc.includes("selected = false"), "the crosshair cell announces its selection to screen readers");
+assert(explorerSrc.includes("statsFromCells(cells, filter, ctx)") && !/statsFromCells\([^)]*highlight/.test(explorerSrc) && !/inFilter\([^)]*highlight/.test(explorerSrc), "highlighting is pure visual state — it never feeds a calculation");
+assert(explorerSrc.includes("opacity: isMember(y, i + 1) ? 1 : 0.25, boxShadow"), "the highlight layers UNDER the filter treatment — dimming is untouched");
 assert(pageSrc.includes("unaffected by filters"), "the reference-price section declares itself full-record");
 
 console.log(failures === 0 ? "\nAll seasonality-page tests passed." : `\n${failures} FAILURE(S)`);

@@ -25,6 +25,12 @@ import type { GridPayload, MonthDetail, SeasonalityPayload } from "@/lib/seasona
 // tap bottom-sheet (mobile), and the transposed mobile grid with sticky
 // month labels and year headings. No new analytics events — the page-level
 // TrackedSection captures section_view / section_click / section_dwell.
+//
+// Highlighting (interaction PR): month and year headings toggle a row/column
+// highlight; picking a cell sets a crosshair (cell + its month + its year).
+// Pure visual state — it never feeds statsFromCells, inFilter or any other
+// calculation, and it layers UNDER the filter treatment: member cells keep
+// full opacity, non-members keep the 25% dimming, highlighted or not.
 
 const GOLD = "#d9b96a";
 const MON_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -41,6 +47,22 @@ const FILTERS: { key: WindowFilter; label: string }[] = [
 ];
 
 const SERIES_ORDER: SeriesKey[] = ["market", "trend", "holders", "miners"];
+
+/** Row/column/cell highlight — visual reading aid only, never a calculation
+ *  input. "cell" carries a full crosshair (the cell plus its month + year). */
+type Highlight =
+  | { kind: "month"; month: number }
+  | { kind: "year"; year: number }
+  | { kind: "cell"; year: number; month: number }
+  | null;
+
+/** The two visual tiers under the selected cell itself: the crosshair ring on
+ *  the exact cell, and a quiet inset accent on its row/column companions. */
+function highlightShadow(isCell: boolean, inCross: boolean): string | undefined {
+  if (isCell) return `0 0 0 2px ${GOLD}`;
+  if (inCross) return "inset 0 0 0 1px rgba(217,185,106,0.4)";
+  return undefined;
+}
 
 function cellColor(value: number | null, partial: boolean): { bg: string; fg: string } {
   if (value == null) return { bg: "rgba(255,255,255,0.03)", fg: "#525c6b" };
@@ -82,6 +104,7 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
   const [filter, setFilter] = useState<WindowFilter>("all");
   const [picked, setPicked] = useState<{ year: number; month: number } | null>(null);
   const [hover, setHover] = useState<{ year: number; month: number; x: number; y: number } | null>(null);
+  const [highlight, setHighlight] = useState<Highlight>(null);
   // Accessibility: the cell that opened the detail sheet, so Escape/close can
   // return focus to it; the sheet's close button takes focus on open.
   const pinOrigin = useRef<HTMLElement | null>(null);
@@ -93,15 +116,22 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
     pinOrigin.current = null;
   };
 
+  // Escape peels the topmost layer: an open detail sheet first, then the
+  // row/column/cell highlight.
   useEffect(() => {
-    if (!picked) return;
+    if (!picked && !highlight) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closePicked();
+      if (e.key !== "Escape") return;
+      if (picked) closePicked();
+      else setHighlight(null);
     };
     window.addEventListener("keydown", onKey);
-    closeBtn.current?.focus();
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked, highlight]);
+
+  useEffect(() => {
+    if (picked) closeBtn.current?.focus();
   }, [picked]);
 
   const ctx = useMemo(() => deserializeCtx(payload.ctx), [payload.ctx]);
@@ -142,6 +172,15 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
   const filterLabel = FILTERS.find((f) => f.key === filter)?.label ?? "";
   const filtering = filter !== "all";
   const isMember = (y: number, m: number) => !filtering || inFilter(y, m, filter, ctx);
+
+  // Highlight derivations — a "cell" highlight is a crosshair (its month AND
+  // year light up); heading toggles clear on reselection.
+  const hlMonth = highlight?.kind === "month" ? highlight.month : highlight?.kind === "cell" ? highlight.month : null;
+  const hlYear = highlight?.kind === "year" ? highlight.year : highlight?.kind === "cell" ? highlight.year : null;
+  const isHlCell = (y: number, m: number) => highlight?.kind === "cell" && highlight.year === y && highlight.month === m;
+  const inCross = (y: number, m: number) => !isHlCell(y, m) && (y === hlYear || m === hlMonth);
+  const toggleMonth = (m: number) => setHighlight(highlight?.kind === "month" && highlight.month === m ? null : { kind: "month", month: m });
+  const toggleYear = (y: number) => setHighlight(highlight?.kind === "year" && highlight.year === y ? null : { kind: "year", year: y });
   const observedCells = cells.filter((c) => c.value != null && !c.partial);
   const memberCount = filtering ? observedCells.filter((c) => inFilter(c.year, c.month, filter, ctx)).length : observedCells.length;
   const maxFilteredN = stats.length ? Math.max(...stats.map((s) => s.n)) : 0;
@@ -216,7 +255,16 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
             <div className="grid" style={{ gridTemplateColumns: "3.5rem repeat(12, minmax(0, 1fr))", gap: 2 }}>
               <div />
               {MON_SHORT.map((m, i) => (
-                <div key={m} className={`text-center text-[10.5px] pb-1 ${i + 1 === payload.curMonth ? "text-accent" : "text-ink-500"}`}>{m}</div>
+                <HeadingButton
+                  key={m}
+                  label={m}
+                  fullName={MONTHS[i]}
+                  axis="column"
+                  active={hlMonth === i + 1 && highlight?.kind === "month"}
+                  isCurrent={i + 1 === payload.curMonth}
+                  onToggle={() => toggleMonth(i + 1)}
+                  className="text-center text-[10.5px] pb-1"
+                />
               ))}
               {years.map((y) => (
                 <YearRow
@@ -226,8 +274,12 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
                   curYear={payload.curYear}
                   curMonth={payload.curMonth}
                   isMember={isMember}
+                  isHlCell={isHlCell}
+                  inCross={inCross}
+                  yearActive={hlYear === y && highlight?.kind === "year"}
+                  onToggleYear={() => toggleYear(y)}
                   onHover={(m, e) => setHover({ year: y, month: m, x: e.clientX, y: e.clientY })}
-                  onPick={(m, el) => { pinOrigin.current = el; setPicked({ year: y, month: m }); }}
+                  onPick={(m, el) => { pinOrigin.current = el; setPicked({ year: y, month: m }); setHighlight({ kind: "cell", year: y, month: m }); }}
                 />
               ))}
             </div>
@@ -241,19 +293,33 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
             <div className="inline-grid" style={{ gridTemplateColumns: `2.6rem repeat(${years.length}, 2.4rem)`, gap: 2 }}>
               <div className="sticky left-0 z-10 bg-ink-950" />
               {years.map((y) => (
-                <div key={y} className={`text-center text-[9.5px] pb-1 ${y === payload.curYear ? "text-accent" : "text-ink-500"}`}>{String(y).slice(2)}</div>
+                <HeadingButton
+                  key={y}
+                  label={String(y).slice(2)}
+                  fullName={String(y)}
+                  axis="column"
+                  active={hlYear === y && highlight?.kind === "year"}
+                  isCurrent={y === payload.curYear}
+                  onToggle={() => toggleYear(y)}
+                  className="text-center text-[9.5px] pb-1"
+                />
               ))}
               {MON_SHORT.map((mLabel, mi) => (
                 <MobileRow
                   key={mLabel}
                   label={mLabel}
+                  fullName={MONTHS[mi]}
                   month={mi + 1}
                   isCurrent={mi + 1 === payload.curMonth}
+                  monthActive={hlMonth === mi + 1 && highlight?.kind === "month"}
+                  onToggleMonth={() => toggleMonth(mi + 1)}
                   years={years}
                   curYear={payload.curYear}
                   curMonth={payload.curMonth}
                   isMember={isMember}
-                  onPick={(yi, el) => { pinOrigin.current = el; setPicked({ year: years[yi], month: mi + 1 }); }}
+                  isHlCell={isHlCell}
+                  inCross={inCross}
+                  onPick={(yi, el) => { pinOrigin.current = el; setPicked({ year: years[yi], month: mi + 1 }); setHighlight({ kind: "cell", year: years[yi], month: mi + 1 }); }}
                   cells={years.map((y) => cellAt(y, mi + 1))}
                 />
               ))}
@@ -404,41 +470,82 @@ export function SeasonalityExplorer({ payload }: { payload: SeasonalityPayload }
 }
 
 /** Distinct accessible label per cell state: valued (with month-to-date
- *  suffix), future, or no observation — meaning never rests on colour alone. */
-function cellAriaLabel(year: number, month: number, c: MonthCell | undefined, curYear: number, curMonth: number): string {
+ *  suffix), future, or no observation — meaning never rests on colour alone.
+ *  The crosshair cell announces its selection. */
+function cellAriaLabel(year: number, month: number, c: MonthCell | undefined, curYear: number, curMonth: number, selected = false): string {
   const name = `${MONTHS[month - 1]} ${year}`;
-  if (c?.value != null) return `${name}: ${fmtV(c.value)}${c.partial ? ", month to date" : ""}. Open details.`;
+  const sel = selected ? " Selected." : "";
+  if (c?.value != null) return `${name}: ${fmtV(c.value)}${c.partial ? ", month to date" : ""}.${sel} Open details.`;
   if (year === curYear && month > curMonth) return `${name}: not yet occurred`;
   return `${name}: no observation in this series' window`;
 }
 
+/** A month/year heading as a highlight toggle: aria-pressed carries the
+ *  state, the underline marks selection without relying on colour, and the
+ *  global focus ring covers keyboard visibility. */
+function HeadingButton({
+  label, fullName, axis, active, isCurrent, onToggle, className,
+}: {
+  label: string;
+  fullName: string;
+  axis: "row" | "column";
+  active: boolean;
+  isCurrent: boolean;
+  onToggle: () => void;
+  className: string;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-pressed={active}
+      aria-label={`Highlight the ${fullName} ${axis}`}
+      className={`${className} rounded-[4px] transition-colors ${active ? "text-[#d9b96a] underline underline-offset-2 decoration-[#d9b96a]/70" : isCurrent ? "text-accent hover:text-ink-200" : "text-ink-500 hover:text-ink-200"}`}
+    >
+      {label}
+    </button>
+  );
+}
+
 function YearRow({
-  y, cellAt, curYear, curMonth, isMember, onHover, onPick,
+  y, cellAt, curYear, curMonth, isMember, isHlCell, inCross, yearActive, onToggleYear, onHover, onPick,
 }: {
   y: number;
   cellAt: (y: number, m: number) => MonthCell | undefined;
   curYear: number;
   curMonth: number;
   isMember: (y: number, m: number) => boolean;
+  isHlCell: (y: number, m: number) => boolean;
+  inCross: (y: number, m: number) => boolean;
+  yearActive: boolean;
+  onToggleYear: () => void;
   onHover: (m: number, e: React.MouseEvent) => void;
   onPick: (m: number, el: HTMLElement) => void;
 }) {
   return (
     <>
-      <div className={`text-[10.5px] pr-2 text-right leading-7 ${y === curYear ? "text-accent" : "text-ink-500"}`}>{y}</div>
+      <HeadingButton
+        label={String(y)}
+        fullName={String(y)}
+        axis="row"
+        active={yearActive}
+        isCurrent={y === curYear}
+        onToggle={onToggleYear}
+        className="text-[10.5px] pr-2 text-right leading-7"
+      />
       {Array.from({ length: 12 }, (_, i) => {
         const c = cellAt(y, i + 1);
         const hasValue = c?.value != null;
         const { bg, fg } = cellColor(c?.value ?? null, c?.partial ?? false);
+        const selected = isHlCell(y, i + 1);
         return (
           <button
             key={i}
             onMouseMove={(e) => onHover(i + 1, e)}
             onClick={hasValue ? (e) => onPick(i + 1, e.currentTarget) : undefined}
             disabled={!hasValue}
-            aria-label={cellAriaLabel(y, i + 1, c, curYear, curMonth)}
-            className={`h-7 rounded-[4px] text-[10px] tabular-nums transition-[transform,opacity] duration-200 hover:scale-[1.06] hover:z-10 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
-            style={{ background: bg, color: fg, opacity: isMember(y, i + 1) ? 1 : 0.25 }}
+            aria-label={cellAriaLabel(y, i + 1, c, curYear, curMonth, selected)}
+            className={`h-7 rounded-[4px] text-[10px] tabular-nums transition-[transform,opacity] duration-200 hover:scale-[1.06] hover:z-10 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""} ${selected ? "relative z-10" : ""}`}
+            style={{ background: bg, color: fg, opacity: isMember(y, i + 1) ? 1 : 0.25, boxShadow: highlightShadow(selected, inCross(y, i + 1)) }}
           >
             {/* In-cell values only where 12 columns give them room; colour +
                 aria-label carry the meaning below lg. */}
@@ -451,32 +558,48 @@ function YearRow({
 }
 
 function MobileRow({
-  label, month, isCurrent, years, curYear, curMonth, isMember, cells, onPick,
+  label, fullName, month, isCurrent, monthActive, onToggleMonth, years, curYear, curMonth, isMember, isHlCell, inCross, cells, onPick,
 }: {
   label: string;
+  fullName: string;
   month: number;
   isCurrent: boolean;
+  monthActive: boolean;
+  onToggleMonth: () => void;
   years: number[];
   curYear: number;
   curMonth: number;
   isMember: (y: number, m: number) => boolean;
+  isHlCell: (y: number, m: number) => boolean;
+  inCross: (y: number, m: number) => boolean;
   cells: (MonthCell | undefined)[];
   onPick: (yearIndex: number, el: HTMLElement) => void;
 }) {
   return (
     <>
-      <div className={`sticky left-0 z-10 bg-ink-950 text-[10px] pr-1.5 text-right leading-7 ${isCurrent ? "text-accent" : "text-ink-500"}`}>{label}</div>
+      <div className="sticky left-0 z-10 bg-ink-950 leading-7 text-right">
+        <HeadingButton
+          label={label}
+          fullName={fullName}
+          axis="row"
+          active={monthActive}
+          isCurrent={isCurrent}
+          onToggle={onToggleMonth}
+          className="text-[10px] pr-1.5 text-right leading-7 w-full"
+        />
+      </div>
       {cells.map((c, yi) => {
         const hasValue = c?.value != null;
         const { bg } = cellColor(c?.value ?? null, c?.partial ?? false);
+        const selected = isHlCell(years[yi], month);
         return (
           <button
             key={yi}
             onClick={hasValue ? (e) => onPick(yi, e.currentTarget) : undefined}
             disabled={!hasValue}
-            aria-label={cellAriaLabel(years[yi], month, c, curYear, curMonth)}
-            className={`h-7 rounded-[4px] transition-opacity duration-200 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""}`}
-            style={{ background: bg, opacity: isMember(years[yi], month) ? 1 : 0.25 }}
+            aria-label={cellAriaLabel(years[yi], month, c, curYear, curMonth, selected)}
+            className={`h-7 rounded-[4px] transition-opacity duration-200 focus-visible:relative focus-visible:z-10 disabled:cursor-default ${c?.partial ? "border border-dashed border-white/25" : ""} ${selected ? "relative z-[5]" : ""}`}
+            style={{ background: bg, opacity: isMember(years[yi], month) ? 1 : 0.25, boxShadow: highlightShadow(selected, inCross(years[yi], month)) }}
           />
         );
       })}
