@@ -43,6 +43,7 @@
     "test-price-archive": "tsx scripts/test-price-archive.ts",
     "test-seasonality": "tsx scripts/test-seasonality.ts",
     "test-seasonality-page": "tsx scripts/test-seasonality-page.ts",
+    "test-cycle-seasonality": "tsx scripts/test-cycle-seasonality.ts",
     "test-questions": "tsx scripts/test-questions.ts"
   },
   "dependencies": {
