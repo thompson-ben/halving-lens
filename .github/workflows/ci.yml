@@ -104,6 +104,14 @@ jobs:
       - name: Seasonality-page tests
         run: npm run test-seasonality-page
 
+      # Cycle-aligned seasonality engine (PR-V2A) — anchored-month boundary
+      # methodology, stub/running-month partials, observed grid horizon,
+      # zero-neutral agreement classification on unrounded values,
+      # completed-cycles-only language, per-cycle reference coverage, and
+      # the banned-language scan over emitted text.
+      - name: Cycle-seasonality tests
+        run: npm run test-cycle-seasonality
+
       # Bitcoin Questions (PR-Q1) — registry contract, vocabulary rules,
       # evidence-token discipline, EngineSentence state fixtures, static-claim
       # drift recomputation, the staleness contract, structured-data and
