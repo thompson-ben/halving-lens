@@ -69,6 +69,12 @@ assert(avgGapPctInMonth(closes, [], 2024, 3) === null, "no overlapping reference
 
 const ctx = buildFilterContext(closes, "2025-01-20");
 assert(ctx.electionYears.has(2024) && !ctx.electionYears.has(2023), "election years are the fixed US cycle");
+assert(
+  ctx.midtermYears.has(2010) && ctx.midtermYears.has(2014) && ctx.midtermYears.has(2018) && ctx.midtermYears.has(2022) && !ctx.midtermYears.has(2026),
+  "midterm years are the fixed US off-cycle (2010 + 4k), never extended past today",
+);
+assert([...ctx.midtermYears].every((y) => !ctx.electionYears.has(y)), "midterm and election years are disjoint sets");
+assert(inFilter(2022, 6, "midterm", ctx) && !inFilter(2024, 6, "midterm", ctx) && !inFilter(2023, 6, "midterm", ctx), "midterm membership admits whole midterm years only — deterministic, like the election filter");
 assert(ctx.postHalvingYears.has(2025) && !ctx.postHalvingYears.has(2024), "post-halving years are the calendar year after each halving");
 assert(ctx.currentCycleFrom === "2024-04-19", "the current cycle starts at the latest past halving");
 assert(inFilter(2024, 3, "previous-cycles", ctx) && !inFilter(2024, 5, "previous-cycles", ctx), "months before the halving month belong to previous cycles");

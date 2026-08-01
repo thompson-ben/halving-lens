@@ -37,6 +37,7 @@ const FILTERS: { key: WindowFilter; label: string }[] = [
   { key: "below-trend", label: "Below trend" },
   { key: "post-halving", label: "Post-halving years" },
   { key: "election", label: "US election years" },
+  { key: "midterm", label: "US midterm years" },
 ];
 
 const SERIES_ORDER: SeriesKey[] = ["market", "trend", "holders", "miners"];

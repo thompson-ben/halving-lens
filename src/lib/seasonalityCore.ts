@@ -21,7 +21,8 @@ export type WindowFilter =
   | "above-trend"
   | "below-trend"
   | "post-halving"
-  | "election";
+  | "election"
+  | "midterm";
 
 export const SERIES_META: Record<SeriesKey, { label: string; nature: "observed" | "derived" | "estimated" }> = {
   market: { label: "Market Price", nature: "observed" },
@@ -89,6 +90,7 @@ export interface Insight {
 
 export interface FilterContext {
   electionYears: Set<number>;
+  midtermYears: Set<number>; // US midterm years: 2010 + 4k
   postHalvingYears: Set<number>;
   currentCycleFrom: string; // ISO day of the latest past halving
   aboveTrendMonths: Set<string>; // "YYYY-MM" where month-end close > MA200
@@ -97,6 +99,7 @@ export interface FilterContext {
 /** Serializable twin of FilterContext for the server→client boundary. */
 export interface SerialFilterContext {
   electionYears: number[];
+  midtermYears: number[];
   postHalvingYears: number[];
   currentCycleFrom: string;
   aboveTrendMonths: string[];
@@ -105,6 +108,7 @@ export interface SerialFilterContext {
 export function serializeCtx(ctx: FilterContext): SerialFilterContext {
   return {
     electionYears: [...ctx.electionYears].sort(),
+    midtermYears: [...ctx.midtermYears].sort(),
     postHalvingYears: [...ctx.postHalvingYears].sort(),
     currentCycleFrom: ctx.currentCycleFrom,
     aboveTrendMonths: [...ctx.aboveTrendMonths].sort(),
@@ -114,6 +118,7 @@ export function serializeCtx(ctx: FilterContext): SerialFilterContext {
 export function deserializeCtx(s: SerialFilterContext): FilterContext {
   return {
     electionYears: new Set(s.electionYears),
+    midtermYears: new Set(s.midtermYears),
     postHalvingYears: new Set(s.postHalvingYears),
     currentCycleFrom: s.currentCycleFrom,
     aboveTrendMonths: new Set(s.aboveTrendMonths),
@@ -129,6 +134,8 @@ export function inFilter(year: number, month: number, filter: WindowFilter, ctx:
       return true;
     case "election":
       return ctx.electionYears.has(year);
+    case "midterm":
+      return ctx.midtermYears.has(year);
     case "post-halving":
       return ctx.postHalvingYears.has(year);
     case "current-cycle":
