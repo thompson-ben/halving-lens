@@ -13,6 +13,7 @@ import { WhereAreWe } from "@/components/WhereAreWe";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { LeadChart } from "@/components/sob/LeadChart";
 import { MarketSnapshot } from "@/components/sob/MarketSnapshot";
+import { WeekInFiveRail, WeekInFiveExpanded } from "@/components/sob/WeekInFive";
 import { ReferencePrices } from "@/components/sob/ReferencePrices";
 import { CycleStatusSection } from "@/components/sob/CycleStatusSection";
 import { WeeklyConclusion } from "@/components/sob/WeeklyConclusion";
@@ -25,6 +26,7 @@ import { metricChange } from "@/lib/metricChange";
 import { snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
 import { todaysVerdict, matchReasons, rankedWatch } from "@/lib/stateOfBitcoin";
 import { marketMovers } from "@/lib/marketMovers";
+import { weekInFive } from "@/lib/talkingPoints";
 import type { MoverPeriod, MoversResult } from "@/lib/marketMovers/types";
 import { pathExplorer } from "@/lib/pathExplorer";
 import { upsideScenarios } from "@/lib/upside";
@@ -107,6 +109,10 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   // "what changed?" from the same handful of metrics.
   const movers = { 1: marketMovers(1), 7: marketMovers(7), 30: marketMovers(30) } as Record<MoverPeriod, MoversResult>;
 
+  // The week's agenda — one set of canonical talking points, shown short in
+  // the standfirst rail and long in "What matters most".
+  const five = weekInFive();
+
   const today = SOURCE.fetchedAt ? new Date(SOURCE.fetchedAt) : new Date();
   const finding = latestFindings(1)[0];
   // Research Corner only counts as "this week's finding" when genuinely recent.
@@ -170,6 +176,9 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             it materially aids understanding (7-day stays the primary lens). */}
         {dailyNote && <p className="mt-3 text-[12.5px] text-ink-400 leading-relaxed">{dailyNote}</p>}
 
+        {/* This week in five — the agenda, visible in the first screen */}
+        <WeekInFiveRail data={five} />
+
         {/* The signature orientation visual */}
         <div className="mt-8">
           <WhereAreWe />
@@ -184,7 +193,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       </section>
 
       {/* ── What changed — the Market Snapshot ── */}
-      <section data-sob-section="movers">
+      <section data-sob-section="movers" id="movers">
         <SectionHead
           n="01"
           title="What changed this week"
@@ -248,9 +257,15 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         <CycleStatusSection />
       </section>
 
-      {/* ── Section 8 — What we're watching next ── */}
-      <section data-sob-section="watching">
-        <SectionHead n="05" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
+      {/* ── What matters most — the five points, expanded ── */}
+      <section data-sob-section="matters" id="matters">
+        <SectionHead n="05" title="What matters most" note="The week's five points, expanded — the same five listed at the top of the page." />
+        <WeekInFiveExpanded data={five} />
+      </section>
+
+      {/* ── What we're watching next ── */}
+      <section data-sob-section="watching" id="watching">
+        <SectionHead n="06" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {watch.map((w, i) => (
             <div key={i} className={`card p-5 ${w.top ? "ring-1 ring-accent/30" : ""}`}>
@@ -276,14 +291,14 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
       {/* ── Section 9 — Weekly Conclusion ── */}
       <section data-sob-section="conclusion">
-        <SectionHead n="06" title="The verdict" note="Everything above, combined into one weekly read." />
+        <SectionHead n="07" title="The verdict" note="Everything above, combined into one weekly read." />
         <WeeklyConclusion presenter={presenter} verdict={verdict} />
       </section>
 
       {/* ── Research corner — secondary; only when genuinely recent ── */}
       {freshFinding && (
         <section>
-          <SectionHead n="07" title="Research corner" note="This week's finding from the research library." />
+          <SectionHead n="08" title="Research corner" note="This week's finding from the research library." />
           <TrackedLink href={`/research/findings/${freshFinding.slug}`} event="snapshot_research_click" props={{ id: freshFinding.id }} className="card card-interactive p-5 sm:p-6 block">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-accent/25 text-accent">{freshFinding.id}</span>
