@@ -103,6 +103,13 @@ export interface Movement {
   /** Current band/state label where the metric has one (Fear, Neutral…). */
   state: string | null;
 
+  /** ONE restrained, factual line placing an unusually large short-term
+   *  move in its longer context ("Still 16% below 2 Jul."). Never
+   *  influences ranking or significance, carries no direction or emphasis,
+   *  and must be rendered visually secondary — never a second headline.
+   *  Null when no honest context exists. */
+  broaderContext: import("./context").BroaderContext | null;
+
   /** Canonical page for this metric on HalvingLens. */
   href: string;
   /** The date THIS metric was measured to — its own last observation when
