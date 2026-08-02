@@ -132,6 +132,11 @@ jobs:
       - name: Market-movers tests
         run: npm run test-market-movers
 
+      # This Week in Five (SoB 2.0, PR-SB3) — tier hierarchy, diversity
+      # invariant, deep-link spread, quiet-week fallback and language scan.
+      - name: Talking-points tests
+        run: npm run test-talking-points
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
