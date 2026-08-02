@@ -178,12 +178,12 @@ export function MarketSnapshot({ initial }: { initial: Record<MoverPeriod, Mover
 
   // Materiality language only — never whether a tier renders.
   const quiet = materialCount === 0;
-  const scope =
-    quiet
-      ? `No reading moved materially over the last ${periodLabel(period)}. The ranked readings below were all historically ordinary.`
-      : `${materialCount} of ${tier1.length + tier2.length + steady.length} readings moved materially over the last ${periodLabel(period)}${
-          materialCount < 3 ? ". The remaining ranked readings were historically ordinary." : "."
-        }`;
+  const analysed = tier1.length + tier2.length + steady.length;
+  const scope = quiet
+    ? `${analysed} market readings analysed · none moved materially over the last ${periodLabel(period)}. The ranked readings below were all historically ordinary.`
+    : `${analysed} market readings analysed · ${materialCount} moved materially over the last ${periodLabel(period)}${
+        materialCount < 3 ? ". The remaining ranked readings were historically ordinary." : "."
+      }`;
 
   return (
     <div className="space-y-5">
