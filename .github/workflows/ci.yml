@@ -137,6 +137,13 @@ jobs:
       - name: Talking-points tests
         run: npm run test-talking-points
 
+      # Weekly Briefing model (SoB 2.0, PR-SB4) — one canonical verdict opened
+      # and closed on, the five-question front page mapped to the five acts,
+      # the documentary bridges, presentation-free model discipline, and the
+      # house-vocabulary scan.
+      - name: Weekly-briefing tests
+        run: npm run test-weekly-briefing
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

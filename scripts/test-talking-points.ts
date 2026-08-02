@@ -102,11 +102,12 @@ const rules = readFileSync("src/lib/talkingPoints/rules.ts", "utf8");
 assert(!/from "react"|className/.test(idx + rules), "the engine emits no markup — the rail and the expansion consume the same objects");
 assert(/Historical context. Not forecasts./.test(idx) || /Historical context. Not forecasts./.test(readFileSync("src/lib/talkingPoints/types.ts", "utf8")), "the standing constraint is recorded in the engine");
 const railSrc = readFileSync("src/components/sob/WeekInFive.tsx", "utf8");
-assert(railSrc.includes("WeekInFiveRail") && railSrc.includes("WeekInFiveExpanded"), "one module renders both the agenda and its expansion");
+assert(railSrc.includes("WeekInFiveExpanded"), "one module renders both the agenda rail and its expansion");
 assert(railSrc.includes("scrollIntoView") && railSrc.includes("data-tp-flash"), "selecting an agenda item scrolls to its act and flashes it briefly");
 assert(railSrc.includes("focus({ preventScroll: true })"), "keyboard focus follows the deep link");
+assert(!railSrc.includes("WeekInFiveRail"), "there is no second agenda renderer — the front page carries the running order (PR-SB4)");
 const pageSrc = readFileSync("src/app/state-of-bitcoin/page.tsx", "utf8");
-assert((pageSrc.match(/data={five}/g) ?? []).length === 2, "the page renders the SAME five objects twice — agenda and expansion, never two sets of conclusions");
+assert((pageSrc.match(/data={five}/g) ?? []).length === 1, "the page passes ONE set of canonical points to ONE renderer — never two sets of conclusions");
 assert(pageSrc.includes('id="matters"') && pageSrc.includes('id="movers"') && pageSrc.includes('id="watching"'), "the deep-link destinations exist on the page");
 
 console.log(failures === 0 ? "\nAll talking-points tests passed." : `\n${failures} FAILURE(S)`);
