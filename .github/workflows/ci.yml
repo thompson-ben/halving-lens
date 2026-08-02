@@ -125,6 +125,13 @@ jobs:
       - name: Questions tests
         run: npm run test-questions
 
+      # Market Movers significance & rarity engine (SoB 2.0, PR-SB1) —
+      # movement definitions per unit/kind, equivalent-period distributions,
+      # observation floors, crossing uplift, honest windows (no modelled
+      # backfill), and the causal/predictive language scan.
+      - name: Market-movers tests
+        run: npm run test-market-movers
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
