@@ -30,6 +30,7 @@ import { broaderContext } from "./context";
 
 export * from "./types";
 export { broaderContext, CONTEXT_WINDOW_DAYS, type BroaderContext } from "./context";
+export * from "./describe";
 export { MOVER_METRICS, metricById } from "./registry";
 export {
   RARITY_MIN_OBSERVATIONS,
@@ -181,6 +182,7 @@ function build(m: MoverMetric, globalAnchor: string, period: MoverPeriod): Movem
       bandLabel: m.band ? m.band.label : undefined,
     }),
     crossing,
+    spark: series.slice(-Math.max(period * 4, 24)).map((p) => p.value),
     state: m.band ? m.band.label(current) : null,
     href: m.href,
     asOf: anchor,

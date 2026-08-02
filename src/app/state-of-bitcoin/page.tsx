@@ -10,11 +10,9 @@ import { RecordModeButton } from "@/components/RecordModeButton";
 import { FlagshipJourney } from "@/components/FlagshipJourney";
 import { FlagshipShare } from "@/components/FlagshipShare";
 import { WhereAreWe } from "@/components/WhereAreWe";
-import { WeekInContext } from "@/components/WeekInContext";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
-import { SinceLastWeek } from "@/components/sob/SinceLastWeek";
 import { LeadChart } from "@/components/sob/LeadChart";
-import { EvidenceSweep } from "@/components/sob/EvidenceSweep";
+import { MarketSnapshot } from "@/components/sob/MarketSnapshot";
 import { ReferencePrices } from "@/components/sob/ReferencePrices";
 import { CycleStatusSection } from "@/components/sob/CycleStatusSection";
 import { WeeklyConclusion } from "@/components/sob/WeeklyConclusion";
@@ -25,8 +23,9 @@ import { currentChapter, previousChapter } from "@/lib/journal";
 import { dailyVsWeeklyPrice } from "@/lib/dayContext";
 import { metricChange } from "@/lib/metricChange";
 import { snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
-import { weekAgoBrief } from "@/lib/weekComparison";
-import { todaysVerdict, matchReasons, weekChangeSummary, rankedWatch } from "@/lib/stateOfBitcoin";
+import { todaysVerdict, matchReasons, rankedWatch } from "@/lib/stateOfBitcoin";
+import { marketMovers } from "@/lib/marketMovers";
+import type { MoverPeriod, MoversResult } from "@/lib/marketMovers/types";
 import { pathExplorer } from "@/lib/pathExplorer";
 import { upsideScenarios } from "@/lib/upside";
 import { downsideScenarios } from "@/lib/downside";
@@ -100,14 +99,13 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   const watch = rankedWatch();
   const cotw = selectChartOfWeek();
   const reasons = matchReasons();
-  const weekChange = weekChangeSummary();
   const explorer = pathExplorer();
   const verdict = todaysVerdict();
 
-  // "Since last <weekday>" — a rolling 7-day comparison relative to today, named
-  // for the actual weekday of the comparison point (not hard-anchored to any day).
-  const weekAgo = weekAgoBrief();
-  const sinceTitle = weekAgo ? `Since last ${weekAgo.weekday}` : "Since this time last week";
+  // Every registered reading, ranked by how unusual its move is within its
+  // OWN history — one section replacing the three that previously answered
+  // "what changed?" from the same handful of metrics.
+  const movers = { 1: marketMovers(1), 7: marketMovers(7), 30: marketMovers(30) } as Record<MoverPeriod, MoversResult>;
 
   const today = SOURCE.fetchedAt ? new Date(SOURCE.fetchedAt) : new Date();
   const finding = latestFindings(1)[0];
@@ -185,36 +183,25 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         </div>
       </section>
 
-      {/* ── Section 2 — The Story of the Last Seven Days ── */}
-      <section data-sob-section="week-story">
-        <SectionHead n="01" title="The story of the last seven days" note="The week's biggest developments, ranked — what changed, why it matters, and how the moves relate." />
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[12px] text-ink-200">{weekChange.headline}</span>
-        </div>
-        <WeekInContext showCycleStatus={false} />
+      {/* ── What changed — the Market Snapshot ── */}
+      <section data-sob-section="movers">
+        <SectionHead
+          n="01"
+          title="What changed this week"
+          note="Every HalvingLens reading, ranked by how unusual its move is within its own history — not by raw percentage."
+        />
+        <MarketSnapshot initial={movers} />
       </section>
 
-      {/* ── Section 3 — Since Last Wednesday ── */}
-      <section data-sob-section="since-last-week">
-        <SectionHead n="02" title={sinceTitle} note="A rolling seven-day, then-vs-now of the core readings — and how last week's watch item actually played out." />
-        <SinceLastWeek />
-      </section>
-
-      {/* ── Section 4 — The Week's Lead Chart ── */}
+      {/* ── The week's lead chart ── */}
       <section data-sob-section="lead-chart">
-        <SectionHead n="03" title="The week's lead chart" note="The single chart that best captures the week — shown inline." />
+        <SectionHead n="02" title="The week's lead chart" note="The single chart that best captures the week — shown inline." />
         <LeadChart pick={cotw} />
-      </section>
-
-      {/* ── Section 5 — Evidence Sweep ── */}
-      <section data-sob-section="evidence">
-        <SectionHead n="04" title="The evidence" note="The core HalvingLens readings, ranked by how much they moved this week." />
-        <EvidenceSweep />
       </section>
 
       {/* ── Section 6 — Historical Context ── */}
       <section data-sob-section="history">
-        <SectionHead n="05" title="How has history behaved from here?" note="Real completed cycles replayed from today's point. Historical context, not a forecast." />
+        <SectionHead n="03" title="How has history behaved from here?" note="Real completed cycles replayed from today's point. Historical context, not a forecast." />
         <p className="mb-4 text-[13px] text-ink-300 leading-relaxed max-w-2xl">
           Each prior-cycle line shows what actually happened after the same stage of an earlier Bitcoin cycle. Dashed
           sections are the paths after a cycle&rsquo;s peak.
@@ -257,13 +244,13 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
       {/* ── Section 7 — What did not change? ── */}
       <section data-sob-section="cycle-status">
-        <SectionHead n="06" title="What did not change?" note="Whether this week actually moved the broader cycle interpretation." />
+        <SectionHead n="04" title="What did not change?" note="Whether this week actually moved the broader cycle interpretation." />
         <CycleStatusSection />
       </section>
 
       {/* ── Section 8 — What we're watching next ── */}
       <section data-sob-section="watching">
-        <SectionHead n="07" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
+        <SectionHead n="05" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {watch.map((w, i) => (
             <div key={i} className={`card p-5 ${w.top ? "ring-1 ring-accent/30" : ""}`}>
@@ -289,14 +276,14 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
       {/* ── Section 9 — Weekly Conclusion ── */}
       <section data-sob-section="conclusion">
-        <SectionHead n="08" title="The verdict" note="Everything above, combined into one weekly read." />
+        <SectionHead n="06" title="The verdict" note="Everything above, combined into one weekly read." />
         <WeeklyConclusion presenter={presenter} verdict={verdict} />
       </section>
 
       {/* ── Research corner — secondary; only when genuinely recent ── */}
       {freshFinding && (
         <section>
-          <SectionHead n="09" title="Research corner" note="This week's finding from the research library." />
+          <SectionHead n="07" title="Research corner" note="This week's finding from the research library." />
           <TrackedLink href={`/research/findings/${freshFinding.slug}`} event="snapshot_research_click" props={{ id: freshFinding.id }} className="card card-interactive p-5 sm:p-6 block">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-accent/25 text-accent">{freshFinding.id}</span>

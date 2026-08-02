@@ -110,6 +110,11 @@ export interface Movement {
    *  Null when no honest context exists. */
   broaderContext: import("./context").BroaderContext | null;
 
+  /** Recent observations for a sparkline, oldest → newest (raw values in
+   *  the metric's own units; consumers normalise). Presentation data, never
+   *  an input to ranking. */
+  spark: number[];
+
   /** Canonical page for this metric on HalvingLens. */
   href: string;
   /** The date THIS metric was measured to — its own last observation when
