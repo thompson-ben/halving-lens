@@ -20,7 +20,7 @@ import {
   valueOn,
   type Point,
 } from "../src/lib/marketMovers/distribution";
-import { marketMovers, bandCrossing, moversAsOf } from "../src/lib/marketMovers";
+import { marketMovers, bandCrossing, moversAsOf, broaderContext } from "../src/lib/marketMovers";
 import { MOVER_METRICS, metricById } from "../src/lib/marketMovers/registry";
 import { PRICE_ARCHIVE } from "../src/lib/data/priceArchiveData";
 
@@ -157,6 +157,63 @@ if (PRICE_ARCHIVE.length > 1000) {
   const withCrossing = Math.max(small, CROSSING_SIGNIFICANCE_FLOOR);
   assert(withCrossing === 80 && withCrossing < big, "a crossing lifts a small move to the floor but cannot leapfrog a genuinely larger move");
   assert(Math.max(big, CROSSING_SIGNIFICANCE_FLOOR) === big, "the floor never DEMOTES a move above it");
+}
+
+// ── Broader context (founder refinement) ─────────────────────────────────────
+
+{
+  const base = { anchor: d(60), decimals: 2, unit: "pct" as const, kind: "level" as const };
+  // Flow metrics report the longer window's net direction.
+  const flowSeries = daily(60, () => 10);
+  const f = broaderContext({ ...base, kind: "flow", series: flowSeries, movement: -100 })!;
+  assert(f.rule === "flow-window" && f.text === "Monthly net flows remain positive.", "flow metrics contextualise on the longer window's net direction, not a level change");
+  const negFlow = broaderContext({ ...base, kind: "flow", series: daily(60, () => -10), movement: 50 })!;
+  assert(negFlow.text === "Monthly net flows remain negative.", "…in both directions");
+
+  // Banded metrics prefer how long the published band has persisted.
+  const steadyBand = broaderContext({ ...base, series: daily(60, () => 30), movement: 1, bandLabel: () => "Fear" })!;
+  assert(steadyBand.rule === "band-streak" && /^Has remained in Fear for \d+ consecutive weeks\.$/.test(steadyBand.text), "banded metrics report a band streak in the metric's own vocabulary");
+  const justChanged = broaderContext({ ...base, series: daily(60, (i) => (i > 55 ? 60 : 20)), movement: 40, bandLabel: (v) => (v > 50 ? "Greed" : "Fear") })!;
+  assert(justChanged.rule !== "band-streak", "a band that only just changed produces no streak claim");
+
+  // The safety rule: a weekly rise inside a monthly fall.
+  // High a month ago, a sharp fall, then a partial weekly recovery — the
+  // shape that makes a big weekly rise misleading on its own.
+  const vShape = daily(60, (i) => (i < 53 ? 100 : i < 56 ? 60 : 80));
+  const counter = broaderContext({ ...base, series: vShape, movement: +33 })!;
+  assert(counter.rule === "counter-move" && /^Still \d+% below \d+ \w+\.$/.test(counter.text), "a big weekly rise inside a monthly fall says where the level still sits");
+  assert(!/recover|rebound|bounce|despite/i.test(counter.text), "…in plain factual terms, with no interpretive verb");
+
+  // A rise that stops short of the window high.
+  const shortOfHigh = daily(60, (i) => (i === 45 ? 200 : i > 55 ? 150 : 100));
+  const off = broaderContext({ ...base, series: shortOfHigh, movement: +50 })!;
+  assert(off.rule === "off-extreme" && off.text === "Still 25% below its 30-day high.", "a rise that stops short of the window high says how far short — the RHODL case");
+  const atHigh = broaderContext({ ...base, series: daily(60, (i) => 100 + i), movement: +5 })!;
+  assert(atHigh.rule === "window-extreme" && atHigh.text === "Now at its highest in 30 days.", "a new window high is stated plainly");
+
+  // Points-unit pluralisation.
+  const onePoint = broaderContext({ ...base, unit: "points", decimals: 0, series: daily(60, (i) => (i < 30 ? 10 : i < 55 ? 12 : 11)), movement: -1 })!;
+  assert(!/1 points/.test(onePoint.text), `points contexts never render "1 points" (got: ${onePoint.text})`);
+
+  // Honest degradation.
+  assert(broaderContext({ ...base, series: [{ date: d(0), value: 1 }], movement: 1 }) === null, "a series too short for any context returns null rather than inventing one");
+  assert(broaderContext({ ...base, series: daily(3, () => 5), movement: 1 }) === null, "no comparison point in the window → no context line");
+}
+
+if (PRICE_ARCHIVE.length > 1000) {
+  const r7 = marketMovers(7);
+  const all7 = [...r7.movements, ...r7.steady];
+  assert(all7.every((m) => m.broaderContext === null || m.broaderContext.text.endsWith(".")), "every context line is a complete sentence");
+  assert(all7.some((m) => m.broaderContext != null), "real data produces context lines");
+  // The context must never influence ranking: significance is reproducible
+  // from the rarity percentile and the crossing floor alone.
+  assert(
+    all7.every((m) => m.significance === (m.crossing ? Math.max(m.rarityPercentile ?? 50, CROSSING_SIGNIFICANCE_FLOOR) : (m.rarityPercentile ?? 50)) || !m.rarityClaimAllowed),
+    "significance is a pure function of percentile + crossing — the context line cannot have influenced it",
+  );
+  const CONTEXT_BANNED = [/surge|soar|plunge|crash|rally/i, /\bstrong(ly)?\b/i, /\bweak(ly)?\b/i, /good|bad|worry|concern/i];
+  const lines = all7.map((m) => m.broaderContext?.text ?? "").join(" \n ");
+  assert(!CONTEXT_BANNED.some((re) => re.test(lines)), "context lines carry no directional or emotional emphasis");
 }
 
 // ── Language safeguards over everything the engine can emit ─────────────────

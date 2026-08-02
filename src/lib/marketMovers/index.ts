@@ -26,8 +26,10 @@ import {
   valueOn,
   type Point,
 } from "./distribution";
+import { broaderContext } from "./context";
 
 export * from "./types";
+export { broaderContext, CONTEXT_WINDOW_DAYS, type BroaderContext } from "./context";
 export { MOVER_METRICS, metricById } from "./registry";
 export {
   RARITY_MIN_OBSERVATIONS,
@@ -167,6 +169,17 @@ function build(m: MoverMetric, globalAnchor: string, period: MoverPeriod): Movem
     },
     rarityClaimAllowed,
     rarityState: rarityClaimAllowed ? "available" : observations > 0 ? "maturing" : "unavailable",
+    // Computed AFTER significance, from the same series — it is context for
+    // the reader, never an input to the ranking.
+    broaderContext: broaderContext({
+      series,
+      anchor,
+      unit: m.unit,
+      kind: m.kind,
+      decimals: m.decimals,
+      movement,
+      bandLabel: m.band ? m.band.label : undefined,
+    }),
     crossing,
     state: m.band ? m.band.label(current) : null,
     href: m.href,
