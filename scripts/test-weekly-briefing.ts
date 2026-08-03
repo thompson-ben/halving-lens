@@ -107,8 +107,18 @@ assert(
 );
 
 // The page must not reach past the model for the slots the model owns.
-for (const superseded of ["weekOpening", "weekHeadline", "snapshotSummary"]) {
+for (const superseded of ["weekOpening", "weekHeadline", "snapshotSummary", "weeklyConclusion"]) {
   assert(!pageSrc.includes(`${superseded}(`), `the page no longer calls ${superseded}() — the briefing model owns that slot`);
+}
+
+// PR-SB4b: no summary sentence on the page may come from a generator other
+// than the briefing model. The close renders only what it is handed.
+{
+  const closeSrc = readFileSync("src/components/sob/WeeklyConclusion.tsx", "utf8");
+  assert(!/weekStory|weeklyConclusion|takeaway|nextSignal/.test(closeSrc), "the close consumes no second generator — it renders the canonical verdict it is handed");
+  assert(/verdict:\s*string(?!\s*\|)/.test(closeSrc) && !/verdict\?/.test(closeSrc), "the close cannot render without the canonical verdict — the prop is required");
+  const storySrc = readFileSync("src/lib/weekStory.ts", "utf8");
+  assert(!/export (function|interface) [Ww]eeklyConclusion/.test(storySrc), "the legacy conclusion generator is retired, not merely unplugged");
 }
 
 // ── The scroll-synced rail (presentation only) ──────────────────────────────

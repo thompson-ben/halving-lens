@@ -298,7 +298,11 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         {/* The close — the SAME canonical verdict introduced in the
             standfirst, never a second interpretation. */}
         <div className="mt-8">
-          <WeeklyConclusion presenter={presenter} verdict={brief.verdict} />
+          <WeeklyConclusion
+            presenter={presenter}
+            verdict={brief.verdict}
+            nextWatchTitle={(brief.watchItems.find((w) => w.top) ?? brief.watchItems[0])?.title}
+          />
         </div>
       </section>
 
