@@ -70,7 +70,7 @@ const JSON_LD = {
 };
 
 const DATA_STATUS: Record<string, "live" | "live-derived" | "coming-soon"> = { live: "live", mixed: "live-derived", synthetic: "coming-soon" };
-const TONE: Record<"good" | "bad" | "neutral", string> = { good: "text-accent", bad: "text-signal-red", neutral: "text-ink-300" };
+const TONE: Record<"good" | "bad" | "neutral", string> = { good: "text-signal-green", bad: "text-signal-red", neutral: "text-ink-300" };
 
 function fmtSignedPct(n: number): string {
   const digits = Math.abs(n) >= 10 ? 0 : 1;
@@ -143,7 +143,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             fold in the original order. */}
         <div className="flex flex-col">
         {/* Compact orientation strip — the current position at a glance */}
-        <div className="order-2 sm:order-1 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+        <div className="order-2 sm:order-1 mt-6 pt-5 border-t border-white/[0.09] grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-5">
           <TodayStat
             label="Bitcoin price"
             value={fmtUsd(price.current)}
@@ -178,9 +178,9 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       </section>
 
       {/* ── What changed — the Market Snapshot ── */}
-      <section data-sob-section="movers" id="movers">
+      <section data-sob-section="movers" id="movers" className="pt-2 lg:pt-10">
         <SectionHead
-          n="01"
+          n="1"
           title="What changed"
           note="Every HalvingLens reading, ranked by how unusual its move is within its own history — not by raw percentage."
         />
@@ -189,8 +189,8 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       </section>
 
       {/* ── ACT 2 — Why this matters ── */}
-      <section data-sob-section="why" id="why">
-        <SectionHead n="02" title="Why this matters" note="Where the week leaves the market against its Four Reference Prices, and the chart that best captures it. Concurrence, not causation — and whether any of it is unusual is the next act's question." />
+      <section data-sob-section="why" id="why" className="pt-2 lg:pt-10">
+        <SectionHead n="2" title="Why this matters" note="Where the week leaves the market against its Four Reference Prices, and the chart that best captures it. Concurrence, not causation — and whether any of it is unusual is the next act's question." />
         <ReferencePrices />
         <div className="mt-8">
           <LeadChart pick={cotw} />
@@ -199,8 +199,8 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       </section>
 
       {/* ── Section 6 — Historical Context ── */}
-      <section data-sob-section="unusual" id="unusual">
-        <SectionHead n="03" title="How unusual is it?" note="This week measured against the record: where the cycle stands, the closest historical match, and how prior cycles behaved from here." />
+      <section data-sob-section="unusual" id="unusual" className="pt-2 lg:pt-10">
+        <SectionHead n="3" title="How unusual is it?" note="This week measured against the record: where the cycle stands, the closest historical match, and how prior cycles behaved from here." />
         <div className="mb-8">
           <WhereAreWe />
         </div>
@@ -253,15 +253,15 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
 
       {/* ── What to remember — the five points, expanded ── */}
-      <section data-sob-section="matters" id="matters">
-        <SectionHead n="04" title="What to remember" note="If you take only five things from this week, take these — expanded from the front page at the top." />
+      <section data-sob-section="matters" id="matters" className="pt-2 lg:pt-10">
+        <SectionHead n="4" title="What to remember" note="If you take only five things from this week, take these — expanded from the front page at the top." />
         <WeekInFiveExpanded data={five} />
         <ActBridge text={brief.bridges[4]} />
       </section>
 
       {/* ── What we're watching next ── */}
-      <section data-sob-section="watching" id="watching">
-        <SectionHead n="05" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
+      <section data-sob-section="watching" id="watching" className="pt-2 lg:pt-10">
+        <SectionHead n="5" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
         {brief.previousWatch && (
           <div className="card p-5 mb-4">
             <div className="eyebrow text-ink-500 mb-1.5">Last week we were watching</div>
@@ -357,10 +357,10 @@ function SectionHead({ n, title, note }: { n: string; title: string; note: strin
 
 function TodayStat({ label, value, sub }: { label: string; value: string; sub?: React.ReactNode }) {
   return (
-    <div className="bg-[#0b0f15] px-4 py-4">
+    <div>
       <div className="eyebrow text-ink-500">{label}</div>
-      <div className="mt-1 font-display text-headline text-ink-50 tabular-nums leading-tight">{value}</div>
-      {sub && <div className="mt-0.5 text-micro text-ink-400 leading-tight">{sub}</div>}
+      <div className="mt-1.5 font-display text-headline text-ink-50 tabular-nums leading-tight">{value}</div>
+      {sub && <div className="mt-1 text-micro text-ink-400 leading-tight">{sub}</div>}
     </div>
   );
 }
