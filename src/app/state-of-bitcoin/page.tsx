@@ -3,7 +3,6 @@ import Link from "next/link";
 import { DataBadge } from "@/components/DataBadge";
 import { BriefSignup } from "@/components/BriefSignup";
 import { ShareTrigger } from "@/components/ShareTrigger";
-import { TrackedLink } from "@/components/TrackedLink";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { PresenterMode } from "@/components/PresenterMode";
 import { RecordModeButton } from "@/components/RecordModeButton";
@@ -13,7 +12,8 @@ import { WhereAreWe } from "@/components/WhereAreWe";
 import { HistoricalPathExplorer } from "@/components/HistoricalPathExplorer";
 import { LeadChart } from "@/components/sob/LeadChart";
 import { MarketSnapshot } from "@/components/sob/MarketSnapshot";
-import { WeekInFiveRail, WeekInFiveExpanded } from "@/components/sob/WeekInFive";
+import { WeekInFiveExpanded } from "@/components/sob/WeekInFive";
+import { WeekAtAGlance, ActBridge } from "@/components/sob/WeekAtAGlance";
 import { ReferencePrices } from "@/components/sob/ReferencePrices";
 import { CycleStatusSection } from "@/components/sob/CycleStatusSection";
 import { WeeklyConclusion } from "@/components/sob/WeeklyConclusion";
@@ -24,16 +24,13 @@ import { currentChapter, previousChapter } from "@/lib/journal";
 import { dailyVsWeeklyPrice } from "@/lib/dayContext";
 import { metricChange } from "@/lib/metricChange";
 import { snapshotContext, snapshotCyclePosition } from "@/lib/snapshot";
-import { todaysVerdict, matchReasons, rankedWatch } from "@/lib/stateOfBitcoin";
+import { matchReasons } from "@/lib/stateOfBitcoin";
 import { marketMovers } from "@/lib/marketMovers";
-import { weekInFive } from "@/lib/talkingPoints";
+import { weeklyBriefing } from "@/lib/weeklyBriefing";
 import type { MoverPeriod, MoversResult } from "@/lib/marketMovers/types";
 import { pathExplorer } from "@/lib/pathExplorer";
-import { upsideScenarios } from "@/lib/upside";
-import { downsideScenarios } from "@/lib/downside";
 import { selectChartOfWeek } from "@/lib/chartOfWeek";
 import { episodeBriefText } from "@/lib/episodeBrief";
-import { latestFindings } from "@/lib/findings";
 import { ETF } from "@/lib/etf";
 import { SOURCE } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
@@ -81,15 +78,11 @@ function fmtSignedPct(n: number): string {
   return `${sign}${Math.abs(n).toFixed(digits)}%`;
 }
 
-// Days between a YYYY-MM-DD publish date and the snapshot's "today" (deterministic
-// against the committed snapshot, not wall-clock).
-function daysSince(dateStr: string, today: Date): number {
-  const d = new Date(dateStr);
-  return Math.floor((today.getTime() - d.getTime()) / 86_400_000);
-}
-
 export default function SnapshotPage({ searchParams }: { searchParams: { presenter?: string } }) {
   const presenter = searchParams?.presenter === "true";
+
+  const brief = weeklyBriefing();
+  const five = brief.points;
 
   const price = metricChange("price");
   const p7 = price.changes.find((c) => c.period === 7 && c.available);
@@ -98,11 +91,10 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   const pos = snapshotCyclePosition();
   const health = metricChange("market_health");
   const ctx = snapshotContext();
-  const watch = rankedWatch();
   const cotw = selectChartOfWeek();
+  const watch = brief.watchItems;
   const reasons = matchReasons();
   const explorer = pathExplorer();
-  const verdict = todaysVerdict();
 
   // Every registered reading, ranked by how unusual its move is within its
   // OWN history — one section replacing the three that previously answered
@@ -111,12 +103,8 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
   // The week's agenda — one set of canonical talking points, shown short in
   // the standfirst rail and long in "What matters most".
-  const five = weekInFive();
 
   const today = SOURCE.fetchedAt ? new Date(SOURCE.fetchedAt) : new Date();
-  const finding = latestFindings(1)[0];
-  // Research Corner only counts as "this week's finding" when genuinely recent.
-  const freshFinding = finding && daysSince(finding.datePublished, today) <= 14 ? finding : null;
 
   const asOf = SOURCE.fetchedAt ? format(new Date(SOURCE.fetchedAt), "d MMM yyyy, HH:mm 'UTC'") : "—";
 
@@ -144,13 +132,18 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.04] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[42px] lg:text-[54px]"}`}>
             The State of Bitcoin
           </h1>
-          <p className={`mt-3 text-ink-200 leading-relaxed max-w-2xl ${presenter ? "text-[19px]" : "text-[15px] sm:text-[17px]"}`}>
-            Where Bitcoin stands today — and the story of the last seven days that brought it here, placed in historical context.
+          <p className={`mt-3 font-display text-ink-100 leading-snug max-w-3xl ${presenter ? "text-[24px]" : "text-[18px] sm:text-[21px]"}`}>
+            {brief.verdict}
           </p>
         </header>
 
+        {/* On a phone the four-stat strip stacks two-high and pushes the five
+            answers past the first screen, so the front page comes first there
+            and the orientation stats follow. On sm and up both fit above the
+            fold in the original order. */}
+        <div className="flex flex-col">
         {/* Compact orientation strip — the current position at a glance */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+        <div className="order-2 sm:order-1 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
           <TodayStat
             label="Bitcoin price"
             value={fmtUsd(price.current)}
@@ -174,21 +167,13 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
         {/* One deterministic line relating today's move to the week's — only when
             it materially aids understanding (7-day stays the primary lens). */}
-        {dailyNote && <p className="mt-3 text-[12.5px] text-ink-400 leading-relaxed">{dailyNote}</p>}
+        {dailyNote && <p className="order-3 mt-3 text-[12.5px] text-ink-400 leading-relaxed">{dailyNote}</p>}
 
-        {/* This week in five — the agenda, visible in the first screen */}
-        <WeekInFiveRail data={five} />
-
-        {/* The signature orientation visual */}
-        <div className="mt-8">
-          <WhereAreWe />
+        {/* The front page: five questions, five answers, five deep links —
+            the executive summary AND the presenter's running order. */}
+        <div className="order-1 sm:order-3">
+          <WeekAtAGlance rows={brief.glance} />
         </div>
-
-        {/* Reference Prices — Market Price / 200-Day Moving Average /
-            Realised Price / Estimated Mining Cost, the full reference-price
-            set the market is read against (observed + estimated together). */}
-        <div className="mt-8">
-          <ReferencePrices />
         </div>
       </section>
 
@@ -196,21 +181,29 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       <section data-sob-section="movers" id="movers">
         <SectionHead
           n="01"
-          title="What changed this week"
+          title="What changed"
           note="Every HalvingLens reading, ranked by how unusual its move is within its own history — not by raw percentage."
         />
         <MarketSnapshot initial={movers} />
+        <ActBridge text={brief.bridges[1]} />
       </section>
 
-      {/* ── The week's lead chart ── */}
-      <section data-sob-section="lead-chart">
-        <SectionHead n="02" title="The week's lead chart" note="The single chart that best captures the week — shown inline." />
-        <LeadChart pick={cotw} />
+      {/* ── ACT 2 — Why this matters ── */}
+      <section data-sob-section="why" id="why">
+        <SectionHead n="02" title="Why this matters" note="Where the week leaves the market against its Four Reference Prices, and the chart that best captures it. Concurrence, not causation — and whether any of it is unusual is the next act's question." />
+        <ReferencePrices />
+        <div className="mt-8">
+          <LeadChart pick={cotw} />
+        </div>
+        <ActBridge text={brief.bridges[2]} />
       </section>
 
       {/* ── Section 6 — Historical Context ── */}
-      <section data-sob-section="history">
-        <SectionHead n="03" title="How has history behaved from here?" note="Real completed cycles replayed from today's point. Historical context, not a forecast." />
+      <section data-sob-section="unusual" id="unusual">
+        <SectionHead n="03" title="How unusual is it?" note="This week measured against the record: where the cycle stands, the closest historical match, and how prior cycles behaved from here." />
+        <div className="mb-8">
+          <WhereAreWe />
+        </div>
         <p className="mb-4 text-[13px] text-ink-300 leading-relaxed max-w-2xl">
           Each prior-cycle line shows what actually happened after the same stage of an earlier Bitcoin cycle. Dashed
           sections are the paths after a cycle&rsquo;s peak.
@@ -248,24 +241,38 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             </p>
           )}
         </div>
-        <HistoricalRangeCard />
+
+        {/* Did the week move the cycle interpretation? The closing beat of
+            "how unusual" — ordinary volatility is not a regime change. */}
+        <div className="mt-8">
+          <CycleStatusSection />
+        </div>
+        <ActBridge text={brief.bridges[3]} />
       </section>
 
-      {/* ── Section 7 — What did not change? ── */}
-      <section data-sob-section="cycle-status">
-        <SectionHead n="04" title="What did not change?" note="Whether this week actually moved the broader cycle interpretation." />
-        <CycleStatusSection />
-      </section>
 
-      {/* ── What matters most — the five points, expanded ── */}
+
+      {/* ── What to remember — the five points, expanded ── */}
       <section data-sob-section="matters" id="matters">
-        <SectionHead n="05" title="What matters most" note="The week's five points, expanded — the same five listed at the top of the page." />
+        <SectionHead n="04" title="What to remember" note="If you take only five things from this week, take these — expanded from the front page at the top." />
         <WeekInFiveExpanded data={five} />
+        <ActBridge text={brief.bridges[4]} />
       </section>
 
       {/* ── What we're watching next ── */}
       <section data-sob-section="watching" id="watching">
-        <SectionHead n="06" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
+        <SectionHead n="05" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
+        {brief.previousWatch && (
+          <div className="card p-5 mb-4">
+            <div className="text-[10.5px] uppercase tracking-[0.18em] text-ink-500 mb-1.5">Last week we were watching</div>
+            <p className="text-[13.5px] text-ink-200 leading-relaxed max-w-3xl">
+              {brief.previousWatch.signal} — it {brief.previousWatch.outcome === "held" ? "held" : brief.previousWatch.outcome === "eased" ? "eased" : brief.previousWatch.outcome === "escalated" ? "became more notable" : "moved"}.{" "}
+              <span className="text-ink-400">
+                Then: {brief.previousWatch.then}. Now: {brief.previousWatch.now}.
+              </span>
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {watch.map((w, i) => (
             <div key={i} className={`card p-5 ${w.top ? "ring-1 ring-accent/30" : ""}`}>
@@ -287,29 +294,13 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
             &ldquo;These are not forecasts — they are the objective thresholds that would tell us whether the current interpretation is changing.&rdquo;
           </p>
         )}
-      </section>
 
-      {/* ── Section 9 — Weekly Conclusion ── */}
-      <section data-sob-section="conclusion">
-        <SectionHead n="07" title="The verdict" note="Everything above, combined into one weekly read." />
-        <WeeklyConclusion presenter={presenter} verdict={verdict} />
+        {/* The close — the SAME canonical verdict introduced in the
+            standfirst, never a second interpretation. */}
+        <div className="mt-8">
+          <WeeklyConclusion presenter={presenter} verdict={brief.verdict} />
+        </div>
       </section>
-
-      {/* ── Research corner — secondary; only when genuinely recent ── */}
-      {freshFinding && (
-        <section>
-          <SectionHead n="08" title="Research corner" note="This week's finding from the research library." />
-          <TrackedLink href={`/research/findings/${freshFinding.slug}`} event="snapshot_research_click" props={{ id: freshFinding.id }} className="card card-interactive p-5 sm:p-6 block">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded border border-accent/25 text-accent">{freshFinding.id}</span>
-              <span className="text-[11px] text-ink-500">{freshFinding.datePublished}</span>
-            </div>
-            <div className="mt-2 font-display text-[20px] sm:text-[23px] text-ink-50 leading-tight">{freshFinding.title}</div>
-            <p className="mt-2 text-[13.5px] text-ink-300 leading-relaxed max-w-2xl">{freshFinding.headline}</p>
-            <span className="mt-3 inline-block text-[12.5px] text-accent">Read the research →</span>
-          </TrackedLink>
-        </section>
-      )}
 
       {/* Email conversion — the flagship read's inline capture (PR138). Placed
           after the verdict, at the point of highest reader conviction; hidden
@@ -377,37 +368,5 @@ function ContextStat({ label, value, sub }: { label: string; value: string; sub?
       <div className="mt-1 text-[19px] font-display text-ink-50 tabular-nums leading-tight">{value}</div>
       {sub && <div className="text-[10.5px] text-ink-500 leading-tight">{sub}</div>}
     </div>
-  );
-}
-
-function HistoricalRangeCard() {
-  const up = upsideScenarios();
-  const down = downsideScenarios();
-  if (!up.available) return null;
-  const severe = down.levels.filter((l) => l.category === "drawdown").slice(-1)[0]?.price ?? null;
-  const strong = up.strongPrice;
-  return (
-    <TrackedLink href="/historical-price-paths" event="snapshot_range_click" className="card card-interactive p-5 sm:p-6 mt-4 block">
-      <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent">The full historical range from here</div>
-      <div className="mt-2.5 flex items-center gap-3 flex-wrap">
-        {severe != null && (
-          <span className="text-[15px] text-signal-red tabular-nums">
-            <span aria-hidden>↓</span> {fmtUsd(severe, { compact: true })}
-          </span>
-        )}
-        <span className="text-ink-600">·</span>
-        <span className="text-[13px] text-ink-400 tabular-nums">Today {fmtUsd(up.currentPrice, { compact: true })}</span>
-        <span className="text-ink-600">·</span>
-        {strong != null && (
-          <span className="text-[15px] text-accent tabular-nums">
-            <span aria-hidden>↑</span> {fmtUsd(strong, { compact: true })}
-          </span>
-        )}
-      </div>
-      <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed max-w-2xl">
-        How far previous halving cycles went from today&rsquo;s point — both up and down. Historical paths, not forecasts.
-      </p>
-      <span className="mt-2 inline-block text-[12.5px] text-accent">See Historical Price Paths →</span>
-    </TrackedLink>
   );
 }

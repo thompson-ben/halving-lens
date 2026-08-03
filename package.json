@@ -47,7 +47,8 @@
     "test-cycle-seasonality-page": "tsx scripts/test-cycle-seasonality-page.ts",
     "test-questions": "tsx scripts/test-questions.ts",
     "test-market-movers": "tsx scripts/test-market-movers.ts",
-    "test-talking-points": "tsx scripts/test-talking-points.ts"
+    "test-talking-points": "tsx scripts/test-talking-points.ts",
+    "test-weekly-briefing": "tsx scripts/test-weekly-briefing.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",
