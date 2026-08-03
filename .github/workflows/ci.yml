@@ -150,6 +150,12 @@ jobs:
       - name: Presenter tests
         run: npm run test-presenter
 
+      # Editorial design system (SB6a) — the named type scale as the only
+      # text sizing in the SoB tree, the editorial colour as a single-source
+      # token, one eyebrow style, colour roles, and the reading measure.
+      - name: Editorial-system tests
+        run: npm run test-editorial-system
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

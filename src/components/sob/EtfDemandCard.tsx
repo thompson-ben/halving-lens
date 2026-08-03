@@ -40,8 +40,8 @@ export function EtfDemandCard() {
   if (!e.available) {
     return (
       <div className="card p-5">
-        <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">ETF Demand</div>
-        <p className="mt-2 text-[13px] text-ink-400 leading-relaxed">{e.interpretation}</p>
+        <div className="eyebrow text-ink-500">ETF Demand</div>
+        <p className="mt-2 text-body text-ink-400 leading-relaxed max-w-measure">{e.interpretation}</p>
       </div>
     );
   }
@@ -50,15 +50,15 @@ export function EtfDemandCard() {
     <TrackedLink href="/etf" event="evidence_card_click" props={{ metric: "etf_flow" }} className="card card-interactive p-5 sm:p-6 block">
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-x-8 gap-y-4 items-start">
         <div>
-          <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500">ETF Demand</div>
+          <div className="eyebrow text-ink-500">ETF Demand</div>
           <div className="mt-2 flex items-baseline gap-2.5">
-            <span className="font-display text-[30px] leading-none tabular-nums" style={{ color: weekColor }}>{e.net7Label}</span>
-            <span className="text-[12px] text-ink-400">Net {e.net7Positive ? "inflow" : "outflow"} · Last 7 trading days</span>
+            <span className="font-display text-stat leading-none tabular-nums" style={{ color: weekColor }}>{e.net7Label}</span>
+            <span className="text-caption text-ink-400">Net {e.net7Positive ? "inflow" : "outflow"} · Last 7 trading days</span>
           </div>
         </div>
         <div className="w-full sm:w-[224px] sm:justify-self-end">
           <SparkBars bars={e.bars} />
-          <div className="mt-1 flex justify-between text-[9.5px] uppercase tracking-[0.12em] text-ink-600">
+          <div className="mt-1 flex justify-between eyebrow text-ink-600">
             <span>7 trading days ago</span>
             <span>Latest</span>
           </div>
@@ -68,15 +68,15 @@ export function EtfDemandCard() {
       <div className="mt-4 pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
         {e.latest && (
           <div className="flex items-baseline gap-2.5 flex-wrap">
-            <span className="text-[10.5px] uppercase tracking-[0.14em] text-ink-500">Latest trading day</span>
-            <span className="font-display text-[17px] tabular-nums whitespace-nowrap" style={{ color: e.latest.positive ? INFLOW : OUTFLOW }}>{e.latest.label}</span>
-            <span className="text-[11.5px] text-ink-400 whitespace-nowrap">Net {e.latest.positive ? "inflow" : "outflow"}</span>
+            <span className="eyebrow text-ink-500">Latest trading day</span>
+            <span className="font-display text-subhead tabular-nums whitespace-nowrap" style={{ color: e.latest.positive ? INFLOW : OUTFLOW }}>{e.latest.label}</span>
+            <span className="text-caption text-ink-400 whitespace-nowrap">Net {e.latest.positive ? "inflow" : "outflow"}</span>
           </div>
         )}
-        <span className="text-[11px] text-accent whitespace-nowrap">Open ETF flows →</span>
+        <span className="text-caption text-accent whitespace-nowrap">Open ETF flows →</span>
       </div>
 
-      <p className="mt-3 text-[12.5px] text-ink-300 leading-relaxed">{e.interpretation}</p>
+      <p className="mt-3 text-caption text-ink-300 leading-relaxed max-w-measure">{e.interpretation}</p>
     </TrackedLink>
   );
 }

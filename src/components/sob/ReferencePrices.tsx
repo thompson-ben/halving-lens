@@ -34,18 +34,18 @@ function Row({
     <div className="flex items-start justify-between gap-4 py-4">
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[13px] font-medium text-ink-100">{label}</span>
+          <span className="text-body font-medium text-ink-100">{label}</span>
           {modelled && (
-            <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">
+            <span className="eyebrow px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">
               Estimated
             </span>
           )}
         </div>
-        <div className="mt-0.5 text-[11.5px] text-ink-500">{sub}</div>
+        <div className="mt-0.5 text-caption text-ink-500">{sub}</div>
       </div>
       <div className="text-right shrink-0">
-        <div className="font-display text-[22px] tabular-nums text-ink-50 leading-none">{value}</div>
-        {relation && <div className="mt-1 text-[11px] text-ink-400">{relation}</div>}
+        <div className="font-display text-headline tabular-nums text-ink-50 leading-none">{value}</div>
+        {relation && <div className="mt-1 text-caption text-ink-400">{relation}</div>}
       </div>
     </div>
   );
@@ -79,8 +79,8 @@ export function ReferencePrices() {
   return (
     <TrackedSection id="reference-prices">
       <div className="card p-5 sm:p-6">
-        <div className="text-[10.5px] uppercase tracking-[0.18em] text-accent mb-1">Reference Prices</div>
-        <p className="text-[12px] text-ink-400 mb-2 max-w-xl">
+        <div className="eyebrow text-accent mb-1">Reference Prices</div>
+        <p className="text-caption text-ink-400 mb-2 max-w-xl">
           The prices HalvingLens reads the market against — {intro}.
         </p>
         <div className="divide-y divide-white/[0.06]">
@@ -121,8 +121,8 @@ export function ReferencePrices() {
         </div>
         {r.todaysContext && (
           <div className="mt-4 pt-4 border-t border-white/[0.06]">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500 mb-1.5">Today&apos;s context</div>
-            <p className="text-[12.5px] text-ink-300 leading-relaxed">{r.todaysContext}</p>
+            <div className="eyebrow text-ink-500 mb-1.5">Today&apos;s context</div>
+            <p className="text-caption text-ink-300 leading-relaxed max-w-measure">{r.todaysContext}</p>
           </div>
         )}
         {/* This card is the summary; the framework page is the full read —
@@ -132,7 +132,7 @@ export function ReferencePrices() {
             href="/four-reference-prices"
             event="journey_next_click"
             props={{ from: "/state-of-bitcoin", to: "/four-reference-prices", position: "secondary" }}
-            className="text-[12.5px] text-accent"
+            className="text-caption text-accent"
           >
             Explore the full Four Reference Prices framework →
           </TrackedLink>

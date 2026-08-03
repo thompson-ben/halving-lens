@@ -122,17 +122,17 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
       <section data-sob-section="today">
         <header className="pt-2">
           <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <span className="text-[10.5px] uppercase tracking-[0.22em] text-accent">
+            <span className="eyebrow text-accent">
               {presenter ? "Documenting the Cycle — Presenter Mode" : "The definitive weekly read"}
             </span>
             <DataBadge status={DATA_STATUS[SOURCE.mode] ?? "live-derived"} source={`As of ${asOf}`} />
             {!presenter && <ShareTrigger />}
             {!presenter && <RecordModeButton page="/state-of-bitcoin" />}
           </div>
-          <h1 className={`font-display font-medium tracking-tightest text-ink-50 leading-[1.04] ${presenter ? "text-[44px] sm:text-[60px]" : "text-[34px] sm:text-[42px] lg:text-[54px]"}`}>
+          <h1 className="font-display font-medium tracking-tightest text-ink-50 text-display">
             The State of Bitcoin
           </h1>
-          <p className={`mt-3 font-display text-ink-100 leading-snug max-w-3xl ${presenter ? "text-[24px]" : "text-[18px] sm:text-[21px]"}`}>
+          <p className="mt-3 font-display text-headline text-ink-100 leading-snug max-w-measure">
             {brief.verdict}
           </p>
         </header>
@@ -167,7 +167,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
         {/* One deterministic line relating today's move to the week's — only when
             it materially aids understanding (7-day stays the primary lens). */}
-        {dailyNote && <p className="order-3 mt-3 text-[12.5px] text-ink-400 leading-relaxed">{dailyNote}</p>}
+        {dailyNote && <p className="order-3 mt-3 text-caption text-ink-400 leading-relaxed max-w-measure">{dailyNote}</p>}
 
         {/* The front page: five questions, five answers, five deep links —
             the executive summary AND the presenter's running order. */}
@@ -204,7 +204,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         <div className="mb-8">
           <WhereAreWe />
         </div>
-        <p className="mb-4 text-[13px] text-ink-300 leading-relaxed max-w-2xl">
+        <p className="mb-4 text-body text-ink-300 leading-relaxed max-w-measure">
           Each prior-cycle line shows what actually happened after the same stage of an earlier Bitcoin cycle. Dashed
           sections are the paths after a cycle&rsquo;s peak.
         </p>
@@ -223,10 +223,10 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           </div>
           {reasons.length > 0 && ctx.match && (
             <div className="mt-5 pt-4 border-t border-white/[0.06]">
-              <div className="text-[10.5px] uppercase tracking-[0.16em] text-ink-500 mb-2">Why this match?</div>
+              <div className="eyebrow text-ink-500 mb-2">Why this match?</div>
               <div className="flex flex-wrap gap-2">
                 {reasons.map((r) => (
-                  <span key={r.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11.5px] text-ink-200">
+                  <span key={r.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-caption text-ink-200">
                     {r.label}
                     <span className="tabular-nums text-ink-500">{r.closeness}%</span>
                   </span>
@@ -234,9 +234,9 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
               </div>
             </div>
           )}
-          <p className="mt-5 pt-4 border-t border-white/[0.06] text-[14px] text-ink-200 leading-relaxed">{ctx.summary}</p>
+          <p className="mt-5 pt-4 border-t border-white/[0.06] text-body text-ink-200 leading-relaxed max-w-measure">{ctx.summary}</p>
           {ETF.connected && (
-            <p className="mt-3 text-[12px] text-ink-500 leading-relaxed max-w-2xl">
+            <p className="mt-3 text-caption text-ink-500 leading-relaxed max-w-measure">
               Note: spot ETF demand is new to this cycle, so there is no like-for-like precedent in earlier halving cycles.
             </p>
           )}
@@ -264,8 +264,8 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         <SectionHead n="05" title="What we're watching next" note="The objective thresholds we'll return to next week — observations, not predictions." />
         {brief.previousWatch && (
           <div className="card p-5 mb-4">
-            <div className="text-[10.5px] uppercase tracking-[0.18em] text-ink-500 mb-1.5">Last week we were watching</div>
-            <p className="text-[13.5px] text-ink-200 leading-relaxed max-w-3xl">
+            <div className="eyebrow text-ink-500 mb-1.5">Last week we were watching</div>
+            <p className="text-body text-ink-200 leading-relaxed max-w-measure">
               {brief.previousWatch.signal} — it {brief.previousWatch.outcome === "held" ? "held" : brief.previousWatch.outcome === "eased" ? "eased" : brief.previousWatch.outcome === "escalated" ? "became more notable" : "moved"}.{" "}
               <span className="text-ink-400">
                 Then: {brief.previousWatch.then}. Now: {brief.previousWatch.now}.
@@ -277,12 +277,12 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           {watch.map((w, i) => (
             <div key={i} className={`card p-5 ${w.top ? "ring-1 ring-accent/30" : ""}`}>
               <div className="flex items-start justify-between gap-2">
-                <div className="text-[14px] font-medium text-ink-50 leading-snug">{w.title}</div>
-                {w.top && <span className="shrink-0 text-[9.5px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border border-accent/30 bg-accent/[0.06] text-accent">Priority</span>}
+                <div className="text-body font-medium text-ink-50 leading-snug">{w.title}</div>
+                {w.top && <span className="shrink-0 eyebrow px-2 py-0.5 rounded-full border border-editorial/40 bg-editorial/[0.08] text-editorial">Priority</span>}
               </div>
-              <div className="mt-2 text-[12px] text-accent">{w.current}</div>
-              <p className="mt-2 text-[12.5px] text-ink-400 leading-relaxed">{w.why}</p>
-              <div className="mt-3 pt-3 border-t border-white/[0.06] text-[11.5px] text-ink-500">
+              <div className="mt-2 text-caption text-ink-100 tabular-nums">{w.current}</div>
+              <p className="mt-2 text-caption text-ink-400 leading-relaxed">{w.why}</p>
+              <div className="mt-3 pt-3 border-t border-white/[0.06] text-caption text-ink-500">
                 <span className="text-ink-400">Meaningful change: </span>
                 {w.trigger}
               </div>
@@ -290,7 +290,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
           ))}
         </div>
         {presenter && (
-          <p className="mt-4 text-[12.5px] text-ink-500 italic">
+          <p className="mt-4 text-caption text-ink-500 italic">
             &ldquo;These are not forecasts — they are the objective thresholds that would tell us whether the current interpretation is changing.&rdquo;
           </p>
         )}
@@ -327,13 +327,13 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
       {!presenter && <FlagshipJourney current="state-of-bitcoin" />}
 
-      <p className="text-[11px] text-ink-600 pt-2">
+      <p className="text-caption text-ink-600 pt-2 max-w-measure">
         Every figure traces to the live HalvingLens data and updates automatically. Historical context. Not prediction. Not financial advice.
       </p>
 
       {presenter ? (
         <div className="pt-4">
-          <Link href="/state-of-bitcoin" className="text-[12px] text-ink-500 hover:text-ink-300">← Exit presenter mode</Link>
+          <Link href="/state-of-bitcoin" className="text-caption text-ink-500 hover:text-ink-300">← Exit presenter mode</Link>
         </div>
       ) : (
         <FeedbackWidget section="snapshot" contentType="page" />
@@ -347,10 +347,10 @@ function SectionHead({ n, title, note }: { n: string; title: string; note: strin
   return (
     <div className="mb-5">
       <div className="flex items-baseline gap-3">
-        <span className="text-[11px] font-mono text-ink-600">{n}</span>
-        <h2 className="font-display text-[22px] sm:text-[26px] text-ink-50 tracking-tight-2">{title}</h2>
+        <span className="text-caption font-mono text-editorial/70">{n}</span>
+        <h2 className="font-display text-headline text-ink-50 tracking-tight-2">{title}</h2>
       </div>
-      <p className="mt-1 ml-8 text-[12.5px] text-ink-500">{note}</p>
+      <p className="mt-1 ml-8 text-caption text-ink-500 max-w-measure">{note}</p>
     </div>
   );
 }
@@ -358,9 +358,9 @@ function SectionHead({ n, title, note }: { n: string; title: string; note: strin
 function TodayStat({ label, value, sub }: { label: string; value: string; sub?: React.ReactNode }) {
   return (
     <div className="bg-[#0b0f15] px-4 py-4">
-      <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">{label}</div>
-      <div className="mt-1 font-display text-[19px] text-ink-50 tabular-nums leading-tight">{value}</div>
-      {sub && <div className="mt-0.5 text-[10.5px] text-ink-400 leading-tight">{sub}</div>}
+      <div className="eyebrow text-ink-500">{label}</div>
+      <div className="mt-1 font-display text-headline text-ink-50 tabular-nums leading-tight">{value}</div>
+      {sub && <div className="mt-0.5 text-micro text-ink-400 leading-tight">{sub}</div>}
     </div>
   );
 }
@@ -368,9 +368,9 @@ function TodayStat({ label, value, sub }: { label: string; value: string; sub?: 
 function ContextStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-[0.14em] text-ink-500">{label}</div>
-      <div className="mt-1 text-[19px] font-display text-ink-50 tabular-nums leading-tight">{value}</div>
-      {sub && <div className="text-[10.5px] text-ink-500 leading-tight">{sub}</div>}
+      <div className="eyebrow text-ink-500">{label}</div>
+      <div className="mt-1 text-headline font-display text-ink-50 tabular-nums leading-tight">{value}</div>
+      {sub && <div className="text-micro text-ink-500 leading-tight">{sub}</div>}
     </div>
   );
 }
