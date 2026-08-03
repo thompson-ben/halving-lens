@@ -25,9 +25,9 @@ import { PRICE_ARCHIVE } from "./data/priceArchiveData";
  *  act, and the front page answers all five before the reader scrolls. */
 export type BriefingQuestion =
   | "what-changed"
-  | "whats-behind-it"
+  | "why-it-matters"
   | "how-unusual"
-  | "what-matters"
+  | "what-to-remember"
   | "what-next";
 
 export interface GlanceRow {
@@ -107,7 +107,7 @@ function glanceRows(r: MoversResult, points: WeekInFive, cycle: CycleRead, watch
   const m = lead(r);
   const material = r.movements.filter((x) => x.significance >= MATERIAL_SIGNIFICANCE).length;
   const total = r.movements.length + r.steady.length;
-  const behind = r.movements.find((x) => x.crossing) ?? r.movements[1] ?? m;
+  const crossed = [...r.movements, ...r.steady].find((x) => x.crossing);
   const unusual = [...r.movements, ...r.steady].filter((x) => x.band === "exceptional" || x.band === "unusual").length;
   const top = watch.find((w) => w.top) ?? watch[0];
 
@@ -122,15 +122,16 @@ function glanceRows(r: MoversResult, points: WeekInFive, cycle: CycleRead, watch
         : `No reading moved materially across ${total} analysed.`,
     },
     {
-      question: "whats-behind-it",
-      label: "What's behind it?",
+      // Relevance, not cause: which of the Four Reference Prices the week
+      // moved the market across. Whether that is RARE is Act 3's question,
+      // answered with evidence — this act never pre-empts it.
+      question: "why-it-matters",
+      label: "Why does it matter?",
       act: 2,
-      anchor: "#behind",
-      answer: behind?.crossing
-        ? behind.crossing.label + "."
-        : behind
-          ? `${behind.label} moved alongside it at ${formatMovement(behind)}; the reference prices show where the market sits.`
-          : "The reference prices show where the market sits.",
+      anchor: "#why",
+      answer: crossed?.crossing
+        ? `${crossed.crossing.label} — a change in where the market sits against its reference prices.`
+        : "No reference price was crossed — the Four Reference Prices show where the market still sits.",
     },
     {
       question: "how-unusual",
@@ -143,8 +144,8 @@ function glanceRows(r: MoversResult, points: WeekInFive, cycle: CycleRead, watch
           : `${material} of ${total} readings moved materially — none unusually by its own record.`,
     },
     {
-      question: "what-matters",
-      label: "What matters most?",
+      question: "what-to-remember",
+      label: "What's worth remembering?",
       act: 4,
       anchor: "#matters",
       answer: points.points.length
@@ -169,9 +170,9 @@ function bridgeLines(r: MoversResult, cycle: CycleRead, quiet: boolean): Record<
   const name = m?.label ?? "the week's readings";
   return {
     1: quiet
-      ? "Nothing moved materially — so the question becomes what sits underneath a quiet week."
-      : `That is what moved. Next: what sits underneath ${name}'s move, and where the market stands against its reference prices.`,
-    2: `That is the composition. The next question is whether any of it is unusual — measured against each reading's own record, not against a headline.`,
+      ? "Nothing moved materially — so the question becomes where a quiet week leaves the market against its reference prices."
+      : `That is what moved. Why it matters is where ${name}'s move leaves the market against its Four Reference Prices.`,
+    2: `That is where the market sits. The next question is whether any of it is unusual — measured against each reading's own record, not against a headline.`,
     3: cycle.changed
       ? "The cycle read moved this week. With that established, here are the five things worth remembering."
       : "The cycle read is unchanged. With that established, here are the five things worth remembering.",

@@ -188,9 +188,9 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         <ActBridge text={brief.bridges[1]} />
       </section>
 
-      {/* ── ACT 2 — What's behind it ── */}
-      <section data-sob-section="behind" id="behind">
-        <SectionHead n="02" title="What's behind it" note="Where the market sits against its reference prices, and the chart that best captures the week. Concurrence, not causation." />
+      {/* ── ACT 2 — Why this matters ── */}
+      <section data-sob-section="why" id="why">
+        <SectionHead n="02" title="Why this matters" note="Where the week leaves the market against its Four Reference Prices, and the chart that best captures it. Concurrence, not causation — and whether any of it is unusual is the next act's question." />
         <ReferencePrices />
         <div className="mt-8">
           <LeadChart pick={cotw} />
@@ -252,9 +252,9 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
 
 
 
-      {/* ── What matters most — the five points, expanded ── */}
+      {/* ── What to remember — the five points, expanded ── */}
       <section data-sob-section="matters" id="matters">
-        <SectionHead n="04" title="What matters most" note="The five points worth remembering — expanded from the agenda at the top of the page." />
+        <SectionHead n="04" title="What to remember" note="If you take only five things from this week, take these — expanded from the front page at the top." />
         <WeekInFiveExpanded data={five} />
         <ActBridge text={brief.bridges[4]} />
       </section>

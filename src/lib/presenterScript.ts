@@ -30,9 +30,9 @@ export const PRESENTER_RUNNING_ORDER: PresenterSection[] = [
     targetSeconds: 120,
   },
   {
-    id: "behind",
-    title: "Act 2 — What's Behind It",
-    cue: "Where the market sits against its reference prices, and the week's lead chart. Describe what moved together — never why.",
+    id: "why",
+    title: "Act 2 — Why This Matters",
+    cue: "Which of the Four Reference Prices the week moved the market across, and the lead chart. Describe what moved together — never why. Leave rarity to the next act.",
     bridge: "So how unusual is any of this, really?",
     targetSeconds: 90,
   },
@@ -45,8 +45,8 @@ export const PRESENTER_RUNNING_ORDER: PresenterSection[] = [
   },
   {
     id: "matters",
-    title: "Act 4 — What Matters Most",
-    cue: "Walk the five points in order. The rail on the left tracks where you are.",
+    title: "Act 4 — What to Remember",
+    cue: "\"If you only remember five things from this week…\" — walk them in order. The rail on the left tracks where you are.",
     bridge: "Finally, what we'll be checking next week.",
     targetSeconds: 60,
   },
