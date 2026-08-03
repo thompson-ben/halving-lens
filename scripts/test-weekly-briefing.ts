@@ -85,8 +85,8 @@ assert(PRESENTER_RUNNING_ORDER.every((s) => pageSrc.includes(`data-sob-section="
 
 // ── The documentary seams ───────────────────────────────────────────────────
 
-assert(Object.keys(brief.bridges).length === 4, "four bridges carry the reader across the five acts");
-assert([1, 2, 3, 4].every((n) => (brief.bridges[n] ?? "").trim().length > 0), "no act ends without a line into the next");
+assert(Object.keys(brief.bridges).length === 5, "five bridges: front page into Act 1, then each act into the next");
+assert([0, 1, 2, 3, 4].every((n) => (brief.bridges[n] ?? "").trim().length > 0), "no part of the briefing ends without a line into the next");
 {
   const bridgeText = Object.values(brief.bridges).join(" ");
   assert(!/\d+(\.\d+)?%/.test(bridgeText), "bridges introduce no new figures — they carry the reader, they do not report");

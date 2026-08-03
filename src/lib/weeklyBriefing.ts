@@ -164,11 +164,15 @@ function glanceRows(r: MoversResult, points: WeekInFive, cycle: CycleRead, watch
 
 /** Connective lines between acts — the documentary seam. Each states what
  *  the reader has just learned and what the next act adds; none introduces
- *  a new fact of its own. */
+ *  a new fact of its own. Keyed by the act it follows: 0 carries the reader
+ *  from the front page into Act 1. */
 function bridgeLines(r: MoversResult, cycle: CycleRead, quiet: boolean): Record<number, string> {
   const m = lead(r);
   const name = m?.label ?? "the week's readings";
   return {
+    0: quiet
+      ? "Let's take those one at a time, starting with the readings themselves."
+      : "Let's take those one at a time, starting with what actually moved.",
     1: quiet
       ? "Nothing moved materially — so the question becomes where a quiet week leaves the market against its reference prices."
       : `That is what moved. Why it matters is where ${name}'s move leaves the market against its Four Reference Prices.`,

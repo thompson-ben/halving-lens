@@ -48,7 +48,8 @@
     "test-questions": "tsx scripts/test-questions.ts",
     "test-market-movers": "tsx scripts/test-market-movers.ts",
     "test-talking-points": "tsx scripts/test-talking-points.ts",
-    "test-weekly-briefing": "tsx scripts/test-weekly-briefing.ts"
+    "test-weekly-briefing": "tsx scripts/test-weekly-briefing.ts",
+    "test-presenter": "tsx scripts/test-presenter.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

@@ -144,6 +144,12 @@ jobs:
       - name: Weekly-briefing tests
         run: npm run test-weekly-briefing
 
+      # Presenter Mode 2.0 (SoB 2.0, PR-SB5) — the episode script as a pure
+      # projection of the briefing model, model-owned spoken bridges, the
+      # data-free running order, the props-only HUD, and the language scan.
+      - name: Presenter tests
+        run: npm run test-presenter
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

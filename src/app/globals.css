@@ -305,7 +305,7 @@ html[data-presenter="1"] .presenter-stage .recharts-tooltip-label { font-size: 1
   padding: 10px 12px; border-radius: 14px;
   background: rgba(13, 18, 25, 0.9); backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.09); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
-  color: #bfc7d2; animation: presenter-bar-in 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  color: #bfc7d2; animation: presenter-hud-in 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 @keyframes presenter-hud-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .presenter-hud__row { display: flex; align-items: center; gap: 8px; }
@@ -328,6 +328,16 @@ html[data-presenter="1"] .presenter-stage .recharts-tooltip-label { font-size: 1
 .presenter-hud__dur { color: #6f7c8e; font-weight: 400; font-size: 10.5px; }
 .presenter-hud__prompt { font-size: 12px; color: #aab3bf; margin-top: 2px; line-height: 1.45; }
 .presenter-hud__next { font-size: 10.5px; color: #6f7c8e; margin-top: 4px; }
+.presenter-hud__ticks { display: flex; gap: 4px; margin-top: 8px; }
+.presenter-hud__tick {
+  flex: 1; height: 3px; border-radius: 2px; border: 0; padding: 0; cursor: pointer;
+  background: rgba(255, 255, 255, 0.1); transition: background 200ms ease;
+}
+.presenter-hud__tick.is-done { background: rgba(217, 185, 106, 0.45); }
+.presenter-hud__tick.is-current { background: #d9b96a; }
+.presenter-hud__pace { color: #6f7c8e; font-weight: 400; font-size: 10.5px; }
+.presenter-hud__pace.is-over { color: #d9b96a; }
+.presenter-hud__bridge { font-size: 11.5px; color: #5eead4; font-style: italic; margin-top: 5px; line-height: 1.45; }
 
 /* Presenter running-order drawer (right, off-canvas). */
 .presenter-drawer {

@@ -30,7 +30,7 @@ import { weeklyBriefing } from "@/lib/weeklyBriefing";
 import type { MoverPeriod, MoversResult } from "@/lib/marketMovers/types";
 import { pathExplorer } from "@/lib/pathExplorer";
 import { selectChartOfWeek } from "@/lib/chartOfWeek";
-import { episodeBriefText } from "@/lib/episodeBrief";
+import { presenterEpisode, presenterSections } from "@/lib/presenterEpisode";
 import { ETF } from "@/lib/etf";
 import { SOURCE } from "@/lib/btcData";
 import { fmtUsd } from "@/lib/format";
@@ -111,7 +111,7 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
   return (
     <div className={presenter ? "presenter-stage space-y-10 max-w-5xl mx-auto" : "space-y-12 lg:space-y-14"}>
       {presenter && <PresenterMode page="The State of Bitcoin" />}
-      {presenter && <PresenterHud episodeScript={episodeBriefText()} />}
+      {presenter && <PresenterHud episodeScript={presenterEpisode()} sections={presenterSections()} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       {/* Publication identity — this is the current Chapter of The Journal.
