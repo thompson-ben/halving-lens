@@ -63,7 +63,7 @@ function Spark({ values, tone }: { values: number[]; tone: string }) {
 function BandChip({ m }: { m: Movement }) {
   if (m.rarityState !== "available") {
     return (
-      <span className="text-[9.5px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border border-white/12 bg-white/[0.03] text-ink-400">
+      <span className="eyebrow px-2 py-0.5 rounded-full border border-white/12 bg-white/[0.03] text-ink-400">
         Comparison maturing
       </span>
     );
@@ -71,9 +71,9 @@ function BandChip({ m }: { m: Movement }) {
   const label = m.band === "exceptional" ? "Exceptional" : m.band === "unusual" ? "Unusual" : m.band === "notable" ? "Notable" : "Routine";
   const cls =
     m.band === "exceptional" || m.band === "unusual"
-      ? "border-[#d9b96a]/35 bg-[#d9b96a]/[0.08] text-[#d9b96a]"
+      ? "border-editorial/35 bg-editorial/[0.08] text-editorial"
       : "border-white/12 bg-white/[0.03] text-ink-400";
-  return <span className={`text-[9.5px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border ${cls}`}>{label}</span>;
+  return <span className={`eyebrow px-2 py-0.5 rounded-full border ${cls}`}>{label}</span>;
 }
 
 function Tier1Row({ m, rank, asOf }: { m: Movement; rank: number; asOf: string }) {
@@ -84,27 +84,27 @@ function Tier1Row({ m, rank, asOf }: { m: Movement; rank: number; asOf: string }
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-[10px] font-mono text-ink-600">{String(rank).padStart(2, "0")}</span>
-            <span className="text-[11px] uppercase tracking-[0.16em] text-ink-300">{m.label}</span>
+            <span className="text-micro font-mono text-ink-600">{String(rank).padStart(2, "0")}</span>
+            <span className="eyebrow text-ink-300">{m.label}</span>
             <BandChip m={m} />
-            {m.state && <span className="text-[10px] text-ink-500">{m.state}</span>}
+            {m.state && <span className="text-micro text-ink-500">{m.state}</span>}
             {m.nature === "estimated" && (
-              <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">
+              <span className="eyebrow px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">
                 Estimated
               </span>
             )}
           </div>
           <div className="mt-2 flex items-baseline gap-2.5 flex-wrap">
-            <span className={`font-display text-[28px] sm:text-[34px] leading-none tabular-nums ${toneOf(m)}`}>
+            <span className={`font-display text-stat leading-none tabular-nums ${toneOf(m)}`}>
               {formatMovement(m)}
             </span>
-            <span className="text-[11.5px] text-ink-500">over {periodLabel(m.period)}</span>
+            <span className="text-caption text-ink-500">over {periodLabel(m.period)}</span>
           </div>
-          {thenNowLine(m) && <div className="mt-1.5 text-[12.5px] text-ink-300 tabular-nums">{thenNowLine(m)}</div>}
+          {thenNowLine(m) && <div className="mt-1.5 text-caption text-ink-300 tabular-nums">{thenNowLine(m)}</div>}
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
           <Spark values={m.spark} tone={tone} />
-          <Link href={m.href} className="inline-flex items-center gap-1 text-[11.5px] text-ink-400 hover:text-ink-100 transition-colors">
+          <Link href={m.href} className="inline-flex items-center gap-1 text-caption text-ink-400 hover:text-ink-100 transition-colors">
             {m.what}
             <ArrowUpRight className="w-3 h-3" aria-hidden />
           </Link>
@@ -112,13 +112,13 @@ function Tier1Row({ m, rank, asOf }: { m: Movement; rank: number; asOf: string }
       </div>
 
       <div className="mt-4 pt-3.5 border-t border-white/[0.06] space-y-1.5">
-        <p className="text-[13px] text-ink-200 leading-relaxed">
+        <p className="text-body text-ink-200 leading-relaxed max-w-measure">
           {belowThreshold ? "Largest remaining move · ordinary within its own record." : meaningLine(m)}
         </p>
-        <p className="text-[11px] text-ink-500">{rarityLine(m)}</p>
-        {m.broaderContext && <p className="text-[11px] text-ink-500">{m.broaderContext.text}</p>}
+        <p className="text-caption text-ink-500">{rarityLine(m)}</p>
+        {m.broaderContext && <p className="text-caption text-ink-500">{m.broaderContext.text}</p>}
         {lagDays(m.asOf, asOf) > 1 && (
-          <p className="text-[10.5px] text-ink-600">Measured to {m.asOf}, this reading&rsquo;s latest observation.</p>
+          <p className="text-micro text-ink-600">Measured to {m.asOf}, this reading&rsquo;s latest observation.</p>
         )}
       </div>
     </div>
@@ -134,22 +134,22 @@ function Tier2Row({ m, rank }: { m: Movement; rank: number }) {
         aria-expanded={open}
         className="w-full flex items-center gap-3 py-3 text-left hover:bg-white/[0.015] transition-colors rounded"
       >
-        <span className="text-[10px] font-mono text-ink-600 w-5 shrink-0">{String(rank).padStart(2, "0")}</span>
-        <span className="text-[12.5px] text-ink-200 flex-1 min-w-0 truncate">{m.label}</span>
-        <span className="text-[12px] text-ink-400 tabular-nums hidden sm:inline">{formatValue(m)}</span>
-        <span className={`text-[12.5px] tabular-nums w-24 text-right ${toneOf(m)}`}>{formatMovement(m)}</span>
+        <span className="text-micro font-mono text-ink-600 w-5 shrink-0">{String(rank).padStart(2, "0")}</span>
+        <span className="text-caption text-ink-200 flex-1 min-w-0 truncate">{m.label}</span>
+        <span className="text-caption text-ink-400 tabular-nums hidden sm:inline">{formatValue(m)}</span>
+        <span className={`text-caption tabular-nums w-24 text-right ${toneOf(m)}`}>{formatMovement(m)}</span>
         <span className="hidden sm:block shrink-0">
           <BandChip m={m} />
         </span>
-        <span className="text-ink-600 text-[11px] w-3 shrink-0" aria-hidden>{open ? "−" : "+"}</span>
+        <span className="text-ink-600 text-caption w-3 shrink-0" aria-hidden>{open ? "−" : "+"}</span>
       </button>
       {open && (
         <div className="pb-3.5 pl-8 pr-3 space-y-1.5">
-          <p className="text-[12.5px] text-ink-300 leading-relaxed">{meaningLine(m)}</p>
-          {thenNowLine(m) && <p className="text-[11.5px] text-ink-400 tabular-nums">{thenNowLine(m)}</p>}
-          <p className="text-[11px] text-ink-500">{rarityLine(m)}</p>
-          {m.broaderContext && <p className="text-[11px] text-ink-500">{m.broaderContext.text}</p>}
-          <Link href={m.href} className="inline-flex items-center gap-1 text-[11.5px] text-accent hover:text-accent-soft">
+          <p className="text-caption text-ink-300 leading-relaxed">{meaningLine(m)}</p>
+          {thenNowLine(m) && <p className="text-caption text-ink-400 tabular-nums">{thenNowLine(m)}</p>}
+          <p className="text-caption text-ink-500">{rarityLine(m)}</p>
+          {m.broaderContext && <p className="text-caption text-ink-500">{m.broaderContext.text}</p>}
+          <Link href={m.href} className="inline-flex items-center gap-1 text-caption text-accent hover:text-accent-soft">
             {m.label}
             <ArrowUpRight className="w-3 h-3" aria-hidden />
           </Link>
@@ -188,14 +188,14 @@ export function MarketSnapshot({ initial }: { initial: Record<MoverPeriod, Mover
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-[12px] text-ink-400 leading-relaxed max-w-2xl">{scope}</p>
+        <p className="text-caption text-ink-400 leading-relaxed max-w-measure">{scope}</p>
         <div className="flex items-center gap-1 shrink-0" role="group" aria-label="Comparison period">
           {PERIODS.map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               aria-pressed={period === p}
-              className={`px-2.5 py-1 rounded-md text-[11.5px] border transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-caption border transition-colors ${
                 period === p ? "border-accent/40 bg-accent/[0.08] text-accent" : "border-white/[0.08] text-ink-500 hover:text-ink-200"
               }`}
             >
@@ -222,7 +222,7 @@ export function MarketSnapshot({ initial }: { initial: Record<MoverPeriod, Mover
       {steady.length > 0 && <SteadyLine steady={steady} />}
 
       {result.unavailable.length > 0 && (
-        <p className="text-[11px] text-ink-600 leading-relaxed">
+        <p className="text-caption text-ink-600 leading-relaxed">
           Not measurable over {periodLabel(period)}:{" "}
           {result.unavailable.map((u) => `${u.label} (${u.reason})`).join(" · ")}.
         </p>
@@ -236,13 +236,13 @@ function SteadyLine({ steady }: { steady: Movement[] }) {
   return (
     <div className="card p-4">
       <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="w-full text-left flex items-start gap-2">
-        <span className="text-ink-600 text-[11px] mt-0.5" aria-hidden>{open ? "−" : "+"}</span>
-        <span className="text-[12.5px] text-ink-300 leading-relaxed">{steadySummary(steady)}</span>
+        <span className="text-ink-600 text-caption mt-0.5" aria-hidden>{open ? "−" : "+"}</span>
+        <span className="text-caption text-ink-300 leading-relaxed">{steadySummary(steady)}</span>
       </button>
       {open && (
         <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
           {steady.map((m) => (
-            <div key={m.metricId} className="flex items-center justify-between gap-3 text-[11.5px]">
+            <div key={m.metricId} className="flex items-center justify-between gap-3 text-caption">
               <Link href={m.href} className="text-ink-400 hover:text-ink-100 transition-colors truncate">{m.label}</Link>
               <span className="text-ink-500 tabular-nums shrink-0">
                 {formatValue(m)} <span className={toneOf(m)}>{formatMovement(m)}</span>

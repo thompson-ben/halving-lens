@@ -49,7 +49,8 @@
     "test-market-movers": "tsx scripts/test-market-movers.ts",
     "test-talking-points": "tsx scripts/test-talking-points.ts",
     "test-weekly-briefing": "tsx scripts/test-weekly-briefing.ts",
-    "test-presenter": "tsx scripts/test-presenter.ts"
+    "test-presenter": "tsx scripts/test-presenter.ts",
+    "test-editorial-system": "tsx scripts/test-editorial-system.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

@@ -43,6 +43,28 @@ const config: Config = {
           blue: "#5aa9ff",
           violet: "#a78bfa",
         },
+        // The HalvingLens editorial colour (SB6a). Structure only: act
+        // numerals, eyebrows, the glance rail, bridges, active states.
+        // Never on a link, never on a data value — teal owns interaction
+        // and the signal colours own data direction.
+        editorial: "#d9b96a",
+      },
+      // The editorial type scale (SB6a) — the only text sizes the State of
+      // Bitcoin tree may use. Six prose steps plus one stat size for large
+      // tabular figures; the display step is fluid so headings need no
+      // per-breakpoint arbitrary values.
+      fontSize: {
+        micro: ["10.5px", { lineHeight: "1.4" }],
+        caption: ["12px", { lineHeight: "1.5" }],
+        body: ["14px", { lineHeight: "1.6" }],
+        subhead: ["15px", { lineHeight: "1.4" }],
+        headline: ["22px", { lineHeight: "1.25" }],
+        stat: ["27px", { lineHeight: "1.1" }],
+        display: ["clamp(34px, 4.5vw, 54px)", { lineHeight: "1.05" }],
+      },
+      maxWidth: {
+        // One reading measure for all running prose (~66ch at body size).
+        measure: "68ch",
       },
       fontFamily: {
         sans: [

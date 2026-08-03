@@ -9,6 +9,18 @@
   --surface-2: #0d1219;
   --hairline: rgba(255, 255, 255, 0.05);
   --hairline-strong: rgba(255, 255, 255, 0.09);
+  /* The editorial colour — the one definition CSS may reference. The
+     Tailwind `editorial` token carries the same value for markup. */
+  --editorial: #d9b96a;
+}
+
+/* The one eyebrow style (SB6a). Colour is applied alongside — editorial
+   for act-level structure, ink-500 for in-card labels. */
+.eyebrow {
+  font-size: 10.5px;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
 }
 
 html {
@@ -333,10 +345,10 @@ html[data-presenter="1"] .presenter-stage .recharts-tooltip-label { font-size: 1
   flex: 1; height: 3px; border-radius: 2px; border: 0; padding: 0; cursor: pointer;
   background: rgba(255, 255, 255, 0.1); transition: background 200ms ease;
 }
-.presenter-hud__tick.is-done { background: rgba(217, 185, 106, 0.45); }
-.presenter-hud__tick.is-current { background: #d9b96a; }
+.presenter-hud__tick.is-done { background: color-mix(in srgb, var(--editorial) 45%, transparent); }
+.presenter-hud__tick.is-current { background: var(--editorial); }
 .presenter-hud__pace { color: #6f7c8e; font-weight: 400; font-size: 10.5px; }
-.presenter-hud__pace.is-over { color: #d9b96a; }
+.presenter-hud__pace.is-over { color: var(--editorial); }
 .presenter-hud__bridge { font-size: 11.5px; color: #5eead4; font-style: italic; margin-top: 5px; line-height: 1.45; }
 
 /* Presenter running-order drawer (right, off-canvas). */
@@ -377,7 +389,7 @@ html[data-presenter="1"] .presenter-stage {
 @keyframes presenter-stage-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 /* A touch more air between the big beats while presenting. */
 html[data-presenter="1"] .presenter-stage > * + * { margin-top: 2.75rem; }
-html[data-presenter="1"] .presenter-stage h1 { letter-spacing: -0.035em; }
+html[data-presenter="1"] .presenter-stage h1 { letter-spacing: -0.035em; font-size: clamp(44px, 5vw, 60px); }
 html[data-presenter="1"] .presenter-stage h2 { letter-spacing: -0.02em; }
 /* Tabular figures don't jitter if a value updates mid-stream. */
 html[data-presenter="1"] .presenter-stage .tabular-nums { font-variant-numeric: tabular-nums; }
