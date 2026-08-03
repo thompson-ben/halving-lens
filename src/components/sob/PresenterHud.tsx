@@ -3,14 +3,27 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Play, Pause, RotateCcw, ListOrdered, X, Copy, Check, ChevronRight } from "lucide-react";
-import { PRESENTER_RUNNING_ORDER, EPISODE_TARGET_LABEL } from "@/lib/presenterScript";
+import { EPISODE_TARGET_LABEL } from "@/lib/presenterScript";
+import type { PresenterSectionView } from "@/lib/presenterEpisode";
 
-// Presenter HUD — floating recording aid for "Documenting the Cycle". It is
-// overlay chrome (position: fixed), NOT part of the page scroll, so the recorded
-// page stays clean and the prompts never appear as page content. It shows the
-// current section's cue (tracked by scroll), a lightweight recording timer with
-// section timing guidance, and a drawer with the full running order, bridge
-// lines and a copyable episode script. Only mounted in presenter mode.
+// Presenter HUD (2.0, PR-SB5) — floating recording aid for "Documenting the
+// Cycle". Overlay chrome (position: fixed), NOT part of the page scroll, so
+// the recorded page stays clean. Everything it says arrives as props from the
+// briefing model via the server — it computes no facts and phrases no
+// transitions of its own.
+//
+// It shows: which act the presenter is in (tracked against one reading line —
+// the same deterministic rule as the Act 4 rail, so every act takes its turn
+// exactly once), the act's cue, the SPOKEN bridge into the next act (the same
+// line printed on the page), a per-act pace readout against the act's target,
+// and a drawer with the full running order and a copyable episode script.
+//
+// Keyboard: T start/pause the timer · N / P next / previous act.
+// (G toggles guides and Esc exits — owned by PresenterMode.)
+
+/** How far down the viewport the presenter is assumed to be reading. Acts are
+ *  tall, so the active act is the LAST one whose top has passed this line. */
+const READING_LINE = 0.35;
 
 function mmss(total: number): string {
   const m = Math.floor(total / 60);
@@ -18,10 +31,10 @@ function mmss(total: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function PresenterHud({ episodeScript }: { episodeScript: string }) {
-  const order = PRESENTER_RUNNING_ORDER;
+export function PresenterHud({ episodeScript, sections }: { episodeScript: string; sections: PresenterSectionView[] }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [actElapsed, setActElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -29,44 +42,69 @@ export function PresenterHud({ episodeScript }: { episodeScript: string }) {
   // position:fixed to it instead of the viewport. Portal to <body> to escape it.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const tick = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Recording timer.
+  // Recording timer — total and within-act. The act clock restarts when the
+  // presenter moves on, so the pace readout always refers to the act on screen.
   useEffect(() => {
-    if (running) {
-      tick.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-      return () => {
-        if (tick.current) clearInterval(tick.current);
-      };
-    }
+    if (!running) return;
+    const t = setInterval(() => {
+      setElapsed((e) => e + 1);
+      setActElapsed((e) => e + 1);
+    }, 1000);
+    return () => clearInterval(t);
   }, [running]);
+  useEffect(() => setActElapsed(0), [currentIdx]);
 
-  // Track the section currently in view via its data-sob-section anchor.
+  // Track the act being presented: the last section whose top has passed the
+  // reading line. One deterministic rule — no intersection bands for a tall
+  // act to fall between.
   useEffect(() => {
-    const els = order
-      .map((s) => document.querySelector(`[data-sob-section="${s.id}"]`))
-      .filter((el): el is Element => !!el);
-    if (els.length === 0 || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible) {
-          const id = (visible.target as HTMLElement).dataset.sobSection;
-          const idx = order.findIndex((s) => s.id === id);
-          if (idx >= 0) setCurrentIdx(idx);
-        }
-      },
-      { threshold: [0.2, 0.5], rootMargin: "-20% 0px -50% 0px" },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [order]);
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const line = window.innerHeight * READING_LINE;
+      let idx = 0;
+      sections.forEach((s, i) => {
+        const el = document.querySelector(`[data-sob-section="${s.id}"]`);
+        if (el && el.getBoundingClientRect().top <= line) idx = i;
+      });
+      setCurrentIdx(idx);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(measure); };
+    measure();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [sections]);
 
-  const cur = order[currentIdx];
-  const next = order[currentIdx + 1] ?? null;
-  const targetTotal = order.reduce((a, s) => a + s.targetSeconds, 0);
+  const goTo = (i: number) => {
+    const s = sections[i];
+    if (!s) return;
+    document.querySelector(`[data-sob-section="${s.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Keyboard: T timer, N/P navigate. G and Esc belong to PresenterMode.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+      const k = e.key.toLowerCase();
+      if (k === "t") setRunning((r) => !r);
+      if (k === "n") goTo(Math.min(currentIdx + 1, sections.length - 1));
+      if (k === "p") goTo(Math.max(currentIdx - 1, 0));
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIdx, sections]);
+
+  const cur = sections[currentIdx];
+  const next = sections[currentIdx + 1] ?? null;
+  const targetTotal = sections.reduce((a, s) => a + s.targetSeconds, 0);
+  const overAct = actElapsed > cur.targetSeconds;
 
   const copyScript = () => {
     navigator.clipboard?.writeText(episodeScript).then(
@@ -82,13 +120,13 @@ export function PresenterHud({ episodeScript }: { episodeScript: string }) {
 
   return createPortal(
     <>
-      {/* Floating cue + timer — bottom-left overlay chrome (frame out when recording). */}
+      {/* Floating cue + timers — bottom-left overlay chrome (frame out when recording). */}
       <div className="presenter-hud">
         <div className="presenter-hud__row">
-          <button type="button" onClick={() => setRunning((r) => !r)} className="presenter-hud__btn" title={running ? "Pause timer" : "Start timer"}>
+          <button type="button" onClick={() => setRunning((r) => !r)} className="presenter-hud__btn" title={running ? "Pause timer (T)" : "Start timer (T)"}>
             {running ? <Pause size={13} /> : <Play size={13} />}
           </button>
-          <button type="button" onClick={() => { setElapsed(0); setRunning(false); }} className="presenter-hud__btn" title="Reset timer">
+          <button type="button" onClick={() => { setElapsed(0); setActElapsed(0); setRunning(false); }} className="presenter-hud__btn" title="Reset timer">
             <RotateCcw size={12} />
           </button>
           <span className="presenter-hud__timer tabular-nums">{mmss(elapsed)}</span>
@@ -97,17 +135,36 @@ export function PresenterHud({ episodeScript }: { episodeScript: string }) {
             <ListOrdered size={13} /> <span>Running order</span>
           </button>
         </div>
+        {/* Act progress — one tick per part of the running order. */}
+        <div className="presenter-hud__ticks" aria-hidden>
+          {sections.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              tabIndex={-1}
+              onClick={() => goTo(i)}
+              className={`presenter-hud__tick ${i < currentIdx ? "is-done" : ""} ${i === currentIdx ? "is-current" : ""}`}
+              title={s.title}
+            />
+          ))}
+        </div>
         <div className="presenter-hud__cue">
-          <span className="presenter-hud__step">{currentIdx + 1}/{order.length}</span>
+          <span className="presenter-hud__step">{currentIdx + 1}/{sections.length}</span>
           <div>
-            <div className="presenter-hud__title">{cur.title} <span className="presenter-hud__dur">· ~{cur.targetSeconds}s</span></div>
+            <div className="presenter-hud__title">
+              {cur.title}{" "}
+              <span className={`presenter-hud__pace tabular-nums ${overAct ? "is-over" : ""}`}>
+                {mmss(actElapsed)} / ~{mmss(cur.targetSeconds)}{overAct ? " over" : ""}
+              </span>
+            </div>
             <div className="presenter-hud__prompt">{cur.cue}</div>
-            {next && <div className="presenter-hud__next">Next: {next.title}</div>}
+            {cur.bridge && <div className="presenter-hud__bridge">&ldquo;{cur.bridge}&rdquo;</div>}
+            {next && <div className="presenter-hud__next">Next: {next.title} · N/P to move</div>}
           </div>
         </div>
       </div>
 
-      {/* Running-order drawer — cues, bridge lines, copyable script. */}
+      {/* Running-order drawer — cues, spoken bridges, copyable script. */}
       {drawer && (
         <div className="presenter-drawer" role="dialog" aria-label="Presenter running order">
           <div className="presenter-drawer__head">
@@ -120,7 +177,7 @@ export function PresenterHud({ episodeScript }: { episodeScript: string }) {
             </div>
           </div>
           <div className="presenter-drawer__body">
-            {order.map((s, i) => (
+            {sections.map((s, i) => (
               <div key={s.id} className={`presenter-drawer__item ${i === currentIdx ? "is-current" : ""}`}>
                 <div className="presenter-drawer__item-head">
                   <span className="presenter-hud__step">{i + 1}</span>
