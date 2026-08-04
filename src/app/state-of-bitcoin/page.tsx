@@ -198,54 +198,51 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
         <ActBridge text={brief.bridges[2]} />
       </section>
 
-      {/* ── Section 6 — Historical Context ── */}
+      {/* ── ACT 3 — How unusual is it? Two beats: where we are, then how
+          prior cycles behaved from here. One idea per beat; the context
+          figures ride as captions rather than a widget of their own. */}
       <section data-sob-section="unusual" id="unusual" className="pt-2 lg:pt-10">
-        <SectionHead n="3" title="How unusual is it?" note="This week measured against the record: where the cycle stands, the closest historical match, and how prior cycles behaved from here." />
+        <SectionHead n="3" title="How unusual is it?" note="This week measured against the record — where the cycle stands, and how prior cycles behaved from here." />
+
+        {/* Beat one — where we are, and whether that reading moved. */}
         <div className="mb-8">
           <WhereAreWe />
         </div>
-        <p className="mb-4 text-body text-ink-300 leading-relaxed max-w-measure">
-          Each prior-cycle line shows what actually happened after the same stage of an earlier Bitcoin cycle. Dashed
-          sections are the paths after a cycle&rsquo;s peak.
-        </p>
-        {explorer.available && (
-          <div className="card p-4 sm:p-7 relative mb-4">
-            <HistoricalPathExplorer data={explorer} />
-            <div className="watermark">halvinglens.com · historical path explorer</div>
-          </div>
-        )}
-        <div className="card p-5 sm:p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <ContextStat label="Closest match" value={ctx.match ?? "—"} sub={ctx.similarity != null ? `${ctx.similarity}% similar` : undefined} />
-            <ContextStat label="Accumulation" value={`${ctx.accPercentile}%`} sub="more attractive than of weeks" />
-            <ContextStat label="Drawdown rank" value={ctx.drawdownPercentile != null ? `${ctx.drawdownPercentile}th` : "—"} sub="of tracked days" />
-            <ContextStat label="Market Health" value={ctx.healthPercentile != null ? `${ctx.healthPercentile}th` : (health.band?.label ?? "—")} sub="percentile" />
-          </div>
-          {reasons.length > 0 && ctx.match && (
-            <div className="mt-5 pt-4 border-t border-white/[0.06]">
-              <div className="eyebrow text-ink-500 mb-2">Why this match?</div>
-              <div className="flex flex-wrap gap-2">
-                {reasons.map((r) => (
-                  <span key={r.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-caption text-ink-200">
-                    {r.label}
-                    <span className="tabular-nums text-ink-500">{r.closeness}%</span>
-                  </span>
-                ))}
-              </div>
+        <CycleStatusSection />
+
+        {/* Beat two — the record. */}
+        <div className="mt-12">
+          <h3 className="eyebrow text-editorial mb-3">How prior cycles behaved from here</h3>
+          <p className="mb-4 text-body text-ink-300 leading-relaxed max-w-measure">
+            Each prior-cycle line shows what actually happened after the same stage of an earlier Bitcoin cycle. Dashed
+            sections are the paths after a cycle&rsquo;s peak.
+          </p>
+          {explorer.available && (
+            <div className="card p-4 sm:p-7 relative">
+              <HistoricalPathExplorer data={explorer} />
+              <div className="watermark">halvinglens.com · historical path explorer</div>
             </div>
           )}
-          <p className="mt-5 pt-4 border-t border-white/[0.06] text-body text-ink-200 leading-relaxed max-w-measure">{ctx.summary}</p>
-          {ETF.connected && (
-            <p className="mt-3 text-caption text-ink-500 leading-relaxed max-w-measure">
-              Note: spot ETF demand is new to this cycle, so there is no like-for-like precedent in earlier halving cycles.
+          <div className="mt-5 border-t border-white/[0.06] pt-5 space-y-2">
+            <p className="text-body text-ink-200 leading-relaxed max-w-measure">{ctx.summary}</p>
+            <p className="text-caption text-ink-500 leading-relaxed max-w-measure tabular-nums">
+              {ctx.match && (
+                <>
+                  Closest match: {ctx.match}
+                  {ctx.similarity != null && <> ({ctx.similarity}% similar{reasons.length > 0 && <> — {reasons.map((r) => `${r.label.toLowerCase()} ${r.closeness}%`).join(", ")}</>})</>}
+                  {" · "}
+                </>
+              )}
+              Accumulation {ctx.accPercentile}/100
+              {ctx.drawdownPercentile != null && <> · Drawdown {ctx.drawdownPercentile}th percentile of tracked days</>}
+              {ctx.healthPercentile != null ? <> · Market Health {ctx.healthPercentile}th percentile</> : health.band?.label ? <> · Market Health {health.band.label}</> : null}
             </p>
-          )}
-        </div>
-
-        {/* Did the week move the cycle interpretation? The closing beat of
-            "how unusual" — ordinary volatility is not a regime change. */}
-        <div className="mt-8">
-          <CycleStatusSection />
+            {ETF.connected && (
+              <p className="text-micro text-ink-600 leading-relaxed max-w-measure">
+                Note: spot ETF demand is new to this cycle, so there is no like-for-like precedent in earlier halving cycles.
+              </p>
+            )}
+          </div>
         </div>
         <ActBridge text={brief.bridges[3]} />
       </section>
