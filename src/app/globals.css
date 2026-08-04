@@ -274,6 +274,12 @@ html[data-presenter="1"] .presenter-stage .card-glow { padding: 1.75rem; }
   html[data-presenter="1"] .presenter-stage .card-glow { padding: 2rem; }
 }
 /* Bigger, higher-contrast chart type while filming. */
+/* Broadcast comfort (SB6d): on camera the prose steps up ~15% so the page
+   reads from a monitor at arm's length. Structure sizes are untouched —
+   the hierarchy is preserved, just louder. */
+html[data-presenter="1"] .presenter-stage .text-body { font-size: 16px; }
+html[data-presenter="1"] .presenter-stage .text-subhead { font-size: 17px; }
+html[data-presenter="1"] .presenter-stage .text-caption { font-size: 13.5px; }
 html[data-presenter="1"] .presenter-stage .recharts-cartesian-axis-tick text { font-size: 13px !important; fill: #8b97a8 !important; }
 html[data-presenter="1"] .presenter-stage .recharts-cartesian-grid-horizontal line,
 html[data-presenter="1"] .presenter-stage .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.07) !important; }
