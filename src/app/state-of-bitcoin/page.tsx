@@ -72,6 +72,13 @@ const JSON_LD = {
 const DATA_STATUS: Record<string, "live" | "live-derived" | "coming-soon"> = { live: "live", mixed: "live-derived", synthetic: "coming-soon" };
 const TONE: Record<"good" | "bad" | "neutral", string> = { good: "text-signal-green", bad: "text-signal-red", neutral: "text-ink-300" };
 
+/** 72 → "72nd", 68 → "68th" — a publication never prints "72th". */
+function ordinal(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+}
+
 function fmtSignedPct(n: number): string {
   const digits = Math.abs(n) >= 10 ? 0 : 1;
   const sign = n > 0 ? "+" : n < 0 ? "−" : "";
@@ -234,8 +241,8 @@ export default function SnapshotPage({ searchParams }: { searchParams: { present
                 </>
               )}
               Accumulation {ctx.accPercentile}/100
-              {ctx.drawdownPercentile != null && <> · Drawdown {ctx.drawdownPercentile}th percentile of tracked days</>}
-              {ctx.healthPercentile != null ? <> · Market Health {ctx.healthPercentile}th percentile</> : health.band?.label ? <> · Market Health {health.band.label}</> : null}
+              {ctx.drawdownPercentile != null && <> · Drawdown {ordinal(ctx.drawdownPercentile)} percentile of tracked days</>}
+              {ctx.healthPercentile != null ? <> · Market Health {ordinal(ctx.healthPercentile)} percentile</> : health.band?.label ? <> · Market Health {health.band.label}</> : null}
             </p>
             {ETF.connected && (
               <p className="text-micro text-ink-600 leading-relaxed max-w-measure">
