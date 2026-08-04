@@ -85,7 +85,7 @@ export function WeekInFiveExpanded({ data }: { data: WeekInFiveData }) {
                     on ? "border-l-editorial bg-white/[0.04] text-ink-100" : "border-l-transparent text-ink-500 hover:text-ink-300"
                   }`}
                 >
-                  <span className="text-micro font-mono text-ink-600 mt-0.5">{p.rank}</span>
+                  <span className="text-micro font-mono text-ink-600 mt-0.5 shrink-0">4.{p.rank}</span>
                   <span className="text-caption leading-snug line-clamp-3">{p.headline}</span>
                 </button>
               </li>
@@ -93,7 +93,7 @@ export function WeekInFiveExpanded({ data }: { data: WeekInFiveData }) {
           })}
         </ol>
       </nav>
-      <div className="space-y-3">
+      <div className="divide-y divide-white/[0.06] border-y border-white/[0.06]">
         {data.points.map((p) => (
           <PointCard key={p.id} p={p} onMount={(el) => { refs.current[p.id] = el; }} />
         ))}
@@ -109,14 +109,14 @@ function PointCard({ p, onMount }: { p: TalkingPoint; onMount?: (el: HTMLElement
       data-point-id={p.id}
       ref={onMount}
       tabIndex={-1}
-      className="card p-5 scroll-mt-24 data-[tp-flash=true]:ring-1 data-[tp-flash=true]:ring-editorial/50 transition-shadow outline-none"
+      className="py-6 px-3 -mx-3 rounded-lg scroll-mt-24 data-[tp-flash=true]:bg-editorial/[0.05] transition-colors outline-none"
     >
       <div className="flex items-baseline gap-3">
-        <span className="text-micro font-mono text-ink-600 shrink-0">{p.rank}</span>
-        <h3 className="text-body font-medium text-ink-50 leading-snug">{p.headline}</h3>
+        <span className="text-micro font-mono text-editorial/70 shrink-0">4.{p.rank}</span>
+        <h3 className="text-subhead font-medium text-ink-50 leading-snug">{p.headline}</h3>
       </div>
-      <p className="mt-2.5 ml-6 text-body text-ink-300 leading-relaxed max-w-measure">{p.expanded}</p>
-      <div className="mt-3 ml-6 flex items-center gap-3 flex-wrap">
+      <p className="mt-2.5 ml-9 text-body text-ink-300 leading-relaxed max-w-measure">{p.expanded}</p>
+      <div className="mt-3 ml-9 flex items-center gap-3 flex-wrap">
         <Link href={p.href} className="inline-flex items-center gap-1 text-caption text-accent hover:text-accent-soft transition-colors">
           See the evidence
           <ArrowUpRight className="w-3 h-3" aria-hidden />

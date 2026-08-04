@@ -16,18 +16,21 @@ export function WeekAtAGlance({ rows }: { rows: GlanceRow[] }) {
       <div className="eyebrow text-editorial mb-3">
         The week at a glance
       </div>
-      <ol className="rounded-xl border border-white/[0.07] overflow-hidden divide-y divide-white/[0.05]">
+      {/* Hierarchy from typography, spacing and alignment — no box, no row
+          backgrounds. The answers carry the front page in the display serif;
+          hairlines do the separating. */}
+      <ol className="divide-y divide-white/[0.06] border-y border-white/[0.06]">
         {rows.map((r) => (
           <li key={r.question}>
             <button
               onClick={() => go(r.anchor)}
-              className="w-full text-left px-4 py-3 bg-[#0b0f15] hover:bg-white/[0.03] transition-colors group flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4"
+              className="w-full text-left py-3 group flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4"
             >
               <span className="eyebrow text-ink-500 sm:w-52 shrink-0 flex items-baseline gap-2">
-                <span className="font-mono text-micro text-ink-600">{r.act}</span>
+                <span className="font-mono text-micro text-editorial/70">{r.act}</span>
                 {r.label}
               </span>
-              <span className="text-body text-ink-200 leading-relaxed group-hover:text-ink-50 transition-colors">
+              <span className="font-display text-subhead text-ink-100 leading-relaxed group-hover:text-ink-50 transition-colors">
                 {r.answer}
               </span>
             </button>

@@ -60,7 +60,9 @@ export function presenterEpisode(): string {
       for (const m of top) push(`  • ${m.label} ${formatMovement(m)} — ${rarityLine(m)}`);
     }
     if (s.id === "matters") {
-      for (const p of b.points.points) push(`  ${p.rank}. ${p.headline}`);
+      // The page numbers these 4.1-4.5, so "point 4.3" has one meaning on a
+      // recording — the script speaks the same language.
+      for (const p of b.points.points) push(`  4.${p.rank} ${p.headline}`);
     }
     if (s.id === "watching") {
       if (b.previousWatch) {
