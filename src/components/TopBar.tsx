@@ -24,7 +24,7 @@ export function TopBar() {
 
   return (
     <header className="h-[72px] border-b border-white/[0.04] bg-ink-950/70 backdrop-blur-xl sticky top-0 z-10">
-      <div className="h-full px-4 md:px-8 lg:px-14 flex items-center gap-3 md:gap-6">
+      <div className="h-full px-4 md:px-8 lg:px-14 flex items-center gap-2 md:gap-6">
         <MobileNav />
 
         {/* Working site search (PR139) — index built server-side, filtered
@@ -115,7 +115,7 @@ function sourceBadge() {
 function MobileStatus({ spot }: { spot: { price: number; pct: number | null; label: string } }) {
   const { isLive, label, dot, title } = sourceBadge();
   return (
-    <div className="flex md:hidden items-center gap-2.5 shrink-0" title={title}>
+    <div className="flex md:hidden items-center gap-1.5 shrink-0" title={title}>
       <Link href="/price" className="flex items-baseline gap-1.5" title="Open the Bitcoin price chart">
         <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">
           {fmtUsd(spot.price)}
@@ -127,14 +127,14 @@ function MobileStatus({ spot }: { spot: { price: number; pct: number | null; lab
             {fmtPct(spot.pct, 1)}
           </span>
         )}
-        {spot.pct != null && <span className="text-[9.5px] text-ink-400">{spot.label}</span>}
+        {spot.pct != null && <span className="hidden min-[380px]:inline text-[9.5px] text-ink-400">{spot.label}</span>}
       </Link>
-      <div className="flex items-center gap-1.5 pl-2.5 border-l border-white/[0.06]">
+      <div className="flex items-center gap-1.5 pl-2 border-l border-white/[0.06]">
         <span className="text-[10.5px] text-ink-300 font-mono whitespace-nowrap">
           Day {TODAY_DAY_IN_CYCLE}
         </span>
       </div>
-      <div className="flex items-center gap-1.5 pl-2.5 border-l border-white/[0.06]">
+      <div className="hidden min-[380px]:flex items-center gap-1.5 pl-2 border-l border-white/[0.06]">
         <span className={`relative w-1.5 h-1.5 rounded-full ${dot} ${isLive ? "live-dot" : ""}`} />
       </div>
     </div>

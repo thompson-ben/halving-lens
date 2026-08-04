@@ -72,6 +72,29 @@ export function WeekInFiveExpanded({ data }: { data: WeekInFiveData }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[15rem_minmax(0,1fr)] gap-6">
+      {/* Below lg the sticky rail has no room, so the same objects ride as a
+          chip strip pinned under the top bar for the act's duration — same
+          active state, same deep links, different geometry. */}
+      <nav aria-label="Jump to a point" className="lg:hidden sticky top-[72px] z-20 -mx-4 px-4 py-2 bg-ink-950/85 backdrop-blur-md border-b border-white/[0.06] overflow-x-auto no-scrollbar">
+        <ol className="flex gap-1.5 min-w-max">
+          {data.points.map((p) => {
+            const on = active === p.id;
+            return (
+              <li key={p.id}>
+                <button
+                  onClick={() => scrollToPoint(p.anchor, p.id)}
+                  aria-current={on ? "true" : undefined}
+                  className={`whitespace-nowrap px-2.5 py-1 rounded-full border font-mono text-micro transition-colors ${
+                    on ? "border-editorial/50 text-editorial" : "border-white/10 text-ink-400"
+                  }`}
+                >
+                  4.{p.rank}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
       <nav aria-label="The week's five points" className="hidden lg:block">
         <ol className="sticky top-24 space-y-1">
           {data.points.map((p) => {

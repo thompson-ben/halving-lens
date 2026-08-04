@@ -127,6 +127,7 @@ assert(railSrc.includes("READING_LINE"), "the rail tracks the reader against one
 assert(railSrc.includes("requestAnimationFrame") && railSrc.includes("{ passive: true }"), "tracking is frame-throttled and passive — scrolling is never blocked by the rail");
 assert(railSrc.includes('aria-current'), "the active talking point is announced to assistive technology");
 assert(railSrc.includes("data-point-id"), "each expansion carries the identity the rail tracks");
+assert(railSrc.includes("lg:hidden sticky") && railSrc.includes('aria-label="Jump to a point"'), "below lg the same objects ride as a pinned chip strip — mobile readers keep their place in Act 4");
 assert(!/rarityPercentile|significance|MATERIAL_SIGNIFICANCE/.test(railSrc), "the rail computes nothing — active state is presentation only");
 assert(glanceSrc.includes("GlanceRow"), "the front page renders the model's own rows rather than restating them");
 assert(!/\d+(\.\d+)?%/.test(glanceSrc.replace(/[\d.]+%\)/g, "")), "the front-page component hard-codes no figures");
