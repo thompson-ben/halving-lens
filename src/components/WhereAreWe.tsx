@@ -109,18 +109,18 @@ export function WhereAreWe() {
         </svg>
 
         <div className="min-w-0">
-          <div className="text-[11px] uppercase tracking-[0.28em] text-accent">Where are we?</div>
-          <div className="mt-2 text-[10.5px] uppercase tracking-[0.2em] text-ink-500">Current chapter</div>
-          <h2 className="mt-1 font-display font-medium tracking-tightest text-ink-50 leading-[1.04] text-[30px] sm:text-[38px]">
+          <div className="eyebrow text-accent">Where are we?</div>
+          <div className="mt-2 eyebrow text-ink-500">Current chapter</div>
+          <h2 className="mt-1 font-display font-medium tracking-tightest text-ink-50 leading-[1.1] text-stat">
             {s.phaseLabel}
           </h2>
-          <p className="mt-3 text-[14px] text-ink-300 leading-relaxed max-w-md">{status.sentence}</p>
+          <p className="mt-3 text-body text-ink-300 leading-relaxed max-w-md">{status.sentence}</p>
         </div>
       </div>
 
       {/* ── The journey — a winding trail through the chapters ── */}
       <div className="mt-8 pt-7 border-t border-white/[0.06]">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-ink-500 text-center mb-3.5">The chapters of a Bitcoin cycle</div>
+        <div className="eyebrow text-ink-500 text-center mb-3.5">The chapters of a Bitcoin cycle</div>
         <div className="relative mx-auto max-w-3xl">
           <svg viewBox="0 0 720 150" className="w-full h-auto" aria-hidden="true">
             <defs>
@@ -158,7 +158,7 @@ export function WhereAreWe() {
             <circle cx={pinX} cy={pinY} r="7.5" fill="#5eead4" stroke="#080b10" strokeWidth="2.5" filter="url(#waw-j-glow)" />
           </svg>
           <div
-            className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] uppercase tracking-[0.16em] font-bold text-accent whitespace-nowrap pointer-events-none"
+            className="absolute -translate-x-1/2 -translate-y-1/2 eyebrow font-bold text-accent whitespace-nowrap pointer-events-none"
             style={{ left: `${hereLeft}%`, top: `${hereTop}%`, textShadow: "0 0 16px rgba(94,234,212,0.55)" }}
           >
             You are here
@@ -169,7 +169,7 @@ export function WhereAreWe() {
           {CHAPTERS.map((c, i) => (
             <span
               key={c.short}
-              className={`absolute -translate-x-1/2 text-[11px] leading-tight whitespace-nowrap ${
+              className={`absolute -translate-x-1/2 text-caption leading-tight whitespace-nowrap ${
                 i === currentIdx ? "text-ink-50 font-semibold" : i < currentIdx ? "text-ink-400" : "text-ink-600"
               }`}
               style={{ left: `${c.labelLeft}%` }}
@@ -180,7 +180,7 @@ export function WhereAreWe() {
         </div>
       </div>
 
-      <p className="mt-7 text-center text-[11px] text-ink-600 leading-relaxed max-w-xl mx-auto">
+      <p className="mt-7 text-center text-caption text-ink-600 leading-relaxed max-w-xl mx-auto">
         Past chapters confident, today emphasised, the chapters beyond deliberately faint — the known shape of a
         four-year cycle. Where we are today, not where price goes next. The evidence is below.
       </p>

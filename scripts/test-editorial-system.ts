@@ -10,7 +10,16 @@ import { readFileSync, globSync } from "node:fs";
 let failures = 0;
 const assert = (c: boolean, m: string) => { if (!c) failures++; console.log(`${c ? "  ok   " : "  FAIL "} ${m}`); };
 
-const SOB_TREE = ["src/app/state-of-bitcoin/page.tsx", ...globSync("src/components/sob/*.tsx")];
+// The page, its own components, and the shared components whose ONLY
+// consumer is the State of Bitcoin page (verified by search in SB6d) —
+// migrating those redesigns nothing else.
+const SOB_TREE = [
+  "src/app/state-of-bitcoin/page.tsx",
+  ...globSync("src/components/sob/*.tsx"),
+  "src/components/journal/JournalMasthead.tsx",
+  "src/components/journal/ChapterNav.tsx",
+  "src/components/WhereAreWe.tsx",
+];
 const read = (p: string) => readFileSync(p, "utf8");
 const tw = read("tailwind.config.ts");
 const css = read("src/app/globals.css");
