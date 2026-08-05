@@ -161,7 +161,9 @@ export function tierBCandidates(period: 7 = 7): Candidate[] {
     out.push(
       mk("approaching-extreme", "B", "positioning", 50 + (EXTREME_NEAR_PCT - near.gapPct) * 8,
         `${m.label} is ${near.gapPct === 0 ? "at" : `within ${near.gapPct}% of`} its ${near.side === "high" ? "highest" : "lowest"} reading of the last year.`,
-        `${m.label} reads ${formatValue(m)}, ${near.gapPct === 0 ? "matching" : `within ${near.gapPct}% of`} its ${near.side === "high" ? "highest" : "lowest"} level over the last 365 days (${near.extremeLabel}, ${near.date}). A description of where the reading sits in its own recent range, not a signal.`,
+        // When the reading IS the extreme, the parenthetical value would just
+        // repeat the figure — only the date carries information.
+        `${m.label} reads ${formatValue(m)}, ${near.gapPct === 0 ? "matching" : `within ${near.gapPct}% of`} its ${near.side === "high" ? "highest" : "lowest"} level over the last 365 days (${near.gapPct === 0 ? `set ${near.date}` : `${near.extremeLabel}, ${near.date}`}). A description of where the reading sits in its own recent range, not a signal.`,
         { metricIds: [m.metricId], href: m.href, evidence: evidenceOf(m) }),
     );
   }
