@@ -3,6 +3,7 @@ import type { TrackedEvent } from "@/lib/analyticsEvents";
 import { TrackedSection } from "@/components/TrackedSection";
 import { referencePrices } from "@/lib/productionCost";
 import { priceContext } from "@/lib/priceContext";
+import { referenceGap, gapTrajectoryLine, type ReferenceId } from "@/lib/referenceGaps";
 import { fmtUsd } from "@/lib/format";
 
 // Reference Prices — the full HalvingLens reference-price set side by side:
@@ -18,6 +19,7 @@ function Row({
   sub,
   value,
   relation,
+  trajectory,
   href,
   event,
   modelled,
@@ -26,6 +28,7 @@ function Row({
   sub: string;
   value: string;
   relation?: string | null;
+  trajectory?: string | null;
   href?: string;
   event?: TrackedEvent;
   modelled?: boolean;
@@ -46,6 +49,7 @@ function Row({
       <div className="text-right shrink-0">
         <div className="font-display text-headline tabular-nums text-ink-50 leading-none">{value}</div>
         {relation && <div className="mt-1 text-caption text-ink-400">{relation}</div>}
+        {trajectory && <div className="mt-0.5 text-micro text-ink-500">{trajectory}</div>}
       </div>
     </div>
   );
@@ -63,6 +67,13 @@ export function ReferencePrices() {
 
   const rel = (pct: number | null) =>
     pct == null ? null : `Market Price is ${Math.abs(pct).toFixed(0)}% ${pct >= 0 ? "above" : "below"}`;
+
+  // The week's trajectory of each relationship — ONE added line per row,
+  // quoted from the reference-gap engine at the page's weekly lens (PR-FRP2).
+  const weekTrajectory = (id: ReferenceId): string | null => {
+    const g = referenceGap(id, 7);
+    return g.available ? gapTrajectoryLine(g) : null;
+  };
 
   // The intro names only the rows actually shown, so it stays truthful when a
   // source is unavailable and its row has dropped out.
@@ -96,6 +107,7 @@ export function ReferencePrices() {
               sub="The long-term price trend, averaged over 200 days"
               value={fmtUsd(r.ma200, { compact: true })}
               relation={rel(r.vsMa200Pct)}
+              trajectory={weekTrajectory("ma200")}
               href="/price"
             />
           )}
@@ -105,6 +117,7 @@ export function ReferencePrices() {
               sub="The network's aggregate holder cost basis"
               value={fmtUsd(r.realisedPrice, { compact: true })}
               relation={rel(r.vsRealisedPct)}
+              trajectory={weekTrajectory("realized_price")}
               href="/metrics/realized-price"
             />
           )}
@@ -114,6 +127,7 @@ export function ReferencePrices() {
               sub="Modelled electricity cost to mine one new Bitcoin"
               value={fmtUsd(r.productionCost, { compact: true })}
               relation={rel(r.vsProductionPct)}
+              trajectory={weekTrajectory("mining_cost")}
               href="/metrics/estimated-mining-cost"
               modelled
             />
