@@ -32,10 +32,12 @@ import {
   periodSupported,
   historicalMoves,
   absPercentile,
+  bandFor,
   RARITY_MIN_OBSERVATIONS,
   type Point,
 } from "./marketMovers/distribution";
 import type { MoverPeriod } from "./marketMovers/types";
+import { ordinal } from "./format";
 
 export const REFERENCE_IDS = ["ma200", "realized_price", "mining_cost"] as const;
 export type ReferenceId = (typeof REFERENCE_IDS)[number];
@@ -208,15 +210,43 @@ export function gapTrajectoryLine(g: GapReading): string {
   return `${gapPhrase(g.gapThen)} → ${gapPhrase(g.gapNow)} ${span}.`;
 }
 
-/** The evidence line beneath a trajectory: the percentile within the gap's
- *  own record when the floor is met, the maturing disclosure when not. */
-export function gapRarityLine(g: GapReading): string | null {
+export interface GapRarity {
+  /** The narrative — what the percentile MEANS, so the reader never has to
+   *  interpret a number: "One of the largest…", "Larger than 71%…", or
+   *  "An ordinary shift within its own history." */
+  line: string;
+  /** The supporting evidence beneath it; null when the line IS the evidence. */
+  evidence: string | null;
+}
+
+/** Adaptive rarity narrative, tiered on the SAME band cut-offs as the Market
+ *  Snapshot (bandFor: exceptional ≥95, notable ≥50) so the gap language and
+ *  the movers language can never disagree about what "rare" means. */
+export function gapRarity(g: GapReading): GapRarity | null {
+  const span = g.period === 1 ? "24-hour" : `${g.period}-day`;
+  const obs = `${g.observations.toLocaleString("en-US")} observations since ${monthLabel(g.firstObserved)}`;
+
   if (g.rarityState === "available" && g.rarityPercentile != null) {
-    const span = g.period === 1 ? "24-hour" : `${g.period}-day`;
-    return `A shift larger than ${g.rarityPercentile}% of its own ${span} record · ${g.observations.toLocaleString("en-US")} observations since ${monthLabel(g.firstObserved)}`;
+    const band = bandFor(g.rarityPercentile);
+    if (band === "exceptional") {
+      return {
+        line: `One of the largest ${span} gap shifts on record.`,
+        evidence: `Larger than ${g.rarityPercentile}% of its own ${span} record · ${obs}`,
+      };
+    }
+    if (band === "unusual" || band === "notable") {
+      return {
+        line: `Larger than ${g.rarityPercentile}% of its own ${span} record.`,
+        evidence: obs,
+      };
+    }
+    return {
+      line: "An ordinary shift within its own history.",
+      evidence: `${ordinal(g.rarityPercentile)} percentile · ${obs}`,
+    };
   }
   if (g.rarityState === "maturing") {
-    return `Historical comparison still maturing · ${g.observations} equivalent observations`;
+    return { line: `Historical comparison still maturing · ${g.observations} equivalent observations`, evidence: null };
   }
   return null;
 }

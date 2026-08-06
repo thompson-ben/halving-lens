@@ -33,7 +33,7 @@ import { selectChartOfWeek } from "@/lib/chartOfWeek";
 import { presenterEpisode, presenterSections } from "@/lib/presenterEpisode";
 import { ETF } from "@/lib/etf";
 import { SOURCE } from "@/lib/btcData";
-import { fmtUsd } from "@/lib/format";
+import { fmtUsd, ordinal } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -71,13 +71,6 @@ const JSON_LD = {
 
 const DATA_STATUS: Record<string, "live" | "live-derived" | "coming-soon"> = { live: "live", mixed: "live-derived", synthetic: "coming-soon" };
 const TONE: Record<"good" | "bad" | "neutral", string> = { good: "text-signal-green", bad: "text-signal-red", neutral: "text-ink-300" };
-
-/** 72 → "72nd", 68 → "68th" — a publication never prints "72th". */
-function ordinal(n: number): string {
-  const v = n % 100;
-  if (v >= 11 && v <= 13) return `${n}th`;
-  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
-}
 
 function fmtSignedPct(n: number): string {
   const digits = Math.abs(n) >= 10 ? 0 : 1;

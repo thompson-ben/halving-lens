@@ -52,3 +52,10 @@ export function timeAgo(iso: string | number | Date): string {
   const d = Math.floor(h / 24);
   return `${d}d ago`;
 }
+
+/** 72 → "72nd", 68 → "68th" — a publication never prints "72th". */
+export function ordinal(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+}

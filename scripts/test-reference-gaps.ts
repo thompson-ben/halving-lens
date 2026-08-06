@@ -13,7 +13,7 @@ import {
   allReferenceGaps,
   gapPhrase,
   gapTrajectoryLine,
-  gapRarityLine,
+  gapRarity,
   REFERENCE_IDS,
   GAP_PERIODS,
   LEVEL_PP,
@@ -108,7 +108,16 @@ const META = { referenceId: "ma200" as const, label: "Test Reference", nature: "
   const market = daily(40, (i) => 100 + i);
   const g = gapReadingFrom(market, ref, 7, META) as GapReading;
   assert(g.rarityState === "maturing" && g.rarityPercentile == null, `below ${RARITY_MIN_OBSERVATIONS} observations the state is maturing and no percentile is claimed`);
-  assert(/still maturing/.test(gapRarityLine(g) ?? ""), "the maturing state is disclosed, not hidden");
+  assert(/still maturing/.test(gapRarity(g)?.line ?? ""), "the maturing state is disclosed, not hidden");
+
+  // The adaptive narrative tells the reader what the percentile MEANS, on
+  // the same band cut-offs as the Market Snapshot.
+  const mk = (p: number): GapReading => ({ ...g, rarityState: "available", rarityPercentile: p, observations: 500 });
+  assert(gapRarity(mk(96))!.line === "One of the largest 7-day gap shifts on record.", "an exceptional shift leads with the meaning, percentile as evidence");
+  assert(/Larger than 96%/.test(gapRarity(mk(96))!.evidence ?? ""), "the exceptional narrative carries its percentile as supporting evidence");
+  assert(gapRarity(mk(71))!.line === "Larger than 71% of its own 7-day record.", "a moderate shift states the percentile plainly");
+  assert(gapRarity(mk(33))!.line === "An ordinary shift within its own history.", "an ordinary shift says so — the reader never interprets a low percentile");
+  assert(/33rd percentile/.test(gapRarity(mk(33))!.evidence ?? ""), "the ordinary narrative keeps the percentile as evidence, correctly ordinal");
 }
 
 // ── live data ───────────────────────────────────────────────────────────────
@@ -147,7 +156,7 @@ if (PRICE_ARCHIVE.length > 1000) {
 
   // Language safeguards over every emitted sentence.
   const text = all
-    .flatMap((g) => (g.available ? [gapTrajectoryLine(g), gapRarityLine(g) ?? ""] : [g.reason]))
+    .flatMap((g) => (g.available ? [gapTrajectoryLine(g), gapRarity(g)?.line ?? "", gapRarity(g)?.evidence ?? ""] : [g.reason]))
     .join(" \n ");
   const BANNED = [/\bwill\b/i, /\bexpect/i, /forecast/i, /predict/i, /\bshould\b/i, /because/i, /\bcaused?\b/i, /\bdrove\b/i, /surging|plunging|soar|crash/i];
   assert(!BANNED.some((re) => re.test(text)), "no predictive, causal or hype language in any emitted line");
