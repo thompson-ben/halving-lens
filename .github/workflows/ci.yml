@@ -156,6 +156,12 @@ jobs:
       - name: Editorial-system tests
         run: npm run test-editorial-system
 
+      # Reference-gap engine (PR-FRP1) — gap-series construction without
+      # interpolation, cadence gates, the explicit mining-cost 24h omission,
+      # trajectory phrasing, rarity floors and the language scan.
+      - name: Reference-gap tests
+        run: npm run test-reference-gaps
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

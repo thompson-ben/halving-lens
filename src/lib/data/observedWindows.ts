@@ -31,7 +31,7 @@ export interface SeriesWindow {
   label: string;
   source: string;
   nature: SeriesNature;
-  cadence: "daily" | "weekly";
+  cadence: "daily" | "weekly" | "mixed";
   /** ISO dates of the first/last points actually present; null when absent. */
   firstObserved: string | null;
   lastObserved: string | null;
@@ -126,7 +126,10 @@ export function observedWindows(): SeriesWindow[] {
         label: "Estimated Mining Cost",
         source: SNAPSHOT.productionCost?.source ?? "model: HalvingLens electricity-cost model",
         nature: "estimated",
-        cadence: "daily",
+        // The stored series is weekly to 2025-06-30 and daily after — the
+        // declaration matches the data, not the fetch schedule (PR-FRP1;
+        // previously mislabelled "daily", flagged in SoB 2.0 discovery).
+        cadence: "mixed",
       },
       (SNAPSHOT.productionCost?.points ?? []).map((p) => p.date ?? null),
     ),
