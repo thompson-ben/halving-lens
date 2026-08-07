@@ -9,28 +9,20 @@
 // lower = hotter / higher-risk / more overheated. "Health" here means a calm,
 // sustainable, not-overheated environment — never a growth or price prediction.
 
-import { cycleScorecard, scoreBand, type ScorecardFactor } from "./cycleSummary";
+import { cycleScorecard, type ScorecardFactor } from "./cycleSummary";
+import { scoreBand } from "./scoreBand";
 import { accumulationRead, type AccumulationRead } from "./accumulation";
 import { dailyChange, type DailyChange } from "./dailyChange";
 import { STORED_BRIEFS } from "./data/briefs";
 
-// Colour by score, higher = healthier. Thresholds mirror scoreBand() so the
-// label and the colour never disagree.
+// Colour and tag by score — thin views over the canonical score→band mapping
+// (scoreBand.ts), so the label, the colour and the tag can never disagree.
 export function healthColor(score: number): string {
-  if (score >= 75) return "#3ddc97"; // signal-green — historically calm
-  if (score >= 55) return "#5eead4"; // accent (cyan) — balanced
-  if (score >= 40) return "#f5b942"; // amber — warming
-  if (score >= 25) return "#f97316"; // orange — elevated
-  return "#ff5d5d"; // red — historically overheated
+  return scoreBand(score).color;
 }
 
-// A short, health-framed status to pair with the scoreBand label.
 export function healthTag(score: number): string {
-  if (score >= 75) return "Historically calm";
-  if (score >= 55) return "Balanced";
-  if (score >= 40) return "Warming";
-  if (score >= 25) return "Elevated risk";
-  return "Historically overheated";
+  return scoreBand(score).tag;
 }
 
 export interface HealthTimelinePoint {

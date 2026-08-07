@@ -290,7 +290,16 @@ export function metricTodayRead(metric: MetricDef, value: number): string {
   return `${metric.short} currently reads ${num} — ${label}. ${ZONE_TODAY[zone]}`;
 }
 
-// Composite cycle index 0–100 — rolls the major metrics into a single read.
+/**
+ * Composite cycle index 0–100 — rolls the major metrics into a single read.
+ *
+ * @deprecated Quarantined (Cycle Dashboard V2, CD0). Zero production call
+ * sites — no page, component or engine imports this. The Cycle Scorecard
+ * (`cycleScorecard()` in cycleSummary.ts, versioned as SCORECARD_VERSION) is
+ * the product's composite read. Retained unchanged pending a separate
+ * deletion clean-up; do not adopt in new code. CI asserts nothing imports it
+ * (scripts/test-cycle-day.ts).
+ */
 export function compositeCycleIndex(sample = TODAY): { value: number; zone: Zone; label: string } {
   // Normalise each metric to 0..100, then average. Higher = closer to top.
   const components = [
@@ -316,8 +325,16 @@ function norm(v: number, lo: number, hi: number): number {
   return Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
 }
 
-// Pi Cycle Top — 111-day MA crossing above 2 × 350-day MA. We simulate this
-// from the current cycle's price series.
+/**
+ * Pi Cycle Top — 111-day MA crossing above 2 × 350-day MA, approximated from
+ * the current cycle's weekly samples.
+ *
+ * @deprecated Quarantined (Cycle Dashboard V2, CD0). Zero production call
+ * sites, and the weekly-sample approximation of daily moving averages does
+ * not meet the observed-data discipline the live product holds. Retained
+ * unchanged pending a separate deletion clean-up; do not adopt in new code.
+ * CI asserts nothing imports it (scripts/test-cycle-day.ts).
+ */
 export function piCycleStatus(): { triggered: boolean; ratio: number; daysSinceCross: number | null } {
   // With weekly samples we approximate: short MA = last ~16 samples (≈111d),
   // long MA = last ~50 samples (≈350d), then * 2.

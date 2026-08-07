@@ -1,4 +1,4 @@
-import { SOURCE, SPOT } from "@/lib/btcData";
+import { SOURCE, SPOT, CYCLE_ANCHOR } from "@/lib/btcData";
 import { cn } from "@/lib/cn";
 
 // Clear "as of" timestamp for any surface that states a price or metric. Values
@@ -65,6 +65,14 @@ export function dailyCloseDate(): string | null {
 export function dailyCloseSource(): string {
   const d = dailyCloseDate();
   return d ? `daily close · ${d}` : "daily close";
+}
+
+// The date the displayed cycle day is measured to — the latest committed
+// daily observation the cycle-day authority anchors on (CD0). Surfaces that
+// present the cycle day as part of current market state pair it with this,
+// so the day is never read as a wall-clock count.
+export function cycleDayAsOf(): string {
+  return fmtDate.format(new Date(`${CYCLE_ANCHOR.asOfDate}T00:00:00Z`));
 }
 
 export function LastUpdated({

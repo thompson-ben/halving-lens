@@ -8,6 +8,7 @@ import { cycleDivergence, cycleTrackingHeadline } from "@/lib/cycleIntel";
 import { cycleTiming } from "@/lib/cycleTiming";
 import { drawdownAnalysis } from "@/lib/drawdowns";
 import { SnapshotStrip } from "@/components/SnapshotStrip";
+import { LastUpdated } from "@/components/LastUpdated";
 import { JourneyNext } from "@/components/JourneyNext";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
@@ -52,6 +53,9 @@ export default function CyclesPage() {
           All four cycles drawn on the same axis, aligned to halving day. See how today&apos;s cycle
           compares with the prior three at the same number of days after the halving.
         </p>
+        <div className="mt-3">
+          <LastUpdated prefix="Data as of" />
+        </div>
       </header>
 
       <SnapshotStrip title="Where the cycle moved this week" />

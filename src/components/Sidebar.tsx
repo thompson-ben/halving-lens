@@ -4,6 +4,7 @@ import { Logo } from "./Logo";
 import { NAV_SECTIONS } from "./navItems";
 import { TODAY_DAY_IN_CYCLE } from "@/lib/btcData";
 import { halvingStats } from "@/lib/halvingStats";
+import { cycleDayAsOf } from "./LastUpdated";
 
 export function Sidebar() {
   const stats = halvingStats();
@@ -44,7 +45,10 @@ export function Sidebar() {
             BLOCK {stats.blockHeight.toLocaleString()}
           </span>
         </div>
-        <div className="mt-2 text-[11px] text-ink-350 leading-relaxed">
+        <div
+          className="mt-2 text-[11px] text-ink-350 leading-relaxed"
+          title={`Measured to the latest daily close (${cycleDayAsOf()})`}
+        >
           <span className="text-ink-200 font-mono">{TODAY_DAY_IN_CYCLE}</span> days since the 2024
           halving
         </div>

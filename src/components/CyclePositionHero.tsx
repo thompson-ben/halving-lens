@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { CycleClock } from "./CycleClock";
-import { LastUpdated } from "./LastUpdated";
+import { LastUpdated, cycleDayAsOf } from "./LastUpdated";
 import { ShareCardButton } from "./ShareCardButton";
 import {
   CYCLE_PROGRESS_PCT,
@@ -75,7 +75,7 @@ export function CyclePositionHero() {
               change={spot.pct != null ? { pct: spot.pct, label: spot.label } : null}
               primary
             />
-            <Stat label="Days since halving" value={`${TODAY_DAY_IN_CYCLE}`} />
+            <Stat label="Days since halving" value={`${TODAY_DAY_IN_CYCLE}`} hint={`to ${cycleDayAsOf()}`} />
             <Stat
               label="Days to next halving"
               value={`${DAYS_TO_NEXT_HALVING}`}

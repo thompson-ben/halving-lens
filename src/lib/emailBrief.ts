@@ -101,7 +101,7 @@ function todaysTake(): string {
   else if (cheap && etfNeg)
     variants = [
       `Bitcoin stays in one of its cheapest historical valuation regions even as ETF flows turn negative.`,
-      `Even with ETF flows negative this week, Bitcoin remains in one of its cheapest historical regions.`,
+      `Even with ETF flows negative over the past 7 trading days, Bitcoin remains in one of its cheapest historical regions.`,
       `ETF flows are negative, yet by history Bitcoin still trades cheap.`,
     ];
   else if (cheap)
@@ -131,7 +131,7 @@ function todaysTake(): string {
   else if (etfNeg)
     variants = [
       `ETF flows stay negative against a ${heat} historical backdrop.`,
-      `Against a ${heat} backdrop, ETF flows remain negative this week.`,
+      `Against a ${heat} backdrop, ETF flows remain negative over the past 7 trading days.`,
       `ETF flows read negative, set against a ${heat} historical backdrop.`,
     ];
   else

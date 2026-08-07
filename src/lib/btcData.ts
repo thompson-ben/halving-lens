@@ -3,6 +3,7 @@
 // either the synthetic default or a sync-generated live snapshot.
 
 import { SNAPSHOT } from "./data/snapshot";
+import { cycleAnchor, type CycleAnchor } from "./cycleDay";
 import {
   DAYS_PER_CYCLE,
   HALVINGS,
@@ -14,7 +15,7 @@ import {
   type SnapshotSource,
 } from "./data/types";
 
-export type { Cycle, CycleId, CycleSample, Snapshot, SnapshotSource };
+export type { Cycle, CycleId, CycleSample, Snapshot, SnapshotSource, CycleAnchor };
 export { HALVINGS, NEXT_HALVING_DATE, DAYS_PER_CYCLE };
 
 export const SOURCE: SnapshotSource = SNAPSHOT.source;
@@ -29,7 +30,13 @@ export const HODL_WAVES = SNAPSHOT.hodlWaves ?? null;
 // generated before provenance existed.
 export const TODAY_PROVENANCE = SNAPSHOT.todayProvenance ?? null;
 export const CYCLES: Cycle[] = SNAPSHOT.cycles;
-export const TODAY_DAY_IN_CYCLE: number = SNAPSHOT.todayDayInCycle;
+// The cycle day is anchored to the latest COMMITTED market observation (the
+// last date in the permanent price archive), never the wall clock — a
+// snapshot synced today must not present a day the data does not yet cover.
+// The snapshot's own clock-derived `todayDayInCycle` scalar is retained in
+// the data only as a pipeline cross-check (see scripts/test-cycle-day.ts).
+export const CYCLE_ANCHOR: CycleAnchor = cycleAnchor();
+export const TODAY_DAY_IN_CYCLE: number = CYCLE_ANCHOR.cycleDay;
 export const CURRENT_CYCLE = CYCLES[CYCLES.length - 1];
 export const TODAY: CycleSample =
   CURRENT_CYCLE.samples[CURRENT_CYCLE.samples.length - 1];

@@ -162,6 +162,14 @@ jobs:
       - name: Reference-gap tests
         run: npm run test-reference-gaps
 
+      # Cycle-day authority (Cycle Dashboard V2, CD0) — the day established
+      # from first principles (archive last date − current halving), every
+      # production consumer resolving to it, clock-free source discipline,
+      # the scorecard's stable methodology identifier, the single canonical
+      # score→band mapping, and the quarantined-composite import scan.
+      - name: Cycle-day authority tests
+        run: npm run test-cycle-day
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

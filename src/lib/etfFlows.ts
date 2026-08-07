@@ -99,8 +99,8 @@ export function etfFlowsInterpretation(r: EtfFlowsRead): string {
   const streak = r.streak;
   const streakClause =
     streak.length >= 2 ? ` That's ${streak.length} straight days of net ${streak.direction}s.` : "";
-  if (wk > 1e9) return `Institutional demand looks strong — net inflows over the past week.${streakClause}`;
-  if (wk > 0) return `Institutional demand is positive but modest over the past week.${streakClause}`;
-  if (wk > -1e9) return `Demand has cooled — roughly flat to slightly negative over the past week.${streakClause}`;
-  return `Net selling pressure over the past week — the ETFs have been in net outflow.${streakClause}`;
+  if (wk > 1e9) return `Institutional demand looks strong — net inflows over the past 7 trading days.${streakClause}`;
+  if (wk > 0) return `Institutional demand is positive but modest over the past 7 trading days.${streakClause}`;
+  if (wk > -1e9) return `Demand has cooled — roughly flat to slightly negative over the past 7 trading days.${streakClause}`;
+  return `Net selling pressure over the past 7 trading days — the ETFs have been in net outflow.${streakClause}`;
 }

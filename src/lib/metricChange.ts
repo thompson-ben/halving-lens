@@ -494,7 +494,7 @@ function etfFlowChange(): MetricChange {
   const absMove = Math.abs(net7);
   const materiality: Materiality = absMove < 2.5e8 ? "none" : absMove < 1e9 ? "modest" : "material";
   const summary = clamp(
-    `US spot Bitcoin ETFs saw a net ${latest.netFlow >= 0 ? "inflow" : "outflow"} of ${fmtUsd(Math.abs(latest.netFlow), { compact: true })} on ${latest.date}, a ${streak}-day ${streakWord} streak, bringing seven-day demand to ${usd(net7)}.`,
+    `US spot Bitcoin ETFs saw a net ${latest.netFlow >= 0 ? "inflow" : "outflow"} of ${fmtUsd(Math.abs(latest.netFlow), { compact: true })} on ${latest.date}, a ${streak}-day ${streakWord} streak, bringing demand over 7 trading days to ${usd(net7)}.`,
   );
   return {
     id: "etf_flow",
