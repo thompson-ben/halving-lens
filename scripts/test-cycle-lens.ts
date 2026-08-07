@@ -11,6 +11,8 @@ import { join } from "node:path";
 import {
   LENS_CYCLE_IDS,
   LENS_THRESHOLDS,
+  LENS_LIFECYCLE,
+  LENS_OBSERVATION_VERSION,
   allLensSeries,
   lensSeries,
   lensSeriesFrom,
@@ -182,8 +184,41 @@ const obs80 = lensObservation(80);
 check("day 80: meaningful drawdown divergence selected", obs80?.kind === "drawdown_divergence" && /materially (shallower|deeper) than the prior-cycle median/.test(obs80.sentence));
 check("day 80 divergence exceeds its declared threshold", Math.abs(obs80!.difference) >= LENS_THRESHOLDS.DRAWDOWN_DIVERGENCE_PP);
 console.log("Threshold boundary (weakest-rank margin, frozen history):");
-check("day 107: margin 0.083 below the 0.10 gate → no rank claim", lensObservation(107)?.kind !== "return_extreme");
-check("day 113: margin 0.110 above the gate → rank claim fires", lensObservation(113)?.kind === "return_extreme");
+check("day 107: margin 0.083 below the 0.10 gate → quiet (null)", lensObservation(107) === null);
+check("day 113: margin above the gate → rank claim fires", lensObservation(113)?.kind === "return_extreme");
+
+// ── Lifecycle metadata + lifecycle-first selection ──────────────────────────
+console.log("Observation lifecycle (frozen history):");
+check("methodology version is pinned and machine-readable", /^lens-observation-v\d+$/.test(LENS_OBSERVATION_VERSION));
+check("every observation carries the version", obs839!.version === LENS_OBSERVATION_VERSION && obs80!.version === LENS_OBSERVATION_VERSION);
+const obs12 = lensObservation(12);
+check("day 12: the FIRST day the weakest-return state is true → transition, age 0", obs12?.kind === "return_extreme" && obs12.lifecycle === "transition" && obs12.stateAgeDays === 0 && obs12.stateSinceDay === 12);
+check("day 839: the SAME condition 557 days into its run → standing", obs839!.lifecycle === "standing" && obs839!.stateSinceDay === 282 && obs839!.stateAgeDays === 557);
+check("stateAgeDays is always day − stateSinceDay", obs839!.stateAgeDays === obs839!.day - obs839!.stateSinceDay);
+console.log("New observation legitimately outranks standing context:");
+const obs177 = lensObservation(177);
+const obs178 = lensObservation(178);
+check(
+  "day 177: fresh Mayer divergence (age 0) outranks the standing return extreme",
+  obs177?.kind === "mayer_divergence" && obs177.lifecycle === "transition" && obs177.stateAgeDays === 0,
+);
+check(
+  "day 178: the standing return extreme resumes once nothing fresher qualifies",
+  obs178?.kind === "return_extreme" && obs178.lifecycle === "standing" && obs178.stateSinceDay === 130,
+);
+console.log("Lifecycle class boundaries (same run, consecutive days):");
+const obs289 = lensObservation(289);
+const obs290 = lensObservation(290);
+check("age 7 is still a transition (day 289)", obs289?.stateAgeDays === 7 && obs289.lifecycle === "transition");
+check("age 8 becomes recent (day 290, same run since 282)", obs290?.stateAgeDays === 8 && obs290.lifecycle === "recent" && obs290.stateSinceDay === 282);
+const obs160 = lensObservation(160);
+const obs161 = lensObservation(161);
+check("age 30 is still recent (day 160)", obs160?.stateAgeDays === 30 && obs160.lifecycle === "recent");
+check("age 31 becomes standing (day 161, same run since 130)", obs161?.stateAgeDays === 31 && obs161.lifecycle === "standing" && obs161.stateSinceDay === 130);
+check("boundaries match the declared constants", LENS_LIFECYCLE.TRANSITION_MAX_AGE_DAYS === 7 && LENS_LIFECYCLE.RECENT_MAX_AGE_DAYS === 30);
+console.log("Lifecycle discipline:");
+check("a lapsed-and-requalified state starts a NEW run (day 113 since 112, not 12)", lensObservation(113)?.stateSinceDay === 112);
+check("standing context is classified, never suppressed (day 839 still returned)", obs839 !== null);
 console.log("Unreached / future days:");
 check("day 1200 (current cycle unreached) → null", lensObservation(1200) === null);
 check("day 5000 → null", lensObservation(5000) === null);
@@ -210,6 +245,15 @@ const RARITY = [/percentile/i, /\brarity\b/i, /\bunusual\b/i, /\bexceptional\b/i
   const codeStrings = (lensSrc.match(/"[^"\n]*"|`[^`\n]*`/g) ?? []).join(" ");
   check("no percentile/rarity idiom anywhere in the engine's strings", RARITY.every((re) => !re.test(codeStrings)));
 }
+
+console.log("Engine discipline (source scans):");
+// Clock-free: lifecycle derives from Lens history, never a calendar clock.
+const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+const lensCode = stripComments(lensSrc);
+check("cycleLens.ts is clock-free (no Date.now / argless new Date / Math.random)", !/Date\.now\s*\(/.test(lensCode) && !/new Date\(\s*\)/.test(lensCode) && !/Math\.random/.test(lensCode));
+// No surface/publication policy in the engine: it classifies, surfaces decide.
+check("no publication/suppression logic in the engine", !/publish|suppress|cooldown|dedupe/i.test(lensCode));
+check("engine imports no intelligence/store/social modules", !/intelligence|Store|social/i.test(lensCode.match(/import[^;]+;/g)?.join(" ") ?? ""));
 
 // ── Result ──────────────────────────────────────────────────────────────────
 if (failures > 0) {

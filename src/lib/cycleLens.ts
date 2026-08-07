@@ -279,9 +279,23 @@ export function lensAtDay(day: number): LensAtDay {
 // ── lensObservation — the deterministic interpretation layer ────────────────
 //
 // One most notable historical comparison at day D, or null. Three rules,
-// checked in a fixed priority order; each has an explicit editorial
-// threshold. No percentiles, no rarity vocabulary — with n=3 prior cycles
-// the Market Snapshot's distribution machinery does not apply here.
+// each with an explicit editorial threshold. No percentiles, no rarity
+// vocabulary — with n=3 prior cycles the Market Snapshot's distribution
+// machinery does not apply here.
+//
+// Every observation carries LIFECYCLE metadata computed from the Lens's own
+// historical state (never a calendar clock): the first day of the
+// contiguous run over which the same condition — same kind, same direction
+// — has qualified, its age in cycle days, and a class derived from the
+// house comparison windows. A condition that lapses and later re-qualifies
+// starts a new run: in between, it genuinely was not true.
+//
+// Selection is lifecycle-first: a condition that just became true at D is
+// more notable AT D than one that has held for hundreds of days; the kind
+// order breaks ties inside a class. Standing context is still returned —
+// classified, never suppressed. What each surface does with a standing
+// versus a fresh observation is presentation policy and lives with the
+// surfaces, not here.
 
 export const LENS_THRESHOLDS = {
   /** A rank claim ("strongest/weakest of the four cycles") fires only when
@@ -302,15 +316,48 @@ export const LENS_THRESHOLDS = {
   MAYER_DIVERGENCE: 0.5,
 } as const;
 
+/** Stable identifier of the Lens interpretation methodology. Changes ONLY
+ *  when the methodology changes — thresholds, comparison families, kind
+ *  priority, or lifecycle-selection semantics — never on a data refresh.
+ *  Pinning it means a future threshold change cannot silently rewrite what
+ *  HalvingLens claimed was notable at a historical day. */
+export const LENS_OBSERVATION_VERSION = "lens-observation-v1";
+
+/** Lifecycle class boundaries, in cycle days, derived from the house
+ *  comparison windows (1/7/30 everywhere movement is compared): a state is
+ *  a TRANSITION within its first week, RECENT within its first 30 days,
+ *  STANDING beyond that. */
+export const LENS_LIFECYCLE = {
+  TRANSITION_MAX_AGE_DAYS: 7,
+  RECENT_MAX_AGE_DAYS: 30,
+} as const;
+
+export type LensLifecycle = "transition" | "recent" | "standing";
+
 export type LensObservationKind = "return_extreme" | "drawdown_divergence" | "mayer_divergence";
+
+export type LensDirection = "strongest" | "weakest" | "shallower" | "deeper" | "above" | "below";
 
 export interface LensObservation {
   kind: LensObservationKind;
+  /** The side of the claim — part of the state's identity: "weakest" and
+   *  "strongest" are different conditions, not one condition flipping. */
+  direction: LensDirection;
   /** The one sentence a renderer quotes. Historical, never predictive. */
   sentence: string;
   day: number;
   asOfDate: string;
   nature: "price-derived";
+  version: string;
+  /** Whether this condition just became true, became true recently, or has
+   *  persisted — so a surface can tell a new development from standing
+   *  context. The engine classifies; surfaces set publication policy. */
+  lifecycle: LensLifecycle;
+  /** First day of the contiguous run over which this same condition (kind +
+   *  direction) has qualified, up to and including `day`. */
+  stateSinceDay: number;
+  /** day − stateSinceDay: 0 means it became true at the selected day. */
+  stateAgeDays: number;
   /** The current cycle's value for this comparison. */
   currentValue: number;
   /** The equivalent prior-cycle values the claim was judged against. */
@@ -333,23 +380,31 @@ const median = (xs: number[]): number => {
 
 type Reached = Extract<LensCycleAtDay, { reached: true }>;
 
-/** The single most notable historical comparison at day D, or null. Null is
- *  a valid, desirable outcome: no manufactured finding. */
-export function lensObservation(day: number): LensObservation | null {
+/** A qualifying condition at one day — an observation minus its lifecycle. */
+type LensCandidate = Omit<LensObservation, "lifecycle" | "stateSinceDay" | "stateAgeDays">;
+
+const stateKey = (c: { kind: LensObservationKind; direction: LensDirection }): string =>
+  `${c.kind}:${c.direction}`;
+
+/** Every rule evaluated independently — ALL conditions that qualify at D,
+ *  in kind-priority order. Empty on quiet, unreached and invalid days. */
+function candidatesAt(day: number): LensCandidate[] {
   const at = lensAtDay(day);
   // Interpretation compares the CURRENT cycle's observed state — a day the
   // current cycle has not reached has no current state to compare.
   const current = at.cycles.find((c) => c.cycleId === 5);
-  if (!current || !current.reached) return null;
+  if (!current || !current.reached) return [];
   const priors = at.cycles.filter((c): c is Reached => c.cycleId !== 5 && c.reached);
   // Rank-of-four language needs all four cycles present at D.
-  if (priors.length !== 3) return null;
+  if (priors.length !== 3) return [];
 
   const base = {
     day,
     asOfDate: at.asOfDate,
     nature: "price-derived" as const,
+    version: LENS_OBSERVATION_VERSION,
   };
+  const out: LensCandidate[] = [];
 
   // 1 · Return-from-halving extreme (rank among the four cycles + margin).
   {
@@ -361,9 +416,10 @@ export function lensObservation(day: number): LensObservation | null {
       const nearest = strongest ? Math.max(...values) : Math.min(...values);
       const margin = Math.abs(current.multiple - nearest) / nearest;
       if (margin >= LENS_THRESHOLDS.EXTREME_MARGIN_RATIO) {
-        return {
+        out.push({
           ...base,
           kind: "return_extreme",
+          direction: strongest ? "strongest" : "weakest",
           sentence: `The current cycle has the ${strongest ? "strongest" : "weakest"} return from halving of the four cycles at this stage.`,
           currentValue: current.multiple,
           comparators: priorMults,
@@ -372,7 +428,7 @@ export function lensObservation(day: number): LensObservation | null {
           rankedOf: 4,
           difference: margin,
           threshold: { name: "EXTREME_MARGIN_RATIO", value: LENS_THRESHOLDS.EXTREME_MARGIN_RATIO },
-        };
+        });
       }
     }
   }
@@ -384,9 +440,10 @@ export function lensObservation(day: number): LensObservation | null {
     const cur = Math.abs(current.drawdownFromHighPct);
     const diff = cur - med;
     if (Math.abs(diff) >= LENS_THRESHOLDS.DRAWDOWN_DIVERGENCE_PP) {
-      return {
+      out.push({
         ...base,
         kind: "drawdown_divergence",
+        direction: diff < 0 ? "shallower" : "deeper",
         sentence: `At this point, the current cycle's drawdown is materially ${diff < 0 ? "shallower" : "deeper"} than the prior-cycle median.`,
         currentValue: current.drawdownFromHighPct,
         comparators: priorDds,
@@ -395,7 +452,7 @@ export function lensObservation(day: number): LensObservation | null {
         rankedOf: null,
         difference: diff,
         threshold: { name: "DRAWDOWN_DIVERGENCE_PP", value: LENS_THRESHOLDS.DRAWDOWN_DIVERGENCE_PP },
-      };
+      });
     }
   }
 
@@ -407,9 +464,10 @@ export function lensObservation(day: number): LensObservation | null {
       const med = median(priorMayers.map((p) => p.value));
       const diff = current.mayer - med;
       if (Math.abs(diff) >= LENS_THRESHOLDS.MAYER_DIVERGENCE) {
-        return {
+        out.push({
           ...base,
           kind: "mayer_divergence",
+          direction: diff < 0 ? "below" : "above",
           sentence: `The current cycle's Mayer Multiple is materially ${diff < 0 ? "below" : "above"} the prior-cycle median at the same stage.`,
           currentValue: current.mayer,
           comparators: priorMayers,
@@ -418,10 +476,64 @@ export function lensObservation(day: number): LensObservation | null {
           rankedOf: null,
           difference: diff,
           threshold: { name: "MAYER_DIVERGENCE", value: LENS_THRESHOLDS.MAYER_DIVERGENCE },
-        };
+        });
       }
     }
   }
 
-  return null;
+  return out;
+}
+
+// Per-day contiguous-run starts for every state, over the current cycle's
+// whole record — computed once from the Lens's own history (clock-free) and
+// derived purely from committed data, so it is deterministic and cacheable.
+let runStarts: Map<string, number>[] | null = null;
+
+function runStartsUpTo(maxDay: number): Map<string, number>[] {
+  if (!runStarts || runStarts.length <= maxDay) {
+    const table: Map<string, number>[] = [];
+    let prev = new Map<string, number>();
+    for (let d = 0; d <= Math.max(maxDay, cycleAnchor().cycleDay); d++) {
+      const m = new Map<string, number>();
+      for (const c of candidatesAt(d)) {
+        const key = stateKey(c);
+        // Contiguous with yesterday's run keeps its start; else a new run.
+        m.set(key, prev.has(key) ? (prev.get(key) as number) : d);
+      }
+      table.push(m);
+      prev = m;
+    }
+    runStarts = table;
+  }
+  return runStarts;
+}
+
+const lifecycleOf = (age: number): LensLifecycle =>
+  age <= LENS_LIFECYCLE.TRANSITION_MAX_AGE_DAYS ? "transition" : age <= LENS_LIFECYCLE.RECENT_MAX_AGE_DAYS ? "recent" : "standing";
+
+const LIFECYCLE_RANK: Record<LensLifecycle, number> = { transition: 0, recent: 1, standing: 2 };
+
+/** The single most notable historical comparison at day D, or null. Null is
+ *  a valid, desirable outcome: no manufactured finding.
+ *
+ *  Selection hierarchy (deterministic, no scoring):
+ *    1 · lifecycle class — transition, then recent, then standing: what just
+ *        became true at D outranks what has held for hundreds of days;
+ *    2 · kind order inside a class — return_extreme > drawdown_divergence >
+ *        mayer_divergence (candidatesAt emits in this order).
+ *  Standing context is classified, never suppressed. */
+export function lensObservation(day: number): LensObservation | null {
+  if (day < 0 || day > cycleAnchor().cycleDay) return null;
+  const cands = candidatesAt(day);
+  if (cands.length === 0) return null;
+
+  const starts = runStartsUpTo(day)[day];
+  const enriched = cands.map((c) => {
+    const since = starts.get(stateKey(c)) ?? day;
+    const age = day - since;
+    return { ...c, stateSinceDay: since, stateAgeDays: age, lifecycle: lifecycleOf(age) };
+  });
+  // Stable sort on lifecycle class only — candidate order IS the kind order.
+  enriched.sort((a, b) => LIFECYCLE_RANK[a.lifecycle] - LIFECYCLE_RANK[b.lifecycle]);
+  return enriched[0];
 }
