@@ -87,9 +87,10 @@ function pctAtOffset(c: Cycle, equivDay: number, base: number, offset: number): 
   return (s.price / base) * 100;
 }
 
-export function pathExplorer(): PathExplorer {
+// Parameterised (CD1): callers may explore from any equivalent cycle day;
+// the default preserves the original "today" behaviour exactly.
+export function pathExplorer(equivDay: number = TODAY_DAY_IN_CYCLE): PathExplorer {
   const currentPrice = SPOT?.price ?? TODAY.price;
-  const equivDay = TODAY_DAY_IN_CYCLE;
   const priors = CYCLES.filter((c) => c.id !== CURRENT_CYCLE.id);
 
   const paths: CyclePath[] = [];

@@ -170,6 +170,15 @@ jobs:
       - name: Cycle-day authority tests
         run: npm run test-cycle-day
 
+      # Cycle-lens engine (Cycle Dashboard V2, CD1) — daily halving-aligned
+      # series with no interpolation, explicit unreached/unavailable states,
+      # forward-window honesty, the single shared Mayer methodology,
+      # parameterised equivalent-day engines with bit-identical defaults,
+      # editorial thresholds (no percentile idiom over three prior cycles)
+      # and the language scans.
+      - name: Cycle-lens tests
+        run: npm run test-cycle-lens
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
