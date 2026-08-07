@@ -146,10 +146,12 @@ export function cycleAnalog(): CycleAnalog {
   return best!;
 }
 
-export function cyclesAtSameDay() {
+// Parameterised (CD1): callers may ask for any equivalent cycle day; the
+// default preserves the original "today" behaviour exactly.
+export function cyclesAtSameDay(day: number = TODAY_DAY_IN_CYCLE) {
   return CYCLES.filter((c) => c.id !== 5).map((c) => {
     const sample = c.samples.reduce((closest, s) =>
-      Math.abs(s.day - TODAY_DAY_IN_CYCLE) < Math.abs(closest.day - TODAY_DAY_IN_CYCLE) ? s : closest,
+      Math.abs(s.day - day) < Math.abs(closest.day - day) ? s : closest,
     );
     return { cycle: c, sample };
   });

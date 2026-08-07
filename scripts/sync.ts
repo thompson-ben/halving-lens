@@ -47,6 +47,7 @@ import {
   type Snapshot,
 } from "../src/lib/data/types";
 import { syntheticSnapshot } from "../src/lib/data/synthetic";
+import { sma } from "../src/lib/data/sma";
 import { joinObservedSeries } from "../src/lib/data/observedJoin";
 import { mergeSeriesArchives } from "../src/lib/data/observedArchive";
 import {
@@ -561,13 +562,9 @@ async function fetchMempoolTip(): Promise<{ height: number; hashrate?: number }>
   }
 }
 
-// SMA over the last `window` daily points (inclusive of current).
-function sma(values: number[], i: number, window: number): number | undefined {
-  if (i < window - 1) return undefined;
-  let sum = 0;
-  for (let j = i - window + 1; j <= i; j++) sum += values[j];
-  return sum / window;
-}
+// SMA over the last `window` daily points — shared house implementation
+// (src/lib/data/sma.ts), so Mayer has exactly one methodology here and in
+// the cycle-lens engine.
 
 // Per-cycle rainbow calibration — same approach as synthetic.
 const RAINBOW_PEAK: Record<Exclude<CycleId, 1>, { peak: number; peakBand: number }> = {

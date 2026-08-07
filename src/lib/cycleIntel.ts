@@ -349,13 +349,15 @@ export interface WhatHappenedNext {
   avg90: number | null;
 }
 
-export function whatHappenedNext(): WhatHappenedNext {
+// Parameterised (CD1): callers may ask from any equivalent cycle day; the
+// default preserves the original "today" behaviour exactly.
+export function whatHappenedNext(day: number = TODAY_DAY_IN_CYCLE): WhatHappenedNext {
   const priors = CYCLES.filter((c) => c.id !== 5);
 
-  // Forward % at +days from the sample nearest today's day-in-cycle. Returns
-  // null when the cycle lacks data out to roughly that day (weekly tolerance).
+  // Forward % at +days from the sample nearest the requested day-in-cycle.
+  // Null when the cycle lacks data out to roughly that day (weekly tolerance).
   const fwd = (c: Cycle, days: number): number | null => {
-    const base = sampleNearestDay(c, TODAY_DAY_IN_CYCLE);
+    const base = sampleNearestDay(c, day);
     const targetDay = base.day + days;
     const lastDay = c.samples[c.samples.length - 1].day;
     if (targetDay > lastDay + 10) return null;
@@ -380,7 +382,7 @@ export function whatHappenedNext(): WhatHappenedNext {
   };
 
   return {
-    cycleDay: TODAY_DAY_IN_CYCLE,
+    cycleDay: day,
     rows,
     avg30: avg((r) => r.d30),
     avg60: avg((r) => r.d60),
