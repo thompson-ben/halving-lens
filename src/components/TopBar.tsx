@@ -4,7 +4,7 @@ import { searchIndex } from "@/lib/searchIndex";
 import { cyclePhase, headlineSpot } from "@/lib/cycleIntel";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { HalvingCountdownMini } from "./HalvingCountdownMini";
-import { lastUpdatedShort } from "./LastUpdated";
+import { lastUpdatedShort, cycleDayAsOf } from "./LastUpdated";
 import { MobileNav } from "./MobileNav";
 import { ShareTrigger } from "./ShareTrigger";
 import { NavSubscribeCta } from "./NavSubscribeCta";
@@ -59,7 +59,10 @@ export function TopBar() {
 
           <Pill>
             <Eyebrow>Cycle 5</Eyebrow>
-            <span className="font-mono text-[12.5px] text-ink-100 tabular-nums">
+            <span
+              className="font-mono text-[12.5px] text-ink-100 tabular-nums"
+              title={`Days since the 2024 halving, measured to the latest daily close (${cycleDayAsOf()})`}
+            >
               Day {TODAY_DAY_IN_CYCLE}
             </span>
             <span className="w-px h-3.5 bg-white/[0.08]" />
@@ -130,7 +133,10 @@ function MobileStatus({ spot }: { spot: { price: number; pct: number | null; lab
         {spot.pct != null && <span className="hidden min-[380px]:inline text-[9.5px] text-ink-400">{spot.label}</span>}
       </Link>
       <div className="flex items-center gap-1.5 pl-2 border-l border-white/[0.06]">
-        <span className="text-[10.5px] text-ink-300 font-mono whitespace-nowrap">
+        <span
+          className="text-[10.5px] text-ink-300 font-mono whitespace-nowrap"
+          title={`Days since the 2024 halving, measured to the latest daily close (${cycleDayAsOf()})`}
+        >
           Day {TODAY_DAY_IN_CYCLE}
         </span>
       </div>

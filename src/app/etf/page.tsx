@@ -80,8 +80,8 @@ function LiveEtf() {
           <div className="space-y-4">
             <p className="text-[14.5px] text-ink-200 leading-relaxed">{etfFlowsInterpretation(r)}</p>
             <div className="grid grid-cols-3 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-              <Fact label="7-day net" value={signedCompact(r.windows.d7.net)} tone={r.windows.d7.net} />
-              <Fact label="30-day net" value={signedCompact(r.windows.d30.net)} tone={r.windows.d30.net} />
+              <Fact label="Net · 7 trading days" value={signedCompact(r.windows.d7.net)} tone={r.windows.d7.net} />
+              <Fact label="Net · 30 trading days" value={signedCompact(r.windows.d30.net)} tone={r.windows.d30.net} />
               <Fact label="Cumulative" value={fmtUsd(r.base.cumulative, { compact: true })} tone={r.base.cumulative} />
             </div>
             <p className="text-[11.5px] text-ink-500 leading-relaxed">

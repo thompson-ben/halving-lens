@@ -741,7 +741,7 @@ function heroCard(): HeroCard {
     if (!ETF.connected) return "Not connected";
     const wk = etfStats().trailingWeek;
     const dir = wk > 0 ? "Positive" : wk < 0 ? "Negative" : "Flat";
-    return `${dir} · ${fmtUsd(Math.abs(wk), { compact: true })} / wk`;
+    return `${dir} · ${fmtUsd(Math.abs(wk), { compact: true })} over 7 trading days`;
   })();
   return {
     kind: "hero",
@@ -1541,7 +1541,7 @@ export function etfContentPack(): import("./brief").ContentPack {
   const emailBody = [
     `US spot Bitcoin ETFs saw ${signedUsd(today)} in ${dirWord} today.`,
     "",
-    `That's ${signedUsd(week)} over the last 7 days and ${signedUsd(month)} over the last 30. Cumulative net flow since launch stands at ${cum}.`,
+    `That's ${signedUsd(week)} over the last 7 trading days and ${signedUsd(month)} over the last 30. Cumulative net flow since launch stands at ${cum}.`,
     "",
     `See the full ETF analysis: ${link}`,
     "",
@@ -1728,7 +1728,7 @@ function cyclesDifferencesCard(): CyclesDifferencesCard {
     const wk = etfStats().trailingWeek;
     items.push({
       label: "Spot ETF demand",
-      detail: `US spot Bitcoin ETFs — a regulated buyer that didn't exist in 2012, 2016 or 2020 (recent flow ${wk >= 0 ? "positive" : "negative"} at ${fmtUsd(Math.abs(wk), { compact: true })}/wk).`,
+      detail: `US spot Bitcoin ETFs — a regulated buyer that didn't exist in 2012, 2016 or 2020 (recent flow ${wk >= 0 ? "positive" : "negative"} at ${fmtUsd(Math.abs(wk), { compact: true })} over 7 trading days).`,
     });
   } else {
     items.push({
@@ -1786,7 +1786,7 @@ function weekSnapshotCard(): WeekSnapshotCard {
     { label: "Cycle day", value: `Day ${s.cycleDay}` },
     { label: "Market Health", value: `${sc.overall}/100` },
     { label: "Sentiment", value: sr ? `${sr.value} · ${sr.band.label}` : "—" },
-    { label: "ETF (7d net)", value: etfWk != null ? `${etfWk >= 0 ? "+" : "−"}${fmtUsd(Math.abs(etfWk), { compact: true })}` : "—", tone: etfWk == null ? "default" : etfWk >= 0 ? "green" : "red" },
+    { label: "ETF net (7 trading days)", value: etfWk != null ? `${etfWk >= 0 ? "+" : "−"}${fmtUsd(Math.abs(etfWk), { compact: true })}` : "—", tone: etfWk == null ? "default" : etfWk >= 0 ? "green" : "red" },
     { label: "Accumulation", value: `${acc.score}/100` },
   ];
   return { kind: "week_snapshot", stats };

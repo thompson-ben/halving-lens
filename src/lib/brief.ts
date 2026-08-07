@@ -4,7 +4,7 @@
 
 import { format } from "date-fns";
 import { SITE_HOST } from "./site";
-import { cycleSummary, cycleScorecard } from "./cycleSummary";
+import { cycleSummary, cycleScorecard, SCORECARD_VERSION } from "./cycleSummary";
 import { briefHeadline } from "./dailyChange";
 import { SOURCE, TODAY_DAY_IN_CYCLE } from "./btcData";
 import { fmtPct, fmtUsd } from "./format";
@@ -239,6 +239,9 @@ export interface StoredBrief {
   drawdownFromAth: number;
   // Raw comparison metrics (for "what changed since yesterday")
   cycleScore?: number;
+  // Methodology identifier the cycleScore was computed under (SCORECARD_VERSION).
+  // Optional: only briefs written after versioning shipped carry it.
+  scorecardVersion?: string;
   heatPercentile: number | null;
   sentimentValue: number | null;
   etfCumulative: number | null;
@@ -286,6 +289,7 @@ export function serializeBrief(): StoredBrief {
     gainFromHalving: s.gainFromHalving,
     drawdownFromAth: s.drawdownFromAth,
     cycleScore: cycleScorecard().overall,
+    scorecardVersion: SCORECARD_VERSION,
     heatPercentile: s.heatPercentile,
     sentimentValue: sr?.value ?? null,
     etfCumulative: etf?.cumulative ?? null,

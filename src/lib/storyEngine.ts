@@ -368,20 +368,20 @@ function providers(): RawStory[] {
       heroCard: "etf_trend",
       headlineCandidates: [
         wk > 0 ? "ETF Demand Just Accelerated" : wk < 0 ? "ETF Demand Just Cooled" : "ETF Demand Went Quiet",
-        `Institutions Bought ${mag} This Week`.replace("Bought", wk >= 0 ? "Bought" : "Sold"),
+        `Institutions Just ${wk >= 0 ? "Bought" : "Sold"} ${mag} of Bitcoin`,
         "Who Is Actually Buying Bitcoin?",
         "The New Buyer That Didn't Exist Last Cycle",
       ],
-      deck: `US spot ETFs saw ${mag} ${dir} over the last week.`,
+      deck: `US spot ETFs saw ${mag} ${dir} over the last 7 trading days.`,
       why: [
-        `US spot Bitcoin ETFs saw ${dir} of ${mag} over the last week — the regulated demand signal that didn't exist before 2024.`,
-        "The 7-day and 30-day trend shows whether that flow is building or fading, not just one noisy day.",
+        `US spot Bitcoin ETFs saw ${dir} of ${mag} over the last 7 trading days — the regulated demand signal that didn't exist before 2024.`,
+        "Trends over 7 and 30 trading days show whether that flow is building or fading, not just one noisy day.",
       ],
       context:
         "Spot ETFs are the genuinely new variable this cycle — an at-scale, regulated buyer absent from 2012, 2016 and 2020. Sustained flows change who is buying; the trend matters more than any single day.",
       takeaway: "Flows are demand made visible. One week doesn't make a trend, but the direction is worth watching. Context, not a forecast.",
       stats: [
-        { label: "7-day net flow", value: `${wk >= 0 ? "+" : "−"}${mag}`, tone: wk >= 0 ? "up" : "down" },
+        { label: "Net flow · 7 trading days", value: `${wk >= 0 ? "+" : "−"}${mag}`, tone: wk >= 0 ? "up" : "down" },
         { label: "Direction", value: dir, tone: wk >= 0 ? "up" : "down" },
       ],
       link: "/etf",

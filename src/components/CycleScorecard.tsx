@@ -1,12 +1,19 @@
 import { cycleScorecard } from "@/lib/cycleSummary";
+import { scoreBand, SCORE_BANDS } from "@/lib/scoreBand";
 
-// Score → tone (condition reading, NOT a buy/sell signal).
+// Score → tone via the canonical mapping — the same thresholds that produce
+// the label, so colour and label can never disagree.
 function tone(score: number): { text: string; bar: string } {
-  if (score >= 70) return { text: "text-signal-green", bar: "bg-signal-green" };
-  if (score >= 45) return { text: "text-accent", bar: "bg-accent" };
-  if (score >= 30) return { text: "text-signal-amber", bar: "bg-signal-amber" };
-  return { text: "text-signal-red", bar: "bg-signal-red" };
+  const b = scoreBand(score);
+  return { text: b.toneText, bar: b.toneBar };
 }
+
+// The bands ascending (Euphoric → Cool), each with its true width on the
+// 0–100 scale, so the score marker at `score%` sits inside the band the
+// label actually assigns it to.
+const ZONES = [...SCORE_BANDS]
+  .sort((a, b) => a.min - b.min)
+  .map((band, i, all) => ({ band, width: (all[i + 1]?.min ?? 100) - band.min }));
 
 const CONF: Record<string, string> = { low: "Low", medium: "Medium", high: "High" };
 
@@ -51,19 +58,24 @@ export function CycleScorecard() {
             </div>
           </div>
 
-          {/* Colour-zoned scale with the score marked */}
+          {/* Colour-zoned scale with the score marked. Segment widths come
+              from the canonical band thresholds, so the marker at score%
+              always sits inside the band the label assigns it to. */}
           <div className="mb-3 max-w-2xl">
             <div className="relative h-2.5 rounded-full overflow-hidden flex">
-              <div className="flex-1 bg-signal-red/70" />
-              <div className="flex-1 bg-signal-amber/70" />
-              <div className="flex-1 bg-accent/70" />
-              <div className="flex-1 bg-signal-green/70" />
+              {ZONES.map(({ band, width }) => (
+                <div key={band.key} style={{ width: `${width}%`, background: `${band.color}b3` }} />
+              ))}
               <div className="absolute -top-1 -translate-x-1/2" style={{ left: `${sc.overall}%` }}>
                 <div className="w-4 h-4 rounded-full bg-ink-50 ring-2 ring-ink-950" style={{ boxShadow: "0 0 12px rgba(255,255,255,0.5)" }} />
               </div>
             </div>
-            <div className="mt-2 flex justify-between text-[10px] font-mono text-ink-500">
-              <span>Euphoric</span><span>Elevated</span><span>Warm</span><span>Neutral</span><span>Cool</span>
+            <div className="mt-2 flex text-[10px] font-mono text-ink-500">
+              {ZONES.map(({ band, width }) => (
+                <span key={band.key} className="text-center" style={{ width: `${width}%` }}>
+                  {band.label}
+                </span>
+              ))}
             </div>
           </div>
 

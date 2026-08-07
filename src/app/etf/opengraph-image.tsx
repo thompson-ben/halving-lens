@@ -50,7 +50,7 @@ export default async function Image() {
           </div>
           <div style={{ display: "flex", fontSize: 30, color: "#9aa6b4" }}>
             {r.connected
-              ? `7-day ${signed(r.windows.d7.net)} · cumulative ${fmtUsd(r.base.cumulative, { compact: true })}`
+              ? `7 trading days ${signed(r.windows.d7.net)} · cumulative ${fmtUsd(r.base.cumulative, { compact: true })}`
               : "Live US spot Bitcoin ETF flows"}
           </div>
         </div>

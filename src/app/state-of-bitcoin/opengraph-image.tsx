@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { metricChange } from "@/lib/metricChange";
 import { cycleSummary } from "@/lib/cycleSummary";
+import { CYCLE_ANCHOR } from "@/lib/btcData";
 import { markGlyphDataUri } from "@/lib/brandMark";
 import { fmtUsd } from "@/lib/format";
 
@@ -53,7 +54,8 @@ export default async function Image() {
             The State of Bitcoin
           </div>
           <div style={{ display: "flex", fontSize: 27, color: "#8893a4" }}>
-            Day {s.cycleDay} of the cycle · {fmtUsd(s.price)} · historical context, not prediction.
+            Day {s.cycleDay} of the cycle, to {CYCLE_ANCHOR.asOfDate} · {fmtUsd(s.price)} · historical
+            context, not prediction.
           </div>
         </div>
 

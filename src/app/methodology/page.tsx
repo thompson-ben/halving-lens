@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { METRICS } from "@/lib/metrics";
 import { metricStatus, metricSource } from "@/lib/cycleIntel";
+import { SCORECARD_VERSION } from "@/lib/cycleSummary";
+import { SCORE_BANDS } from "@/lib/scoreBand";
 
 const DESC =
   "How HalvingLens is calculated: definitions, data sources, update frequency, and a clear distinction between live market data, derived metrics, modelled estimates and editorial interpretation.";
@@ -58,6 +60,41 @@ export default function MethodologyPage() {
           source restates data or when a calculation is improved; when that happens the change applies
           across the archive so the record stays internally consistent. Editions themselves are dated
           and never rewritten after publication.
+        </p>
+      </section>
+
+      {/* Cycle Scorecard / Market Health methodology (CD0) */}
+      <section className="space-y-3">
+        <h2 className="font-display text-[20px] font-medium tracking-tight-2 text-ink-100">
+          The Cycle Scorecard, exactly as computed
+        </h2>
+        <p className="text-[14px] text-ink-300 leading-relaxed">
+          The Cycle Scorecard (also shown as Market Health) is the unweighted mean of up to six
+          factor scores, each 0–100 where higher reads historically calmer: cycle timing, price
+          structure, ETF demand, sentiment, miner health and historical risk. Factors that depend
+          on a live feed drop out when that feed is unavailable, and the average is taken over the
+          factors actually present — so the composite is always an average of what can honestly be
+          measured that day, never a guess for what can&apos;t.
+        </p>
+        <p className="text-[14px] text-ink-300 leading-relaxed">
+          Two factors are deliberately related: price structure scores the heat percentile and
+          historical risk scores its complement (100 minus it). They answer different reader
+          questions — &ldquo;how stretched is price?&rdquo; and &ldquo;how does that compare with
+          past risk?&rdquo; — but they are two views of the same underlying reading, and together
+          they anchor the composite toward that reading. We state this rather than hide it.
+        </p>
+        <p className="text-[14px] text-ink-300 leading-relaxed">
+          The score maps to its band through one canonical scale, used identically everywhere the
+          score appears:{" "}
+          {[...SCORE_BANDS]
+            .sort((a, b) => b.min - a.min)
+            .map((b, i, all) => `${b.label} ${b.min}–${i === 0 ? 100 : all[i - 1].min}`)
+            .join(" · ")}
+          . The methodology carries a stable identifier —{" "}
+          <span className="font-mono text-[12.5px] text-ink-200">{SCORECARD_VERSION}</span> — which
+          changes only if the factor set, factor scoring, weighting or band thresholds change,
+          never on a routine data refresh. The scorecard summarises historical cycle conditions;
+          it is not a buy or sell signal.
         </p>
       </section>
 

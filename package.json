@@ -51,7 +51,8 @@
     "test-weekly-briefing": "tsx scripts/test-weekly-briefing.ts",
     "test-presenter": "tsx scripts/test-presenter.ts",
     "test-editorial-system": "tsx scripts/test-editorial-system.ts",
-    "test-reference-gaps": "tsx scripts/test-reference-gaps.ts"
+    "test-reference-gaps": "tsx scripts/test-reference-gaps.ts",
+    "test-cycle-day": "tsx scripts/test-cycle-day.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

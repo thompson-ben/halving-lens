@@ -10,6 +10,7 @@
 //   - Confidence reflects how much real evidence backs the read.
 
 import { CYCLES, CURRENT_CYCLE, TODAY, TODAY_DAY_IN_CYCLE, CYCLE_PROGRESS_PCT } from "./btcData";
+import { scoreBand } from "./scoreBand";
 import {
   cycleDivergence,
   currentGainFromHalving,
@@ -512,36 +513,22 @@ export interface Scorecard {
   overall: number; // 0-100 "cycle environment score"
   overallLabel: string; // Cool / Neutral / Warm / Elevated / Euphoric
   interpretation: string; // plain-English historical reading of the number
+  /** SCORECARD_VERSION — the methodology this scorecard was computed under. */
+  version: string;
 }
 
-// Maps the 0-100 environment score to a label + historical interpretation, so
-// the number is never left for the user to decode alone.
-export function scoreBand(score: number): { label: string; interpretation: string } {
-  if (score >= 75)
-    return {
-      label: "Cool",
-      interpretation: "Conditions sit toward the calmer, earlier-cycle end of the historical range.",
-    };
-  if (score >= 55)
-    return {
-      label: "Neutral",
-      interpretation: "Historically neither overheated nor deeply undervalued — a middle-of-the-range environment.",
-    };
-  if (score >= 40)
-    return {
-      label: "Warm",
-      interpretation: "Conditions are warming relative to history, but not yet at the extremes seen near past tops.",
-    };
-  if (score >= 25)
-    return {
-      label: "Elevated",
-      interpretation: "Conditions are elevated versus history — the kind of range seen in later, higher-risk cycle phases.",
-    };
-  return {
-    label: "Euphoric",
-    interpretation: "Conditions sit in the stretched end of the historical range, associated with late-cycle periods.",
-  };
-}
+// The 0-100 environment score's band/label/interpretation mapping lives in
+// scoreBand.ts — the single home of the thresholds — and is re-exported here
+// so the scorecard's consumers keep one import site.
+export { scoreBand };
+
+// Stable, machine-readable methodology identifier for the scorecard. The
+// identifier changes ONLY when the methodology changes — factor set, factor
+// scoring, weighting, or the band thresholds — never on a routine data
+// refresh. v1: unweighted mean of up to six availability-dependent factors.
+export const SCORECARD_VERSION = "cycle-scorecard-v1";
+// When this identifier was introduced — metadata, not part of the identifier.
+export const SCORECARD_VERSION_INTRODUCED_AT = "2026-08-07";
 
 export function cycleScorecard(): Scorecard {
   const div = cycleDivergence();
@@ -641,7 +628,7 @@ export function cycleScorecard(): Scorecard {
     ? Math.round(factors.reduce((a, f) => a + f.score, 0) / factors.length)
     : 0;
   const band = scoreBand(overall);
-  return { factors, overall, overallLabel: band.label, interpretation: band.interpretation };
+  return { factors, overall, overallLabel: band.label, interpretation: band.interpretation, version: SCORECARD_VERSION };
 }
 
 // "Was this historically stretched?" — the beginner buy-context read, framed
