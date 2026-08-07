@@ -38,7 +38,9 @@ export const CANONICAL_ALIASES: Record<string, string> = {
   findings: "/research/findings",
   weekly: "/weekly",
   sentiment: "/sentiment",
-  replay: "/replay",
+  // The Replay scrubber retired into the Cycle Dashboard's Lens (CD2); the
+  // short slug keeps working for links already shared.
+  replay: "/cycle-dashboard",
   metrics: "/metrics",
   learn: "/learn",
   price: "/price",

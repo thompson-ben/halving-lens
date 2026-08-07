@@ -19,7 +19,6 @@ import {
   LineChart,
   Newspaper,
   Pickaxe,
-  Play,
   Radar,
   ScrollText,
   Sparkles,
@@ -59,7 +58,7 @@ export const FLAGSHIP: readonly NavLink[] = [
 // flagship journey: what's happening now (Today) → positioning (Invest) →
 // deeper study (Research). Each theme echoes one flagship page.
 const TODAY: readonly NavLink[] = [
-  { href: "/", label: "Cycle dashboard", icon: Gauge },
+  { href: "/cycle-dashboard", label: "Cycle dashboard", icon: Gauge },
   { href: "/brief", label: "Daily brief", icon: Newspaper },
   { href: "/market-health", label: "Market Health", icon: HeartPulse },
   { href: "/sentiment", label: "Sentiment", icon: Activity },
@@ -76,7 +75,6 @@ const RESEARCH: readonly NavLink[] = [
   { href: "/research", label: "Morning Research", icon: Library },
   { href: "/research/findings", label: "Research findings", icon: FlaskConical },
   { href: "/weekly", label: "Weekly Research", icon: ScrollText },
-  { href: "/replay", label: "Cycle replay", icon: Play },
   { href: "/metrics", label: "Metric library", icon: Sparkles },
   { href: "/questions", label: "Bitcoin Questions", icon: CircleHelp },
   { href: "/learn", label: "Learn", icon: BookOpen },

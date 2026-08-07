@@ -179,6 +179,14 @@ jobs:
       - name: Cycle-lens tests
         run: npm run test-cycle-lens
 
+      # Cycle Dashboard (Cycle Dashboard V2, CD2) — the Lens client payload
+      # as a faithful engine projection (unavailable states preserved, no
+      # recomputation downstream), renderer/page contracts, the accessible
+      # range control, /replay retirement + routing, the honest Pro
+      # early-access seam, and the language scan.
+      - name: Cycle-dashboard tests
+        run: npm run test-cycle-dashboard
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests
