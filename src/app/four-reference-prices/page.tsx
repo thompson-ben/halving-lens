@@ -68,6 +68,13 @@ export default function FourReferencePricesPage() {
     ) as Record<Period, GapView>;
   const movementsOf = (metricId: string): Record<Period, string | null> =>
     Object.fromEntries((GAP_PERIODS as Period[]).map((p) => [p, movementOf(metricId, p)])) as Record<Period, string | null>;
+  // The card's "% vs market" chip is the SAME engine value the trajectory
+  // terminates at — one calculation path, so the two lines can never read
+  // as contradictory (the trajectory phrase is this figure at 0dp).
+  const chipGap = (id: ReferenceId, fallback: number | null): number | null => {
+    const g = referenceGap(id, 7);
+    return g.available ? g.gapNow : fallback;
+  };
 
   const levels = [
     ctx.ma200 != null && { key: "trend" as const, label: "200-day average", value: ctx.ma200 },
@@ -143,7 +150,7 @@ export default function FourReferencePricesPage() {
               name: "200-Day Moving Average",
               question: "Where does the long-term average sit?",
               value: ctx.ma200,
-              gapPct: ctx.vsMa200Pct,
+              gapPct: chipGap("ma200", ctx.vsMa200Pct),
               href: "/price",
               gaps: gapsOf("ma200"),
               movement: movementsOf("ma200"),
@@ -153,7 +160,7 @@ export default function FourReferencePricesPage() {
               name: "Realised Price",
               question: "What did the average coin cost its owner?",
               value: r.realisedPrice,
-              gapPct: r.vsRealisedPct,
+              gapPct: chipGap("realized_price", r.vsRealisedPct),
               note:
                 r.vsRealisedPct == null
                   ? undefined
@@ -167,7 +174,7 @@ export default function FourReferencePricesPage() {
               name: "Estimated Mining Cost",
               question: "What does a new coin cost to produce?",
               value: miningAvailable ? r.productionCost : null,
-              gapPct: miningAvailable ? r.vsProductionPct : null,
+              gapPct: miningAvailable ? chipGap("mining_cost", r.vsProductionPct) : null,
               estimated: true,
               note: miningAvailable
                 ? "A modelled electricity estimate — not an exact break-even or a guaranteed support level."

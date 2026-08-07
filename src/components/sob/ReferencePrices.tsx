@@ -74,6 +74,12 @@ export function ReferencePrices() {
     const g = referenceGap(id, 7);
     return g.available ? gapTrajectoryLine(g) : null;
   };
+  // The relation line shows the SAME engine value the trajectory terminates
+  // at — one calculation path, one rounding, no adjacent contradiction.
+  const relFor = (id: ReferenceId, fallback: number | null): string | null => {
+    const g = referenceGap(id, 7);
+    return rel(g.available ? g.gapNow : fallback);
+  };
 
   // The intro names only the rows actually shown, so it stays truthful when a
   // source is unavailable and its row has dropped out.
@@ -106,7 +112,7 @@ export function ReferencePrices() {
               label="200-Day Moving Average"
               sub="The long-term price trend, averaged over 200 days"
               value={fmtUsd(r.ma200, { compact: true })}
-              relation={rel(r.vsMa200Pct)}
+              relation={relFor("ma200", r.vsMa200Pct)}
               trajectory={weekTrajectory("ma200")}
               href="/price"
             />
@@ -116,7 +122,7 @@ export function ReferencePrices() {
               label="Realised Price"
               sub="The network's aggregate holder cost basis"
               value={fmtUsd(r.realisedPrice, { compact: true })}
-              relation={rel(r.vsRealisedPct)}
+              relation={relFor("realized_price", r.vsRealisedPct)}
               trajectory={weekTrajectory("realized_price")}
               href="/metrics/realized-price"
             />
@@ -126,7 +132,7 @@ export function ReferencePrices() {
               label="Estimated Mining Cost"
               sub="Modelled electricity cost to mine one new Bitcoin"
               value={fmtUsd(r.productionCost, { compact: true })}
-              relation={rel(r.vsProductionPct)}
+              relation={relFor("mining_cost", r.vsProductionPct)}
               trajectory={weekTrajectory("mining_cost")}
               href="/metrics/estimated-mining-cost"
               modelled

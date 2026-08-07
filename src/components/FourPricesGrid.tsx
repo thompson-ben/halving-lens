@@ -99,7 +99,7 @@ function Card({ c, period }: { c: PriceCardData; period: Period }) {
         </span>
         {c.gapPct != null && (
           <span className={`font-mono text-caption tabular-nums ${c.gapPct >= 0 ? "text-signal-green" : "text-signal-red"}`}>
-            {fmtPct(c.gapPct, 1)} vs market
+            {fmtPct(c.gapPct, 0)} vs market
           </span>
         )}
       </div>

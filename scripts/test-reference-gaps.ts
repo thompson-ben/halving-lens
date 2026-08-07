@@ -192,6 +192,13 @@ if (PRICE_ARCHIVE.length > 1000) {
   assert(/referenceGap\(id, 7\)/.test(act2), "Act 2 reads the weekly lens — the page's own time frame");
   assert(/formatMovement/.test(frpPage), "the reference's own movement is quoted from the movers describe layer, not recomputed");
   assert(/aria-pressed/.test(grid), "the period toggle carries its pressed state for assistive technology");
+
+  // The founder's close-out verification: the "% vs market" chip, the Act 2
+  // relation line and the trajectory all terminate at the SAME engine value,
+  // at the same precision — one calculation path, no adjacent contradiction.
+  assert(/chipGap\(/.test(frpPage) && /g\.gapNow : fallback/.test(frpPage), "the card chip reads the engine's gapNow — the value the trajectory terminates at");
+  assert(/fmtPct\(c\.gapPct, 0\)/.test(grid), "the chip is formatted at the trajectory phrase's own precision");
+  assert((act2.match(/relFor\("/g) ?? []).length === 3, "Act 2's relation lines read the same engine value as their trajectories");
 }
 
 console.log(failures === 0 ? "\nAll reference-gap tests passed." : `\n${failures} FAILURE(S)`);
