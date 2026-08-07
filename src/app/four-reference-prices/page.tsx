@@ -16,7 +16,9 @@ import {
 } from "@/lib/fourReferencePrices";
 import { priceContext } from "@/lib/priceContext";
 import { referencePrices } from "@/lib/productionCost";
-import { fmtPct, fmtUsd } from "@/lib/format";
+import { referenceGap, gapTrajectoryLine, gapRarity, GAP_PERIODS, type ReferenceId } from "@/lib/referenceGaps";
+import { marketMovers, formatMovement } from "@/lib/marketMovers";
+import { FourPricesGrid, type GapView, type Period } from "@/components/FourPricesGrid";
 
 // Bitcoin's Four Reference Prices — the framework page (Phase B). The
 // configuration is the product: the hero leads with Today's Configuration,
@@ -40,6 +42,39 @@ export default function FourReferencePricesPage() {
   const r = referencePrices({ ma200: ctx.ma200 });
   const price = today.price;
   const miningAvailable = r.productionAvailable && r.productionCost != null;
+
+  // Everything the grid says is pre-rendered here from the two engines —
+  // gap trajectories/rarity from referenceGaps, own-movement captions from
+  // the movers describe layer. The client component phrases nothing.
+  const movers = { 1: marketMovers(1), 7: marketMovers(7), 30: marketMovers(30) };
+  const movementOf = (metricId: string, period: Period): string | null => {
+    const m = [...movers[period].movements, ...movers[period].steady].find((x) => x.metricId === metricId);
+    return m ? `${formatMovement(m)} over the last ${period === 1 ? "24 hours" : `${period} days`}` : null;
+  };
+  const gapsOf = (id: ReferenceId): Record<Period, GapView> =>
+    Object.fromEntries(
+      (GAP_PERIODS as Period[]).map((period) => {
+        const g = referenceGap(id, period);
+        if (!g.available) return [period, { available: false, reason: g.reason }];
+        const rar = gapRarity(g);
+        return [period, {
+          available: true,
+          trajectory: gapTrajectoryLine(g),
+          rarityLine: rar?.line ?? null,
+          rarityEvidence: rar?.evidence ?? null,
+          crossed: g.crossed,
+        }];
+      }),
+    ) as Record<Period, GapView>;
+  const movementsOf = (metricId: string): Record<Period, string | null> =>
+    Object.fromEntries((GAP_PERIODS as Period[]).map((p) => [p, movementOf(metricId, p)])) as Record<Period, string | null>;
+  // The card's "% vs market" chip is the SAME engine value the trajectory
+  // terminates at — one calculation path, so the two lines can never read
+  // as contradictory (the trajectory phrase is this figure at 0dp).
+  const chipGap = (id: ReferenceId, fallback: number | null): number | null => {
+    const g = referenceGap(id, 7);
+    return g.available ? g.gapNow : fallback;
+  };
 
   const levels = [
     ctx.ma200 != null && { key: "trend" as const, label: "200-day average", value: ctx.ma200 },
@@ -100,55 +135,55 @@ export default function FourReferencePricesPage() {
           Each answers a different question, from a different constituency. Together they place the
           market price in context no single metric can.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <PriceCard
-            eyebrow="The market"
-            name="Market Price"
-            question="What are traders paying today?"
-            value={price}
-            note="The price itself — the anchor every reference below is measured against."
-          />
-          <PriceCard
-            eyebrow="The trend"
-            name="200-Day Moving Average"
-            question="Where does the long-term average sit?"
-            value={ctx.ma200}
-            gapPct={ctx.vsMa200Pct}
-            note={
-              ctx.vsMa200Pct == null
-                ? undefined
-                : `Price is ${Math.abs(ctx.vsMa200Pct).toFixed(0)}% ${ctx.vsMa200Pct >= 0 ? "above" : "below"} its long-term trend.`
-            }
-            href="/price"
-          />
-          <PriceCard
-            eyebrow="The holders"
-            name="Realised Price"
-            question="What did the average coin cost its owner?"
-            value={r.realisedPrice}
-            gapPct={r.vsRealisedPct}
-            note={
-              r.vsRealisedPct == null
-                ? undefined
-                : `The network's aggregate cost basis — the average holder is ${r.vsRealisedPct >= 0 ? "in profit" : "under water"}.`
-            }
-            href="/metrics/realized-price"
-          />
-          <PriceCard
-            eyebrow="The miners"
-            name="Estimated Mining Cost"
-            question="What does a new coin cost to produce?"
-            value={miningAvailable ? r.productionCost : null}
-            gapPct={miningAvailable ? r.vsProductionPct : null}
-            estimated
-            note={
-              miningAvailable
+        <FourPricesGrid
+          cards={[
+            {
+              eyebrow: "The market",
+              name: "Market Price",
+              question: "What are traders paying today?",
+              value: price,
+              note: "The price itself — the anchor every reference below is measured against.",
+              movement: movementsOf("price"),
+            },
+            {
+              eyebrow: "The trend",
+              name: "200-Day Moving Average",
+              question: "Where does the long-term average sit?",
+              value: ctx.ma200,
+              gapPct: chipGap("ma200", ctx.vsMa200Pct),
+              href: "/price",
+              gaps: gapsOf("ma200"),
+              movement: movementsOf("ma200"),
+            },
+            {
+              eyebrow: "The holders",
+              name: "Realised Price",
+              question: "What did the average coin cost its owner?",
+              value: r.realisedPrice,
+              gapPct: chipGap("realized_price", r.vsRealisedPct),
+              note:
+                r.vsRealisedPct == null
+                  ? undefined
+                  : `The network's aggregate cost basis — the average holder is ${r.vsRealisedPct >= 0 ? "in profit" : "under water"}.`,
+              href: "/metrics/realized-price",
+              gaps: gapsOf("realized_price"),
+              movement: movementsOf("realized_price"),
+            },
+            {
+              eyebrow: "The miners",
+              name: "Estimated Mining Cost",
+              question: "What does a new coin cost to produce?",
+              value: miningAvailable ? r.productionCost : null,
+              gapPct: miningAvailable ? chipGap("mining_cost", r.vsProductionPct) : null,
+              estimated: true,
+              note: miningAvailable
                 ? "A modelled electricity estimate — not an exact break-even or a guaranteed support level."
-                : "Temporarily unavailable — the estimate is withheld rather than shown stale."
-            }
-            href="/metrics/estimated-mining-cost"
-          />
-        </div>
+                : "Temporarily unavailable — the estimate is withheld rather than shown stale.",
+              href: "/metrics/estimated-mining-cost",
+              ...(miningAvailable ? { gaps: gapsOf("mining_cost"), movement: movementsOf("mining_cost") } : {}),
+            },
+          ]}
+        />
       </section>
 
       {/* ── Historical context (Phase C) ── */}
@@ -291,57 +326,6 @@ function HistStat({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
-function PriceCard({
-  eyebrow,
-  name,
-  question,
-  value,
-  gapPct,
-  note,
-  estimated,
-  href,
-}: {
-  eyebrow: string;
-  name: string;
-  question: string;
-  value: number | null;
-  gapPct?: number | null;
-  note?: string;
-  estimated?: boolean;
-  href?: string;
-}) {
-  const body = (
-    <>
-      <div className="text-[10px] uppercase tracking-[0.18em] text-accent">{eyebrow}</div>
-      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-        <span className="text-[14.5px] font-medium text-ink-50">{name}</span>
-        {estimated && (
-          <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full border border-signal-violet/25 text-signal-violet bg-signal-violet/[0.08]">
-            Estimated
-          </span>
-        )}
-      </div>
-      <div className="mt-0.5 text-[11.5px] text-ink-500">{question}</div>
-      <div className="mt-3 flex items-baseline gap-2.5 flex-wrap">
-        <span className="font-display text-[26px] tabular-nums text-ink-50 leading-none">
-          {value != null ? fmtUsd(value, { compact: true }) : "—"}
-        </span>
-        {gapPct != null && (
-          <span className={`font-mono text-[12.5px] tabular-nums ${gapPct >= 0 ? "text-signal-green" : "text-signal-red"}`}>
-            {fmtPct(gapPct, 1)} vs market
-          </span>
-        )}
-      </div>
-      {note && <p className="mt-2.5 text-[12px] text-ink-400 leading-snug">{note}</p>}
-    </>
-  );
-  if (!href) return <div className="card p-5">{body}</div>;
-  return (
-    <TrackedLink href={href} event="reference_price_row_clicked" props={{ label: name, page: "four-reference-prices" }} className="card card-interactive p-5 block">
-      {body}
-    </TrackedLink>
-  );
-}
 
 function Edu({ title, children }: { title: string; children: React.ReactNode }) {
   return (

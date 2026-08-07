@@ -177,5 +177,29 @@ if (PRICE_ARCHIVE.length > 1000) {
   assert(/EXCLUDED_PERIODS/.test(src) && /mining_cost/.test(src), "the 24-hour omission is an explicit rule, not an emergent behaviour");
 }
 
+// ── renderer contracts (PR-FRP2): two surfaces, one engine ─────────────────
+
+{
+  const frpPage = readFileSync("src/app/four-reference-prices/page.tsx", "utf8");
+  const grid = readFileSync("src/components/FourPricesGrid.tsx", "utf8");
+  const act2 = readFileSync("src/components/sob/ReferencePrices.tsx", "utf8");
+
+  assert(/gapTrajectoryLine|gapRarity/.test(frpPage), "the FRP page quotes the engine's describe layer");
+  assert(!/gapSeries|historicalMoves|absPercentile/.test(frpPage + grid + act2), "no renderer reaches past the engine into the distribution primitives");
+  assert(!/value \/ .*value - 1|\* 100/.test(grid), "the grid computes no gap of its own — every sentence arrives pre-rendered");
+  assert(/"use client"/.test(grid) && !/from "@\/lib\/(referenceGaps|marketMovers)/.test(grid), "the client grid imports no engine — the data layer stays on the server");
+  assert((act2.match(/weekTrajectory\("/g) ?? []).length === 3, "Act 2 adds exactly one trajectory line per reference row — three rows, three calls");
+  assert(/referenceGap\(id, 7\)/.test(act2), "Act 2 reads the weekly lens — the page's own time frame");
+  assert(/formatMovement/.test(frpPage), "the reference's own movement is quoted from the movers describe layer, not recomputed");
+  assert(/aria-pressed/.test(grid), "the period toggle carries its pressed state for assistive technology");
+
+  // The founder's close-out verification: the "% vs market" chip, the Act 2
+  // relation line and the trajectory all terminate at the SAME engine value,
+  // at the same precision — one calculation path, no adjacent contradiction.
+  assert(/chipGap\(/.test(frpPage) && /g\.gapNow : fallback/.test(frpPage), "the card chip reads the engine's gapNow — the value the trajectory terminates at");
+  assert(/fmtPct\(c\.gapPct, 0\)/.test(grid), "the chip is formatted at the trajectory phrase's own precision");
+  assert((act2.match(/relFor\("/g) ?? []).length === 3, "Act 2's relation lines read the same engine value as their trajectories");
+}
+
 console.log(failures === 0 ? "\nAll reference-gap tests passed." : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);
