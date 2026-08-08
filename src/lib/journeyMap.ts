@@ -34,8 +34,8 @@ export const JOURNEY_MAP = {
   },
   "/cycles": {
     bridge:
-      "You've compared this cycle's shape with the past. Now watch it play out against previous cycles, week by week.",
-    primary: { href: "/replay", title: "Cycle Replay" },
+      "You've compared this cycle's shape with the past. Now place every cycle at the same day and read what actually happened next.",
+    primary: { href: "/cycle-dashboard", title: "Cycle Dashboard" },
     secondary: [
       { href: "/similar-moments", label: "Similar Moments — which past weeks look like today" },
       { href: "/historical-price-paths", label: "Historical Price Paths" },

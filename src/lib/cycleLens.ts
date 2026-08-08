@@ -209,7 +209,9 @@ export interface LensAtDay {
   cycles: LensCycleAtDay[];
 }
 
-const CURRENT_FUTURE_REASON = "The current cycle's future has not happened yet.";
+/** The engine-owned sentence for the current cycle's unavailable future —
+ *  exported so renderers quote it rather than rewording the claim. */
+export const CURRENT_FUTURE_REASON = "The current cycle's future has not happened yet.";
 
 function forwardFor(s: LensCycleSeries, byDay: Map<number, LensPoint>, day: number, w: ForwardWindowDays): LensForwardWindow {
   if (!s.completed) return { available: false, reason: CURRENT_FUTURE_REASON };

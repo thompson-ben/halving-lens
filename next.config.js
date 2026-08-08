@@ -64,6 +64,10 @@ const nextConfig = {
       // "Downside scenarios" grew into the two-sided "Historical Price Paths".
       // Permanent redirect preserves the old URL's SEO equity.
       { source: "/downside-scenarios", destination: "/historical-price-paths", permanent: true },
+      // The Cycle Replay scrubber was retired in favour of the Cycle
+      // Dashboard's Lens — one canonical interactive cycle exploration.
+      // Query strings are preserved automatically.
+      { source: "/replay", destination: "/cycle-dashboard", permanent: true },
     ];
   },
 };

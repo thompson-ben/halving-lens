@@ -400,6 +400,52 @@ html[data-presenter="1"] .presenter-stage h2 { letter-spacing: -0.02em; }
 /* Tabular figures don't jitter if a value updates mid-stream. */
 html[data-presenter="1"] .presenter-stage .tabular-nums { font-variant-numeric: tabular-nums; }
 
+/* The Lens range input (CD2) — the canonical, keyboard-complete control.
+   Thumb sized for touch (28px hit) with a clearly visible focus state. */
+.lens-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: ew-resize;
+}
+.lens-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.09);
+}
+.lens-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7.5px;
+  border-radius: 50%;
+  background: var(--editorial);
+  border: 2px solid #0a0e14;
+}
+.lens-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.09);
+}
+.lens-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--editorial);
+  border: 2px solid #0a0e14;
+}
+.lens-range:focus-visible {
+  outline: none;
+}
+.lens-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--editorial) 45%, transparent);
+}
+.lens-range:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--editorial) 45%, transparent);
+}
+
 /* Print / Save-as-PDF: show only the document, on white. */
 @media print {
   .site-chrome, .no-print { display: none !important; }

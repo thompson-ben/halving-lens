@@ -34,7 +34,7 @@ const STATIC_PATHS = [
   "/weekly",
   "/weekly/archive",
   "/sentiment",
-  "/replay",
+  "/cycle-dashboard",
   "/metrics",
   "/learn",
   "/start-here",

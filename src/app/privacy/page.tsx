@@ -24,7 +24,7 @@ export default function PrivacyPage() {
 
         <Section title="What we collect">
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><span className="text-ink-100">Email address</span> — only if you subscribe to the research brief, so we can send it.</li>
+            <li><span className="text-ink-100">Email address</span> — only if you subscribe to the research brief (so we can send it) or join an early-access waitlist (so we can tell you when that product opens). Waitlist emails are stored separately and are used only for that purpose.</li>
             <li><span className="text-ink-100">Anonymous usage analytics</span> — pages viewed, time on page, scroll depth, and which features and research you interact with, tied to a random, anonymous device identifier (not your name or email).</li>
             <li><span className="text-ink-100">Email engagement</span> — we measure email opens and link clicks using first-party analytics to improve the quality and relevance of our emails. This is stored against a non-identifying token, not your raw address.</li>
             <li><span className="text-ink-100">Marketing attribution</span> — if you arrive from an ad or link, we record the campaign/source (e.g. UTM parameters) so we understand which channels work.</li>
@@ -61,7 +61,8 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="Data retention">
-          Subscriber emails are kept until you unsubscribe. Anonymous analytics are retained in aggregate to understand
+          Subscriber emails are kept until you unsubscribe. Waitlist emails are kept until we have contacted you about
+          the product or you ask to be removed. Anonymous analytics are retained in aggregate to understand
           long-term trends.
         </Section>
 

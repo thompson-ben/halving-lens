@@ -169,7 +169,7 @@ export default function CycleDashboardPage() {
 
       <section>
         <Link
-          href="/replay"
+          href="/cycle-dashboard"
           className="card-glow card-interactive p-7 lg:p-10 block hover:border-accent/30 group relative overflow-hidden"
         >
           <div className="flex items-start justify-between gap-6 flex-wrap">
@@ -178,22 +178,22 @@ export default function CycleDashboardPage() {
                 Signature feature
               </div>
               <h2 className="font-display text-[24px] lg:text-[32px] font-medium tracking-tight-2 text-ink-100 leading-tight">
-                Scrub through every halving cycle.
+                The Lens: every cycle, at the same day.
                 <br />
-                <span className="text-ink-300">Watch how each one played out.</span>
+                <span className="text-ink-300">Scrub through what actually happened.</span>
               </h2>
               <p className="mt-4 text-[14px] text-ink-300 leading-relaxed">
-                Drag the timeline and watch price move across all four cycles at the same day from
-                halving. Compare cycles side-by-side at any point in their arc.
+                Drag the Lens to any day since a halving and read all four cycles at that exact
+                point — return, drawdown, and what each prior cycle recorded next.
               </p>
             </div>
             <div className="flex items-center gap-3 text-accent group-hover:gap-4 transition-all duration-200">
               <Play size={18} fill="currentColor" />
-              <span className="text-[13px] font-medium">Open Cycle Replay</span>
+              <span className="text-[13px] font-medium">Open the Cycle Dashboard</span>
               <ArrowUpRight size={15} />
             </div>
           </div>
-          <div className="watermark">halvinglens.com · replay</div>
+          <div className="watermark">halvinglens.com · cycle dashboard</div>
         </Link>
       </section>
 
