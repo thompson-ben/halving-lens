@@ -15,12 +15,11 @@ import { normalizeEmail, isValidEmail } from "@/lib/subscribeCore";
 //     subscription contract's discipline. The table is the authoritative
 //     demand count.
 //
-// Table (one-time migration, run in Supabase):
-//   create table if not exists pro_waitlist (
-//     email      text primary key,
-//     source     text not null,
-//     created_at timestamptz not null default now()
-//   );
+// Schema: supabase/pro_waitlist.sql (the repository-owned source of truth,
+// following the house one-file-per-table convention — apply once in the
+// Supabase SQL editor). GET /api/pro-waitlist/health verifies the table is
+// live; until it is, this route can only ever return the retryable error —
+// never a false success.
 
 export const runtime = "nodejs";
 
@@ -28,6 +27,11 @@ interface Body {
   email?: string;
   source?: string;
 }
+
+// Durable attribution stays trustworthy: only sources this product actually
+// renders may be recorded. Anything else — junk, probes, stale clients —
+// lands as "unknown" rather than polluting the demand dataset.
+const KNOWN_SOURCES = new Set(["/cycle-dashboard#pro-early-access"]);
 
 type StoreResult = "created" | "duplicate" | "unavailable";
 
@@ -64,7 +68,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, outcome: "invalid", error: "Invalid request." }, { status: 400 });
   }
 
-  const source = typeof body.source === "string" ? body.source.slice(0, 120) : "unknown";
+  const source = typeof body.source === "string" && KNOWN_SOURCES.has(body.source) ? body.source : "unknown";
   const email = normalizeEmail(body.email);
   if (!isValidEmail(email)) {
     return NextResponse.json({ ok: false, outcome: "invalid", error: "Please enter a valid email." }, { status: 400 });

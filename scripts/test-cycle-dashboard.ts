@@ -135,7 +135,25 @@ check("email is the identity — 409 duplicate reads as existing", /409/.test(ro
 check("rate-limited like the subscribe endpoint", /rateLimitAll/.test(route));
 check("reuses the house email validation", /normalizeEmail/.test(route) && /isValidEmail/.test(route));
 check("failure is a retryable 503, never success", /503/.test(route) && /persist_failed/.test(route));
-check("the one-time migration is documented in the route header", /create table if not exists pro_waitlist/.test(route));
+check("source attribution is allowlisted — junk lands as unknown", /KNOWN_SOURCES/.test(route) && /"unknown"/.test(route));
+
+console.log("Pro waitlist schema — repository-owned and reproducible:");
+const schema = read("../supabase/pro_waitlist.sql");
+check("supabase/pro_waitlist.sql follows the house one-file-per-table convention", /create table if not exists public\.pro_waitlist/.test(schema));
+check("schema is idempotent (if not exists everywhere)", !/create table (?!if not exists)/.test(schema) && /create unique index if not exists/.test(schema));
+check("email unique + case-insensitive guard", /email\s+text not null unique/.test(schema) && /lower\(email\)/.test(schema));
+check("RLS locked down in the table file", /alter table public\.pro_waitlist enable row level security/.test(schema));
+check("RLS also listed in the consolidated rls.sql", /public\.pro_waitlist\s+enable row level security/.test(read("../supabase/rls.sql")));
+check("the route points at the schema file, not inline SQL", /supabase\/pro_waitlist\.sql/.test(route) && !/create table/.test(route));
+const health = read("../src/app/api/pro-waitlist/health/route.ts");
+check("health endpoint verifies the live table (deployment gate)", /rest\/v1\/pro_waitlist/.test(health) && /table: true/.test(health));
+check("the allowlisted source matches what the seam sends", route.includes('"/cycle-dashboard#pro-early-access"') && pro.includes('"/cycle-dashboard#pro-early-access"'));
+
+console.log("Privacy coverage:");
+const privacy = read("../src/app/privacy/page.tsx");
+check("policy covers waitlist email storage and purpose", /early-access waitlist/.test(privacy) && /tell you when that product opens/.test(privacy));
+check("policy covers waitlist retention", /Waitlist emails are kept until/.test(privacy));
+check("the seam links the policy (house pattern)", /href="\/privacy"/.test(pro));
 
 console.log("Waitlist decision contract (fixtures):");
 check("created → success + fireJoin", (() => { const d = decideProWaitlist(200, { ok: true, outcome: "created" }); return d.state === "success" && d.fireJoin; })());
