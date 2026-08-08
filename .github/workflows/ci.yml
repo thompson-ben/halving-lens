@@ -187,6 +187,14 @@ jobs:
       - name: Cycle-dashboard tests
         run: npm run test-cycle-dashboard
 
+      # Metric Watch engine (Cycle Dashboard V2, MW1) — the shared lifecycle
+      # vocabulary (Cycle Lens bit-identical), exact contiguous-state runs,
+      # the measured anti-churn transition gate, the state registry that
+      # references (never re-declares) thresholds, evidence floors, stable
+      # event identities, quiet-day honesty and the forecast-language scans.
+      - name: Metric-watch tests
+        run: npm run test-metric-watch
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

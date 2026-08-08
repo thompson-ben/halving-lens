@@ -34,6 +34,7 @@ import { HALVINGS } from "./data/types";
 import type { OnchainPoint } from "./data/types";
 import { cycleAnchor, cycleDayAt } from "./cycleDay";
 import { sma } from "./data/sma";
+import { STATE_LIFECYCLE, lifecycleOf as sharedLifecycleOf, LIFECYCLE_RANK as SHARED_LIFECYCLE_RANK, type Lifecycle } from "./stateLifecycle";
 
 export const LENS_CYCLE_IDS = [2, 3, 4, 5] as const;
 export type LensCycleId = (typeof LENS_CYCLE_IDS)[number];
@@ -325,16 +326,13 @@ export const LENS_THRESHOLDS = {
  *  HalvingLens claimed was notable at a historical day. */
 export const LENS_OBSERVATION_VERSION = "lens-observation-v1";
 
-/** Lifecycle class boundaries, in cycle days, derived from the house
- *  comparison windows (1/7/30 everywhere movement is compared): a state is
- *  a TRANSITION within its first week, RECENT within its first 30 days,
- *  STANDING beyond that. */
-export const LENS_LIFECYCLE = {
-  TRANSITION_MAX_AGE_DAYS: 7,
-  RECENT_MAX_AGE_DAYS: 30,
-} as const;
+/** Lifecycle class boundaries — the SHARED market-state vocabulary
+ *  (stateLifecycle.ts), re-exported under the Lens's established names so
+ *  existing consumers keep one import site. Same values as before the
+ *  extraction; the Lens's outputs are proven bit-identical in CI. */
+export const LENS_LIFECYCLE = STATE_LIFECYCLE;
 
-export type LensLifecycle = "transition" | "recent" | "standing";
+export type LensLifecycle = Lifecycle;
 
 export type LensObservationKind = "return_extreme" | "drawdown_divergence" | "mayer_divergence";
 
@@ -510,10 +508,9 @@ function runStartsUpTo(maxDay: number): Map<string, number>[] {
   return runStarts;
 }
 
-const lifecycleOf = (age: number): LensLifecycle =>
-  age <= LENS_LIFECYCLE.TRANSITION_MAX_AGE_DAYS ? "transition" : age <= LENS_LIFECYCLE.RECENT_MAX_AGE_DAYS ? "recent" : "standing";
+const lifecycleOf = sharedLifecycleOf;
 
-const LIFECYCLE_RANK: Record<LensLifecycle, number> = { transition: 0, recent: 1, standing: 2 };
+const LIFECYCLE_RANK = SHARED_LIFECYCLE_RANK;
 
 /** The single most notable historical comparison at day D, or null. Null is
  *  a valid, desirable outcome: no manufactured finding.
