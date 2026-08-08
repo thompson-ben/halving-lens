@@ -3,7 +3,9 @@
 // Two independent, daily, nullable intelligence outputs over the existing
 // evidence engines — never a new statistics model:
 //
-//   MOST INTERESTING  "what actually did something noteworthy?"
+//   MOST INTERESTING  "what deserves focused attention?" — a meaningful
+//                      fresh regime transition, or a movement/gap event at
+//                      the movers' EXCEPTIONAL band (posture C)
 //   ONE TO WATCH      "what is near a historically meaningful state AND
 //                      moving toward it?"  (proximity, never prediction)
 //
@@ -38,6 +40,7 @@ import {
   metricById,
   MOVER_METRICS,
   CROSSING_SIGNIFICANCE_FLOOR,
+  EXCEPTIONAL_SIGNIFICANCE,
   bandFor,
   type Movement,
   type MoverPeriod,
@@ -378,8 +381,13 @@ export function mostInterestingCandidates(anchor: string): RawCandidate[] {
     });
   }
 
-  // c · extreme movements — a rarity claim, so the observation floor is a
-  //     hard gate (a young series can never be "unusual").
+  // c · exceptional movements ONLY (Most Interesting posture C, approved
+  //     after the point-in-time backtest): a movement qualifies for the
+  //     flagship solely when the movers' own band is "exceptional" — the
+  //     canonical vocabulary, one authority. Unusual/material movements
+  //     (60–94) belong to the What's-Moving rail, not here. The rarity
+  //     observation floor stays a hard gate (a young series can never be
+  //     exceptional).
   const seen = new Set(out.map((c) => c.metricId));
   const movementCandidate = (m: Movement, period: MoverPeriod): RawCandidate => ({
     kind: "movement",
@@ -408,7 +416,7 @@ export function mostInterestingCandidates(anchor: string): RawCandidate[] {
       boundaryValue: null,
       direction: m.direction === "flat" ? null : m.direction,
       referenceId: null,
-      threshold: { name: "UNUSUAL_SIGNIFICANCE", value: 80 },
+      threshold: { name: "EXCEPTIONAL_SIGNIFICANCE", value: EXCEPTIONAL_SIGNIFICANCE },
       eventKey: `movement:${m.metricId}:${period}d:${m.direction}`,
     },
   });
@@ -420,7 +428,7 @@ export function mostInterestingCandidates(anchor: string): RawCandidate[] {
     for (const m of movers.movements) {
       if (m.metricId === "market_health") continue; // excluded — see states.ts
       if (seen.has(m.metricId)) continue; // its transition already speaks
-      if (!m.rarityClaimAllowed || m.significance < 80 || m.crossing) continue;
+      if (!m.rarityClaimAllowed || m.band !== "exceptional" || m.crossing) continue;
       const cand = movementCandidate(m, period);
       const prev = best.get(m.metricId);
       if (!prev || cand.significance > prev.significance) best.set(m.metricId, cand);
@@ -434,7 +442,7 @@ export function mostInterestingCandidates(anchor: string): RawCandidate[] {
     if (out.some((c) => c.kind === "reference_transition" && c.evidence.referenceId === refId)) continue;
     const g = gapReadingAt(refId, 7, anchor);
     if (!g || g.rarityState !== "available" || g.rarityPercentile == null) continue;
-    if (g.rarityPercentile < 80) continue;
+    if (bandFor(g.rarityPercentile) !== "exceptional") continue;
     out.push({
       kind: "gap_shift",
       metricId: refId,
@@ -459,7 +467,7 @@ export function mostInterestingCandidates(anchor: string): RawCandidate[] {
         boundaryValue: null,
         direction: g.changePp > 0 ? "up" : "down",
         referenceId: refId,
-        threshold: { name: "UNUSUAL_SIGNIFICANCE", value: 80 },
+        threshold: { name: "EXCEPTIONAL_SIGNIFICANCE", value: EXCEPTIONAL_SIGNIFICANCE },
         eventKey: `gap_shift:${refId}:7d:${g.changePp > 0 ? "up" : "down"}`,
       },
     });
@@ -468,13 +476,18 @@ export function mostInterestingCandidates(anchor: string): RawCandidate[] {
   return out;
 }
 
-// The final hierarchy (MW1 review refinement 1): newness matters but never
-// automatically beats materiality — significance tiers interleave with
-// transition freshness. Within a tier: significance, then rarity, then
-// registry order. Nothing below "unusual" (80) ever qualifies; movements
-// at 60–79 belong to the What's-Moving rail (CD3), not Metric Watch.
-const tierOf = (c: RawCandidate): number =>
-  c.isTransition ? (c.significance >= 95 ? 0 : 2) : c.significance >= 95 ? 1 : 3;
+// The final hierarchy (posture C, point-in-time approved): newness matters
+// but never automatically beats materiality — significance tiers interleave
+// with transition freshness. Within a tier: significance, then rarity, then
+// registry order. Movements/gap shifts qualify ONLY at the exceptional
+// band; fresh gated transitions qualify from the crossing floor (80) — so
+// tier T3 (unusual transitions) is real while T4 holds only exceptional-
+// floored edge cases. Everything 60–94 without a regime change belongs to
+// the What's-Moving rail (CD3), never the flagship.
+const tierOf = (c: RawCandidate): number => {
+  const exceptional = bandFor(c.significance) === "exceptional";
+  return c.isTransition ? (exceptional ? 0 : 2) : exceptional ? 1 : 3;
+};
 
 export function selectMostInteresting(anchor: string): RawCandidate | null {
   const cands = mostInterestingCandidates(anchor);

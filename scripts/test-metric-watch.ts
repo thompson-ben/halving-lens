@@ -24,7 +24,13 @@ import { WATCH_STATES, watchStateFor, type WatchStateDef } from "../src/lib/metr
 import { quietLineFor } from "../src/lib/metricWatch/describe";
 import { STATE_LIFECYCLE, lifecycleOf, LIFECYCLE_RANK } from "../src/lib/stateLifecycle";
 import { LENS_LIFECYCLE, lensObservation } from "../src/lib/cycleLens";
-import { marketMovers, moversAsOf } from "../src/lib/marketMovers";
+import {
+  marketMovers,
+  moversAsOf,
+  bandFor,
+  EXCEPTIONAL_SIGNIFICANCE,
+  CROSSING_SIGNIFICANCE_FLOOR,
+} from "../src/lib/marketMovers";
 import type { Point } from "../src/lib/marketMovers/distribution";
 import { METRICS } from "../src/lib/metrics";
 
@@ -135,7 +141,18 @@ check("version pinned and machine-readable", /^metric-watch-v\d+$/.test(METRIC_W
 check("engine is cached per anchor", metricWatch() === w);
 const cands = mostInterestingCandidates(asOf);
 check("every candidate carries a stable eventKey", cands.every((c) => /^[a-z_]+:[a-z_0-9]+/.test(c.evidence.eventKey)));
-check("no candidate below the unusual floor", cands.every((c) => c.significance >= 80));
+console.log("Posture C — the flagship movement floor is the canonical exceptional band:");
+check("every non-transition candidate is exceptional", cands.filter((c) => !c.isTransition).every((c) => bandFor(c.significance) === "exceptional"));
+check("a sig-94 movement can never qualify; sig-95 can", bandFor(94) !== "exceptional" && bandFor(95) === "exceptional");
+check("EXCEPTIONAL_SIGNIFICANCE is bandFor's own boundary", bandFor(EXCEPTIONAL_SIGNIFICANCE) === "exceptional" && bandFor(EXCEPTIONAL_SIGNIFICANCE - 1) === "unusual");
+check(
+  "fresh transitions qualify BELOW the exceptional bar (their floor is the crossing floor)",
+  bandFor(CROSSING_SIGNIFICANCE_FLOOR) === "unusual" && cands.filter((c) => c.isTransition).every((c) => c.significance >= CROSSING_SIGNIFICANCE_FLOOR),
+);
+check(
+  "non-transition evidence exposes the canonical boundary by name and value",
+  cands.filter((c) => !c.isTransition).every((c) => c.evidence.threshold.name === "EXCEPTIONAL_SIGNIFICANCE" && c.evidence.threshold.value === EXCEPTIONAL_SIGNIFICANCE),
+);
 check("movement candidates all clear the rarity observation floor", cands.filter((c) => c.kind === "movement").every((c) => c.rarityState === "available"));
 check("market_health never appears", cands.every((c) => c.metricId !== "market_health"));
 check("transitions carry from→to state identity", cands.filter((c) => c.isTransition).every((c) => c.evidence.fromStateKey != null && c.evidence.stateKey != null));
@@ -197,6 +214,12 @@ for (const [name, src] of [["index", engineSrc], ["describe", describeSrc], ["st
 }
 check("engine never imports story/intelligence/metricChange", !/storyEngine|intelligenceEvents|intelligenceStore|metricChange/.test(engineSrc + describeSrc + statesSrc));
 check("no scalar called confidence anywhere in the Watch", !/confidence/i.test(stripComments(engineSrc + describeSrc + statesSrc)));
+// One significance vocabulary: the Watch never mints its own numeric
+// threshold for "exceptional" — the boundary lives in the movers' bandFor.
+const distributionSrc = readFileSync(join(__dirname, "../src/lib/marketMovers/distribution.ts"), "utf8");
+check("no literal 95 anywhere in Watch code (the boundary is referenced, never re-declared)", !/\b95\b/.test(stripComments(engineSrc + describeSrc + statesSrc)));
+check("bandFor itself consumes the named EXCEPTIONAL_SIGNIFICANCE constant", /significance\s*>=\s*EXCEPTIONAL_SIGNIFICANCE/.test(stripComments(distributionSrc)));
+check("the Watch imports EXCEPTIONAL_SIGNIFICANCE rather than defining it", /EXCEPTIONAL_SIGNIFICANCE/.test(engineSrc) && !/EXCEPTIONAL_SIGNIFICANCE\s*=/.test(stripComments(engineSrc)));
 // Every emitted string across live + a year of history passes the scans.
 {
   const FORECAST = [/about to/i, /\bwill\b/i, /\blikely\b/i, /\bset to\b/i, /\bsuggests?\b/i, /\bexpect/i, /\bforecast/i, /\bbullish\b/i, /\bbearish\b/i, /\bbuy\b/i, /\bsell\b/i, /\btargets?\b/i, /\bsupport\b/i, /\bfloor\b/i, /fair value/i, /break-even/i];

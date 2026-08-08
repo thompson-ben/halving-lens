@@ -103,12 +103,11 @@ export function describeMostInteresting(c: RawCandidate, asOf: string): MetricWa
       break;
     }
     case "movement": {
+      // Posture C: only exceptional movements reach the flagship, so the
+      // headline is always the record-tier wording.
       currentValue = m!.current;
       currentLabel = formatValue(m!);
-      headline =
-        m!.band === "exceptional"
-          ? `One of ${metric.label}'s largest ${periodAdjective(m!.period)} moves on record.`
-          : `An unusually large ${periodAdjective(m!.period)} move in ${metric.label}.`;
+      headline = `One of ${metric.label}'s largest ${periodAdjective(m!.period)} moves on record.`;
       whyNoteworthy = `${formatMovement(m!)} over the last ${periodLabel(m!.period)}.`;
       historicalContext = rarityLine(m!);
       break;
