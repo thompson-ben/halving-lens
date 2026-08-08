@@ -54,7 +54,8 @@
     "test-reference-gaps": "tsx scripts/test-reference-gaps.ts",
     "test-cycle-day": "tsx scripts/test-cycle-day.ts",
     "test-cycle-lens": "tsx scripts/test-cycle-lens.ts",
-    "test-cycle-dashboard": "tsx scripts/test-cycle-dashboard.ts"
+    "test-cycle-dashboard": "tsx scripts/test-cycle-dashboard.ts",
+    "test-metric-watch": "tsx scripts/test-metric-watch.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

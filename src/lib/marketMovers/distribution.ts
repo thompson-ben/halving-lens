@@ -144,8 +144,13 @@ export const CROSSING_SIGNIFICANCE_FLOOR = 80;
  *  it a metric is reported as steady. */
 export const MATERIAL_SIGNIFICANCE = 60;
 
+/** The boundary bandFor draws for "exceptional" — named so consumers that
+ *  must expose the number (e.g. Metric Watch evidence objects) reference
+ *  THIS definition rather than minting a second threshold authority. */
+export const EXCEPTIONAL_SIGNIFICANCE = 95;
+
 export function bandFor(significance: number): "routine" | "notable" | "unusual" | "exceptional" {
-  if (significance >= 95) return "exceptional";
+  if (significance >= EXCEPTIONAL_SIGNIFICANCE) return "exceptional";
   if (significance >= 80) return "unusual";
   if (significance >= 50) return "notable";
   return "routine";
