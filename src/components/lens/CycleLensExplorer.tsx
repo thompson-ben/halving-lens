@@ -208,25 +208,38 @@ export function CycleLensExplorer({ payload, initialDay }: { payload: LensClient
               </text>
             </g>
           ))}
-          {/* prior cycles — quiet */}
+          {/* prior cycles — quiet context, still comparable */}
           {paths
             .filter((p) => p.cycle.cycleId !== 5)
             .map((p) => (
-              <path key={p.cycle.cycleId} d={p.d} fill="none" stroke={p.cycle.color} strokeWidth={1.25} opacity={0.5} />
+              <path key={p.cycle.cycleId} d={p.d} fill="none" stroke={p.cycle.color} strokeWidth={1.25} opacity={0.4} />
             ))}
-          {/* current cycle — dominant */}
+          {/* current cycle — the protagonist: a soft halo under a heavier
+              solid line, plus a standing endpoint marker at "you are here" */}
           {paths
             .filter((p) => p.cycle.cycleId === 5)
             .map((p) => (
-              <path key={5} d={p.d} fill="none" stroke="#5eead4" strokeWidth={2.5} />
+              <g key={5}>
+                <path d={p.d} fill="none" stroke="#5eead4" strokeWidth={7} opacity={0.14} />
+                <path d={p.d} fill="none" stroke="#5eead4" strokeWidth={2.75} />
+              </g>
             ))}
+          <circle
+            cx={geo.x(current.lastDay)}
+            cy={geo.y(current.multiple[current.lastDay])}
+            r={4}
+            fill="#5eead4"
+            stroke="#0a0e14"
+            strokeWidth={1.5}
+          />
           {/* end-of-line labels — cycles named directly, never colour-only */}
           {payload.cycles.map((c) => (
             <text
               key={c.cycleId}
               x={Math.min(geo.x(c.lastDay) + 5, geo.w - 4)}
               y={geo.y(c.multiple[c.lastDay]) + 3.5}
-              fontSize={10.5}
+              fontSize={c.cycleId === 5 ? 11.5 : 10.5}
+              fontWeight={c.cycleId === 5 ? 600 : 400}
               fill={c.cycleId === 5 ? "#5eead4" : "#8893a4"}
               fontFamily="var(--font-mono, monospace)"
             >
@@ -250,9 +263,11 @@ export function CycleLensExplorer({ payload, initialDay }: { payload: LensClient
               />
             );
           })}
-          <text x={geo.padL} y={geo.h - 8} fontSize={10} fill="#6f7c8e" fontFamily="var(--font-mono, monospace)">
-            days since halving →
-          </text>
+          {geo.w >= 560 && (
+            <text x={geo.padL} y={geo.h - 8} fontSize={10} fill="#6f7c8e" fontFamily="var(--font-mono, monospace)">
+              days since halving →
+            </text>
+          )}
           <text x={geo.w - geo.padR} y={geo.h - 8} fontSize={10} fill="#6f7c8e" textAnchor="end" fontFamily="var(--font-mono, monospace)">
             × halving price · log scale
           </text>

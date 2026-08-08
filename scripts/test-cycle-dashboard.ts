@@ -20,6 +20,8 @@ import {
   LENS_OBSERVATION_VERSION,
 } from "../src/lib/cycleLens";
 import { cycleAnchor } from "../src/lib/cycleDay";
+import { decideProWaitlist } from "../src/lib/proWaitlist";
+import { isTrackedEvent } from "../src/lib/analyticsEvents";
 
 let failures = 0;
 function check(name: string, cond: boolean, detail?: unknown) {
@@ -111,18 +113,39 @@ check("day discloses its asOf via the CD0 pattern", /cycleDayAsOf\(\)/.test(page
 check("market health colours come from the canonical band", /scoreBand\(/.test(page) && !/score\s*>=\s*\d/.test(page));
 check("the standing close is present", /Historical context, not a prediction\./.test(page));
 
-console.log("Pro early-access seam:");
+console.log("Pro early-access seam — first-class intent, decoupled from the Daily Brief:");
 const pro = read("../src/components/lens/ProEarlyAccess.tsx");
-check("reuses the existing durable capture endpoint", /\/api\/subscribe/.test(pro));
+check("persists via the dedicated waitlist endpoint", /\/api\/pro-waitlist/.test(pro));
+check("does NOT touch the Daily Brief subscribe machinery", !/\/api\/subscribe/.test(pro) && !/decideFromResponse|BriefSignup/.test(pro));
 check("distinct measurable source cohort", /pro-early-access/.test(pro));
-check("reuses the subscription decision contract", /decideFromResponse/.test(pro));
-check("only the existing analytics events fire", /subscription_submit_attempt/.test(pro) && /d\.analyticsEvent/.test(pro) && (pro.match(/track\(/g) ?? []).length === 3);
+check("uses the waitlist decision contract (success = durable capture only)", /decideProWaitlist/.test(pro));
+check("fires only the registered demand event, on confirmed NEW capture", /d\.fireJoin/.test(pro) && /"pro_waitlist_join"/.test(pro) && (pro.match(/track\(/g) ?? []).length === 1);
 check("honest about being a future feature", /doesn(?:'|&apos;)t exist yet/.test(pro));
-check("honest that joining starts the Daily Brief", /Daily Brief/.test(pro) && /unsubscribe anytime/i.test(pro));
+check("honest that it joins nothing else", /joins nothing else/.test(pro) && !/Daily Brief/.test(pro));
 check(
   "no payment claim, no gating in the member-facing copy",
   !/price|checkout|stripe|payment|unlock/i.test((pro.match(/"[^"\n]*"|`[^`\n]*`|'[^'\n]*'/g) ?? []).join(" ")),
 );
+
+console.log("Pro waitlist route:");
+const route = read("../src/app/api/pro-waitlist/route.ts");
+check("stores into pro_waitlist, never brief_subscribers", /rest\/v1\/pro_waitlist/.test(route) && !/brief_subscribers/.test(route));
+check("no welcome email, no entitlement", !/welcomeEmail|sendEmail|resend/i.test(route));
+check("email is the identity — 409 duplicate reads as existing", /409/.test(route) && /"existing"/.test(route));
+check("rate-limited like the subscribe endpoint", /rateLimitAll/.test(route));
+check("reuses the house email validation", /normalizeEmail/.test(route) && /isValidEmail/.test(route));
+check("failure is a retryable 503, never success", /503/.test(route) && /persist_failed/.test(route));
+check("the one-time migration is documented in the route header", /create table if not exists pro_waitlist/.test(route));
+
+console.log("Waitlist decision contract (fixtures):");
+check("created → success + fireJoin", (() => { const d = decideProWaitlist(200, { ok: true, outcome: "created" }); return d.state === "success" && d.fireJoin; })());
+check("existing → idempotent success, no join event", (() => { const d = decideProWaitlist(200, { ok: true, outcome: "existing" }); return d.state === "existing" && !d.fireJoin; })());
+check("400 → invalid, not retryable", (() => { const d = decideProWaitlist(400, { ok: false, outcome: "invalid" }); return d.state === "invalid" && !d.retryable; })());
+check("429 → rate-limited, retryable", (() => { const d = decideProWaitlist(429, { ok: false, outcome: "rate_limited" }); return d.state === "rate_limited" && d.retryable; })());
+check("503 → error, retryable, never success", (() => { const d = decideProWaitlist(503, { ok: false, outcome: "error" }); return d.state === "error" && d.retryable && !d.fireJoin; })());
+check("network failure (null) → error, never success", decideProWaitlist(null, null).state === "error");
+check("a 200 without confirmed capture is NOT success", decideProWaitlist(200, { ok: false }).state === "error");
+check("pro_waitlist_join is a registered event", isTrackedEvent("pro_waitlist_join"));
 
 console.log("Routing and retirement:");
 const nav = read("../src/components/navItems.ts");

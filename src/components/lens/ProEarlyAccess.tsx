@@ -4,24 +4,21 @@ import { useState } from "react";
 import { Bell, AlertCircle } from "lucide-react";
 import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
-import { fireLead } from "@/lib/marketing";
-import { decideFromResponse, type SubscribeResponseBody, type UiState } from "@/lib/subscription";
+import { decideProWaitlist, type ProWaitlistResponseBody, type ProUiState } from "@/lib/proWaitlist";
 
 // HalvingLens Pro early-access capture (CD2) — a demand-validation seam,
 // not a product. Explicitly a FUTURE feature: no payment, no gating, and
 // the Lens above stays fully usable without it.
 //
-// Reuses the existing durable signup machinery end-to-end (/api/subscribe,
-// the subscription decision contract, the canonical analytics events) with
-// a distinct source so Pro interest is measurable as its own cohort. The
-// consent copy is honest that joining also starts the free Daily Brief —
-// this deliberately creates no second identity or storage system; a
-// dedicated Pro list can supersede the source tag when Pro is real.
+// Pro interest is FIRST-CLASS intent: it persists to its own pro_waitlist
+// store via /api/pro-waitlist and joins nothing else. Success renders only
+// on confirmed durable capture; repeat submissions are harmless. The table
+// is the authoritative demand count.
 const SOURCE = "/cycle-dashboard#pro-early-access";
 
 export function ProEarlyAccess() {
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<UiState | "idle">("idle");
+  const [state, setState] = useState<ProUiState | "idle">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,28 +35,21 @@ export function ProEarlyAccess() {
     }
     setSubmitting(true);
     setMessage(null);
-    const attr = getAttribution();
-    track("subscription_submit_attempt", { source: SOURCE, ...attr });
     let status: number | null = null;
-    let body: SubscribeResponseBody | null = null;
+    let body: ProWaitlistResponseBody | null = null;
     try {
-      const res = await fetch("/api/subscribe", {
+      const res = await fetch("/api/pro-waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: SOURCE, consent: true }),
+        body: JSON.stringify({ email, source: SOURCE }),
       });
       status = res.status;
-      body = (await res.json().catch(() => null)) as SubscribeResponseBody | null;
+      body = (await res.json().catch(() => null)) as ProWaitlistResponseBody | null;
     } catch {
       status = null;
     }
-    const d = decideFromResponse(status, body);
-    if (d.fireConversion) {
-      track(d.analyticsEvent, { source: SOURCE, ...attr });
-      fireLead({ source: SOURCE, ...attr });
-    } else {
-      track(d.analyticsEvent, { source: SOURCE, category: d.failureCategory ?? null, ...attr });
-    }
+    const d = decideProWaitlist(status, body);
+    if (d.fireJoin) track("pro_waitlist_join", { source: SOURCE, ...getAttribution() });
     setState(d.state);
     setMessage(d.message);
     setSubmitting(false);
@@ -76,14 +66,12 @@ export function ProEarlyAccess() {
           Want to know when something meaningful changes?
         </h2>
         <p className="mt-2 text-body text-ink-300 leading-relaxed">
-          Pro will notify you when Bitcoin enters a historically meaningful state — the moment a
-          reading like the one above first becomes true, not weeks later. It doesn&apos;t exist yet;
-          this list is how we decide to build it.
+          Join the early-access list for future alerts when Bitcoin enters historically meaningful
+          states — the moment a reading like the one above first becomes true, not weeks later.
+          Pro doesn&apos;t exist yet; this list is how we decide to build it.
         </p>
         {done ? (
-          <p className="mt-4 text-body text-ink-100">
-            You&apos;re on the early-access list — we&apos;ll email you when Pro opens.
-          </p>
+          <p className="mt-4 text-body text-ink-100">{message}</p>
         ) : (
           <form onSubmit={submit} className="mt-4 space-y-2.5" noValidate>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -109,12 +97,12 @@ export function ProEarlyAccess() {
                 aria-busy={submitting}
                 className="w-full sm:w-auto h-11 px-5 rounded-lg border border-editorial/40 text-editorial text-[13px] font-medium hover:bg-editorial/[0.08] transition-colors disabled:opacity-60 shrink-0"
               >
-                {submitting ? "Joining…" : error ? "Try again" : "Join Pro early access"}
+                {submitting ? "Joining…" : error ? "Try again" : "Join early access"}
               </button>
             </div>
             <p className="text-micro text-ink-500 leading-relaxed">
-              Early access only — nothing to pay now. Joining also starts the free Daily Brief
-              (unsubscribe anytime).
+              Early access only — nothing to pay now, and this joins nothing else. We&apos;ll email
+              you once, when Pro opens.
             </p>
           </form>
         )}

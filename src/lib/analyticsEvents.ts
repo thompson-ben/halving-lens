@@ -41,6 +41,10 @@ const FUNNEL = [
   "signup", // canonical conversion — confirmed NEW subscriber only
   "subscription_existing", // recognised returning subscriber
   "subscription_failure", // with props.category: validation|rate_limit|server|network
+  // Pro early-access demand signal (CD2) — fired once per confirmed NEW
+  // pro_waitlist capture. The table is the authoritative demand count; this
+  // event exists for funnel visibility, with props.source for placement.
+  "pro_waitlist_join",
 ] as const;
 
 // ── Internal navigation / journeys ──────────────────────────────────────────
