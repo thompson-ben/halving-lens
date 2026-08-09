@@ -56,7 +56,7 @@ export function ProEarlyAccess() {
   };
 
   return (
-    <section className="border-t border-white/[0.06] pt-6">
+    <section id="pro-early-access" className="border-t border-white/[0.06] pt-6">
       <div className="max-w-xl">
         <div className="flex items-center gap-2 text-editorial mb-1.5">
           <Bell size={14} strokeWidth={1.8} />
@@ -67,8 +67,8 @@ export function ProEarlyAccess() {
         </h2>
         <p className="mt-2 text-body text-ink-300 leading-relaxed">
           Join the early-access list for future alerts when Bitcoin enters historically meaningful
-          states — the moment a reading like the one above first becomes true, not weeks later.
-          Pro doesn&apos;t exist yet; this list is how we decide to build it.
+          states — the moment a change like those Metric Watch reports first shows in the data,
+          not weeks later. Pro doesn&apos;t exist yet; this list is how we decide to build it.
         </p>
         {done ? (
           <p className="mt-4 text-body text-ink-100">{message}</p>
