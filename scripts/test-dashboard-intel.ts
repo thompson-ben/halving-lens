@@ -125,6 +125,11 @@ check("ETF streak quotes the flows engine", (() => {
 check("ETF window is labelled in trading days, never calendar", etf.detail != null && /trading days/.test(etf.detail));
 check("hrefs come from the movers registry", acc.href === metricById("accumulation")!.href && sent.href === metricById("fear_greed")!.href && etf.href === metricById("etf_flows")!.href);
 check("banded rows carry their own honest asOf ≤ the anchor", [acc, sent].every((s) => s.asOf != null && s.asOf <= asOf));
+// CD4 presentation fields — approved ONLY as exposures of numbers the
+// payload already prints inside its composed strings.
+check("value is exactly the number printed in detail (banded rows)", [acc, sent].every((s) => s.value != null && s.detail != null && s.detail.startsWith(`${Math.round(s.value)}/100`)));
+check("net is exactly the flow printed in the ETF detail", etf.net != null && etf.net === etfFlowsRead().windows.d7.net);
+check("fields stay in their lanes (no value for ETF, no net for banded)", etf.value === null && acc.net === null && sent.net === null);
 
 // ── 4 · Quiet support line ──────────────────────────────────────────────────
 console.log("Quiet support line:");

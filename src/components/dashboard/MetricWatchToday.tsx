@@ -2,12 +2,14 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { MetricWatch, MetricWatchCandidate } from "@/lib/metricWatch";
 
-// Metric Watch — today (CD3). Two first-class engine outputs with
-// deliberately asymmetric treatment: Most Interesting is the page's one
-// editorial event card; One to Watch is a quieter approach aside. Every
-// market string is the engine's verbatim — this component performs layout
-// only. When both are null the section renders one restrained quiet state
-// using the engine-owned quiet line: no placeholders, no fake substitute.
+// Metric Watch — today (CD4 treatment). Two first-class engine outputs
+// with deliberately asymmetric weight: Most Interesting is the page's one
+// elevated intelligence card (a restrained editorial-gold structural ring
+// — no glow, no gradient); One to Watch stays the quieter gold-rail
+// aside. The quiet state gets an intentional container of its own so a
+// quiet day reads as "checked", never as missing content. Every market
+// string is the engine's verbatim — this component performs layout only,
+// and no internal significance number is ever displayed.
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const prettyDate = (iso: string): string => {
@@ -34,25 +36,33 @@ function BandChip({ c }: { c: MetricWatchCandidate }) {
 function MostInteresting({ c, pageAsOf }: { c: MetricWatchCandidate; pageAsOf: string }) {
   const lagged = c.asOf < pageAsOf;
   return (
-    <article className="card p-5 sm:p-6">
+    <article className="card p-5 sm:p-6 ring-1 ring-editorial/20">
       <div className="eyebrow text-editorial">Most interesting · what deserves attention</div>
+
+      {/* WHAT */}
       <h3 className="mt-2.5 font-display text-headline font-medium tracking-tight-2 text-ink-50 leading-snug max-w-measure">
         {c.headline}
       </h3>
-      <div className="mt-3 flex items-baseline gap-x-3 gap-y-1 flex-wrap">
+
+      {/* HOW BIG — one strong scan line: reading, movement, band word */}
+      <div className="mt-3.5 flex items-baseline gap-x-3.5 gap-y-1.5 flex-wrap">
         <span className="font-display text-stat leading-none tabular-nums text-ink-50">{c.currentLabel}</span>
-        {c.movementLabel && <span className="font-mono text-subhead tabular-nums text-ink-200">{c.movementLabel}</span>}
+        {c.movementLabel && <span className="font-mono text-subhead tabular-nums text-ink-100">{c.movementLabel}</span>}
         <BandChip c={c} />
       </div>
-      <div className="mt-4 pt-3.5 border-t border-white/[0.06] space-y-1.5">
+
+      {/* WHY + HOW RECENT */}
+      <div className="mt-4 pt-3.5 border-t border-white/[0.06] space-y-2">
         <p className="text-body text-ink-200 leading-relaxed max-w-measure">{c.whyNoteworthy}</p>
         {c.historicalContext && <p className="text-caption text-ink-500">{c.historicalContext}</p>}
         {c.lifecycle && (
-          <p className="text-caption text-ink-500">
-            {LIFECYCLE_WORD[c.lifecycle.state]} — since {prettyDate(c.lifecycle.sinceDate)}
-          </p>
+          <span className="inline-flex eyebrow px-2 py-0.5 rounded-full border border-white/12 bg-white/[0.03] text-ink-400">
+            {LIFECYCLE_WORD[c.lifecycle.state]} · since {prettyDate(c.lifecycle.sinceDate)}
+          </span>
         )}
       </div>
+
+      {/* WHERE */}
       <div className="mt-3.5 flex items-baseline justify-between gap-3 flex-wrap">
         <Link
           href={c.href}
@@ -89,10 +99,15 @@ export function MetricWatchToday({ watch, quietSupport }: { watch: MetricWatch; 
   const quiet = watch.mostInteresting === null && watch.oneToWatch === null;
   return (
     <section aria-label="Metric Watch — today">
-      <h2 className="eyebrow text-editorial mb-3">Metric Watch · today</h2>
+      <h2 className="eyebrow text-editorial mb-2.5">Metric Watch · today</h2>
       {quiet ? (
-        <div>
-          <p className="text-subhead text-ink-200 max-w-measure leading-relaxed">{watch.quietLine}</p>
+        // The intentional quiet state: HalvingLens checked; nothing clears
+        // the bar. A structural container, not an empty paragraph — and
+        // deliberately no tick/approval mark: quiet is a finding about
+        // attention, never a claim that conditions are good or safe.
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+          <div className="eyebrow text-ink-400">Quiet reading</div>
+          <p className="mt-2 text-subhead text-ink-100 max-w-measure leading-relaxed">{watch.quietLine}</p>
           <p className="mt-1.5 text-caption text-ink-500 max-w-measure">{quietSupport}</p>
         </div>
       ) : (
