@@ -108,7 +108,7 @@ console.log("Page contracts:");
 const page = read("../src/app/cycle-dashboard/page.tsx");
 check("server-readable ?day= initial state", /searchParams/.test(page) && /parseLensDay\(/.test(page));
 check("canonical route metadata", /canonical: "\/cycle-dashboard"/.test(page));
-check("orientation before interaction (price, day, phase, health)", /BTC price/.test(page) && /Cycle day/.test(page) && /Phase/.test(page) && /Market health/.test(page));
+check("orientation before interaction (KPI strip precedes the explorer)", page.indexOf("<KpiStrip") >= 0 && page.indexOf("<KpiStrip") < page.indexOf("<CycleLensExplorer"));
 check("day discloses its asOf via the CD0 pattern", /cycleDayAsOf\(\)/.test(page) && /LastUpdated/.test(page));
 check("market health colours come from the canonical band", /scoreBand\(/.test(page) && !/score\s*>=\s*\d/.test(page));
 check("the standing close is present", /Historical context, not a prediction\./.test(page));
@@ -119,12 +119,29 @@ check("page consumes the composition layer, not the engines directly", /cycleDas
 check(
   "final hierarchy: orientation → state strip → Metric Watch → Lens → What's Moving → explore → Pro",
   (() => {
-    const order = ["<header", "<StateStrip", "<MetricWatchToday", "<CycleLensExplorer", "<WhatsMoving", "<ExploreFurther", "<ProEarlyAccess"];
+    const order = ["<header", "<KpiStrip", "<StateStrip", "<MetricWatchToday", "<CycleLensExplorer", "<WhatsMoving", "<ExploreFurther", "<ProEarlyAccess"];
     const idx = order.map((m) => page.indexOf(m));
     return idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1]));
   })(),
 );
+check("the dashboard zone tightens; the Lens opens the editorial zone with one hairline", /space-y-6 sm:space-y-7/.test(page) && /aria-label="The Lens[^"]*" className="border-t/.test(page));
 check("new sections are measured with existing event machinery only", (page.match(/TrackedSection/g) ?? []).length >= 3 && !/track\(/.test(page));
+
+console.log("CD4 instrument surfaces (KpiStrip / BandScale / StateStrip):");
+const stripCm = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+const kpi = read("../src/components/dashboard/KpiStrip.tsx");
+const scale = read("../src/components/dashboard/BandScale.tsx");
+const strip = read("../src/components/dashboard/StateStrip.tsx");
+check("orientation terms live on (price, day, phase, health)", /BTC price/.test(kpi) && /Cycle day/.test(kpi) && /Phase/.test(kpi) && /Market health/.test(kpi));
+check("health scale consumes the canonical SCORE_BANDS — no thresholds re-declared", /SCORE_BANDS/.test(kpi) && !/min:\s*\d|>=\s*\d\d/.test(stripCm(kpi)));
+check("BandScale owns no band table — every table is passed in", !/SCORE_BANDS|ACCUMULATION|SENTIMENT|scoreBand|bandFor/.test(stripCm(scale)));
+check("every scale is decoration beside text (aria-hidden)", (scale.match(/aria-hidden/g) ?? []).length >= 3);
+check("no sparkline on the price cell (CD4 decision)", !/Sparkline|spark/.test(kpi));
+check("phase stays categorical — no bar, no invented measure", !/BandScale/.test(kpi.slice(kpi.indexOf("Phase"), kpi.indexOf("Market health"))));
+check("accumulation scale quotes ACCUMULATION_BANDS", /ACCUMULATION_BANDS/.test(strip));
+check("sentiment gets a plain fill — no renderer-minted cuts table", /"sentiment" && <BandedCell s=\{s\} \/>/.test(strip) && !/SENTIMENT_CUTS|\[25,\s*45/.test(strip));
+check("ETF has no /100 representation", !/EtfCell[\s\S]*?\/100/.test(strip.slice(strip.indexOf("function EtfCell"), strip.indexOf("export function StateStrip"))));
+check("state strip is one shared surface, not cards", !/className="card/.test(strip) && /rounded-xl border border-white\/\[0\.06\]/.test(strip));
 
 console.log("MetricWatchToday renderer contracts:");
 const mw = read("../src/components/dashboard/MetricWatchToday.tsx");
@@ -150,9 +167,8 @@ check("scope sentence quoted from the payload", /\{rail\.scopeLine\}/.test(wmv))
 check("deep link to the full snapshot", /\/state-of-bitcoin#movers/.test(wmv));
 
 console.log("StateStrip renderer contracts:");
-const strip = read("../src/components/dashboard/StateStrip.tsx");
 check("one strip, not three cards", !/className="card/.test(strip));
-check("state words quoted from the payload", /\{s\.stateLabel\}/.test(strip) && /\{s\.detail\}/.test(strip));
+check("state words and readings quoted from the payload", /\{s\.stateLabel\}/.test(strip) && /s\.value/.test(strip) && /s\.net/.test(strip));
 check("unavailable is an explicit rendered state", /unavailableReason/.test(strip) && /Not measurable/.test(strip));
 check("state age shown honestly, never at series start", /sinceIsSeriesStart/.test(strip));
 

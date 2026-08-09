@@ -36,6 +36,12 @@ export interface DashboardStripState {
   stateLabel: string | null;
   /** Small factual tail (reading + cadence qualifier), never a claim. */
   detail: string | null;
+  /** The numeric reading already printed inside `detail` (banded rows) —
+   *  exposed so a renderer can draw a scale of the SAME fact without
+   *  re-parsing a string. Presentation metadata, not new intelligence. */
+  value: number | null;
+  /** The net flow already printed inside `detail` (ETF row only). */
+  net: number | null;
   /** Run start for state age, from the Watch's own run computer. */
   sinceDate: string | null;
   sinceIsSeriesStart: boolean;
@@ -64,17 +70,19 @@ function bandedStripState(
     sinceIsSeriesStart: false,
   };
   if (!metric || !def) {
-    return { ...base, available: false, stateLabel: null, detail: null, sinceDate: null, asOf: null, unavailableReason: "Not tracked in the current registry." };
+    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, sinceDate: null, asOf: null, unavailableReason: "Not tracked in the current registry." };
   }
   const run = stateRunFrom(def, metric.series(), anchor);
   if (!run) {
-    return { ...base, available: false, stateLabel: null, detail: null, sinceDate: null, asOf: null, unavailableReason: "No observations at this date." };
+    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, sinceDate: null, asOf: null, unavailableReason: "No observations at this date." };
   }
   return {
     ...base,
     available: true,
     stateLabel: run.current.label,
     detail: detailFor(run.value),
+    value: run.value,
+    net: null,
     sinceDate: run.sinceDate,
     sinceIsSeriesStart: run.sinceIsSeriesStart,
     asOf: run.asOf,
@@ -92,7 +100,7 @@ function etfStripState(): DashboardStripState {
   const base = { id: "etf" as const, label: "ETF demand", href: metric?.href ?? "/etf", sinceIsSeriesStart: false, sinceDate: null };
   const r = etfFlowsRead();
   if (!r.connected || r.points.length === 0) {
-    return { ...base, available: false, stateLabel: null, detail: null, asOf: null, unavailableReason: "Flow data is not connected." };
+    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, asOf: null, unavailableReason: "Flow data is not connected." };
   }
   const s = r.streak;
   const stateLabel =
@@ -106,6 +114,8 @@ function etfStripState(): DashboardStripState {
     available: true,
     stateLabel,
     detail,
+    value: null,
+    net: d7.net,
     asOf: r.points[r.points.length - 1]?.date ?? null,
     unavailableReason: null,
   };

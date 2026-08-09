@@ -1,6 +1,7 @@
 import { CycleLensExplorer } from "@/components/lens/CycleLensExplorer";
 import { ProEarlyAccess } from "@/components/lens/ProEarlyAccess";
 import { LastUpdated, cycleDayAsOf } from "@/components/LastUpdated";
+import { KpiStrip } from "@/components/dashboard/KpiStrip";
 import { StateStrip } from "@/components/dashboard/StateStrip";
 import { MetricWatchToday } from "@/components/dashboard/MetricWatchToday";
 import { WhatsMoving } from "@/components/dashboard/WhatsMoving";
@@ -12,7 +13,6 @@ import { TODAY_DAY_IN_CYCLE, DAYS_PER_CYCLE } from "@/lib/btcData";
 import { cyclePhase, headlineSpot, cycleTrackingHeadline } from "@/lib/cycleIntel";
 import { cycleScorecard } from "@/lib/cycleSummary";
 import { scoreBand } from "@/lib/scoreBand";
-import { fmtPct, fmtUsd } from "@/lib/format";
 
 // The Cycle Dashboard (Cycle Dashboard V2, CD3) — an intelligence dashboard,
 // not a wall of metrics. Orientation first, then the state of the cycle,
@@ -48,62 +48,50 @@ export default function CycleDashboardPage({
 
   return (
     <div className="space-y-10 lg:space-y-14">
-      {/* Orientation — the five-second answer, before any interaction */}
-      <header className="pt-2">
-        <div className="eyebrow text-accent mb-4">Cycle dashboard</div>
-        <h1 className="font-display text-display font-medium tracking-tightest text-ink-50 leading-[1.05] max-w-3xl">
-          Where are we in the Bitcoin cycle?
-        </h1>
-        <p className="mt-4 text-subhead text-ink-200 max-w-measure leading-relaxed">{cycleTrackingHeadline()}</p>
+      {/* The dashboard zone (CD4): orientation + instruments, deliberately
+          tighter rhythm than the editorial sections below — a coherent
+          instrument panel, then the page breathes again from The Lens. */}
+      <div>
+        <header className="pt-2">
+          <div className="eyebrow text-accent mb-4">Cycle dashboard</div>
+          <h1 className="font-display text-display font-medium tracking-tightest text-ink-50 leading-[1.05] max-w-3xl">
+            Where are we in the Bitcoin cycle?
+          </h1>
+          <p className="mt-4 text-subhead text-ink-200 max-w-measure leading-relaxed">{cycleTrackingHeadline()}</p>
+        </header>
 
-        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:items-baseline sm:gap-x-7 sm:flex-wrap">
+        <div className="mt-7 space-y-6 sm:space-y-7">
+          {/* Orientation — the five-second answer, before any interaction */}
           <div>
-            <dt className="eyebrow text-ink-500">BTC price</dt>
-            <dd className="mt-1 font-mono text-subhead tabular-nums text-ink-50">
-              {fmtUsd(spot.price)}
-              {spot.pct != null && (
-                <span className={`ml-2 text-caption ${spot.pct >= 0 ? "text-signal-green" : "text-signal-red"}`}>
-                  {fmtPct(spot.pct, 1)} {spot.label}
-                </span>
-              )}
-            </dd>
+            <KpiStrip
+              spot={spot}
+              cycleDay={TODAY_DAY_IN_CYCLE}
+              progressPct={progressPct}
+              cycleDayAsOf={cycleDayAsOf()}
+              phaseLabel={phase.label}
+              health={{ overall: sc.overall, band }}
+            />
+            <div className="mt-2.5">
+              <LastUpdated prefix="Prices as of" />
+            </div>
           </div>
-          <div>
-            <dt className="eyebrow text-ink-500">Cycle day</dt>
-            <dd className="mt-1 font-mono text-subhead tabular-nums text-ink-50">
-              {TODAY_DAY_IN_CYCLE}
-              <span className="ml-2 text-caption text-ink-400">{progressPct}% through · to {cycleDayAsOf()}</span>
-            </dd>
-          </div>
-          <div>
-            <dt className="eyebrow text-ink-500">Phase</dt>
-            <dd className="mt-1 text-subhead text-ink-100">{phase.label}</dd>
-          </div>
-          <div>
-            <dt className="eyebrow text-ink-500">Market health</dt>
-            <dd className="mt-1 font-mono text-subhead tabular-nums" style={{ color: band.color }}>
-              {sc.overall}
-              <span className="ml-2 text-caption">{band.label}</span>
-            </dd>
-          </div>
-        </dl>
-        <div className="mt-3">
-          <LastUpdated prefix="Prices as of" />
+
+          {/* State of the cycle — three independent canonical states */}
+          <TrackedSection id="dashboard-state-strip">
+            <StateStrip states={intel.strip} />
+          </TrackedSection>
+
+          {/* Metric Watch — what deserves attention today (quiet is first-class) */}
+          <TrackedSection id="dashboard-metric-watch">
+            <MetricWatchToday watch={intel.watch} quietSupport={intel.watchQuietSupport} />
+          </TrackedSection>
         </div>
-      </header>
+      </div>
 
-      {/* State of the cycle — three independent canonical states */}
-      <TrackedSection id="dashboard-state-strip">
-        <StateStrip states={intel.strip} />
-      </TrackedSection>
-
-      {/* Metric Watch — what deserves attention today (quiet is first-class) */}
-      <TrackedSection id="dashboard-metric-watch">
-        <MetricWatchToday watch={intel.watch} quietSupport={intel.watchQuietSupport} />
-      </TrackedSection>
-
-      {/* The Lens — the signature interaction: how does here compare? */}
-      <section aria-label="The Lens — every cycle at the selected day">
+      {/* The Lens — the signature interaction: how does here compare?
+          One strong hairline marks the turn from the current dashboard to
+          historical exploration. */}
+      <section aria-label="The Lens — every cycle at the selected day" className="border-t border-white/[0.09] pt-10 lg:pt-12">
         <div className="eyebrow text-editorial mb-1.5">The Lens</div>
         <h2 className="font-display text-headline font-medium tracking-tight-2 text-ink-100 leading-snug max-w-measure">
           What did this same point look like in previous cycles?
