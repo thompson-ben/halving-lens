@@ -113,6 +113,58 @@ check("day discloses its asOf via the CD0 pattern", /cycleDayAsOf\(\)/.test(page
 check("market health colours come from the canonical band", /scoreBand\(/.test(page) && !/score\s*>=\s*\d/.test(page));
 check("the standing close is present", /Historical context, not a prediction\./.test(page));
 
+// ── 2b · CD3 — the intelligence sections ────────────────────────────────────
+console.log("CD3 page composition:");
+check("page consumes the composition layer, not the engines directly", /cycleDashboardIntel\(\)/.test(page) && !/marketMovers\(/.test(page) && !/metricWatch\(/.test(page));
+check(
+  "final hierarchy: orientation → state strip → Metric Watch → Lens → What's Moving → explore → Pro",
+  (() => {
+    const order = ["<header", "<StateStrip", "<MetricWatchToday", "<CycleLensExplorer", "<WhatsMoving", "<ExploreFurther", "<ProEarlyAccess"];
+    const idx = order.map((m) => page.indexOf(m));
+    return idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1]));
+  })(),
+);
+check("new sections are measured with existing event machinery only", (page.match(/TrackedSection/g) ?? []).length >= 3 && !/track\(/.test(page));
+
+console.log("MetricWatchToday renderer contracts:");
+const mw = read("../src/components/dashboard/MetricWatchToday.tsx");
+check("consumes the payload only — no engine or threshold imports", !/from "@\/lib\/marketMovers"/.test(mw) && !/WATCH_THRESHOLDS|EXCEPTIONAL_SIGNIFICANCE|MATERIAL_SIGNIFICANCE/.test(mw));
+check("quiet day quotes the engine-owned quiet line verbatim", /\{watch\.quietLine\}/.test(mw));
+check(
+  "all three product states handled by presence, never placeholders",
+  /watch\.mostInteresting &&/.test(mw) &&
+    /watch\.oneToWatch &&/.test(mw) &&
+    !/placeholder|coming soon|no event/i.test(mw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "")),
+);
+check("engine strings rendered verbatim (headline, why, context)", /\{c\.headline\}/.test(mw) && /\{c\.whyNoteworthy\}/.test(mw) && /\{c\.historicalContext\}/.test(mw));
+check("no internal significance number is displayed", !/significance\.value|\{sig\.value\}/.test(mw));
+check("asymmetric treatment — one card, one aside", /<article className="card/.test(mw) && /<aside/.test(mw));
+check("band chip only claims rarity when the engine allows it", /rarityState !== "available"/.test(mw));
+
+console.log("WhatsMoving renderer contracts:");
+const wmv = read("../src/components/dashboard/WhatsMoving.tsx");
+check("quotes the movers' own formatter — no numbers re-derived", /formatMovement\(/.test(wmv) && !/toFixed|Math\.round/.test(wmv));
+check("no toggle, no thresholds, no second movement engine", !/useState|PERIODS|MATERIAL_SIGNIFICANCE/.test(wmv));
+check("direction carried by the sign, colour as reinforcement", /formatMovement/.test(wmv) && /direction/.test(wmv));
+check("scope sentence quoted from the payload", /\{rail\.scopeLine\}/.test(wmv));
+check("deep link to the full snapshot", /\/state-of-bitcoin#movers/.test(wmv));
+
+console.log("StateStrip renderer contracts:");
+const strip = read("../src/components/dashboard/StateStrip.tsx");
+check("one strip, not three cards", !/className="card/.test(strip));
+check("state words quoted from the payload", /\{s\.stateLabel\}/.test(strip) && /\{s\.detail\}/.test(strip));
+check("unavailable is an explicit rendered state", /unavailableReason/.test(strip) && /Not measurable/.test(strip));
+check("state age shown honestly, never at series start", /sinceIsSeriesStart/.test(strip));
+
+console.log("ExploreFurther contracts:");
+const explore = read("../src/components/dashboard/ExploreFurther.tsx");
+check("four destinations, not the navigation reproduced", (explore.match(/href: "/g) ?? []).length === 4);
+check("compact text links, no cards", !/className="card/.test(explore));
+
+console.log("CD2 defect fixes:");
+check("Pro section carries the anchor id its source key references", /id="pro-early-access"/.test(read("../src/components/lens/ProEarlyAccess.tsx")));
+check("explorer live region uses the payload's halving date, not a literal", !/2024-04-19/.test(explorer) && /current\.halvingDate/.test(explorer));
+
 console.log("Pro early-access seam — first-class intent, decoupled from the Daily Brief:");
 const pro = read("../src/components/lens/ProEarlyAccess.tsx");
 check("persists via the dedicated waitlist endpoint", /\/api\/pro-waitlist/.test(pro));
@@ -182,7 +234,15 @@ const BANNED = [
   /\blikely\b/i, /\bsuggests?\b/i, /\bbullish\b/i, /\bbearish\b/i, /\bbuy\b/i, /\bsell\b/i,
   /\bsupport\b/i, /\bfloor\b/i, /fair value/i, /break-even/i, /price target/i, /\brally\b/i,
 ];
-for (const [name, src] of [["page", page], ["explorer", explorer], ["pro seam", pro]] as const) {
+for (const [name, src] of [
+  ["page", page],
+  ["explorer", explorer],
+  ["pro seam", pro],
+  ["metric watch", mw],
+  ["whats moving", wmv],
+  ["state strip", strip],
+  ["explore further", explore],
+] as const) {
   const strings = (src.match(/"[^"\n]*"|`[^`\n]*`|'[^'\n]*'/g) ?? []).join(" ");
   check(`${name} passes the banned-vocabulary scan`, BANNED.every((re) => !re.test(strings)), BANNED.filter((re) => re.test(strings)).map(String));
 }

@@ -1,21 +1,28 @@
 import { CycleLensExplorer } from "@/components/lens/CycleLensExplorer";
 import { ProEarlyAccess } from "@/components/lens/ProEarlyAccess";
 import { LastUpdated, cycleDayAsOf } from "@/components/LastUpdated";
+import { StateStrip } from "@/components/dashboard/StateStrip";
+import { MetricWatchToday } from "@/components/dashboard/MetricWatchToday";
+import { WhatsMoving } from "@/components/dashboard/WhatsMoving";
+import { ExploreFurther } from "@/components/dashboard/ExploreFurther";
+import { TrackedSection } from "@/components/TrackedSection";
 import { lensClientPayload, parseLensDay } from "@/lib/lensPayload";
+import { cycleDashboardIntel } from "@/lib/cycleDashboardIntel";
 import { TODAY_DAY_IN_CYCLE, DAYS_PER_CYCLE } from "@/lib/btcData";
 import { cyclePhase, headlineSpot, cycleTrackingHeadline } from "@/lib/cycleIntel";
 import { cycleScorecard } from "@/lib/cycleSummary";
 import { scoreBand } from "@/lib/scoreBand";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
-// The Cycle Dashboard (Cycle Dashboard V2, CD2) — the canonical answer to
-// "where are we in the Bitcoin cycle?", then The Lens: what this same point
-// looked like in every previous cycle. Orientation first, one hero
-// interaction, no grid of boxed KPIs. All intelligence comes from existing
-// engines; this page assembles and arranges, nothing more.
+// The Cycle Dashboard (Cycle Dashboard V2, CD3) — an intelligence dashboard,
+// not a wall of metrics. Orientation first, then the state of the cycle,
+// today's Metric Watch, The Lens, and the movement underneath — in the
+// order a reader actually asks the questions. All intelligence comes from
+// existing engines via the cycleDashboardIntel composition layer; this page
+// assembles and arranges, nothing more. No grid of boxed KPIs.
 
 const DESC =
-  "Where are we in the Bitcoin cycle? The canonical cycle day, phase and market health — then scrub The Lens to see what this same point looked like in every previous halving cycle.";
+  "Where are we in the Bitcoin cycle? The canonical cycle day, phase and market health, today's Metric Watch and what's moving — then scrub The Lens to see what this same point looked like in every previous halving cycle.";
 export const metadata = {
   title: { absolute: "Bitcoin Cycle Dashboard | HalvingLens" },
   description: DESC,
@@ -31,6 +38,7 @@ export default function CycleDashboardPage({
 }) {
   const payload = lensClientPayload();
   const initialDay = parseLensDay(searchParams.day, payload);
+  const intel = cycleDashboardIntel();
 
   const spot = headlineSpot();
   const phase = cyclePhase();
@@ -48,7 +56,7 @@ export default function CycleDashboardPage({
         </h1>
         <p className="mt-4 text-subhead text-ink-200 max-w-measure leading-relaxed">{cycleTrackingHeadline()}</p>
 
-        <dl className="mt-6 flex items-baseline gap-x-7 gap-y-3 flex-wrap">
+        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:items-baseline sm:gap-x-7 sm:flex-wrap">
           <div>
             <dt className="eyebrow text-ink-500">BTC price</dt>
             <dd className="mt-1 font-mono text-subhead tabular-nums text-ink-50">
@@ -84,7 +92,17 @@ export default function CycleDashboardPage({
         </div>
       </header>
 
-      {/* The Lens — the hero interaction */}
+      {/* State of the cycle — three independent canonical states */}
+      <TrackedSection id="dashboard-state-strip">
+        <StateStrip states={intel.strip} />
+      </TrackedSection>
+
+      {/* Metric Watch — what deserves attention today (quiet is first-class) */}
+      <TrackedSection id="dashboard-metric-watch">
+        <MetricWatchToday watch={intel.watch} quietSupport={intel.watchQuietSupport} />
+      </TrackedSection>
+
+      {/* The Lens — the signature interaction: how does here compare? */}
       <section aria-label="The Lens — every cycle at the selected day">
         <div className="eyebrow text-editorial mb-1.5">The Lens</div>
         <h2 className="font-display text-headline font-medium tracking-tight-2 text-ink-100 leading-snug max-w-measure">
@@ -96,6 +114,16 @@ export default function CycleDashboardPage({
         </p>
         <CycleLensExplorer payload={payload} initialDay={initialDay} />
       </section>
+
+      {/* What's moving — the scanning layer underneath (order B, the local
+          comparison's winner: on quiet days the Lens headline lands at the
+          desktop fold, and a dedupe-emptied rail never interrupts the step
+          from "what deserves attention" to "how does this compare"). */}
+      <TrackedSection id="dashboard-whats-moving">
+        <WhatsMoving rail={intel.moving} />
+      </TrackedSection>
+
+      <ExploreFurther />
 
       <ProEarlyAccess />
 

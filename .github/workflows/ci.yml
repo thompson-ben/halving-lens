@@ -195,6 +195,9 @@ jobs:
       - name: Metric-watch tests
         run: npm run test-metric-watch
 
+      - name: Dashboard-intel tests
+        run: npm run test-dashboard-intel
+
       # Subscription decision contract — success/conversion only on confirmed
       # durable capture; canonical `signup` is the single conversion event.
       - name: Subscription contract tests

@@ -102,13 +102,14 @@ export function CycleLensExplorer({ payload, initialDay }: { payload: LensClient
         }
         if (liveRef.current) {
           const reached = d <= payload.currentCycleDay;
+          const current = payload.cycles[payload.cycles.length - 1];
           liveRef.current.textContent = reached
-            ? `Day ${d} — ${dateAtDay("2024-04-19", d)} in the current cycle.`
+            ? `Day ${d} — ${dateAtDay(current.halvingDate, d)} in the current cycle.`
             : `Day ${d} — beyond the current cycle's record; showing prior-cycle history.`;
         }
       }, 350);
     },
-    [payload.currentCycleDay],
+    [payload.currentCycleDay, payload.cycles],
   );
 
   const moveTo = useCallback(
