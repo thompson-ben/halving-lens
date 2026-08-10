@@ -6,6 +6,178 @@ import type { StoredBrief } from "../brief";
 
 export const STORED_BRIEFS: StoredBrief[] = [
   {
+    "slug": "2026-08-10",
+    "dateLabel": "10 August 2026",
+    "generatedAt": "2026-08-10T07:01:33.145Z",
+    "headline": "Cycle conditions warm up as the cycle read stays neutral",
+    "phaseLabel": "Later-running mid-cycle expansion",
+    "heat": "neutral",
+    "price": 64864.927289,
+    "changePct": -0.064754,
+    "changeLabel": "24h",
+    "cycleDay": 842,
+    "progressPct": 58,
+    "gainFromHalving": 1.7354010509374795,
+    "drawdownFromAth": -48.03168250024591,
+    "cycleScore": 60,
+    "scorecardVersion": "cycle-scorecard-v1",
+    "heatPercentile": 31,
+    "sentimentValue": 30,
+    "etfCumulative": 6834053689.415009,
+    "etfTrailingWeek": 821292054.8900001,
+    "summary": "Bitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.",
+    "support": "Historically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.",
+    "whatsDifferent": "The 2024 cycle is the first Bitcoin cycle with US spot ETF demand — a structural source of buying that did not exist in 2012, 2016 or 2020. That makes comparison with prior cycles useful, but not perfect. So far this cycle has been flatter and slower than the classic four-year rhythm.",
+    "whatToWatch": "Whether price begins to accelerate toward prior-cycle behaviour, plus ETFs have seen net inflows recently, and sentiment is fear. These are the signals that would show the cycle either converging with history or continuing to diverge.",
+    "conclusion": "Historically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.",
+    "insights": [
+      {
+        "title": "Cycle insight of the day",
+        "body": "Historically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly."
+      },
+      {
+        "title": "ETF insight of the day",
+        "body": "US spot Bitcoin ETFs have seen net inflows over the past week (~$821.29M). Cumulative net flow since launch stands at $6.83B, with the largest single inflow day at $1.21B. ETF demand is the structural variable unique to this cycle."
+      },
+      {
+        "title": "Sentiment insight of the day",
+        "body": "Market mood reads fear (Fear & Greed 30/100), rising over the past month. Extremes matter most: euphoria has often appeared near cycle tops, deep fear near lows — a contrarian read, not a timing tool."
+      }
+    ],
+    "watchSignals": [
+      {
+        "signal": "Divergence from historical cycle timing",
+        "status": "Diverging — later by time, cooler by price than prior cycles",
+        "level": "watch",
+        "confidence": "high"
+      },
+      {
+        "signal": "Price acceleration vs previous cycles",
+        "status": "Steady — +3.2% over the last 7d",
+        "level": "calm",
+        "confidence": "medium"
+      },
+      {
+        "signal": "ETF inflows accelerating",
+        "status": "Net inflows of ~$821M over the last 7 days",
+        "level": "calm",
+        "confidence": "high"
+      },
+      {
+        "signal": "Sentiment approaching euphoric territory",
+        "status": "Measured — Fear & Greed at 30, rising over 30d",
+        "level": "calm",
+        "confidence": "high"
+      },
+      {
+        "signal": "Rising risk / heat level",
+        "status": "Currently neutral",
+        "level": "calm",
+        "confidence": "medium"
+      },
+      {
+        "signal": "Miner stress",
+        "status": "Miner revenue suppressed, hashrate 906 EH/s",
+        "level": "calm",
+        "confidence": "medium"
+      }
+    ],
+    "watchItems": [
+      {
+        "title": "Whether sentiment changes regime",
+        "current": "Fear & Greed 30 (Fear)",
+        "trigger": "A move across a Fear & Greed band boundary (25 / 45 / 55 / 75)."
+      },
+      {
+        "title": "Whether the Accumulation Index crosses a band",
+        "current": "24/100 (Historically Attractive)",
+        "trigger": "A cross into a neighbouring accumulation band."
+      },
+      {
+        "title": "Whether ETF demand stays net positive",
+        "current": "5-day inflow streak",
+        "trigger": "A flip between a net-inflow and net-outflow streak."
+      }
+    ],
+    "shortPost": "Bitcoin Cycle Brief — 10 August 2026\n\nBTC $64,864.93 (-0.1% 24h) · day 842 (58% through the cycle).\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nCycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.\n\nHistorical context, not financial advice.\nhalvinglens.com",
+    "content": {
+      "xPost": "Bitcoin Cycle Brief — 10 August 2026\n\nBTC $64,864.93 (-0.1% 24h) · day 842 (58% through the cycle).\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nCycle read: prior cycles had usually peaked by now. This one is different — slower, flatter, ETF-supported.\n\nHistorical context, not financial advice.\nhalvinglens.com",
+      "xThread": [
+        "Bitcoin Cycle Brief 🧵\n\nBTC $64,864.93 · day 842 of the halving cycle, 58% through.\n\nPhase: Later-running mid-cycle expansion.",
+        "1/ Bitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.",
+        "2/ Historically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.",
+        "3/ How stretched is it? Bitcoin sits around the 31th percentile of its historical range vs its long-term average — not near the extremes that have marked past tops.",
+        "4/ What makes this cycle different: The 2024 cycle is the first Bitcoin cycle with US spot ETF demand — a structural source of buying that did not exist in 2012, 2016 or 2020. That makes comparison with prior cycles useful, but not perfect. So far this cycle has been flatter and slower than the classic four-year rhythm.",
+        "5/ What to watch: Whether price begins to accelerate toward prior-cycle behaviour, plus ETFs have seen net inflows recently, and sentiment is fear. These are the signals that would show the cycle either converging with history or continuing to diverge.",
+        "6/ Accumulation Index: 24/100 — Historically Attractive. Today's reading sits in the 25th percentile of Bitcoin history (only 75% of weeks have been cheaper by this price-only methodology). Historically, conditions like this have produced stronger long-term outcomes than average — historical context, not a prediction.",
+        "Historical cycle behaviour is not a forecast — educational analysis, not financial advice.\n\nFull read: halvinglens.com"
+      ],
+      "instagram": "Bitcoin Cycle Read — 10 August 2026\n\n₿ $64,864.93 · Day 842 (58% through the cycle)\n🟢 Risk: Neutral\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nAt this point, previous cycles had usually already peaked. This one's behaving differently — slower, flatter, and ETF-supported.\n\n📊 Full cycle read + daily brief at the link in bio.\n\nHistorical context, not financial advice.\n\n#Bitcoin #BTC #crypto #bitcoinhalving #cryptocycle #halvinglens #onchain #bitcoinanalysis",
+      "linkedin": "Bitcoin Cycle Brief — 10 August 2026\n\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nWhere we are: day 842 of the halving cycle (58% through), later-running mid-cycle expansion. BTC $64,864.93.\n\nWhat makes this cycle different: The 2024 cycle is the first Bitcoin cycle with US spot ETF demand — a structural source of buying that did not exist in 2012, 2016 or 2020. That makes comparison with prior cycles useful, but not perfect. So far this cycle has been flatter and slower than the classic four-year rhythm.\n\nWhat to watch next: Whether price begins to accelerate toward prior-cycle behaviour, plus ETFs have seen net inflows recently, and sentiment is fear. These are the signals that would show the cycle either converging with history or continuing to diverge.\n\nAccumulation Index: 24/100 — Historically Attractive. Today's reading sits in the 25th percentile of Bitcoin history (only 75% of weeks have been cheaper by this price-only methodology). Historically, conditions like this have produced stronger long-term outcomes than average — historical context, not a prediction.\n\nHistorical cycle behaviour is not a forecast. This is educational analysis, not financial advice.\n\nMore: halvinglens.com",
+      "emailSubject": "Bitcoin Cycle Brief — 10 August 2026: Later-running mid-cycle expansion",
+      "emailBody": "Bitcoin Cycle Brief\n10 August 2026\n\n—\n\nWhere we are\nBitcoin is later in the cycle by calendar timing, but cooler than previous cycles by price behaviour.\n\nThe numbers: BTC $64,864.93 (-0.1% 24h) · day 842 of the cycle (58% through) · risk level: neutral.\n\nHistorical context\nHistorically, two of the three previous cycles had already reached their major peak by this point after the halving. The current cycle is behaving differently — flatter and slower, and potentially more structurally supported by ETF demand. This does not guarantee future upside, but it does suggest the current cycle is not following the classic four-year rhythm cleanly.\n\nWhat makes this cycle different\nThe 2024 cycle is the first Bitcoin cycle with US spot ETF demand — a structural source of buying that did not exist in 2012, 2016 or 2020. That makes comparison with prior cycles useful, but not perfect. So far this cycle has been flatter and slower than the classic four-year rhythm.\n\nWhat to watch next\nWhether price begins to accelerate toward prior-cycle behaviour, plus ETFs have seen net inflows recently, and sentiment is fear. These are the signals that would show the cycle either converging with history or continuing to diverge.\n\nAccumulation Index\nAccumulation Index: 24/100 — Historically Attractive. Today's reading sits in the 25th percentile of Bitcoin history (only 75% of weeks have been cheaper by this price-only methodology). Historically, conditions like this have produced stronger long-term outcomes than average — historical context, not a prediction.\n\n—\n\nRead the full daily brief, with charts: https://halvinglens.com/brief\n\nHistorical cycle behaviour is not a forecast. This is educational analysis, not financial advice.\nYou're receiving this because you joined the halvinglens.com daily brief waitlist."
+    },
+    "reel": {
+      "date": "10 August 2026",
+      "angle": "production_cost",
+      "angleLabel": "Estimated Mining Cost",
+      "insight": "Bitcoin trades 7% above its estimated mining cost ($60.90K, modelled).",
+      "title": "Mining Margins Just Compressed",
+      "hook": "MINING MARGINS ARE COMPRESSED",
+      "voiceover": "How much does it actually cost to mine one Bitcoin? Our modelled estimate — live network hashrate, documented efficiency and electricity assumptions — puts the average electricity cost at about $60.90K. Bitcoin trades at $64.86K, 7 percent above that estimate. Every miner's real costs differ, and this is not a price floor — difficulty adjusts and hardware varies. It's historical context for how mining economics sit today, not a prediction. Follow for the daily cycle read.",
+      "voiceoverWordCount": 76,
+      "estDurationSec": 25,
+      "storyboard": [
+        {
+          "n": 1,
+          "durationSec": 3,
+          "action": "Open on the homepage hero; punch in the hook as large on-screen text over a slow zoom.",
+          "source": "halvinglens.com — homepage hero",
+          "onScreenText": "MINING MARGINS ARE COMPRESSED"
+        },
+        {
+          "n": 2,
+          "durationSec": 6,
+          "action": "Open the Estimated Mining Cost page and let the price-vs-cost chart draw in.",
+          "source": "/metrics/estimated-mining-cost",
+          "onScreenText": "Estimated cost: $60.90K · Modelled"
+        },
+        {
+          "n": 3,
+          "durationSec": 7,
+          "action": "Hover the current reading — price, estimated cost, and the premium side by side.",
+          "source": "/metrics/estimated-mining-cost — current reading",
+          "onScreenText": "Market Price 7% above estimated cost"
+        },
+        {
+          "n": 4,
+          "durationSec": 6,
+          "action": "Show the Reference Prices panel on the State of Bitcoin — the three prices together.",
+          "source": "/state-of-bitcoin — Reference Prices",
+          "onScreenText": "Market · Realised · Production"
+        },
+        {
+          "n": 5,
+          "durationSec": 3,
+          "action": "Cut to a clean HalvingLens logo card; hold for the CTA.",
+          "source": "HalvingLens logo / outro card",
+          "onScreenText": "Follow for daily Bitcoin cycle updates."
+        }
+      ],
+      "onScreenText": [
+        "MINING MARGINS ARE COMPRESSED",
+        "Est. cost $60.90K",
+        "+7% vs cost",
+        "Estimated cost: $60.90K · Modelled",
+        "Market Price 7% above estimated cost",
+        "Market · Realised · Production",
+        "Follow for daily Bitcoin cycle updates."
+      ],
+      "cta": "Follow for daily Bitcoin cycle updates.",
+      "instagram": "Bitcoin trades 7% above its estimated mining cost ($60.90K, modelled).\n\nDid you expect mining one Bitcoin to cost this much? 👇\n\nEducational analysis, not financial advice.\n\n#Bitcoin #BTC #BitcoinCycle #CryptoInvesting #HalvingLens"
+    }
+  },
+  {
     "slug": "2026-08-09",
     "dateLabel": "9 August 2026",
     "generatedAt": "2026-08-09T07:55:01.983Z",
