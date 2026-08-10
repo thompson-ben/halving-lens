@@ -237,7 +237,7 @@ function buildCycle(id: Exclude<CycleId, 1>, capDay?: number): Cycle {
   };
 }
 
-// 770 = days between 2024-04-19 (cycle 5 halving) and ~2026-05-28.
+// 770 ≈ days between the cycle-5 halving (2024-04-20 UTC, block 840,000) and ~2026-05-29.
 export const SYNTHETIC_TODAY_DAY_IN_CYCLE = 770;
 
 export function syntheticSnapshot(): Snapshot {

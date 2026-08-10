@@ -41,7 +41,7 @@ check("four cycles, house order", payload.cycles.map((c) => c.cycleId).join(",")
 check("payload is cached (same object)", lensClientPayload() === payload);
 check("asOfDate is the CD0 anchor", payload.asOfDate === cycleAnchor().asOfDate);
 check("currentCycleDay is the anchor's day", payload.currentCycleDay === cycleAnchor().cycleDay);
-check("maxDay is the largest cycle record (C4, 1438)", payload.maxDay === 1438);
+check("maxDay is the largest cycle record (C4, 1439)", payload.maxDay === 1439);
 for (const c of payload.cycles) {
   const n = c.lastDay + 1;
   check(
@@ -63,7 +63,7 @@ const eng839 = lensAtDay(839).cycles.find((c) => c.cycleId === 3);
 check("C3 fwd30[839] = engine's −38.4%", eng839?.reached === true && c3.fwd![30][839] === Math.round((eng839.forward[30] as { changePct: number }).changePct * 10) / 10);
 check("C2 fwd90[1250] preserves the engine's unavailable (null)", c2.fwd![90][1250] === null);
 check("C2 fwd30[1250] is observable", typeof c2.fwd![30][1250] === "number");
-check("C5 mayer[0] = 1.35 (full 200-day history at the 2024 halving)", c5.mayer[0] === 1.35);
+check("C5 mayer[0] = 1.37 (full 200-day history at the 2024-04-20 halving)", c5.mayer[0] === 1.37);
 check("C2 drawdown day 371 (the peak) is 0", c2.drawdown[371] === 0);
 check("peakDay carried from the engine's daily-derived peak", c5.peakDay === lensSeries(5).peakDay);
 

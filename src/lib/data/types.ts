@@ -34,13 +34,29 @@ export interface Cycle {
   samples: CycleSample[];
 }
 
-// Halving dates. Halving 1 = genesis is included for reference only.
+// The halving authority. One verifiable registry: each analysed halving is
+// the Bitcoin block that changed the subsidy, and the canonical date is the
+// UTC calendar date containing that block — never a local-reporting date.
+// Timestamps are the block headers' own, verifiable on any block explorer.
+// (Epoch 5's block landed nine minutes past UTC midnight, which is why the
+// widely reported US-evening date of 19 April 2024 is NOT the canonical
+// date here.)
+export const HALVING_EVENTS = {
+  2: { blockHeight: 210_000, utcTimestamp: "2012-11-28T15:24:38Z", date: "2012-11-28" },
+  3: { blockHeight: 420_000, utcTimestamp: "2016-07-09T16:46:13Z", date: "2016-07-09" },
+  4: { blockHeight: 630_000, utcTimestamp: "2020-05-11T19:23:43Z", date: "2020-05-11" },
+  5: { blockHeight: 840_000, utcTimestamp: "2024-04-20T00:09:27Z", date: "2024-04-20" },
+} as const;
+
+// Halving dates — the compatibility view every existing consumer reads.
+// Epochs 2–5 derive from HALVING_EVENTS (the source of truth above);
+// halving 1 = genesis is included for reference only, and 6 is a projection.
 export const HALVINGS = {
   1: "2009-01-03",
-  2: "2012-11-28",
-  3: "2016-07-09",
-  4: "2020-05-11",
-  5: "2024-04-19",
+  2: HALVING_EVENTS[2].date,
+  3: HALVING_EVENTS[3].date,
+  4: HALVING_EVENTS[4].date,
+  5: HALVING_EVENTS[5].date,
   6: "2028-04-17", // projected
 } as const;
 

@@ -76,7 +76,7 @@ assert(
 assert([...ctx.midtermYears].every((y) => !ctx.electionYears.has(y)), "midterm and election years are disjoint sets");
 assert(inFilter(2022, 6, "midterm", ctx) && !inFilter(2024, 6, "midterm", ctx) && !inFilter(2023, 6, "midterm", ctx), "midterm membership admits whole midterm years only — deterministic, like the election filter");
 assert(ctx.postHalvingYears.has(2025) && !ctx.postHalvingYears.has(2024), "post-halving years are the calendar year after each halving");
-assert(ctx.currentCycleFrom === "2024-04-19", "the current cycle starts at the latest past halving");
+assert(ctx.currentCycleFrom === "2024-04-20", "the current cycle starts at the latest past halving");
 assert(inFilter(2024, 3, "previous-cycles", ctx) && !inFilter(2024, 5, "previous-cycles", ctx), "months before the halving month belong to previous cycles");
 assert(inFilter(2024, 5, "current-cycle", ctx), "months from the halving month onward are current-cycle");
 assert(inFilter(2024, 2, "above-trend", ctx) === ctx.aboveTrendMonths.has("2024-02"), "trend filters are month-level set membership");

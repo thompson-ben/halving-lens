@@ -11,9 +11,9 @@ import { athDaySharePct } from "./atoms";
 
 export const CLAIMS: Record<string, string> = {
   "post-halving-year":
-    "+8,069% (2012), +284% (2016), +559% (2020) and +34% (2024)",
+    "+8,069% (2012), +284% (2016), +559% (2020) and +31% (2024)",
   "first-new-high":
-    "After the last three halvings, the first new all-time high came 229, 203 and 201 days later; after the 2012 halving it took just 83 days.",
+    "After the last three halvings, the first new all-time high came 229, 203 and 200 days later; after the 2012 halving it took just 83 days.",
   "gain-to-peaks":
     "+9,103% (2012 cycle), +2,913% (2016 cycle) and +686% to the November 2021 high (2020 cycle)",
   "peak-timing":

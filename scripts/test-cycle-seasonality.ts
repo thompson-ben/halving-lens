@@ -99,7 +99,7 @@ assert(agreementFactsFrom(new Map(), []).length === 0, "no completed cycles → 
 if (PRICE_ARCHIVE.length > 1000) {
   const spans = cycleSpans();
   assert(spans.length === 4 && spans.filter((s) => s.completed).length === 3, "four observed cycles, exactly three completed");
-  assert(spans[0].anchor === "2012-11-28" && spans[3].anchor === "2024-04-19" && !spans[3].completed, "spans anchor at the real halving dates; the 2024 cycle is current");
+  assert(spans[0].anchor === "2012-11-28" && spans[3].anchor === "2024-04-20" && !spans[3].completed, "spans anchor at the real halving dates; the 2024 cycle is current");
 
   const cov = cycleCoverage();
   const by = Object.fromEntries(cov.map((c) => [c.id, c]));

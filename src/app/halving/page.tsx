@@ -1,5 +1,5 @@
-import { format } from "date-fns";
 import { HalvingCountdown } from "@/components/HalvingCountdown";
+import { HALVING_EVENTS } from "@/lib/data/types";
 
 export const metadata = {
   title: "The Halving",
@@ -8,11 +8,23 @@ export const metadata = {
   alternates: { canonical: "/halving" },
 };
 
+// Dates and block heights come from the canonical HALVING_EVENTS authority
+// (UTC calendar date of the halving block) — this page keeps no independent
+// date record of its own.
+
+// UTC-safe date formatting: `format(new Date(iso))` renders in the server's
+// local timezone, which can shift a UTC date across midnight. The halving
+// dates ARE UTC dates, so format them from the ISO parts directly.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fmtUtcDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${MONTHS[m - 1]} ${d}, ${y}`;
+}
 const HALVINGS_PAST = [
-  { date: "2012-11-28", block: 210_000, before: 50, after: 25 },
-  { date: "2016-07-09", block: 420_000, before: 25, after: 12.5 },
-  { date: "2020-05-11", block: 630_000, before: 12.5, after: 6.25 },
-  { date: "2024-04-19", block: 840_000, before: 6.25, after: 3.125 },
+  { ...HALVING_EVENTS[2], before: 50, after: 25 },
+  { ...HALVING_EVENTS[3], before: 25, after: 12.5 },
+  { ...HALVING_EVENTS[4], before: 12.5, after: 6.25 },
+  { ...HALVING_EVENTS[5], before: 6.25, after: 3.125 },
 ];
 const HALVING_NEXT = { label: "~2028", block: 1_050_000, before: 3.125, after: 1.5625 };
 
@@ -54,7 +66,7 @@ export default function HalvingPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-[0.18em] text-ink-400 border-b border-white/[0.04]">
-                <th className="px-5 py-4 font-medium">Date</th>
+                <th className="px-5 py-4 font-medium">Date (UTC)</th>
                 <th className="px-3 py-4 font-medium text-right">Block</th>
                 <th className="px-3 py-4 font-medium text-right">Reward</th>
                 <th className="px-3 py-4 font-medium text-right">New BTC / day</th>
@@ -62,12 +74,12 @@ export default function HalvingPage() {
             </thead>
             <tbody>
               {HALVINGS_PAST.map((h) => (
-                <tr key={h.block} className="row-hover border-b border-white/[0.03]">
+                <tr key={h.blockHeight} className="row-hover border-b border-white/[0.03]">
                   <td className="px-5 py-4 text-ink-100 font-medium">
-                    {format(new Date(h.date), "MMM d, yyyy")}
+                    {fmtUtcDate(h.date)}
                   </td>
                   <td className="px-3 py-4 text-right font-mono tabular-nums text-ink-300">
-                    {h.block.toLocaleString()}
+                    {h.blockHeight.toLocaleString()}
                   </td>
                   <td className="px-3 py-4 text-right font-mono tabular-nums text-ink-200">
                     {h.before} → {h.after} BTC
@@ -94,6 +106,10 @@ export default function HalvingPage() {
             </tbody>
           </table>
         </div>
+        <p className="mt-3 text-[11.5px] text-ink-500">
+          Dates are UTC — the calendar date containing each halving block. Block 840,000 was mined
+          at 00:09:27 UTC on 20 April 2024.
+        </p>
       </section>
     </div>
   );
