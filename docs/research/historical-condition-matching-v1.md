@@ -3,7 +3,7 @@
 **Methodology version:** `historical-condition-matching-v1`
 **Status:** NOT READY FOR SIGN-OFF — three data-population blockers (see §25)
 **Document type:** Pre-registration lock. Consolidation only; not a discussion paper.
-**Supersedes:** all prior GO / LIMITED / NULL / NO-GO formulations (see §23)
+**Supersedes:** all prior GO / LIMITED / NULL / NO-GO formulations (see §24)
 
 ---
 
