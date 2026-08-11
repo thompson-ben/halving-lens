@@ -134,16 +134,27 @@ if (PRICE_ARCHIVE.length > 1000) {
   }
 
   // Sign cross-check straight from the series: the gap must agree with the
-  // raw levels it summarises.
+  // raw levels it summarises — AT ITS OWN asOf. (The engine measures on the
+  // last date where BOTH series exist; comparing the newest price against a
+  // lagged reference mixes dates and fails whenever price moves on the lag
+  // day, which is a defect in the check, not in the gap.)
   const market = metricById("price")!.series();
+  const lastOn = (series: { date: string; value: number }[], iso: string) => {
+    let best: { date: string; value: number } | null = null;
+    for (const p of series) {
+      if (p.date <= iso) best = p;
+      else break;
+    }
+    return best;
+  };
   for (const id of REFERENCE_IDS) {
     const g = referenceGap(id, 7);
     if (!g.available) continue;
     const ref = metricById(id)!.series();
-    const m = market[market.length - 1].value;
-    const r = ref[ref.length - 1].value;
+    const m = lastOn(market, g.asOf)!.value;
+    const r = lastOn(ref, g.asOf)!.value;
     const expected = (m / r - 1) * 100;
-    assert(Math.abs(g.gapNow - expected) < 1.5, `live: ${id} gap matches the raw levels (${g.gapNow.toFixed(1)} vs ${expected.toFixed(1)})`);
+    assert(Math.abs(g.gapNow - expected) < 1.5, `live: ${id} gap matches the raw levels at its asOf (${g.gapNow.toFixed(1)} vs ${expected.toFixed(1)})`);
   }
 
   for (const g of all) {
