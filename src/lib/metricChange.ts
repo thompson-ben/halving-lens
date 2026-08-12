@@ -27,7 +27,7 @@ import {
   bandFor as sentimentBand,
 } from "./sentiment";
 import { accumulationSeries, accumulationRead, bandFor as accBand } from "./accumulation";
-import { ETF, etfStats } from "./etf";
+import { ETF, etfStats, etfWindowNet } from "./etf";
 import { STORED_BRIEFS } from "./data/briefs";
 import { briefDate } from "./briefArchive";
 import { fmtUsd } from "./format";
@@ -464,9 +464,8 @@ function etfFlowChange(): MetricChange {
   const pts = ETF.points;
   const stats = etfStats();
   const latest = stats.latest as (typeof pts)[number];
-  const win = (n: number) => pts.slice(-n).reduce((s, p) => s + p.netFlow, 0);
-  const net7 = win(7);
-  const net30 = win(30);
+  const net7 = etfWindowNet(pts, 7).net;
+  const net30 = etfWindowNet(pts, 30).net;
   const usd = (n: number) => `${n >= 0 ? "+" : "−"}${fmtUsd(Math.abs(n), { compact: true })}`;
   const mk = (period: Period, value: number): PeriodChange => ({
     period,

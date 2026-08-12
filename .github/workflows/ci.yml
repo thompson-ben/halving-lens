@@ -52,6 +52,12 @@ jobs:
       - name: Observed-archive tests
         run: npm run test-observed-archive
 
+      # ETF-archive merge (V2.1 Phase 0) — the provider's rolling window may
+      # never erode committed ETF trading days; cumulative stays a running
+      # net total since the first stored observation.
+      - name: ETF-archive tests
+        run: npm run test-etf-archive
+
       # Observed-window registry (PR141) — the registry faithfully mirrors
       # the committed snapshot's windows and never exposes synthetic history.
       - name: Observed-window tests

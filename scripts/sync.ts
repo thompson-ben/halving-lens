@@ -49,7 +49,7 @@ import {
 import { syntheticSnapshot } from "../src/lib/data/synthetic";
 import { sma } from "../src/lib/data/sma";
 import { joinObservedSeries } from "../src/lib/data/observedJoin";
-import { mergeSeriesArchives } from "../src/lib/data/observedArchive";
+import { mergeEtfArchives, mergeSeriesArchives } from "../src/lib/data/observedArchive";
 import {
   ASSUMPTIONS_VERSION,
   MODEL_START_DATE,
@@ -1038,7 +1038,9 @@ async function build(): Promise<{ snapshot: Snapshot; priceArchive: Array<{ date
       ? daily.slice(-730).filter((d) => d.price > 0).map((d) => ({ ts: d.ts, price: d.price }))
       : null,
     // Carry over the last good values when a rate-limited source isn't re-fetched.
-    etf: etf ?? PREVIOUS_SNAPSHOT.etf ?? null,
+    // ETF is union-merged, never swapped: the provider's rolling ~300-row window
+    // must not erode observed history already committed (see observedArchive).
+    etf: mergeEtfArchives(PREVIOUS_SNAPSHOT.etf ?? null, etf),
     onchain: effectiveOnchain,
     hodlWaves: hodlWaves ?? PREVIOUS_SNAPSHOT.hodlWaves ?? null,
     todayProvenance: Object.keys(todayProvenance).length ? todayProvenance : null,

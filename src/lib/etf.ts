@@ -30,6 +30,22 @@ export interface EtfStats {
   trailingWeek: number;
 }
 
+/** Net USD flow over a window of trading-day points — the ONE window sum every
+ *  ETF consumer shares (V2.1 Phase 0). `offset` counts points back from the
+ *  end: offset 0 is the latest n-point window, offset n is the window
+ *  immediately before it. Windows never overlap when stepped by n, so
+ *  "current 7 trading days vs the previous 7" is etfWindowNet(pts, 7) against
+ *  etfWindowNet(pts, 7, 7). */
+export function etfWindowNet(
+  points: readonly EtfFlowPoint[],
+  n: number,
+  offset = 0,
+): { days: number; net: number } {
+  const end = Math.max(0, points.length - offset);
+  const slice = points.slice(Math.max(0, end - n), end);
+  return { days: slice.length, net: slice.reduce((sum, p) => sum + p.netFlow, 0) };
+}
+
 export function etfStats(): EtfStats {
   const pts = ETF.points;
   if (!pts.length) {
@@ -38,6 +54,5 @@ export function etfStats(): EtfStats {
   const latest = pts[pts.length - 1];
   const biggestInflow = pts.reduce((a, b) => (b.netFlow > a.netFlow ? b : a));
   const biggestOutflow = pts.reduce((a, b) => (b.netFlow < a.netFlow ? b : a));
-  const trailingWeek = pts.slice(-7).reduce((sum, p) => sum + p.netFlow, 0);
-  return { latest, cumulative: latest.cumulative, biggestInflow, biggestOutflow, trailingWeek };
+  return { latest, cumulative: latest.cumulative, biggestInflow, biggestOutflow, trailingWeek: etfWindowNet(pts, 7).net };
 }
