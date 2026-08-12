@@ -33,3 +33,7 @@ longer cycle 5 day 0), and the daily production-cost model's subsidy eras
 now change on the UTC date containing each halving block — the model is
 daily-resolution, not block-resolution, so 20 April 2024 is treated as
 entirely post-halving although its first nine minutes were not.
+
+After the correction was reviewed, the branch merged the mainline's daily
+observed-data syncs and re-ran the canonical refresh, so the shipped snapshot
+carries the corrected authority over the freshest observed series.
