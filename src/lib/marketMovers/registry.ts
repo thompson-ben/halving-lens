@@ -18,8 +18,9 @@
 //   · Fear & Greed is observed daily from 2018-02-01.
 //   · Estimated Mining Cost is a weekly modelled series from 2016-01-04 —
 //     nature "estimated".
-//   · ETF net flows are observed on trading days from 2025-05-21 — a short
-//     window that every consumer must disclose.
+//   · ETF net flows are observed on trading days over the provider's rolling
+//     ~300-trading-day window (the committed start date moves forward as old
+//     rows fall off) — a short window that every consumer must disclose.
 //   · Market Health exists only as far back as the stored brief archive
 //     (~2 months today), which is below the rarity floor: it ranks, but it
 //     makes no rarity claim until the archive is deep enough.
