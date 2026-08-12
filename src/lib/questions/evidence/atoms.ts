@@ -13,7 +13,7 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-/** "2024-04-19" → "April 2024". */
+/** "2024-04-20" → "April 2024". */
 export function monthYearLabel(iso: string): string {
   return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 }

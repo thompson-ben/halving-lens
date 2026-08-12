@@ -29,7 +29,7 @@ check("subsidy 2015 era", subsidyAt("2015-06-01") === 25);
 check("subsidy 2019 era", subsidyAt("2019-06-01") === 12.5);
 check("subsidy 2022 era", subsidyAt("2022-06-01") === 6.25);
 check("subsidy post-2024 halving", subsidyAt("2026-07-25") === 3.125);
-check("halving-day boundary", subsidyAt("2024-04-19") === 3.125 && subsidyAt("2024-04-18") === 6.25);
+check("halving-day boundary (UTC date of block 840,000)", subsidyAt("2024-04-20") === 3.125 && subsidyAt("2024-04-19") === 6.25);
 check("issuance 2026 = 450 BTC/day", btcIssuedPerDay("2026-07-25") === 450);
 
 // ── Efficiency curve ────────────────────────────────────────────────────────

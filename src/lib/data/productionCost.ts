@@ -47,15 +47,24 @@ export const MODEL_START_DATE = EFFICIENCY_J_PER_TH[0].from;
 // miners sit across (and occasionally outside) this range.
 export const ELECTRICITY_USD_PER_KWH = { low: 0.04, central: 0.06, high: 0.08 } as const;
 
+import { HALVING_EVENTS } from "./types";
+
 // Block subsidy schedule by date (UTC). Fees are excluded from the issuance
 // denominator — including them would LOWER the modelled cost per BTC; the
 // exclusion is stated in the methodology.
+//
+// Daily-resolution approximation, stated honestly: subsidy eras change on
+// the UTC calendar date containing the halving block (the HALVING_EVENTS
+// authority), not at the block itself. The 2024 halving block was mined at
+// 00:09:27 UTC on 20 April, so this model treats all of 20 April as
+// post-halving although its first nine minutes were not. The model is
+// daily-resolution, not block-resolution, by design.
 const SUBSIDY_ERAS: Array<{ from: string; subsidy: number }> = [
   { from: "2009-01-03", subsidy: 50 },
-  { from: "2012-11-28", subsidy: 25 },
-  { from: "2016-07-09", subsidy: 12.5 },
-  { from: "2020-05-11", subsidy: 6.25 },
-  { from: "2024-04-19", subsidy: 3.125 },
+  { from: HALVING_EVENTS[2].date, subsidy: 25 },
+  { from: HALVING_EVENTS[3].date, subsidy: 12.5 },
+  { from: HALVING_EVENTS[4].date, subsidy: 6.25 },
+  { from: HALVING_EVENTS[5].date, subsidy: 3.125 },
 ];
 
 const BLOCKS_PER_DAY = 144;

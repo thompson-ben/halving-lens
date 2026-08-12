@@ -50,11 +50,11 @@ check("boundaries are the house 7/30 windows", STATE_LIFECYCLE.TRANSITION_MAX_AG
 check("lifecycleOf classifies 0/7/8/30/31 correctly", lifecycleOf(0) === "transition" && lifecycleOf(7) === "transition" && lifecycleOf(8) === "recent" && lifecycleOf(30) === "recent" && lifecycleOf(31) === "standing");
 check("rank orders newest first", LIFECYCLE_RANK.transition < LIFECYCLE_RANK.recent && LIFECYCLE_RANK.recent < LIFECYCLE_RANK.standing);
 check("the Cycle Lens consumes the SAME vocabulary object", (LENS_LIFECYCLE as unknown) === (STATE_LIFECYCLE as unknown));
-console.log("Cycle Lens bit-identical after the migration (frozen-history pins):");
+console.log("Cycle Lens frozen-history pins (re-derived under the UTC halving authority):");
 const obs839 = lensObservation(839);
-check("day 839 unchanged: standing since 282", obs839?.lifecycle === "standing" && obs839?.stateSinceDay === 282 && obs839?.stateAgeDays === 557);
-check("day 12 unchanged: transition age 0", lensObservation(12)?.lifecycle === "transition" && lensObservation(12)?.stateAgeDays === 0);
-check("day 177 unchanged: fresh mayer outranks standing", lensObservation(177)?.kind === "mayer_divergence");
+check("day 839: standing since 264", obs839?.lifecycle === "standing" && obs839?.stateSinceDay === 264 && obs839?.stateAgeDays === 575);
+check("day 11: transition age 0", lensObservation(11)?.lifecycle === "transition" && lensObservation(11)?.stateAgeDays === 0);
+check("day 172: fresh mayer outranks standing", lensObservation(172)?.kind === "mayer_divergence");
 
 // ── 2 · The run computer (synthetic fixtures) ───────────────────────────────
 console.log("Contiguous state runs (fixtures):");

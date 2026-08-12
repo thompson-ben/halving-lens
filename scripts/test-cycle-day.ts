@@ -27,7 +27,7 @@ import {
   calendarLagDays,
 } from "../src/lib/cycleDay";
 import { PRICE_ARCHIVE } from "../src/lib/data/priceArchiveData";
-import { HALVINGS, DAYS_PER_CYCLE } from "../src/lib/data/types";
+import { HALVINGS, HALVING_EVENTS, DAYS_PER_CYCLE } from "../src/lib/data/types";
 import { SNAPSHOT } from "../src/lib/data/snapshot";
 import {
   TODAY_DAY_IN_CYCLE,
@@ -76,16 +76,24 @@ check("cycleId is 5", anchor.cycleId === 5);
 check("halvingDate is the 2024 halving", anchor.halvingDate === HALVINGS[5]);
 check("cycleAnchor is memoised (same object)", cycleAnchor() === anchor);
 
+console.log("The halving authority (HALVING_EVENTS is the source of truth):");
+check("epoch blocks are the canonical halving heights", HALVING_EVENTS[2].blockHeight === 210_000 && HALVING_EVENTS[3].blockHeight === 420_000 && HALVING_EVENTS[4].blockHeight === 630_000 && HALVING_EVENTS[5].blockHeight === 840_000);
+check("each canonical date is the UTC day containing its block", ([2, 3, 4, 5] as const).every((e) => HALVING_EVENTS[e].utcTimestamp.slice(0, 10) === HALVING_EVENTS[e].date));
+check("HALVINGS derives exactly from HALVING_EVENTS", ([2, 3, 4, 5] as const).every((e) => HALVINGS[e] === HALVING_EVENTS[e].date));
+check("epoch 5 uses the UTC network-event date, not the US-evening date", HALVINGS[5] === "2024-04-20");
+check("epochs 2-4 are unchanged by the 2024 correction", HALVINGS[2] === "2012-11-28" && HALVINGS[3] === "2016-07-09" && HALVINGS[4] === "2020-05-11");
+check("day zero at every analysed halving", ([2, 3, 4, 5] as const).every((e) => cycleDayAt(HALVINGS[e], HALVINGS[e]) === 0));
+
 console.log("cycleDayAt fixtures:");
 check("halving day itself is day 0", cycleDayAt(HALVINGS[5]) === 0);
-check("the day after the halving is day 1", cycleDayAt("2024-04-20") === 1);
-check("a year later is day 365", cycleDayAt("2025-04-19") === 365);
+check("the day after the halving is day 1", cycleDayAt("2024-04-21") === 1);
+check("a year later is day 365", cycleDayAt("2025-04-20") === 365);
 check(
   "UTC arithmetic — DST transitions cannot skew the count",
   cycleDayAt("2025-03-11") - cycleDayAt("2025-03-08") === 3,
 );
 check("prior-cycle halving parameter works", cycleDayAt("2020-05-12", HALVINGS[4]) === 1);
-check("dates before the halving go negative, not clamp", cycleDayAt("2024-04-18") === -1);
+check("dates before the halving go negative, not clamp", cycleDayAt("2024-04-19") === -1);
 
 console.log("cycleAnchorFrom fixtures:");
 check("empty archive → null", cycleAnchorFrom([]) === null);
@@ -93,7 +101,7 @@ const fx = cycleAnchorFrom([
   { date: "2024-04-19", value: 64000 },
   { date: "2026-01-01", value: 90000 },
 ]);
-check("fixture anchor uses the LAST point's date", fx?.asOfDate === "2026-01-01" && fx?.cycleDay === 622, fx);
+check("fixture anchor uses the LAST point's date", fx?.asOfDate === "2026-01-01" && fx?.cycleDay === 621, fx);
 
 console.log("calendarLagDays takes the caller's clock as an argument:");
 const anchorMs = dayNum(anchor.asOfDate) * DAY_MS;

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { ACCUMULATION_BANDS, type AccumulationBandKey } from "@/lib/accumulation";
+import { HALVINGS } from "@/lib/data/types";
 import { fmtUsd } from "@/lib/format";
 import { track } from "@/lib/track";
 import { SegmentedControl } from "./SegmentedControl";
@@ -46,8 +47,8 @@ type RangeKey = (typeof RANGES)[number]["key"];
 
 const RANGE_FROM: Record<RangeKey, number> = {
   all: 0,
-  c4: Date.parse("2020-05-11"),
-  c5: Date.parse("2024-04-19"),
+  c4: Date.parse(HALVINGS[4]),
+  c5: Date.parse(HALVINGS[5]),
 };
 
 // Run-length encode consecutive same-band points into shaded segments, so we
