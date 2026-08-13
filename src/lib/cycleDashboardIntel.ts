@@ -29,7 +29,10 @@ import { fmtUsd } from "./format";
 
 // v2 (V2.1 Phase 1): adds the What Changed? executive summary (canonical
 // week-activity classification + considered-population counts).
-export const CYCLE_DASHBOARD_INTEL_VERSION = "cycle-dashboard-intel-v2";
+// v3 (V2.1 Phase 2): the What's Moving rail (cap 5, flagship dedupe) is
+// retired in favour of the Market Board — every considered reading, ranked,
+// with periods 1/7/30 served by marketBoard().
+export const CYCLE_DASHBOARD_INTEL_VERSION = "cycle-dashboard-intel-v3";
 
 // ── State of the Cycle strip ────────────────────────────────────────────────
 
@@ -127,59 +130,57 @@ function etfStripState(): DashboardStripState {
   };
 }
 
-// ── What's Moving rail ──────────────────────────────────────────────────────
+// ── Market Board (V2.1 Phase 2) ─────────────────────────────────────────────
+//
+// The whole considered market in one ranked list — the What's Moving rail's
+// successor. The rail capped at five material rows and hid the steady set;
+// the board shows every considered reading precisely because "14 ordinary,
+// 1 interesting" is itself the intelligence. No cap, no dedupe against the
+// Watch flagship (the board is the full market, not a movers digest), and
+// the ordering IS the engine's own ranking: significance descending, rarity
+// tie-break, registry order — stated on the page, never re-sorted here.
 
-export interface WhatsMovingRail {
-  /** Material movers in the engine's own order, after the composite
-   *  exclusion and the Most Interesting dedupe, capped for scanning. */
+export interface MarketBoard {
+  period: 1 | 7 | 30;
+  /** The movers' committed anchor for this period read. */
+  asOf: string;
+  /** Every considered reading — material first, then steady — in the
+   *  engine's own ranked order. Movement objects by identity. */
   rows: Movement[];
-  /** Readings the rail considers (the movers' set minus the composite). */
+  /** How many of rows are material (the board's emphasis split). */
+  materialCount: number;
   analysed: number;
-  /** How many of those moved materially, dedupe included. */
-  material: number;
-  /** Material rows not shown (dedupe + cap) — reachable via the snapshot. */
-  overflow: number;
-  /** The metric whose movement story the flagship already owns today. */
-  dedupedMetricId: string | null;
-  /** The engine-count scope sentence printed under the rail. */
-  scopeLine: string;
+  /** Readings with no observable movement at this period, with the
+   *  engine's own reason sentence (weekly series at 1 day, etc.). */
+  unavailable: Array<{ metricId: string; label: string; reason: string }>;
+  /** The deterministic ordering, stated for the reader. */
+  orderNote: string;
 }
 
-/** Rows the rail may show, before dedupe/cap. Material movers only —
- *  the rail never reaches into steady[]; a quiet rail is reported, not
- *  filled. The composite exclusion now lives in the engine's
- *  consideredMovers filter (V2.1 Phase 1) — the same population feeds the
- *  What Changed summary above, so the two can never disagree. */
-const RAIL_CAP = 5;
+const boardCache = new Map<string, MarketBoard>();
 
-function buildRail(
-  considered: ReturnType<typeof consideredMovers>,
-  watch: MetricWatch,
-): WhatsMovingRail {
-  const analysed = considered.analysed;
-  const material = considered.movements;
+/** The board for a period — separate from the 7-day summary payload so the
+ *  page can serve ?period=1|30 without recomputing the week verdict (the
+ *  What Changed? summary always describes the 7-day week). */
+export function marketBoard(period: 1 | 7 | 30 = 7, anchor?: string): MarketBoard {
+  const asOf = anchor ?? moversAsOf();
+  const key = `${period}@${asOf}`;
+  const hit = boardCache.get(key);
+  if (hit) return hit;
 
-  // Presentation dedupe (CD3 rule): when Most Interesting is itself a
-  // movement or gap event, the flagship already owns that metric's
-  // movement story today — repeating it as the first rail row says the
-  // same thing twice. Fresh regime TRANSITIONS are not deduped: the
-  // flagship's claim there is categorical ("entered X") while the rail
-  // row reports magnitude — different facts, both worth having.
-  const ev = watch.mostInteresting?.evidence;
-  const dedupedMetricId = ev && (ev.kind === "movement" || ev.kind === "gap_shift") ? ev.metricId : null;
-  const eligible = material.filter((m) => m.metricId !== dedupedMetricId);
-
-  const rows = eligible.slice(0, RAIL_CAP);
-  const overflow = material.length - rows.length;
-
-  const scopeLine =
-    material.length === 0
-      ? `${analysed} readings analysed · none moved materially over the last 7 days. All held within their own ordinary range.`
-      : rows.length === 0
-        ? `${analysed} readings analysed · every material movement is covered above.`
-        : `${analysed} readings analysed · ${material.length} moved materially over the last 7 days.`;
-
-  return { rows, analysed, material: material.length, overflow, dedupedMetricId, scopeLine };
+  const r = marketMovers(period, asOf);
+  const considered = consideredMovers(r);
+  const out: MarketBoard = {
+    period,
+    asOf,
+    rows: [...considered.movements, ...considered.steady],
+    materialCount: considered.movements.length,
+    analysed: considered.analysed,
+    unavailable: r.unavailable,
+    orderNote: "Ranked by the size of each move against that reading's own history.",
+  };
+  boardCache.set(key, out);
+  return out;
 }
 
 // ── What Changed? executive summary (V2.1 Phase 1) ──────────────────────────
@@ -242,9 +243,8 @@ function buildChangeSummary(considered: ReturnType<typeof consideredMovers>): Ch
 /** The static line beneath the engine-owned quiet sentence. The majority
  *  claim is only made when the movers' own counts support it; otherwise a
  *  general product-trust line that makes no market claim at all. */
-function quietSupportLine(rail: WhatsMovingRail): string {
-  const steady = rail.analysed - rail.material;
-  return steady * 2 > rail.analysed
+function quietSupportLine(summary: ChangeSummary): string {
+  return summary.steady * 2 > summary.analysed
     ? "Most readings moved within their own ordinary range over the last 7 days."
     : "Quiet days are shown as quiet — HalvingLens does not manufacture a signal.";
 }
@@ -260,7 +260,9 @@ export interface CycleDashboardIntel {
   watchQuietSupport: string;
   /** The What Changed? executive summary (V2.1 Phase 1). */
   summary: ChangeSummary;
-  moving: WhatsMovingRail;
+  /** The 7-day Market Board (V2.1 Phase 2) — the whole considered market.
+   *  Other periods are served by marketBoard(period) directly. */
+  board: MarketBoard;
   strip: DashboardStripState[];
   version: string;
 }
@@ -275,7 +277,6 @@ export function cycleDashboardIntel(anchor?: string): CycleDashboardIntel {
   const watch = metricWatch(asOf);
   const considered = consideredMovers(marketMovers(7, asOf));
   const summary = buildChangeSummary(considered);
-  const moving = buildRail(considered, watch);
   const strip: DashboardStripState[] = [
     bandedStripState("accumulation", "accumulation", "Accumulation", asOf, (v) => `${Math.round(v)}/100 · weekly`),
     bandedStripState("sentiment", "fear_greed", "Sentiment", asOf, (v) => `${Math.round(v)}/100`),
@@ -285,9 +286,9 @@ export function cycleDashboardIntel(anchor?: string): CycleDashboardIntel {
   const out: CycleDashboardIntel = {
     asOf,
     watch,
-    watchQuietSupport: quietSupportLine(moving),
+    watchQuietSupport: quietSupportLine(summary),
     summary,
-    moving,
+    board: marketBoard(7, asOf),
     strip,
     version: CYCLE_DASHBOARD_INTEL_VERSION,
   };

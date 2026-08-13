@@ -4,11 +4,11 @@ import { LastUpdated, cycleDayAsOf } from "@/components/LastUpdated";
 import { KpiStrip } from "@/components/dashboard/KpiStrip";
 import { ChangeSummary } from "@/components/dashboard/ChangeSummary";
 import { StateStrip } from "@/components/dashboard/StateStrip";
-import { WhatsMoving } from "@/components/dashboard/WhatsMoving";
+import { MarketBoard } from "@/components/dashboard/MarketBoard";
 import { ExploreFurther } from "@/components/dashboard/ExploreFurther";
 import { TrackedSection } from "@/components/TrackedSection";
 import { lensClientPayload, parseLensDay } from "@/lib/lensPayload";
-import { cycleDashboardIntel } from "@/lib/cycleDashboardIntel";
+import { cycleDashboardIntel, marketBoard } from "@/lib/cycleDashboardIntel";
 import { TODAY_DAY_IN_CYCLE, DAYS_PER_CYCLE } from "@/lib/btcData";
 import { cyclePhase, headlineSpot, cycleTrackingHeadline } from "@/lib/cycleIntel";
 import { cycleScorecard } from "@/lib/cycleSummary";
@@ -34,11 +34,15 @@ export const metadata = {
 export default function CycleDashboardPage({
   searchParams,
 }: {
-  searchParams: { day?: string | string[] };
+  searchParams: { day?: string | string[]; period?: string | string[] };
 }) {
   const payload = lensClientPayload();
   const initialDay = parseLensDay(searchParams.day, payload);
   const intel = cycleDashboardIntel();
+  // Board period — server-parsed like the Lens's ?day. 7D is the default
+  // (the Documenting-the-Cycle week); anything unrecognised clamps to it.
+  const period = searchParams.period === "1" ? 1 : searchParams.period === "30" ? 30 : 7;
+  const board = period === 7 ? intel.board : marketBoard(period);
 
   const spot = headlineSpot();
   const phase = cyclePhase();
@@ -87,11 +91,19 @@ export default function CycleDashboardPage({
           <TrackedSection id="dashboard-state-strip">
             <StateStrip states={intel.strip} />
           </TrackedSection>
+
+          {/* Market board (V2.1 Phase 2) — the whole considered market,
+              ranked; movers dominate, the quiet majority recedes. The full
+              movement picture is told BEFORE historical exploration. */}
+          <TrackedSection id="dashboard-market-board">
+            <MarketBoard board={board} />
+          </TrackedSection>
         </div>
       </div>
 
       {/* The Lens — the signature interaction: how does here compare?
-          One strong hairline marks the turn from the current dashboard to
+          Historical context follows today's intelligence (V2.1 hierarchy);
+          one strong hairline marks the turn from the current dashboard to
           historical exploration. */}
       <section aria-label="The Lens — every cycle at the selected day" className="border-t border-white/[0.09] pt-10 lg:pt-12">
         <div className="eyebrow text-editorial mb-1.5">The Lens</div>
@@ -104,14 +116,6 @@ export default function CycleDashboardPage({
         </p>
         <CycleLensExplorer payload={payload} initialDay={initialDay} />
       </section>
-
-      {/* What's moving — the scanning layer underneath (order B, the local
-          comparison's winner: on quiet days the Lens headline lands at the
-          desktop fold, and a dedupe-emptied rail never interrupts the step
-          from "what deserves attention" to "how does this compare"). */}
-      <TrackedSection id="dashboard-whats-moving">
-        <WhatsMoving rail={intel.moving} />
-      </TrackedSection>
 
       <ExploreFurther />
 
