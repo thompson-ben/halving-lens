@@ -36,9 +36,35 @@ export {
   RARITY_MIN_OBSERVATIONS,
   CROSSING_SIGNIFICANCE_FLOOR,
   MATERIAL_SIGNIFICANCE,
+  UNUSUAL_SIGNIFICANCE,
   EXCEPTIONAL_SIGNIFICANCE,
   bandFor,
+  isQuietWeek,
+  weekActivity,
+  WEEK_ACTIVITY_LABELS,
+  type WeekActivity,
 } from "./distribution";
+
+/** Composite readings excluded from the change-intelligence population
+ *  (V2.1 Phase 1) — THE recorded authority for the dashboard's analysed
+ *  count. market_health is a composite of readings already in the
+ *  population (and shown in the page header), so counting it beside its
+ *  own inputs double-counts them. NOTE: the State of Bitcoin Market
+ *  Snapshot deliberately still ranks all registered metrics including the
+ *  composite — its "16 readings analysed" is a different, standing product
+ *  decision; re-pointing it here would change that page's printed count
+ *  and is a founder call, not a consolidation. */
+export const COMPOSITE_METRIC_IDS: ReadonlySet<string> = new Set(["market_health"]);
+
+/** A movers result filtered to the change-intelligence population. Every
+ *  dashboard count (summary, rail, board) MUST come from this one filter so
+ *  printed counts and visible rows can never disagree. */
+export function consideredMovers(r: MoversResult): { movements: Movement[]; steady: Movement[]; analysed: number } {
+  const considered = (m: Movement) => !COMPOSITE_METRIC_IDS.has(m.metricId);
+  const movements = r.movements.filter(considered);
+  const steady = r.steady.filter(considered);
+  return { movements, steady, analysed: movements.length + steady.length };
+}
 
 const isoAt = (n: number): string => new Date(n * 86_400_000).toISOString().slice(0, 10);
 

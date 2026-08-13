@@ -19,7 +19,7 @@
 // Historical context. Not forecasts.
 
 import { marketMovers } from "../marketMovers";
-import { MATERIAL_SIGNIFICANCE } from "../marketMovers/distribution";
+import { isQuietWeek, MATERIAL_SIGNIFICANCE } from "../marketMovers/distribution";
 import { PRICE_ARCHIVE } from "../data/priceArchiveData";
 import { allCandidates, type Candidate } from "./rules";
 import type { TalkingPoint, WeekInFive } from "./types";
@@ -108,7 +108,10 @@ export function weekInFive(): WeekInFive {
   cache = {
     asOf: PRICE_ARCHIVE.length ? PRICE_ARCHIVE[PRICE_ARCHIVE.length - 1].date : r.asOf,
     points: selected.map((c, i): TalkingPoint => ({ ...c, rank: i + 1 })),
-    quietWeek: r.movements.filter((m) => m.significance >= MATERIAL_SIGNIFICANCE).length === 0,
+    // The shared canonical predicate (V2.1 Phase 1) over this surface's own
+    // population — every registered reading, composite included, exactly as
+    // before. Same rule, same population, bit-identical output.
+    quietWeek: isQuietWeek([...r.movements, ...r.steady].map((m) => m.significance)),
     candidatesConsidered: candidates.length,
   };
   return cache;

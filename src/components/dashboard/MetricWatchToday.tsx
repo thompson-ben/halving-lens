@@ -95,11 +95,15 @@ function OneToWatch({ c }: { c: MetricWatchCandidate }) {
   );
 }
 
+/** Rendered inside the What Changed? section (V2.1 Phase 1) — the summary
+ *  owns the section heading, so this block carries a quiet in-section
+ *  eyebrow instead of its own h2. Content is unchanged: the Watch's claims
+ *  stay the engine's verbatim. */
 export function MetricWatchToday({ watch, quietSupport }: { watch: MetricWatch; quietSupport: string }) {
   const quiet = watch.mostInteresting === null && watch.oneToWatch === null;
   return (
-    <section aria-label="Metric Watch — today">
-      <h2 className="eyebrow text-editorial mb-2.5">Metric Watch · today</h2>
+    <div aria-label="Metric Watch — today">
+      <div className="eyebrow text-ink-400 mb-2.5">Metric Watch · today</div>
       {quiet ? (
         // The intentional quiet state: HalvingLens checked; nothing clears
         // the bar. A structural container, not an empty paragraph — and
@@ -116,6 +120,6 @@ export function MetricWatchToday({ watch, quietSupport }: { watch: MetricWatch; 
           {watch.oneToWatch && <OneToWatch c={watch.oneToWatch} />}
         </div>
       )}
-    </section>
+    </div>
   );
 }

@@ -144,6 +144,11 @@ export const CROSSING_SIGNIFICANCE_FLOOR = 80;
  *  it a metric is reported as steady. */
 export const MATERIAL_SIGNIFICANCE = 60;
 
+/** The boundary bandFor draws for "unusual" — named for the same reason as
+ *  EXCEPTIONAL_SIGNIFICANCE: the week-activity classifier below references
+ *  THIS definition rather than minting a second threshold authority. */
+export const UNUSUAL_SIGNIFICANCE = 80;
+
 /** The boundary bandFor draws for "exceptional" — named so consumers that
  *  must expose the number (e.g. Metric Watch evidence objects) reference
  *  THIS definition rather than minting a second threshold authority. */
@@ -151,7 +156,48 @@ export const EXCEPTIONAL_SIGNIFICANCE = 95;
 
 export function bandFor(significance: number): "routine" | "notable" | "unusual" | "exceptional" {
   if (significance >= EXCEPTIONAL_SIGNIFICANCE) return "exceptional";
-  if (significance >= 80) return "unusual";
+  if (significance >= UNUSUAL_SIGNIFICANCE) return "unusual";
   if (significance >= 50) return "notable";
   return "routine";
+}
+
+// ── Week-activity classifier (V2.1 Phase 1) ─────────────────────────────────
+//
+// THE canonical quiet/activity vocabulary. Before this existed, quietWeek was
+// computed with the same expression in talkingPoints and weeklyBriefing and
+// with a different test in weekStory — three definitions of one product fact.
+// This is the single rule; each surface passes its OWN population of
+// significances (the dashboard passes its considered rows, the weekly
+// surfaces theirs), so consolidating the rule changes no surface's output.
+//
+// The three states describe market ACTIVITY, never bullishness/bearishness:
+// how much moved, and whether any of it was unusual for its own history.
+
+export type WeekActivity = "quiet" | "mostly_quiet" | "active";
+
+/** Member-facing labels — the founder-approved vocabulary, owned here. */
+export const WEEK_ACTIVITY_LABELS: Record<WeekActivity, string> = {
+  quiet: "Quiet week",
+  mostly_quiet: "Mostly quiet",
+  active: "Active week",
+};
+
+/** The one quiet-week predicate: nothing in the population cleared the
+ *  material threshold. */
+export function isQuietWeek(significances: readonly number[]): boolean {
+  return !significances.some((s) => s >= MATERIAL_SIGNIFICANCE);
+}
+
+/** Classify a week's activity from a population of significances.
+ *  quiet         — nothing material moved;
+ *  mostly_quiet  — something material moved, none of it unusual;
+ *  active        — at least one unusual/exceptional move, or broad material
+ *                  movement (3+ readings). Deterministic, derived only from
+ *                  the thresholds defined above. */
+export function weekActivity(significances: readonly number[]): WeekActivity {
+  const material = significances.filter((s) => s >= MATERIAL_SIGNIFICANCE).length;
+  if (material === 0) return "quiet";
+  const unusual = significances.filter((s) => s >= UNUSUAL_SIGNIFICANCE).length;
+  if (unusual >= 1 || material >= 3) return "active";
+  return "mostly_quiet";
 }
