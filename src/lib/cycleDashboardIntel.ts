@@ -19,12 +19,13 @@ import {
   consideredMovers,
   weekActivity,
   WEEK_ACTIVITY_LABELS,
+  formatValue,
   type Movement,
   type WeekActivity,
 } from "./marketMovers";
 import { metricWatch, stateRunFrom, type MetricWatch } from "./metricWatch";
 import { watchStateFor } from "./metricWatch/states";
-import { etfFlowsRead } from "./etfFlows";
+import { etfFlowsRead, windowBreakdown, type FlowBreakdown } from "./etfFlows";
 import { fmtUsd } from "./format";
 
 // v2 (V2.1 Phase 1): adds the What Changed? executive summary (canonical
@@ -32,7 +33,10 @@ import { fmtUsd } from "./format";
 // v3 (V2.1 Phase 2): the What's Moving rail (cap 5, flagship dedupe) is
 // retired in favour of the Market Board — every considered reading, ranked,
 // with periods 1/7/30 served by marketBoard().
-export const CYCLE_DASHBOARD_INTEL_VERSION = "cycle-dashboard-intel-v3";
+// v4 (V2.1 Phase 3): State-strip cells gain a deterministic change line and
+// the ETF intelligence card joins the payload (NOW → CHANGE → COMPOSITION →
+// CONCENTRATION → CONTEXT, all quoted from the flows engine's numbers).
+export const CYCLE_DASHBOARD_INTEL_VERSION = "cycle-dashboard-intel-v4";
 
 // ── State of the Cycle strip ────────────────────────────────────────────────
 
@@ -56,6 +60,12 @@ export interface DashboardStripState {
   sinceIsSeriesStart: boolean;
   /** The series' own latest observation on or before the anchor. */
   asOf: string | null;
+  /** NOW + WHAT CHANGED (V2.1 Phase 3): one deterministic movement line —
+   *  "7D: 27 → 24" for banded rows (the movers' own previous/current,
+   *  their own formatter), "previous 7 trading days: −$131.5M" for the
+   *  flow row. Null when the metric cannot honestly support the
+   *  comparison (no prior observation / short prior window). */
+  changeLine: string | null;
   href: string;
   unavailableReason: string | null;
 }
@@ -69,6 +79,7 @@ function bandedStripState(
   label: string,
   anchor: string,
   detailFor: (value: number) => string,
+  mover?: Movement,
 ): DashboardStripState {
   const metric = metricById(moverId);
   const def = watchStateFor(moverId);
@@ -79,12 +90,16 @@ function bandedStripState(
     sinceIsSeriesStart: false,
   };
   if (!metric || !def) {
-    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, sinceDate: null, asOf: null, unavailableReason: "Not tracked in the current registry." };
+    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, sinceDate: null, asOf: null, changeLine: null, unavailableReason: "Not tracked in the current registry." };
   }
   const run = stateRunFrom(def, metric.series(), anchor);
   if (!run) {
-    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, sinceDate: null, asOf: null, unavailableReason: "No observations at this date." };
+    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, sinceDate: null, asOf: null, changeLine: null, unavailableReason: "No observations at this date." };
   }
+  // The movers' own 7-day then→now, in the movers' own formatting — never a
+  // comparison this layer computes itself.
+  const changeLine =
+    mover && mover.previous != null ? `7D: ${formatValue(mover, mover.previous)} → ${formatValue(mover)}` : null;
   return {
     ...base,
     available: true,
@@ -95,6 +110,7 @@ function bandedStripState(
     sinceDate: run.sinceDate,
     sinceIsSeriesStart: run.sinceIsSeriesStart,
     asOf: run.asOf,
+    changeLine,
     unavailableReason: null,
   };
 }
@@ -109,7 +125,7 @@ function etfStripState(): DashboardStripState {
   const base = { id: "etf" as const, label: "ETF demand", href: metric?.href ?? "/etf", sinceIsSeriesStart: false, sinceDate: null };
   const r = etfFlowsRead();
   if (!r.connected || r.points.length === 0) {
-    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, asOf: null, unavailableReason: "Flow data is not connected." };
+    return { ...base, available: false, stateLabel: null, detail: null, value: null, net: null, asOf: null, changeLine: null, unavailableReason: "Flow data is not connected." };
   }
   const s = r.streak;
   const stateLabel =
@@ -118,6 +134,9 @@ function etfStripState(): DashboardStripState {
       : `${s.length}-day ${s.direction} streak`;
   const d7 = r.windows.d7;
   const detail = `${fmtUsd(d7.net, { compact: true, sign: true })} over ${d7.days} trading days`;
+  // Previous non-overlapping window — only claimed when it is a FULL window.
+  const prev = windowBreakdown(r.points, 7, 7);
+  const changeLine = prev.days === 7 ? `previous 7 trading days: ${fmtUsd(prev.net, { compact: true, sign: true })}` : null;
   return {
     ...base,
     available: true,
@@ -126,6 +145,7 @@ function etfStripState(): DashboardStripState {
     value: null,
     net: d7.net,
     asOf: r.points[r.points.length - 1]?.date ?? null,
+    changeLine,
     unavailableReason: null,
   };
 }
@@ -238,6 +258,106 @@ function buildChangeSummary(considered: ReturnType<typeof consideredMovers>): Ch
   };
 }
 
+// ── ETF intelligence card (V2.1 Phase 3) ────────────────────────────────────
+//
+// NOW → CHANGE → COMPOSITION → CONCENTRATION → CONTEXT, entirely from the
+// flows engine's canonical windows (Phase 0 primitives — no alternate ETF
+// calculation exists here). Every sentence is deterministic and templated;
+// each claim is made only when the data honestly supports it: the previous
+// window must be full, concentration needs a full window with a non-trivial
+// net, and a quiet/offsetting week is stated as one.
+
+export interface EtfIntelCard {
+  available: boolean;
+  unavailableReason: string | null;
+  /** The series' own last trading day. */
+  asOf: string | null;
+  // NOW
+  net: number | null;
+  netLabel: string | null;
+  windowDays: number;
+  // CHANGE — null when the prior window is not a full 7 trading days
+  prevNet: number | null;
+  prevNetLabel: string | null;
+  deltaLabel: string | null;
+  // COMPOSITION — the constituent trading days, oldest → newest
+  bars: Array<{ date: string; netFlow: number }>;
+  // CONCENTRATION — one deterministic sentence, null when not claimable
+  concentrationLine: string | null;
+  // CONTEXT — streak / reversal, null when nothing is honestly claimable
+  contextLine: string | null;
+}
+
+const pct = (x: number): string => `${Math.round(x * 100)}%`;
+const usd = (n: number): string => fmtUsd(n, { compact: true, sign: true });
+
+/** Deterministic concentration sentence over a full window. Rules:
+ *  · |net| < 5% of gross → the week offset itself; say so, with the gross.
+ *  · no same-sign dominant day → null (nothing honest to single out).
+ *  · dominant share > 100% of net (offsetting week) → gross framing with
+ *    the dominant day named; a ">100% of the net" fraction is never printed.
+ *  · share ≥ 50% → the day carried the week.
+ *  · share < 50% → demand was spread; the largest day is still quantified. */
+export function concentrationLineFor(b: FlowBreakdown): string | null {
+  if (b.days < 7 || b.net === 0) return null;
+  const gross = b.grossIn + b.grossOut;
+  if (gross === 0) return null;
+  const word = b.net > 0 ? "inflow" : "outflow";
+  if (Math.abs(b.net) < 0.05 * gross) {
+    return `Inflows and outflows largely offset: ${usd(b.grossIn)} in, ${usd(-b.grossOut)} out.`;
+  }
+  if (!b.dominant) return null;
+  const day = prettyIso(b.dominant.date);
+  if (b.dominant.share > 1) {
+    return `${usd(b.grossIn)} in, ${usd(-b.grossOut)} out — the largest ${word} day (${day}, ${usd(b.dominant.netFlow)}) exceeded the week's whole net.`;
+  }
+  if (b.dominant.share >= 0.5) {
+    return `${pct(b.dominant.share)} of the net ${word} came on ${day} (${usd(b.dominant.netFlow)}).`;
+  }
+  return `Spread across the week — the largest single day (${day}) contributed ${pct(b.dominant.share)} of the net.`;
+}
+
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function prettyIso(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${d} ${MONTH_ABBR[m - 1]} ${y}`;
+}
+
+/** Context: the streak when it has length, else a full-window reversal. */
+export function etfContextLine(streak: { direction: string; length: number }, now: FlowBreakdown, prev: FlowBreakdown): string | null {
+  if (streak.length >= 2 && (streak.direction === "inflow" || streak.direction === "outflow")) {
+    return `${streak.length} straight trading days of net ${streak.direction}s.`;
+  }
+  if (now.days === 7 && prev.days === 7 && now.net !== 0 && prev.net !== 0 && Math.sign(now.net) !== Math.sign(prev.net)) {
+    return `The week swung from net ${prev.net > 0 ? "inflow" : "outflow"} to net ${now.net > 0 ? "inflow" : "outflow"}.`;
+  }
+  return null;
+}
+
+function buildEtfIntel(): EtfIntelCard {
+  const r = etfFlowsRead();
+  if (!r.connected || r.points.length === 0) {
+    return { available: false, unavailableReason: "Flow data is not connected.", asOf: null, net: null, netLabel: null, windowDays: 0, prevNet: null, prevNetLabel: null, deltaLabel: null, bars: [], concentrationLine: null, contextLine: null };
+  }
+  const now = windowBreakdown(r.points, 7);
+  const prev = windowBreakdown(r.points, 7, 7);
+  const fullPrev = prev.days === 7;
+  return {
+    available: true,
+    unavailableReason: null,
+    asOf: r.points[r.points.length - 1]?.date ?? null,
+    net: now.net,
+    netLabel: usd(now.net),
+    windowDays: now.days,
+    prevNet: fullPrev ? prev.net : null,
+    prevNetLabel: fullPrev ? usd(prev.net) : null,
+    deltaLabel: fullPrev ? usd(now.net - prev.net) : null,
+    bars: now.bars,
+    concentrationLine: concentrationLineFor(now),
+    contextLine: etfContextLine(r.streak, now, prev),
+  };
+}
+
 // ── quiet-day support line ──────────────────────────────────────────────────
 
 /** The static line beneath the engine-owned quiet sentence. The majority
@@ -263,6 +383,8 @@ export interface CycleDashboardIntel {
   /** The 7-day Market Board (V2.1 Phase 2) — the whole considered market.
    *  Other periods are served by marketBoard(period) directly. */
   board: MarketBoard;
+  /** The ETF intelligence card (V2.1 Phase 3). */
+  etf: EtfIntelCard;
   strip: DashboardStripState[];
   version: string;
 }
@@ -277,9 +399,10 @@ export function cycleDashboardIntel(anchor?: string): CycleDashboardIntel {
   const watch = metricWatch(asOf);
   const considered = consideredMovers(marketMovers(7, asOf));
   const summary = buildChangeSummary(considered);
+  const rowById = (id: string) => [...considered.movements, ...considered.steady].find((m) => m.metricId === id);
   const strip: DashboardStripState[] = [
-    bandedStripState("accumulation", "accumulation", "Accumulation", asOf, (v) => `${Math.round(v)}/100 · weekly`),
-    bandedStripState("sentiment", "fear_greed", "Sentiment", asOf, (v) => `${Math.round(v)}/100`),
+    bandedStripState("accumulation", "accumulation", "Accumulation", asOf, (v) => `${Math.round(v)}/100 · weekly`, rowById("accumulation")),
+    bandedStripState("sentiment", "fear_greed", "Sentiment", asOf, (v) => `${Math.round(v)}/100`, rowById("fear_greed")),
     etfStripState(),
   ];
 
@@ -289,6 +412,7 @@ export function cycleDashboardIntel(anchor?: string): CycleDashboardIntel {
     watchQuietSupport: quietSupportLine(summary),
     summary,
     board: marketBoard(7, asOf),
+    etf: buildEtfIntel(),
     strip,
     version: CYCLE_DASHBOARD_INTEL_VERSION,
   };

@@ -14,6 +14,7 @@ import { join } from "node:path";
 import {
   cycleDashboardIntel,
   marketBoard,
+  concentrationLineFor,
   CYCLE_DASHBOARD_INTEL_VERSION,
 } from "../src/lib/cycleDashboardIntel";
 import {
@@ -21,6 +22,7 @@ import {
   moversAsOf,
   metricById,
   consideredMovers,
+  formatValue,
   MATERIAL_SIGNIFICANCE,
   UNUSUAL_SIGNIFICANCE,
   isQuietWeek,
@@ -32,7 +34,7 @@ import { metricWatch, stateRunFrom } from "../src/lib/metricWatch";
 import { watchStateFor } from "../src/lib/metricWatch/states";
 import { ACCUMULATION_BANDS } from "../src/lib/accumulation";
 import { bandFor as sentimentBandFor } from "../src/lib/sentiment";
-import { etfFlowsRead } from "../src/lib/etfFlows";
+import { etfFlowsRead, windowBreakdown } from "../src/lib/etfFlows";
 
 let failures = 0;
 function check(name: string, cond: boolean, detail?: unknown) {
@@ -171,6 +173,60 @@ check("the composite never appears in the summary", [...intel.summary.needsAtten
   check("a non-quiet state occurs in real data", seen.mostly_quiet + seen.active > 0, seen);
 }
 check("weekInFive's repointed quietWeek is bit-identical to its old expression", weekInFive().quietWeek === (marketMovers(7).movements.length === 0));
+
+// ── 2d · ETF intelligence card (V2.1 Phase 3) ───────────────────────────────
+console.log("Flow window breakdown (sign-aware, pure):");
+{
+  const mk = (flows: number[]) => flows.map((f, i) => ({ date: `2026-01-${String(i + 5).padStart(2, "0")}`, netFlow: f, cumulative: 0 }));
+  const broad = windowBreakdown(mk([40e6, 55e6, 35e6, 60e6, 50e6, 45e6, 42e6]), 7);
+  check("broad-based week: dominant share under a half", broad.dominant != null && broad.dominant.share < 0.5 && broad.grossOut === 0);
+  const spiky = windowBreakdown(mk([40e6, 55e6, 35e6, 60e6, 292e6, 30e6, 20e6]), 7);
+  check("concentrated week: the spike day dominates with an honest fraction", spiky.dominant != null && spiky.dominant.share >= 0.5 && spiky.dominant.netFlow === 292e6);
+  const mixed = windowBreakdown(mk([244e6, -145e6, 129e6, 99e6, -61e6, 211e6, 5e6]), 7);
+  check("mixed week: dominant day always shares the NET's sign — never a negative share", mixed.net > 0 && mixed.dominant != null && mixed.dominant.netFlow > 0 && mixed.dominant.share > 0);
+  const offsetting = windowBreakdown(mk([300e6, -295e6, 200e6, -190e6, 100e6, -95e6, -10e6]), 7);
+  check("offsetting week: gross totals carried for honest framing", offsetting.grossIn === 600e6 && offsetting.grossOut === 590e6);
+  const over = windowBreakdown(mk([500e6, -450e6, 30e6, 10e6, 5e6, 3e6, 2e6]), 7);
+  check("a dominant day can exceed the net — share over 1 is representable", over.dominant != null && over.dominant.share > 1);
+  check("short window reports its true size", windowBreakdown(mk([1e6, 2e6]), 7).days === 2);
+
+  console.log("Concentration sentence rules (deterministic):");
+  const line = (b: ReturnType<typeof windowBreakdown>) => concentrationLineFor(b);
+  check("broad week → spread sentence with the largest day quantified", /^Spread across the week/.test(line(broad) ?? "") && /%/.test(line(broad) ?? ""));
+  check("concentrated week → the day carried the net", /% of the net inflow came on/.test(line(spiky) ?? ""));
+  check("offsetting week → gross framing, never a fraction of a trivial net", /largely offset/.test(line(offsetting) ?? "") && !/%/.test(line(offsetting) ?? ""));
+  check("dominant beyond the net → gross framing names the day, never prints >100%", /exceeded the week's whole net/.test(line(over) ?? "") && !/1\d\d%/.test(line(over) ?? ""));
+  check("short window → no concentration claim", line(windowBreakdown(mk([1e6, 2e6]), 7)) === null);
+}
+
+console.log("ETF intelligence card composition:");
+{
+  const e = intel.etf;
+  const r = etfFlowsRead();
+  const now = windowBreakdown(r.points, 7);
+  const prev = windowBreakdown(r.points, 7, 7);
+  check("card is available with the committed series", e.available && e.unavailableReason === null);
+  check("NOW is the canonical 7-trading-day window", e.net === now.net && e.windowDays === now.days);
+  check("asOf is the series' own last trading day", e.asOf === r.points[r.points.length - 1].date);
+  check("CHANGE quotes the previous full window and its delta", prev.days === 7 ? e.prevNet === prev.net && e.deltaLabel != null : e.prevNet === null && e.deltaLabel === null);
+  check("COMPOSITION is the window's own constituent days", e.bars.length === now.days && e.bars.every((b, i) => b.date === now.bars[i].date && b.netFlow === now.bars[i].netFlow));
+  check("CONCENTRATION line matches the exported rule", e.concentrationLine === concentrationLineFor(now));
+  check("CONTEXT is streak or reversal, never invented", e.contextLine === null || /straight trading days of net/.test(e.contextLine) || /swung from net/.test(e.contextLine));
+}
+
+console.log("State-strip change lines (V2.1 Phase 3):");
+{
+  const rowById = (id: string) => [...r7.movements, ...r7.steady].find((m) => m.metricId === id);
+  const [acc2, sent2, etf2] = intel.strip;
+  const accRow = rowById("accumulation");
+  const sentRow = rowById("fear_greed");
+  check("accumulation change line is the movers' own then→now, movers' own formatter", accRow?.previous == null ? acc2.changeLine === null : acc2.changeLine === `7D: ${formatValue(accRow, accRow.previous)} → ${formatValue(accRow)}`);
+  check("sentiment change line likewise", sentRow?.previous == null ? sent2.changeLine === null : sent2.changeLine === `7D: ${formatValue(sentRow, sentRow.previous)} → ${formatValue(sentRow)}`);
+  check("ETF change line is the previous full trading-day window", (() => {
+    const prev = windowBreakdown(etfFlowsRead().points, 7, 7);
+    return prev.days === 7 ? etf2.changeLine != null && /previous 7 trading days:/.test(etf2.changeLine) : etf2.changeLine === null;
+  })());
+}
 
 // ── 3 · State of the Cycle strip ────────────────────────────────────────────
 console.log("State of the Cycle strip:");

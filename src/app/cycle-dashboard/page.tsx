@@ -5,6 +5,7 @@ import { KpiStrip } from "@/components/dashboard/KpiStrip";
 import { ChangeSummary } from "@/components/dashboard/ChangeSummary";
 import { StateStrip } from "@/components/dashboard/StateStrip";
 import { MarketBoard } from "@/components/dashboard/MarketBoard";
+import { EtfIntelCard } from "@/components/dashboard/EtfIntelCard";
 import { ExploreFurther } from "@/components/dashboard/ExploreFurther";
 import { TrackedSection } from "@/components/TrackedSection";
 import { lensClientPayload, parseLensDay } from "@/lib/lensPayload";
@@ -97,6 +98,13 @@ export default function CycleDashboardPage({
               movement picture is told BEFORE historical exploration. */}
           <TrackedSection id="dashboard-market-board">
             <MarketBoard board={board} />
+          </TrackedSection>
+
+          {/* ETF intelligence (V2.1 Phase 3) — NOW → CHANGE → COMPOSITION →
+              CONCENTRATION → CONTEXT: the week in flows, explained from the
+              page alone. */}
+          <TrackedSection id="dashboard-etf-intel">
+            <EtfIntelCard etf={intel.etf} />
           </TrackedSection>
         </div>
       </div>
