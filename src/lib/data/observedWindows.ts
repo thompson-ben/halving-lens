@@ -31,7 +31,7 @@ export interface SeriesWindow {
   label: string;
   source: string;
   nature: SeriesNature;
-  cadence: "daily" | "weekly" | "mixed";
+  cadence: "daily" | "weekly" | "mixed" | "trading-day";
   /** ISO dates of the first/last points actually present; null when absent. */
   firstObserved: string | null;
   lastObserved: string | null;
@@ -143,7 +143,7 @@ export function observedWindows(): SeriesWindow[] {
   );
   out.push(
     windowOf(
-      { id: "etfFlows", label: "US spot ETF net flows", source: SNAPSHOT.etf?.source ?? "SoSoValue", nature: "observed", cadence: "daily" },
+      { id: "etfFlows", label: "US spot ETF net flows", source: SNAPSHOT.etf?.source ?? "SoSoValue", nature: "observed", cadence: "trading-day" },
       (SNAPSHOT.etf?.points ?? []).map((p) => p.date ?? null),
     ),
   );

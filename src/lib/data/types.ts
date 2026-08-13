@@ -225,7 +225,10 @@ export interface PriceHistoryPoint {
 }
 
 // US spot Bitcoin ETF daily flows (SoSoValue). netFlow is the day's net
-// inflow/outflow in USD; cumulative is the running total since launch.
+// inflow/outflow in USD; cumulative is the running net total since the FIRST
+// STORED observation (recomputed over the merged archive) — the provider's
+// window never reached back to the Jan-2024 launch, so this is NOT a
+// since-launch figure and must not be presented as one.
 export interface EtfFlowPoint {
   date: string; // ISO date
   netFlow: number; // USD, +inflow / -outflow

@@ -5,7 +5,7 @@
 // data: the source is aggregate-only, so the per-ETF table stays an honest
 // "coming soon" until a per-issuer source is connected.
 
-import { ETF, etfStats, type EtfFlowPoint, type EtfStats } from "./etf";
+import { ETF, etfStats, etfWindowNet, type EtfFlowPoint, type EtfStats } from "./etf";
 
 export interface FlowWindow {
   days: number; // how many data points the window actually covers
@@ -37,10 +37,13 @@ export interface EtfFlowsRead {
   points: EtfFlowPoint[];
 }
 
-function windowOf(points: EtfFlowPoint[], n: number): FlowWindow {
-  const slice = points.slice(-n);
-  const net = slice.reduce((sum, p) => sum + p.netFlow, 0);
-  return { days: slice.length, net, avgPerDay: slice.length ? net / slice.length : 0 };
+/** A flow window over the shared etfWindowNet sum. `offset` counts points
+ *  back from the end, so windowOf(points, 7, 7) is the previous 7-trading-day
+ *  window — exported for the change-intelligence surfaces that compare
+ *  consecutive windows. */
+export function windowOf(points: readonly EtfFlowPoint[], n: number, offset = 0): FlowWindow {
+  const { days, net } = etfWindowNet(points, n, offset);
+  return { days, net, avgPerDay: days ? net / days : 0 };
 }
 
 function streakOf(points: EtfFlowPoint[]): FlowStreak {
