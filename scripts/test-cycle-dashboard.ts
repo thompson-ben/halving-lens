@@ -117,13 +117,15 @@ check("the standing close is present", /Historical context, not a prediction\./.
 console.log("CD3 page composition:");
 check("page consumes the composition layer, not the engines directly", /cycleDashboardIntel\(\)/.test(page) && !/marketMovers\(/.test(page) && !/metricWatch\(/.test(page));
 check(
-  "final hierarchy: orientation → What Changed? → state strip → Lens → What's Moving → explore → Pro",
+  "final hierarchy: orientation → What Changed? → state strip → Market Board → Lens → explore → Pro",
   (() => {
-    const order = ["<header", "<KpiStrip", "<ChangeSummary", "<StateStrip", "<CycleLensExplorer", "<WhatsMoving", "<ExploreFurther", "<ProEarlyAccess"];
+    const order = ["<header", "<KpiStrip", "<ChangeSummary", "<StateStrip", "<MarketBoard", "<CycleLensExplorer", "<ExploreFurther", "<ProEarlyAccess"];
     const idx = order.map((m) => page.indexOf(m));
     return idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1]));
   })(),
 );
+check("the retired What's Moving rail is gone, not orphaned", !/WhatsMoving/.test(page) && !existsSync(join(__dirname, "../src/components/dashboard/WhatsMoving.tsx")));
+check("board period is server-parsed like the Lens day — 7 is the default, junk clamps", /searchParams\.period === "1" \? 1 : searchParams\.period === "30" \? 30 : 7/.test(page));
 check("the dashboard zone tightens; the Lens opens the editorial zone with one hairline", /space-y-6 sm:space-y-7/.test(page) && /aria-label="The Lens[^"]*" className="border-t/.test(page));
 check("new sections are measured with existing event machinery only", (page.match(/TrackedSection/g) ?? []).length >= 3 && !/track\(/.test(page));
 
@@ -169,13 +171,22 @@ check("no internal significance number is displayed", !/significance\.value|\{si
 check("asymmetric treatment — one card, one aside", /<article className="card/.test(mw) && /<aside/.test(mw));
 check("band chip only claims rarity when the engine allows it", /rarityState !== "available"/.test(mw));
 
-console.log("WhatsMoving renderer contracts:");
-const wmv = read("../src/components/dashboard/WhatsMoving.tsx");
-check("quotes the movers' own formatter — no numbers re-derived", /formatMovement\(/.test(wmv) && !/toFixed|Math\.round/.test(wmv));
-check("no toggle, no thresholds, no second movement engine", !/useState|PERIODS|MATERIAL_SIGNIFICANCE/.test(wmv));
-check("direction carried by the sign, colour as reinforcement", /formatMovement/.test(wmv) && /direction/.test(wmv));
-check("scope sentence quoted from the payload", /\{rail\.scopeLine\}/.test(wmv));
-check("deep link to the full snapshot", /\/state-of-bitcoin#movers/.test(wmv));
+console.log("MarketBoard renderer contracts (V2.1 Phase 2):");
+const mb = read("../src/components/dashboard/MarketBoard.tsx");
+const mbCode = stripCm(mb);
+check("quotes the movers' own formatters and describe layer — nothing re-derived", /formatMovement\(/.test(mb) && /formatValue\(/.test(mb) && /meaningLine\(/.test(mb) && /rarityLine\(/.test(mb) && /thenNowLine\(/.test(mb));
+check("no client JS — expansion is native details/summary", !/useState|useEffect|"use client"/.test(mb) && /<details/.test(mb) && /<summary/.test(mb));
+check("no thresholds, no engine calls, no second movement engine", !/MATERIAL_SIGNIFICANCE|UNUSUAL_SIGNIFICANCE|marketMovers\(|metricWatch\(/.test(mb));
+check("emphasis follows significance, never direction — no green/red tones", !/text-pos|text-neg|text-(green|red)|(green|red)-\d/.test(mbCode) && /editorial/.test(mb));
+check("asymmetric attention: distinct material and routine treatments", /tier === "routine"/.test(mb) && /"material"/.test(mb));
+check("the quiet majority is headed by its own factual claim", /Within their own ordinary/.test(mb) && /Every reading within its own ordinary/.test(mb));
+check("rarity honesty: maturing comparisons never wear a band word", /Comparison maturing/.test(mb) && /rarityState !== "available"/.test(mb));
+check("cadence/as-of honesty travels on the rows that owe it", /weekly series/.test(mb) && /trading-day series/.test(mb) && /measured to/.test(mb));
+check("unavailable rows close the board with the engine's own reason", /board\.unavailable/.test(mb) && /u\.reason/.test(mb));
+check("period toggle is links, 7D canonical at the bare route", /\?period=\$\{p\}/.test(mb) && /"\/cycle-dashboard"/.test(mb) && /PERIODS = \[1, 7, 30\]/.test(mb));
+check("the ordering is stated for the reader", /\{board\.orderNote\}/.test(mb));
+check("deep links: every row to its metric page, board to the full snapshot", /href=\{m\.href\}/.test(mb) && /\/state-of-bitcoin#movers/.test(mb));
+check("spark is SSR-stable — no random ids, no gradients", !/Math\.random|Gradient|useId/.test(mbCode) && !/<linearGradient|url\(#/.test(mb) && /<polyline/.test(mb));
 
 console.log("StateStrip renderer contracts:");
 check("one strip, not three cards", !/className="card/.test(strip));
@@ -266,7 +277,8 @@ for (const [name, src] of [
   ["explorer", explorer],
   ["pro seam", pro],
   ["metric watch", mw],
-  ["whats moving", wmv],
+  ["market board", mb],
+  ["change summary", cs],
   ["state strip", strip],
   ["explore further", explore],
 ] as const) {

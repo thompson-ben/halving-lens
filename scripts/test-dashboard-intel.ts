@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   cycleDashboardIntel,
+  marketBoard,
   CYCLE_DASHBOARD_INTEL_VERSION,
 } from "../src/lib/cycleDashboardIntel";
 import {
@@ -58,56 +59,58 @@ check("Metric Watch passes through by identity — never cloned or rewritten", i
   check("composing mutates neither Metric Watch nor the movers", JSON.stringify(metricWatch(asOf)) + JSON.stringify(marketMovers(7)) === before);
 }
 
-// ── 2 · What's Moving rail rules ────────────────────────────────────────────
-console.log("What's Moving rail:");
+// ── 2 · Market Board rules (V2.1 Phase 2) ───────────────────────────────────
+console.log("Market Board:");
 const r7 = marketMovers(7);
-check("rows are the movers' own Movement objects (identity)", intel.moving.rows.every((m) => r7.movements.includes(m)));
-check("material only — the rail never reaches into steady[]", intel.moving.rows.every((m) => m.significance >= MATERIAL_SIGNIFICANCE));
-check("market_health never appears", intel.moving.rows.every((m) => m.metricId !== "market_health"));
-check("engine order preserved", (() => {
-  const idx = intel.moving.rows.map((m) => r7.movements.indexOf(m));
-  return idx.every((v, i) => i === 0 || v > idx[i - 1]);
+check("board rows are the movers' own Movement objects (identity)", intel.board.rows.every((m) => r7.movements.includes(m) || r7.steady.includes(m)));
+check("the WHOLE considered market — nothing capped, nothing hidden", intel.board.rows.length === intel.board.analysed && intel.board.analysed === [...r7.movements, ...r7.steady].filter((m) => m.metricId !== "market_health").length);
+check("market_health never appears", intel.board.rows.every((m) => m.metricId !== "market_health"));
+check("material block first, then steady — the engine's own ranked order", (() => {
+  const material = intel.board.rows.slice(0, intel.board.materialCount);
+  const routine = intel.board.rows.slice(intel.board.materialCount);
+  const mIdx = material.map((m) => r7.movements.indexOf(m));
+  const sIdx = routine.map((m) => r7.steady.indexOf(m));
+  return (
+    material.every((m) => m.significance >= MATERIAL_SIGNIFICANCE) &&
+    routine.every((m) => m.significance < MATERIAL_SIGNIFICANCE) &&
+    mIdx.every((v, i) => v >= 0 && (i === 0 || v > mIdx[i - 1])) &&
+    sIdx.every((v, i) => v >= 0 && (i === 0 || v > sIdx[i - 1]))
+  );
 })());
-check("capped at 5", intel.moving.rows.length <= 5);
-check("analysed = the movers' set minus the composite", intel.moving.analysed === [...r7.movements, ...r7.steady].filter((m) => m.metricId !== "market_health").length);
-check("overflow accounts for every material row not shown", intel.moving.overflow === intel.moving.material - intel.moving.rows.length);
+check("board counts agree with the summary — one considered population", intel.board.analysed === intel.summary.analysed && intel.board.materialCount === intel.summary.material);
+check("the default board IS the 7-day board (cached identity)", intel.board === marketBoard(7, asOf) && intel.board.period === 7);
+check("orderNote states the deterministic ranking", /own history/.test(intel.board.orderNote));
 
-// The dedupe rule, proven across a year of real anchors: when the flagship
-// owns a movement/gap story the rail never repeats that metric; fresh
-// transitions are never deduped (categorical claim ≠ magnitude claim).
+console.log("Market Board periods:");
+{
+  const b1 = marketBoard(1, asOf);
+  const b30 = marketBoard(30, asOf);
+  check("1D board honestly omits weekly series via the engine's unavailable set", b1.unavailable.some((u) => u.metricId === "accumulation") && b1.unavailable.some((u) => u.metricId === "mining_cost"));
+  check("1D unavailable reasons are the engine's own sentences", b1.unavailable.every((u) => u.reason.length > 0));
+  check("unavailable rows never also appear as board rows", b1.unavailable.every((u) => !b1.rows.some((m) => m.metricId === u.metricId)));
+  check("30D board covers the full considered population", b30.rows.length === b30.analysed && b30.rows.every((m) => m.metricId !== "market_health"));
+  check("each period is cached per anchor", marketBoard(1, asOf) === b1 && marketBoard(30, asOf) === b30);
+  check("rows + unavailable account for every considered metric at every period", (() => {
+    const total = (b: ReturnType<typeof marketBoard>) => b.rows.length + b.unavailable.filter((u) => u.metricId !== "market_health").length;
+    return total(b1) === intel.board.analysed && total(b30) === intel.board.analysed;
+  })());
+}
+
+// Board/summary agreement, proven across a year of real anchors — and all
+// three Metric Watch product states still occur in real data.
 {
   const endDay = Math.floor(Date.parse(`${asOf}T00:00:00Z`) / 86_400_000);
-  let movementDays = 0;
-  let transitionDays = 0;
   let otwOnlyDays = 0;
   let quietDays = 0;
   let ok = true;
   for (let d = endDay - 364; d <= endDay; d += 1) {
     const x = cycleDashboardIntel(iso(d));
-    const ev = x.watch.mostInteresting?.evidence;
-    if (ev && (ev.kind === "movement" || ev.kind === "gap_shift")) {
-      movementDays++;
-      if (x.moving.dedupedMetricId !== ev.metricId) ok = false;
-      if (x.moving.rows.some((m) => m.metricId === ev.metricId)) ok = false;
-    } else {
-      if (x.moving.dedupedMetricId !== null) ok = false;
-      if (ev) transitionDays++;
-    }
+    if (x.board.analysed !== x.summary.analysed || x.board.materialCount !== x.summary.material) ok = false;
+    if (x.board.rows.length !== x.board.analysed) ok = false;
     if (!x.watch.mostInteresting && x.watch.oneToWatch) otwOnlyDays++;
     if (!x.watch.mostInteresting && !x.watch.oneToWatch) quietDays++;
-    // scope sentence always consistent with the counts it quotes
-    const s = x.moving.scopeLine;
-    const expected =
-      x.moving.material === 0
-        ? `${x.moving.analysed} readings analysed · none moved materially over the last 7 days. All held within their own ordinary range.`
-        : x.moving.rows.length === 0
-          ? `${x.moving.analysed} readings analysed · every material movement is covered above.`
-          : `${x.moving.analysed} readings analysed · ${x.moving.material} moved materially over the last 7 days.`;
-    if (s !== expected) ok = false;
   }
-  check("dedupe + scope sentence hold on every anchor of the last year", ok);
-  check("the movement-dedupe branch is exercised by real data", movementDays > 0, movementDays);
-  check("the transition (no-dedupe) branch is exercised by real data", transitionDays > 0, transitionDays);
+  check("board/summary agreement holds on every anchor of the last year", ok);
   check("all three Metric Watch product states occur in the last year", otwOnlyDays > 0 && quietDays > 0, { otwOnlyDays, quietDays });
 }
 
@@ -127,7 +130,7 @@ check("three labels, activity words only — no direction, no sentiment", (() =>
 
 console.log("What Changed? summary composition:");
 const considered = consideredMovers(r7);
-check("summary counts come from the SAME considered population as the rail", intel.summary.analysed === intel.moving.analysed && intel.summary.material === intel.moving.material);
+check("summary counts come from the SAME considered population as the board", intel.summary.analysed === intel.board.analysed && intel.summary.material === intel.board.materialCount);
 check("material + steady = analysed", intel.summary.material + intel.summary.steady === intel.summary.analysed);
 check("activity is the canonical classifier over the considered rows", intel.summary.activity === weekActivity([...considered.movements, ...considered.steady].map((m) => m.significance)));
 check("label is quoted from the engine's vocabulary", intel.summary.activityLabel === WEEK_ACTIVITY_LABELS[intel.summary.activity]);
@@ -158,7 +161,7 @@ check("the composite never appears in the summary", [...intel.summary.needsAtten
   for (let d = endDay - 364; d <= endDay; d += 1) {
     const x = cycleDashboardIntel(iso(d));
     seen[x.summary.activity]++;
-    if (x.summary.analysed !== x.moving.analysed || x.summary.material !== x.moving.material) ok = false;
+    if (x.summary.analysed !== x.board.analysed || x.summary.material !== x.board.materialCount) ok = false;
     if (x.summary.activityLabel !== WEEK_ACTIVITY_LABELS[x.summary.activity]) ok = false;
     if (x.summary.material === 0 && x.summary.activity !== "quiet") ok = false;
     if (x.summary.unusual > 0 && x.summary.activity !== "active") ok = false;
@@ -203,9 +206,9 @@ check("fields stay in their lanes (no value for ETF, no net for banded)", etf.va
 // ── 4 · Quiet support line ──────────────────────────────────────────────────
 console.log("Quiet support line:");
 {
-  const steady = intel.moving.analysed - intel.moving.material;
+  const steady = intel.summary.steady;
   const expected =
-    steady * 2 > intel.moving.analysed
+    steady * 2 > intel.summary.analysed
       ? "Most readings moved within their own ordinary range over the last 7 days."
       : "Quiet days are shown as quiet — HalvingLens does not manufacture a signal.";
   check("the majority claim is only made when the movers' counts support it", intel.watchQuietSupport === expected);
@@ -234,7 +237,7 @@ console.log("Language sweep:");
   const endDay = Math.floor(Date.parse(`${asOf}T00:00:00Z`) / 86_400_000);
   for (let d = endDay - 364; d <= endDay; d += 7) {
     const x = cycleDashboardIntel(iso(d));
-    texts.add(x.moving.scopeLine);
+    texts.add(x.board.orderNote);
     texts.add(x.watchQuietSupport);
     texts.add(`${x.summary.activityLabel} ${x.summary.countsLine}`);
     for (const s of x.strip) texts.add(`${s.label} ${s.stateLabel ?? ""} ${s.detail ?? ""} ${s.unavailableReason ?? ""}`);
