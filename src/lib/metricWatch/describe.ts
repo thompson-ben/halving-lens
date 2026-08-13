@@ -228,9 +228,16 @@ export function describeOneToWatch(a: ApproachCandidate, asOf: string): MetricWa
 
 /** Engine-owned quiet wording. "Today" is claimed only when every watched
  *  series is current to the global anchor; otherwise the claim is scoped
- *  honestly to the readings actually available. */
+ *  honestly to the readings actually available.
+ *
+ *  Wording (V2.1 Phase 1 founder correction): the Watch's quiet claim
+ *  describes its own higher bar — the Exceptional threshold and fresh
+ *  state changes — and deliberately avoids the word "unusual", which is a
+ *  formal significance band the movement summary may be displaying on the
+ *  same screen. "RHODL moved unusually" and "nothing cleared the Watch's
+ *  stronger bar" must be able to coexist without reading as contradiction. */
 export function quietLineFor(allCurrent: boolean): string {
   return allCurrent
-    ? "Nothing unusually significant is moving today."
-    : "Nothing unusually significant is moving in the latest available readings.";
+    ? "No exceptional movement or fresh state change is showing today."
+    : "No exceptional movement or fresh state change is showing in the latest available readings.";
 }

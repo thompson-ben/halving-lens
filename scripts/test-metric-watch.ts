@@ -195,6 +195,10 @@ console.log("Quiet behaviour:");
   }
 }
 check("the two quiet wordings differ only in scope", quietLineFor(true).includes("today") && quietLineFor(false).includes("latest available readings"));
+// Founder correction (V2.1 Phase 1): the quiet claim describes the Watch's
+// own higher bar and never uses "unusual" — that word is a formal
+// significance band the movement summary may display on the same screen.
+check("quiet wording describes the Watch's own bar, never the Unusual band word", [quietLineFor(true), quietLineFor(false)].every((s) => /exceptional/i.test(s) && !/unusual/i.test(s)));
 
 // ── 6 · Behaviour freeze — MW1 only READS the existing engines ─────────────
 console.log("Behaviour freeze:");

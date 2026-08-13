@@ -2,8 +2,8 @@ import { CycleLensExplorer } from "@/components/lens/CycleLensExplorer";
 import { ProEarlyAccess } from "@/components/lens/ProEarlyAccess";
 import { LastUpdated, cycleDayAsOf } from "@/components/LastUpdated";
 import { KpiStrip } from "@/components/dashboard/KpiStrip";
+import { ChangeSummary } from "@/components/dashboard/ChangeSummary";
 import { StateStrip } from "@/components/dashboard/StateStrip";
-import { MetricWatchToday } from "@/components/dashboard/MetricWatchToday";
 import { WhatsMoving } from "@/components/dashboard/WhatsMoving";
 import { ExploreFurther } from "@/components/dashboard/ExploreFurther";
 import { TrackedSection } from "@/components/TrackedSection";
@@ -76,14 +76,16 @@ export default function CycleDashboardPage({
             </div>
           </div>
 
+          {/* What changed? — the executive summary (V2.1 Phase 1): the
+              canonical activity verdict and its counts, then Metric Watch
+              inside the same section. Quiet is a first-class finding. */}
+          <TrackedSection id="dashboard-what-changed">
+            <ChangeSummary summary={intel.summary} watch={intel.watch} quietSupport={intel.watchQuietSupport} />
+          </TrackedSection>
+
           {/* State of the cycle — three independent canonical states */}
           <TrackedSection id="dashboard-state-strip">
             <StateStrip states={intel.strip} />
-          </TrackedSection>
-
-          {/* Metric Watch — what deserves attention today (quiet is first-class) */}
-          <TrackedSection id="dashboard-metric-watch">
-            <MetricWatchToday watch={intel.watch} quietSupport={intel.watchQuietSupport} />
           </TrackedSection>
         </div>
       </div>

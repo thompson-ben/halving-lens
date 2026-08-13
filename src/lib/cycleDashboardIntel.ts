@@ -16,14 +16,20 @@ import {
   marketMovers,
   moversAsOf,
   metricById,
+  consideredMovers,
+  weekActivity,
+  WEEK_ACTIVITY_LABELS,
   type Movement,
+  type WeekActivity,
 } from "./marketMovers";
 import { metricWatch, stateRunFrom, type MetricWatch } from "./metricWatch";
 import { watchStateFor } from "./metricWatch/states";
 import { etfFlowsRead } from "./etfFlows";
 import { fmtUsd } from "./format";
 
-export const CYCLE_DASHBOARD_INTEL_VERSION = "cycle-dashboard-intel-v1";
+// v2 (V2.1 Phase 1): adds the What Changed? executive summary (canonical
+// week-activity classification + considered-population counts).
+export const CYCLE_DASHBOARD_INTEL_VERSION = "cycle-dashboard-intel-v2";
 
 // ── State of the Cycle strip ────────────────────────────────────────────────
 
@@ -141,18 +147,17 @@ export interface WhatsMovingRail {
 
 /** Rows the rail may show, before dedupe/cap. Material movers only —
  *  the rail never reaches into steady[]; a quiet rail is reported, not
- *  filled. market_health is excluded on the same recorded grounds as its
- *  Metric Watch exclusion: it is a composite of readings shown elsewhere
- *  on this page (the header score, the strip's sentiment and ETF rows),
- *  and a composite ranking above its own inputs double-counts them. */
+ *  filled. The composite exclusion now lives in the engine's
+ *  consideredMovers filter (V2.1 Phase 1) — the same population feeds the
+ *  What Changed summary above, so the two can never disagree. */
 const RAIL_CAP = 5;
-const RAIL_EXCLUDED = new Set(["market_health"]);
 
-function buildRail(anchor: string, watch: MetricWatch): WhatsMovingRail {
-  const r = marketMovers(7, anchor);
-  const considered = (m: Movement) => !RAIL_EXCLUDED.has(m.metricId);
-  const analysed = [...r.movements, ...r.steady].filter(considered).length;
-  const material = r.movements.filter(considered);
+function buildRail(
+  considered: ReturnType<typeof consideredMovers>,
+  watch: MetricWatch,
+): WhatsMovingRail {
+  const analysed = considered.analysed;
+  const material = considered.movements;
 
   // Presentation dedupe (CD3 rule): when Most Interesting is itself a
   // movement or gap event, the flagship already owns that metric's
@@ -177,6 +182,61 @@ function buildRail(anchor: string, watch: MetricWatch): WhatsMovingRail {
   return { rows, analysed, material: material.length, overflow, dedupedMetricId, scopeLine };
 }
 
+// ── What Changed? executive summary (V2.1 Phase 1) ──────────────────────────
+
+export interface ChangeSummary {
+  /** The canonical activity classification and its member-facing label —
+   *  both quoted from the engine's vocabulary, never minted here. */
+  activity: WeekActivity;
+  activityLabel: string;
+  /** Counts over the SAME considered population as the rail — printed
+   *  counts and visible rows can never disagree. */
+  analysed: number;
+  material: number;
+  /** Material rows whose movement is unusual/exceptional AND whose rarity
+   *  claim is engine-permitted — the summary never claims rarity where a
+   *  renderer would refuse the chip. */
+  unusual: number;
+  steady: number;
+  /** One deterministic counts sentence, templated from the numbers above. */
+  countsLine: string;
+  /** Unusual/exceptional material rows, engine order — "worth looking at". */
+  needsAttention: Movement[];
+  /** Remaining material rows, engine order. */
+  alsoMoving: Movement[];
+}
+
+/** A row counts as unusual only when the engine both bands it so AND permits
+ *  the rarity claim — same honesty gate as every band chip renderer. */
+const isUnusualRow = (m: Movement) =>
+  m.rarityState === "available" && (m.band === "unusual" || m.band === "exceptional");
+
+function buildChangeSummary(considered: ReturnType<typeof consideredMovers>): ChangeSummary {
+  const material = considered.movements;
+  const analysed = considered.analysed;
+  const needsAttention = material.filter(isUnusualRow);
+  const alsoMoving = material.filter((m) => !isUnusualRow(m));
+  const steady = analysed - material.length;
+  const activity = weekActivity([...material, ...considered.steady].map((m) => m.significance));
+
+  const countsLine =
+    material.length === 0
+      ? `${analysed} readings analysed · none moved materially over the last 7 days.`
+      : `${analysed} readings analysed · ${material.length} moved materially · ${steady} stayed within their own ordinary range.`;
+
+  return {
+    activity,
+    activityLabel: WEEK_ACTIVITY_LABELS[activity],
+    analysed,
+    material: material.length,
+    unusual: needsAttention.length,
+    steady,
+    countsLine,
+    needsAttention,
+    alsoMoving,
+  };
+}
+
 // ── quiet-day support line ──────────────────────────────────────────────────
 
 /** The static line beneath the engine-owned quiet sentence. The majority
@@ -198,6 +258,8 @@ export interface CycleDashboardIntel {
    *  quiet line and as-of semantics are the engine's alone. */
   watch: MetricWatch;
   watchQuietSupport: string;
+  /** The What Changed? executive summary (V2.1 Phase 1). */
+  summary: ChangeSummary;
   moving: WhatsMovingRail;
   strip: DashboardStripState[];
   version: string;
@@ -211,7 +273,9 @@ export function cycleDashboardIntel(anchor?: string): CycleDashboardIntel {
   if (hit) return hit;
 
   const watch = metricWatch(asOf);
-  const moving = buildRail(asOf, watch);
+  const considered = consideredMovers(marketMovers(7, asOf));
+  const summary = buildChangeSummary(considered);
+  const moving = buildRail(considered, watch);
   const strip: DashboardStripState[] = [
     bandedStripState("accumulation", "accumulation", "Accumulation", asOf, (v) => `${Math.round(v)}/100 · weekly`),
     bandedStripState("sentiment", "fear_greed", "Sentiment", asOf, (v) => `${Math.round(v)}/100`),
@@ -222,6 +286,7 @@ export function cycleDashboardIntel(anchor?: string): CycleDashboardIntel {
     asOf,
     watch,
     watchQuietSupport: quietSupportLine(moving),
+    summary,
     moving,
     strip,
     version: CYCLE_DASHBOARD_INTEL_VERSION,

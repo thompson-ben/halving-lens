@@ -15,7 +15,18 @@ import {
   cycleDashboardIntel,
   CYCLE_DASHBOARD_INTEL_VERSION,
 } from "../src/lib/cycleDashboardIntel";
-import { marketMovers, moversAsOf, metricById, MATERIAL_SIGNIFICANCE } from "../src/lib/marketMovers";
+import {
+  marketMovers,
+  moversAsOf,
+  metricById,
+  consideredMovers,
+  MATERIAL_SIGNIFICANCE,
+  UNUSUAL_SIGNIFICANCE,
+  isQuietWeek,
+  weekActivity,
+  WEEK_ACTIVITY_LABELS,
+} from "../src/lib/marketMovers";
+import { weekInFive } from "../src/lib/talkingPoints";
 import { metricWatch, stateRunFrom } from "../src/lib/metricWatch";
 import { watchStateFor } from "../src/lib/metricWatch/states";
 import { ACCUMULATION_BANDS } from "../src/lib/accumulation";
@@ -100,6 +111,64 @@ check("overflow accounts for every material row not shown", intel.moving.overflo
   check("all three Metric Watch product states occur in the last year", otwOnlyDays > 0 && quietDays > 0, { otwOnlyDays, quietDays });
 }
 
+// ── 2c · What Changed? summary (V2.1 Phase 1) ───────────────────────────────
+console.log("Week-activity classifier (canonical vocabulary):");
+check("empty population is quiet", weekActivity([]) === "quiet" && isQuietWeek([]));
+check("all-routine is quiet (59 is below material)", weekActivity([59, 10, 0]) === "quiet" && isQuietWeek([59, 10, 0]));
+check("one material, none unusual → mostly_quiet", weekActivity([60, 10]) === "mostly_quiet" && !isQuietWeek([60, 10]));
+check("two material, none unusual → mostly_quiet", weekActivity([60, 79]) === "mostly_quiet");
+check("one unusual move alone makes the week active", weekActivity([UNUSUAL_SIGNIFICANCE]) === "active");
+check("broad material movement (3+) is active without any unusual", weekActivity([60, 61, 62]) === "active");
+check("exceptional is active", weekActivity([97]) === "active");
+check("three labels, activity words only — no direction, no sentiment", (() => {
+  const labels = Object.values(WEEK_ACTIVITY_LABELS);
+  return labels.length === 3 && labels.join() === "Quiet week,Mostly quiet,Active week" && !/bull|bear|up|down|good|bad/i.test(labels.join());
+})());
+
+console.log("What Changed? summary composition:");
+const considered = consideredMovers(r7);
+check("summary counts come from the SAME considered population as the rail", intel.summary.analysed === intel.moving.analysed && intel.summary.material === intel.moving.material);
+check("material + steady = analysed", intel.summary.material + intel.summary.steady === intel.summary.analysed);
+check("activity is the canonical classifier over the considered rows", intel.summary.activity === weekActivity([...considered.movements, ...considered.steady].map((m) => m.significance)));
+check("label is quoted from the engine's vocabulary", intel.summary.activityLabel === WEEK_ACTIVITY_LABELS[intel.summary.activity]);
+check("needsAttention rows are engine Movement objects in engine order", (() => {
+  const idx = intel.summary.needsAttention.map((m) => r7.movements.indexOf(m));
+  return idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1]));
+})());
+check("needsAttention only claims rarity the engine permits (available + unusual/exceptional)", intel.summary.needsAttention.every((m) => m.rarityState === "available" && (m.band === "unusual" || m.band === "exceptional")));
+check("alsoMoving is the rest of the material set — nothing dropped, nothing doubled", (() => {
+  const ids = [...intel.summary.needsAttention, ...intel.summary.alsoMoving].map((m) => m.metricId).sort();
+  const mat = considered.movements.map((m) => m.metricId).sort();
+  return ids.join() === mat.join() && intel.summary.unusual === intel.summary.needsAttention.length;
+})());
+check("the composite never appears in the summary", [...intel.summary.needsAttention, ...intel.summary.alsoMoving].every((m) => m.metricId !== "market_health"));
+{
+  const s = intel.summary;
+  const expected =
+    s.material === 0
+      ? `${s.analysed} readings analysed · none moved materially over the last 7 days.`
+      : `${s.analysed} readings analysed · ${s.material} moved materially · ${s.steady} stayed within their own ordinary range.`;
+  check("countsLine is templated from the counts it prints", s.countsLine === expected);
+}
+{
+  // The whole contract, proven across a year of real anchors.
+  const endDay = Math.floor(Date.parse(`${asOf}T00:00:00Z`) / 86_400_000);
+  let ok = true;
+  const seen = { quiet: 0, mostly_quiet: 0, active: 0 };
+  for (let d = endDay - 364; d <= endDay; d += 1) {
+    const x = cycleDashboardIntel(iso(d));
+    seen[x.summary.activity]++;
+    if (x.summary.analysed !== x.moving.analysed || x.summary.material !== x.moving.material) ok = false;
+    if (x.summary.activityLabel !== WEEK_ACTIVITY_LABELS[x.summary.activity]) ok = false;
+    if (x.summary.material === 0 && x.summary.activity !== "quiet") ok = false;
+    if (x.summary.unusual > 0 && x.summary.activity !== "active") ok = false;
+  }
+  check("summary/rail count agreement holds on every anchor of the last year", ok);
+  check("the classifier's quiet state occurs in real data", seen.quiet > 0, seen);
+  check("a non-quiet state occurs in real data", seen.mostly_quiet + seen.active > 0, seen);
+}
+check("weekInFive's repointed quietWeek is bit-identical to its old expression", weekInFive().quietWeek === (marketMovers(7).movements.length === 0));
+
 // ── 3 · State of the Cycle strip ────────────────────────────────────────────
 console.log("State of the Cycle strip:");
 check("three dimensions, fixed order", intel.strip.map((s) => s.id).join(",") === "accumulation,sentiment,etf");
@@ -167,6 +236,7 @@ console.log("Language sweep:");
     const x = cycleDashboardIntel(iso(d));
     texts.add(x.moving.scopeLine);
     texts.add(x.watchQuietSupport);
+    texts.add(`${x.summary.activityLabel} ${x.summary.countsLine}`);
     for (const s of x.strip) texts.add(`${s.label} ${s.stateLabel ?? ""} ${s.detail ?? ""} ${s.unavailableReason ?? ""}`);
   }
   const all = [...texts].join(" | ");

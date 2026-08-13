@@ -117,9 +117,9 @@ check("the standing close is present", /Historical context, not a prediction\./.
 console.log("CD3 page composition:");
 check("page consumes the composition layer, not the engines directly", /cycleDashboardIntel\(\)/.test(page) && !/marketMovers\(/.test(page) && !/metricWatch\(/.test(page));
 check(
-  "final hierarchy: orientation → state strip → Metric Watch → Lens → What's Moving → explore → Pro",
+  "final hierarchy: orientation → What Changed? → state strip → Lens → What's Moving → explore → Pro",
   (() => {
-    const order = ["<header", "<KpiStrip", "<StateStrip", "<MetricWatchToday", "<CycleLensExplorer", "<WhatsMoving", "<ExploreFurther", "<ProEarlyAccess"];
+    const order = ["<header", "<KpiStrip", "<ChangeSummary", "<StateStrip", "<CycleLensExplorer", "<WhatsMoving", "<ExploreFurther", "<ProEarlyAccess"];
     const idx = order.map((m) => page.indexOf(m));
     return idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1]));
   })(),
@@ -142,6 +142,17 @@ check("accumulation scale quotes ACCUMULATION_BANDS", /ACCUMULATION_BANDS/.test(
 check("sentiment gets a plain fill — no renderer-minted cuts table", /"sentiment" && <BandedCell s=\{s\} \/>/.test(strip) && !/SENTIMENT_CUTS|\[25,\s*45/.test(strip));
 check("ETF has no /100 representation", !/EtfCell[\s\S]*?\/100/.test(strip.slice(strip.indexOf("function EtfCell"), strip.indexOf("export function StateStrip"))));
 check("state strip is one shared surface, not cards", !/className="card/.test(strip) && /rounded-xl border border-white\/\[0\.06\]/.test(strip));
+
+console.log("ChangeSummary renderer contracts (V2.1 Phase 1):");
+const cs = read("../src/components/dashboard/ChangeSummary.tsx");
+check("consumes the payload and the movers' formatter only — no engine calls, no thresholds", !/marketMovers\(|metricWatch\(|MATERIAL_SIGNIFICANCE|UNUSUAL_SIGNIFICANCE|weekActivity\(/.test(cs) && /formatMovement\(/.test(cs));
+check("activity label and counts line quoted from the payload verbatim", /\{summary\.activityLabel\}/.test(cs) && /\{summary\.countsLine\}/.test(cs));
+check("no numbers re-derived in the renderer", !/toFixed|Math\.round|filter\(|significance/.test(stripCm(cs)));
+check("visual emphasis follows significance, not direction — no green/red tones", !/text-pos|text-neg|green|red/.test(stripCm(cs)) && /editorial/.test(cs));
+check("Metric Watch is absorbed, not replaced — the component renders inside the section", /<MetricWatchToday watch=\{watch\} quietSupport=\{quietSupport\}/.test(cs));
+check("quiet weeks render as a finding — no placeholder or empty-state language", !/placeholder|coming soon|no data|nothing to show/i.test(stripCm(cs)));
+check("rows deep-link to their metric pages", /href=\{m\.href\}/.test(cs));
+check("page renders the summary above the state strip inside the instrument zone", page.indexOf("<ChangeSummary") < page.indexOf("<StateStrip"));
 
 console.log("MetricWatchToday renderer contracts:");
 const mw = read("../src/components/dashboard/MetricWatchToday.tsx");

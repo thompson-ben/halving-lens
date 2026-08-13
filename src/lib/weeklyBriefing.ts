@@ -13,7 +13,7 @@
 // Historical context. Not forecasts.
 
 import { marketMovers, formatMovement, formatValue, type Movement, type MoversResult } from "./marketMovers";
-import { MATERIAL_SIGNIFICANCE } from "./marketMovers/distribution";
+import { isQuietWeek, MATERIAL_SIGNIFICANCE } from "./marketMovers/distribution";
 import { weekInFive, type WeekInFive } from "./talkingPoints";
 import { weekStory } from "./weekStory";
 import { rankedWatch } from "./stateOfBitcoin";
@@ -213,7 +213,10 @@ export function weeklyBriefing(): WeeklyBriefing {
     !toldInAgenda && prior?.available && !prior.firstEdition && prior.signal
       ? { signal: prior.signal, outcome: prior.outcome, then: prior.then ?? "", now: prior.now ?? "", dateLabel: prior.dateLabel ?? "" }
       : null;
-  const quietWeek = movers.movements.filter((m) => m.significance >= MATERIAL_SIGNIFICANCE).length === 0;
+  // The shared canonical predicate (V2.1 Phase 1) over this surface's own
+  // population (all registered readings, composite included) — bit-identical
+  // to the expression it replaces.
+  const quietWeek = isQuietWeek([...movers.movements, ...movers.steady].map((m) => m.significance));
 
   cache = {
     asOf: PRICE_ARCHIVE.length ? PRICE_ARCHIVE[PRICE_ARCHIVE.length - 1].date : movers.asOf,
