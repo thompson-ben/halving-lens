@@ -33,6 +33,14 @@ function SinceLine({ s }: { s: DashboardStripState }) {
   return <span className="block mt-1 text-caption text-ink-500">since {prettyDate(s.sinceDate)}</span>;
 }
 
+/** NOW + WHAT CHANGED (V2.1 Phase 3): the payload's deterministic movement
+ *  line, quoted verbatim; absent when the metric cannot honestly support
+ *  the comparison. */
+function ChangeLine({ s }: { s: DashboardStripState }) {
+  if (!s.changeLine) return null;
+  return <span className="block mt-1 text-caption text-ink-400 font-mono tabular-nums">{s.changeLine}</span>;
+}
+
 function ViewLink({ s }: { s: DashboardStripState }) {
   return (
     <Link
@@ -61,6 +69,7 @@ function BandedCell({ s, segments }: { s: DashboardStripState; segments?: ScaleS
         {segments ? <BandScale value={s.value} segments={segments} /> : <BandScale value={s.value} mode="fill" />}
       </div>
       <span className="block mt-2.5 text-subhead font-medium text-ink-50">{s.stateLabel}</span>
+      <ChangeLine s={s} />
       {s.detail && /weekly/.test(s.detail) && <span className="block mt-1 text-caption text-ink-500">weekly series</span>}
       <SinceLine s={s} />
       <ViewLink s={s} />
@@ -78,6 +87,7 @@ function EtfCell({ s }: { s: DashboardStripState }) {
       </div>
       <span className="block mt-2.5 text-subhead font-medium text-ink-50">{s.stateLabel}</span>
       <span className="block mt-1 text-caption text-ink-500">net over 7 trading days</span>
+      <ChangeLine s={s} />
       <ViewLink s={s} />
     </>
   );

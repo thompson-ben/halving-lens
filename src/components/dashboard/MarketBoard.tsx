@@ -49,10 +49,13 @@ function Spark({ data, dim }: { data: readonly number[]; dim: boolean }) {
   );
 }
 
-/** The cadence/as-of tail a row owes the reader, when it owes one. */
-function honestyTail(m: Movement, boardAsOf: string): string | null {
+/** The cadence/as-of tail a row owes the reader, when it owes one. The flow
+ *  row names its CALENDAR-day engine window explicitly (founder rule): the
+ *  strip and the ETF card measure 7 TRADING days, so the two figures must
+ *  never be readable as the same window. */
+function honestyTail(m: Movement, boardAsOf: string, period: number): string | null {
   const parts: string[] = [];
-  if (m.kind === "flow") parts.push("trading-day series");
+  if (m.kind === "flow") parts.push(`net over ${period} calendar days · trading-day series`);
   else if (m.window.cadenceDays >= 7) parts.push("weekly series");
   if (m.asOf < boardAsOf) parts.push(`measured to ${prettyDate(m.asOf)}`);
   return parts.length ? parts.join(" · ") : null;
@@ -65,9 +68,9 @@ function BandWord({ m }: { m: Movement }) {
   return <span className={`eyebrow ${gold ? "text-editorial" : "text-ink-500"}`}>{label}</span>;
 }
 
-function Row({ m, boardAsOf, tier }: { m: Movement; boardAsOf: string; tier: "material" | "routine" }) {
+function Row({ m, boardAsOf, period, tier }: { m: Movement; boardAsOf: string; period: number; tier: "material" | "routine" }) {
   const dim = tier === "routine";
-  const tail = honestyTail(m, boardAsOf);
+  const tail = honestyTail(m, boardAsOf, period);
   return (
     <details className="group">
       <summary
@@ -76,6 +79,9 @@ function Row({ m, boardAsOf, tier }: { m: Movement; boardAsOf: string; tier: "ma
         <span className="min-w-0 truncate">
           <span className={dim ? "text-caption text-ink-400" : "text-body text-ink-100"}>{m.label}</span>
           {m.state && <span className={`ml-2 ${dim ? "text-micro text-ink-600" : "text-caption text-ink-500"}`}>{m.state}</span>}
+          {/* The flow row's window is CALENDAR days — visibly distinct from
+              the strip/card's trading-day window, even collapsed. */}
+          {m.kind === "flow" && <span className={`ml-2 ${dim ? "text-micro text-ink-600" : "text-caption text-ink-500"}`}>{period}-calendar-day net</span>}
         </span>
         {/* NOW — the level, or for the flow row the period's net (signed:
             an inflow/outflow sign is part of the fact, not a judgement). */}
@@ -110,18 +116,31 @@ function Row({ m, boardAsOf, tier }: { m: Movement; boardAsOf: string; tier: "ma
   );
 }
 
-export function MarketBoard({ board }: { board: MarketBoardPayload }) {
+export function MarketBoard({ board, lensDay }: { board: MarketBoardPayload; lensDay?: string | null }) {
   const material = board.rows.slice(0, board.materialCount);
   const routine = board.rows.slice(board.materialCount);
+  // Period links land back AT the board (#market-board) instead of the page
+  // top, and preserve a scrubbed Lens ?day when one is present — the URL
+  // contract stays deterministic: bare /cycle-dashboard is still 7D.
+  const periodHref = (p: number): string => {
+    const qs: string[] = [];
+    if (p !== 7) qs.push(`period=${p}`);
+    if (lensDay) qs.push(`day=${lensDay}`);
+    return `/cycle-dashboard${qs.length ? `?${qs.join("&")}` : ""}#market-board`;
+  };
   return (
-    <section aria-label={`Market board — every reading over the last ${board.period} days`}>
+    <section
+      id="market-board"
+      className="scroll-mt-20"
+      aria-label={`Market board — every reading over the last ${board.period} days`}
+    >
       <div className="flex items-baseline justify-between gap-3 mb-2.5 flex-wrap">
         <h2 className="eyebrow text-editorial">Market board</h2>
         <nav aria-label="Board period" className="flex items-baseline gap-3">
           {PERIODS.map((p) => (
             <Link
               key={p}
-              href={p === 7 ? "/cycle-dashboard" : `/cycle-dashboard?period=${p}`}
+              href={periodHref(p)}
               aria-current={board.period === p ? "true" : undefined}
               className={`eyebrow transition-colors ${board.period === p ? "text-ink-100" : "text-ink-600 hover:text-ink-300"}`}
             >
@@ -136,7 +155,7 @@ export function MarketBoard({ board }: { board: MarketBoardPayload }) {
           <ul className="divide-y divide-white/[0.04]">
             {material.map((m) => (
               <li key={m.metricId}>
-                <Row m={m} boardAsOf={board.asOf} tier="material" />
+                <Row m={m} boardAsOf={board.asOf} period={board.period} tier="material" />
               </li>
             ))}
           </ul>
@@ -153,7 +172,7 @@ export function MarketBoard({ board }: { board: MarketBoardPayload }) {
           <ul className="divide-y divide-white/[0.03]">
             {routine.map((m) => (
               <li key={m.metricId}>
-                <Row m={m} boardAsOf={board.asOf} tier="routine" />
+                <Row m={m} boardAsOf={board.asOf} period={board.period} tier="routine" />
               </li>
             ))}
           </ul>

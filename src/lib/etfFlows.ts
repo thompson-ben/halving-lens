@@ -46,6 +46,38 @@ export function windowOf(points: readonly EtfFlowPoint[], n: number, offset = 0)
   return { days, net, avgPerDay: days ? net / days : 0 };
 }
 
+/** The composition of a flow window (V2.1 Phase 3): the constituent trading
+ *  days, gross in/out, and the largest day SHARING THE NET'S SIGN (the only
+ *  day whose "share of the net" is an honest fraction — a naive max-|flow|
+ *  pick can select an outflow day inside a net-inflow week and print a
+ *  negative share). Pure numbers only; sentences belong to the caller. */
+export interface FlowBreakdown {
+  days: number;
+  net: number;
+  grossIn: number; // Σ positive days
+  grossOut: number; // Σ |negative days|
+  bars: Array<{ date: string; netFlow: number }>;
+  dominant: { date: string; netFlow: number; share: number } | null;
+}
+
+export function windowBreakdown(points: readonly EtfFlowPoint[], n: number, offset = 0): FlowBreakdown {
+  const end = Math.max(0, points.length - offset);
+  const slice = points.slice(Math.max(0, end - n), end);
+  const net = slice.reduce((s, p) => s + p.netFlow, 0);
+  const grossIn = slice.reduce((s, p) => s + Math.max(0, p.netFlow), 0);
+  const grossOut = slice.reduce((s, p) => s + Math.max(0, -p.netFlow), 0);
+  let dominant: FlowBreakdown["dominant"] = null;
+  if (net !== 0) {
+    const sign = net > 0 ? 1 : -1;
+    const sameSign = slice.filter((p) => Math.sign(p.netFlow) === sign);
+    if (sameSign.length) {
+      const top = sameSign.reduce((a, b) => (Math.abs(b.netFlow) > Math.abs(a.netFlow) ? b : a));
+      dominant = { date: top.date, netFlow: top.netFlow, share: top.netFlow / net };
+    }
+  }
+  return { days: slice.length, net, grossIn, grossOut, bars: slice.map((p) => ({ date: p.date, netFlow: p.netFlow })), dominant };
+}
+
 function streakOf(points: EtfFlowPoint[]): FlowStreak {
   if (!points.length) return { direction: "flat", length: 0 };
   const sign = (v: number) => (v > 0 ? 1 : v < 0 ? -1 : 0);

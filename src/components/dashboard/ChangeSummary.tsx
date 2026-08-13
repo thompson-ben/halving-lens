@@ -3,7 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import type { MetricWatch } from "@/lib/metricWatch";
 import type { ChangeSummary as ChangeSummaryPayload } from "@/lib/cycleDashboardIntel";
 import type { Movement } from "@/lib/marketMovers";
-import { formatMovement } from "@/lib/marketMovers";
+import { formatMovement, meaningLine, rarityLine } from "@/lib/marketMovers";
 import { MetricWatchToday } from "./MetricWatchToday";
 
 // What Changed? — the executive summary (V2.1 Phase 1). One section that
@@ -27,17 +27,28 @@ function BandWord({ m }: { m: Movement }) {
   );
 }
 
-function AttentionRow({ m }: { m: Movement }) {
+function AttentionRow({ m, why }: { m: Movement; why?: boolean }) {
   return (
     <li>
       <Link
         href={m.href}
-        className="group flex items-baseline gap-x-3 gap-y-1 flex-wrap py-1.5"
+        className="group block py-1.5"
       >
-        <span className="text-body text-ink-100 group-hover:text-ink-50 transition-colors">{m.label}</span>
-        <span className="font-mono text-body tabular-nums text-ink-200">{formatMovement(m)}</span>
-        <BandWord m={m} />
-        <ArrowUpRight className="w-3 h-3 text-ink-600 group-hover:text-ink-300 transition-colors" aria-hidden />
+        <span className="flex items-baseline gap-x-3 gap-y-1 flex-wrap">
+          <span className="text-body text-ink-100 group-hover:text-ink-50 transition-colors">{m.label}</span>
+          <span className="font-mono text-body tabular-nums text-ink-200">{formatMovement(m)}</span>
+          <BandWord m={m} />
+          <ArrowUpRight className="w-3 h-3 text-ink-600 group-hover:text-ink-300 transition-colors" aria-hidden />
+        </span>
+        {/* WHY this interrupted you — the significance engine's own meaning
+            and evidence sentences, verbatim, only where the engine permits
+            the rarity claim. Visually subordinate to the mover itself. */}
+        {why && m.rarityState === "available" && (
+          <>
+            <span className="block mt-0.5 text-caption text-ink-300 max-w-measure">{meaningLine(m)}</span>
+            <span className="block mt-0.5 text-micro text-ink-500 max-w-measure">{rarityLine(m)}</span>
+          </>
+        )}
       </Link>
     </li>
   );
@@ -69,9 +80,9 @@ export function ChangeSummary({
         {summary.needsAttention.length > 0 && (
           <div className="mt-4 pt-3.5 border-t border-white/[0.06]">
             <div className="eyebrow text-ink-400">Worth looking at</div>
-            <ul className="mt-1">
+            <ul className="mt-1 space-y-1.5">
               {summary.needsAttention.map((m) => (
-                <AttentionRow key={m.metricId} m={m} />
+                <AttentionRow key={m.metricId} m={m} why />
               ))}
             </ul>
           </div>

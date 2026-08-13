@@ -117,9 +117,9 @@ check("the standing close is present", /Historical context, not a prediction\./.
 console.log("CD3 page composition:");
 check("page consumes the composition layer, not the engines directly", /cycleDashboardIntel\(\)/.test(page) && !/marketMovers\(/.test(page) && !/metricWatch\(/.test(page));
 check(
-  "final hierarchy: orientation → What Changed? → state strip → Market Board → Lens → explore → Pro",
+  "final hierarchy: orientation → What Changed? → state strip → Market Board → ETF intelligence → Lens → explore → Pro",
   (() => {
-    const order = ["<header", "<KpiStrip", "<ChangeSummary", "<StateStrip", "<MarketBoard", "<CycleLensExplorer", "<ExploreFurther", "<ProEarlyAccess"];
+    const order = ["<header", "<KpiStrip", "<ChangeSummary", "<StateStrip", "<MarketBoard", "<EtfIntelCard", "<CycleLensExplorer", "<ExploreFurther", "<ProEarlyAccess"];
     const idx = order.map((m) => page.indexOf(m));
     return idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1]));
   })(),
@@ -156,6 +156,23 @@ check("quiet weeks render as a finding — no placeholder or empty-state languag
 check("rows deep-link to their metric pages", /href=\{m\.href\}/.test(cs));
 check("page renders the summary above the state strip inside the instrument zone", page.indexOf("<ChangeSummary") < page.indexOf("<StateStrip"));
 
+console.log("EtfIntelCard renderer contracts (V2.1 Phase 3):");
+const etfCard = read("../src/components/dashboard/EtfIntelCard.tsx");
+const etfCardCode = stripCm(etfCard);
+check("consumes the payload only — no flows engine calls, no window maths", !/etfFlowsRead|windowBreakdown|windowOf|slice\(-7\)|reduce\(/.test(etfCardCode));
+check("NOW/CHANGE/CONCENTRATION/CONTEXT quoted from the payload verbatim", /\{etf\.netLabel\}/.test(etfCard) && /\{etf\.prevNetLabel\}/.test(etfCard) && /\{etf\.deltaLabel\}/.test(etfCard) && /\{etf\.concentrationLine\}/.test(etfCard) && /\{etf\.contextLine\}/.test(etfCard));
+check("every claim renders only when the payload carries it", /etf\.prevNetLabel &&/.test(etfCard) && /etf\.concentrationLine \|\|/.test(etfCard));
+check("composition is a diverging daily bar chart with a zero baseline", /FlowBars/.test(etfCard) && /<rect/.test(etfCard) && /zero/.test(etfCardCode));
+check("bars carry their date + value for inspection", /<title>/.test(etfCard));
+check("trading-day window declared beside the number", /trading days/.test(etfCard));
+check("SSR-stable SVG — no random ids, no gradients", !/Math\.random|Gradient|useId/.test(etfCardCode) && !/<linearGradient|url\(#/.test(etfCard));
+check("flow sign keeps its factual colour (the strip's existing convention)", /text-signal-green/.test(etfCard) && /text-signal-red/.test(etfCard));
+check("deep link to the ETF page", /href="\/etf"/.test(etfCard));
+
+console.log("State-strip change lines (V2.1 Phase 3):");
+check("cells render the payload's change line verbatim, when present", /\{s\.changeLine\}/.test(strip) && /!s\.changeLine\) return null/.test(strip));
+check("the strip computes no comparison of its own", !/previous|windowOf|slice\(/.test(stripCm(strip).replace(/ChangeLine/g, "")));
+
 console.log("MetricWatchToday renderer contracts:");
 const mw = read("../src/components/dashboard/MetricWatchToday.tsx");
 check("consumes the payload only — no engine or threshold imports", !/from "@\/lib\/marketMovers"/.test(mw) && !/WATCH_THRESHOLDS|EXCEPTIONAL_SIGNIFICANCE|MATERIAL_SIGNIFICANCE/.test(mw));
@@ -183,7 +200,9 @@ check("the quiet majority is headed by its own factual claim", /Within their own
 check("rarity honesty: maturing comparisons never wear a band word", /Comparison maturing/.test(mb) && /rarityState !== "available"/.test(mb));
 check("cadence/as-of honesty travels on the rows that owe it", /weekly series/.test(mb) && /trading-day series/.test(mb) && /measured to/.test(mb));
 check("unavailable rows close the board with the engine's own reason", /board\.unavailable/.test(mb) && /u\.reason/.test(mb));
-check("period toggle is links, 7D canonical at the bare route", /\?period=\$\{p\}/.test(mb) && /"\/cycle-dashboard"/.test(mb) && /PERIODS = \[1, 7, 30\]/.test(mb));
+check("period toggle is links landing AT the board, 7D canonical at the bare route", /#market-board/.test(mb) && /id="market-board"/.test(mb) && /scroll-mt/.test(mb) && /PERIODS = \[1, 7, 30\]/.test(mb) && /p !== 7/.test(mb));
+check("period links preserve a scrubbed Lens day", /lensDay/.test(mb) && /day=\$\{lensDay\}/.test(mb) && /lensDay=\{lensDayParam\}/.test(page));
+check("the flow row names its calendar-day window — visibly distinct from the trading-day card", /calendar-day net/.test(mb) && /calendar days · trading-day series/.test(mb));
 check("the ordering is stated for the reader", /\{board\.orderNote\}/.test(mb));
 check("deep links: every row to its metric page, board to the full snapshot", /href=\{m\.href\}/.test(mb) && /\/state-of-bitcoin#movers/.test(mb));
 check("spark is SSR-stable — no random ids, no gradients", !/Math\.random|Gradient|useId/.test(mbCode) && !/<linearGradient|url\(#/.test(mb) && /<polyline/.test(mb));
