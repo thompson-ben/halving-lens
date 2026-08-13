@@ -194,6 +194,7 @@ console.log("Render-layer discipline (MW2-B):");
   check("templates consume the payload only — no engine, no intel, no legacy social imports", !/marketMovers|metricWatch|cycleDashboardIntel|storyEngine|contentCards|metricChange/.test(tpl.replace(/from "\.\/metricCards"/, "")));
   check("templates quote payload strings verbatim (hero, band, reason, maturing)", /card\.heroMovement/.test(tpl) && /card\.bandWord/.test(tpl) && /reasonForAttention\.meaning/.test(tpl) && /reasonForAttention\.evidence/.test(tpl) && /card\.maturingNote/.test(tpl));
   check("gold only via bandTone — significance, never direction, drives emphasis", /bandTone === "gold"/.test(tpl) && !/direction/.test(tplCode));
+  check("social cards badge significance only at Unusual/Exceptional (founder render rule)", /card\.bandWord && gold &&/.test(tpl));
   check("standalone-first — no pagination dots in the chrome", !/index|total|pagination/i.test(tplCode));
   check("state-word comparison variant is render-layer only (payload untouched)", /showStateWord/.test(tpl));
   check("ETF card is the flow grammar with trading-day language and no band word", /EtfSocialCard/.test(tpl) && /heroNetLabel/.test(tpl) && !/bandWord/.test(tpl.slice(tpl.indexOf("function EtfSocialCard"))));

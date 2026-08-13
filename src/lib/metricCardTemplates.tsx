@@ -103,14 +103,20 @@ export function MetricSocialCard({ card, showStateWord = true }: { card: MetricC
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 26, marginTop: 14 }}>
           <div style={{ display: "flex", fontSize: T.type.body, letterSpacing: 4, textTransform: "uppercase", color: T.inkDim }}>{card.heroPeriodLabel}</div>
-          {card.bandWord && (
+          {/* Founder render rule (MW2-B review): the social card badges
+              significance only at Unusual/Exceptional — formal band words
+              below that confuse a social audience ("Notable" on a card in
+              the Routine group). Presentation only: payloads, thresholds,
+              gallery grouping and the engine's meaning/evidence language
+              are untouched. */}
+          {card.bandWord && gold && (
             <div
               style={{
                 display: "flex",
                 fontSize: T.type.body,
                 letterSpacing: 4,
                 textTransform: "uppercase",
-                color: gold ? EDITORIAL : T.inkFaint,
+                color: EDITORIAL,
                 fontWeight: 600,
               }}
             >
