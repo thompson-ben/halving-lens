@@ -151,8 +151,8 @@ check("the composite never appears in the summary", [...intel.summary.needsAtten
   const s = intel.summary;
   const expected =
     s.material === 0
-      ? `${s.analysed} readings analysed · none moved materially over the last 7 days.`
-      : `${s.analysed} readings analysed · ${s.material} moved materially · ${s.steady} stayed within their own ordinary range.`;
+      ? `All ${s.analysed} monitored readings held within their own ordinary 7-day ranges.`
+      : `${s.steady} of ${s.analysed} monitored readings held within their own ordinary 7-day ranges — ${s.material} moved materially.`;
   check("countsLine is templated from the counts it prints", s.countsLine === expected);
 }
 {

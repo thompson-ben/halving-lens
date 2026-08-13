@@ -240,10 +240,14 @@ function buildChangeSummary(considered: ReturnType<typeof consideredMovers>): Ch
   const steady = analysed - material.length;
   const activity = weekActivity([...material, ...considered.steady].map((m) => m.significance));
 
+  // Phrased as a market finding, not a tally (founder rule): the reader
+  // should leave with "I checked the cycle; here is what that check found."
+  // Quiet stays first-class and factual — HalvingLens watched, nothing
+  // cleared its own ordinary range.
   const countsLine =
     material.length === 0
-      ? `${analysed} readings analysed · none moved materially over the last 7 days.`
-      : `${analysed} readings analysed · ${material.length} moved materially · ${steady} stayed within their own ordinary range.`;
+      ? `All ${analysed} monitored readings held within their own ordinary 7-day ranges.`
+      : `${steady} of ${analysed} monitored readings held within their own ordinary 7-day ranges — ${material.length} moved materially.`;
 
   return {
     activity,

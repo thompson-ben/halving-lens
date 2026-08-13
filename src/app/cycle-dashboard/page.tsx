@@ -44,6 +44,9 @@ export default function CycleDashboardPage({
   // (the Documenting-the-Cycle week); anything unrecognised clamps to it.
   const period = searchParams.period === "1" ? 1 : searchParams.period === "30" ? 30 : 7;
   const board = period === 7 ? intel.board : marketBoard(period);
+  // Preserve a scrubbed Lens day across period navigation (simple-string
+  // params only; parseLensDay re-clamps whatever comes back).
+  const lensDayParam = typeof searchParams.day === "string" && /^\d{1,4}$/.test(searchParams.day) ? searchParams.day : null;
 
   const spot = headlineSpot();
   const phase = cyclePhase();
@@ -97,7 +100,7 @@ export default function CycleDashboardPage({
               ranked; movers dominate, the quiet majority recedes. The full
               movement picture is told BEFORE historical exploration. */}
           <TrackedSection id="dashboard-market-board">
-            <MarketBoard board={board} />
+            <MarketBoard board={board} lensDay={lensDayParam} />
           </TrackedSection>
 
           {/* ETF intelligence (V2.1 Phase 3) — NOW → CHANGE → COMPOSITION →

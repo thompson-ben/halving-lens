@@ -200,7 +200,9 @@ check("the quiet majority is headed by its own factual claim", /Within their own
 check("rarity honesty: maturing comparisons never wear a band word", /Comparison maturing/.test(mb) && /rarityState !== "available"/.test(mb));
 check("cadence/as-of honesty travels on the rows that owe it", /weekly series/.test(mb) && /trading-day series/.test(mb) && /measured to/.test(mb));
 check("unavailable rows close the board with the engine's own reason", /board\.unavailable/.test(mb) && /u\.reason/.test(mb));
-check("period toggle is links, 7D canonical at the bare route", /\?period=\$\{p\}/.test(mb) && /"\/cycle-dashboard"/.test(mb) && /PERIODS = \[1, 7, 30\]/.test(mb));
+check("period toggle is links landing AT the board, 7D canonical at the bare route", /#market-board/.test(mb) && /id="market-board"/.test(mb) && /scroll-mt/.test(mb) && /PERIODS = \[1, 7, 30\]/.test(mb) && /p !== 7/.test(mb));
+check("period links preserve a scrubbed Lens day", /lensDay/.test(mb) && /day=\$\{lensDay\}/.test(mb) && /lensDay=\{lensDayParam\}/.test(page));
+check("the flow row names its calendar-day window — visibly distinct from the trading-day card", /calendar-day net/.test(mb) && /calendar days · trading-day series/.test(mb));
 check("the ordering is stated for the reader", /\{board\.orderNote\}/.test(mb));
 check("deep links: every row to its metric page, board to the full snapshot", /href=\{m\.href\}/.test(mb) && /\/state-of-bitcoin#movers/.test(mb));
 check("spark is SSR-stable — no random ids, no gradients", !/Math\.random|Gradient|useId/.test(mbCode) && !/<linearGradient|url\(#/.test(mb) && /<polyline/.test(mb));
