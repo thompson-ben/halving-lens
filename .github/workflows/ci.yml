@@ -58,6 +58,11 @@ jobs:
       - name: ETF-archive tests
         run: npm run test-etf-archive
 
+      # Metric content pack (MW2-A) — the dashboard and the social pack can
+      # never disagree about whether a metric moved or what may be claimed.
+      - name: Metric-cards agreement tests
+        run: npm run test-metric-cards
+
       # Observed-window registry (PR141) — the registry faithfully mirrors
       # the committed snapshot's windows and never exposes synthetic history.
       - name: Observed-window tests

@@ -228,8 +228,10 @@ export interface ChangeSummary {
 }
 
 /** A row counts as unusual only when the engine both bands it so AND permits
- *  the rarity claim — same honesty gate as every band chip renderer. */
-const isUnusualRow = (m: Movement) =>
+ *  the rarity claim — same honesty gate as every band chip renderer.
+ *  Exported (MW2-A) so the metric content pack groups its gallery by THIS
+ *  rule rather than minting a second one — export only, no behaviour change. */
+export const isUnusualRow = (m: Movement) =>
   m.rarityState === "available" && (m.band === "unusual" || m.band === "exceptional");
 
 function buildChangeSummary(considered: ReturnType<typeof consideredMovers>): ChangeSummary {
