@@ -1,19 +1,24 @@
 export function fmtUsd(n: number, opts: { compact?: boolean; sign?: boolean } = {}): string {
   const { compact = false, sign = false } = opts;
   const abs = Math.abs(n);
+  // The magnitude is always formatted from |n|; the sign is a typographic
+  // prefix OUTSIDE the currency symbol — "−$131.53M", never "$-131.53M".
+  // U+2212 minus, matching the movers' describe layer, so every surface
+  // (dashboard, cards, emails) prints negatives identically.
   let body: string;
   if (compact) {
-    if (abs >= 1e12) body = `$${(n / 1e12).toFixed(2)}T`;
-    else if (abs >= 1e9) body = `$${(n / 1e9).toFixed(2)}B`;
-    else if (abs >= 1e6) body = `$${(n / 1e6).toFixed(2)}M`;
-    else if (abs >= 1e3) body = `$${(n / 1e3).toFixed(2)}K`;
-    else body = `$${n.toFixed(2)}`;
+    if (abs >= 1e12) body = `$${(abs / 1e12).toFixed(2)}T`;
+    else if (abs >= 1e9) body = `$${(abs / 1e9).toFixed(2)}B`;
+    else if (abs >= 1e6) body = `$${(abs / 1e6).toFixed(2)}M`;
+    else if (abs >= 1e3) body = `$${(abs / 1e3).toFixed(2)}K`;
+    else body = `$${abs.toFixed(2)}`;
   } else if (abs < 1) {
-    body = `$${n.toFixed(6).replace(/0+$/, "").replace(/\.$/, "")}`;
+    body = `$${abs.toFixed(6).replace(/0+$/, "").replace(/\.$/, "")}`;
   } else {
-    body = n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: abs < 10 ? 4 : 2 });
+    body = abs.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: abs < 10 ? 4 : 2 });
   }
-  if (sign && n > 0) body = `+${body}`;
+  if (n < 0) return `−${body}`;
+  if (sign && n > 0) return `+${body}`;
   return body;
 }
 

@@ -185,6 +185,35 @@ console.log("Discipline scans:");
   check("consumes only canonical authorities", /from "\.\/marketMovers"/.test(src) && /from "\.\/cycleDashboardIntel"/.test(src) && /from "\.\/metricWatch"/.test(src));
 }
 
+// ── 7 · MW2-B render layer (source scans) ───────────────────────────────────
+console.log("Render-layer discipline (MW2-B):");
+{
+  const stripCm = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const tpl = readFileSync(join(__dirname, "../src/lib/metricCardTemplates.tsx"), "utf8");
+  const tplCode = stripCm(tpl);
+  check("templates consume the payload only — no engine, no intel, no legacy social imports", !/marketMovers|metricWatch|cycleDashboardIntel|storyEngine|contentCards|metricChange/.test(tpl.replace(/from "\.\/metricCards"/, "")));
+  check("templates quote payload strings verbatim (hero, band, reason, maturing)", /card\.heroMovement/.test(tpl) && /card\.bandWord/.test(tpl) && /reasonForAttention\.meaning/.test(tpl) && /reasonForAttention\.evidence/.test(tpl) && /card\.maturingNote/.test(tpl));
+  check("gold only via bandTone — significance, never direction, drives emphasis", /bandTone === "gold"/.test(tpl) && !/direction/.test(tplCode));
+  check("standalone-first — no pagination dots in the chrome", !/index|total|pagination/i.test(tplCode));
+  check("state-word comparison variant is render-layer only (payload untouched)", /showStateWord/.test(tpl));
+  check("ETF card is the flow grammar with trading-day language and no band word", /EtfSocialCard/.test(tpl) && /heroNetLabel/.test(tpl) && !/bandWord/.test(tpl.slice(tpl.indexOf("function EtfSocialCard"))));
+  check("card dimensions are the studio standard", /METRIC_CARD_W = 1080/.test(tpl) && /METRIC_CARD_H = 1350/.test(tpl));
+  check("SSR-stable SVG — no random ids, no gradients in marks", !/Math\.random|useId|linearGradient|url\(#/.test(tplCode));
+
+  const route = readFileSync(join(__dirname, "../src/app/cards/metric/[metricId]/route.tsx"), "utf8");
+  check("image route builds from the gallery payload, never the engines", /metricCardsGallery\(/.test(route) && !/marketMovers\(|metricWatch\(/.test(route));
+  check("route period parsing clamps like the dashboard", /p === "1" \? 1 : p === "30" \? 30 : 7/.test(route));
+  check("unknown/unavailable metric → honest 404 with the engine's reason", /status: 404/.test(route) && /\?\.reason/.test(route));
+
+  const gal = readFileSync(join(__dirname, "../src/app/admin/metric-cards/page.tsx"), "utf8");
+  check("gallery is admin-gated and noindex", /isAdmin\(\)/.test(gal) && /adminConfigured\(\)/.test(gal) && /robots: \{ index: false/.test(gal));
+  check("gallery header is the dashboard's verdict + the Watch's own claims, verbatim", /verdict\.activityLabel/.test(gal) && /verdict\.countsLine/.test(gal) && /watch\.quietLine/.test(gal));
+  check("gallery thumbnails ARE the card images (visual editorial desk, not a table)", /\/cards\/metric\//.test(gal) && /<img/.test(gal));
+  check("significance hierarchy: worth-looking-at big, routine receded", /big/.test(gal) && /opacity-60/.test(gal));
+  check("not-observable entries close the gallery with the engine's reason", /unavailable/.test(gal) && /u\.reason/.test(gal));
+  check("gallery is server-only — no client state (selection is MW2-C)", !/useState|"use client"/.test(gal));
+}
+
 console.log("");
 if (failures) {
   console.error(`${failures} failure(s).`);
