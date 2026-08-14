@@ -124,7 +124,7 @@ export type AnyCardPayload = MetricCardPayload | EtfCardPayload;
 /** Current canonical state word: the Watch state registry first (the same
  *  binding the dashboard strip reads), Movement.state as the fallback for
  *  movers-banded metrics, null where no vocabulary exists by design. */
-function stateWordFor(m: Movement, anchor: string): string | null {
+export function stateWordFor(m: Movement, anchor: string): string | null {
   const def = watchStateFor(m.metricId);
   const metric = metricById(m.metricId);
   if (def && metric) {

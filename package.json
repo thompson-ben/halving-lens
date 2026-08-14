@@ -36,6 +36,7 @@
     "test-observed-archive": "tsx scripts/test-observed-archive.ts",
     "test-etf-archive": "tsx scripts/test-etf-archive.ts",
     "test-metric-cards": "tsx scripts/test-metric-cards.ts",
+    "test-brief-intel": "tsx scripts/test-brief-intel.ts",
     "test-observed-windows": "tsx scripts/test-observed-windows.ts",
     "test-reference-framework": "tsx scripts/test-reference-framework.ts",
     "test-growth-opportunities": "tsx scripts/test-growth-opportunities.ts",
