@@ -63,6 +63,11 @@ jobs:
       - name: Metric-cards agreement tests
         run: npm run test-metric-cards
 
+      # Daily Brief ↔ Cycle Dashboard agreement (DBV2-A) — the brief payload
+      # quotes canonical intelligence; this suite proves it can never drift.
+      - name: Brief-intel agreement tests
+        run: npm run test-brief-intel
+
       # Observed-window registry (PR141) — the registry faithfully mirrors
       # the committed snapshot's windows and never exposes synthetic history.
       - name: Observed-window tests
