@@ -158,31 +158,46 @@ export function MetricCardPicker({ groups, period, dateSlug }: { groups: PickerG
               {g.cards.map((c) => {
                 const pos = selected.indexOf(c.metricId);
                 const isSel = pos >= 0;
+                // The gallery is a PICKER, not a link directory (founder
+                // correction): the card itself is a select/deselect BUTTON
+                // that never navigates; opening the full public card route
+                // is the small ↗ chip — a SECONDARY sibling affordance, so
+                // no link ever sits inside the selection tap target.
                 return (
-                  <button
-                    key={c.metricId}
-                    type="button"
-                    onClick={() => onToggle(c.metricId)}
-                    aria-pressed={isSel}
-                    className={`relative block text-left rounded-lg transition-opacity ${
-                      isSel ? "" : g.big ? "" : "opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={cardSrc(c.metricId)}
-                      alt={`${c.label} card`}
-                      className={`w-full rounded-lg border ${
-                        isSel ? "border-accent ring-2 ring-accent/50" : g.big ? "border-editorial/30" : "border-white/[0.08]"
+                  <div key={c.metricId} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => onToggle(c.metricId)}
+                      aria-pressed={isSel}
+                      className={`relative block w-full text-left rounded-lg transition-opacity ${
+                        isSel ? "" : g.big ? "" : "opacity-60 hover:opacity-100"
                       }`}
-                      style={{ aspectRatio: "4 / 5" }}
-                    />
-                    {isSel && (
-                      <span className="absolute top-2 left-2 w-8 h-8 rounded-full bg-accent text-black font-mono font-bold flex items-center justify-center">
-                        {pos + 1}
-                      </span>
-                    )}
-                  </button>
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={cardSrc(c.metricId)}
+                        alt={`${c.label} card`}
+                        className={`w-full rounded-lg border ${
+                          isSel ? "border-accent ring-2 ring-accent/50" : g.big ? "border-editorial/30" : "border-white/[0.08]"
+                        }`}
+                        style={{ aspectRatio: "4 / 5" }}
+                      />
+                      {isSel && (
+                        <span className="absolute top-2 left-2 w-8 h-8 rounded-full bg-accent text-black font-mono font-bold flex items-center justify-center">
+                          {pos + 1}
+                        </span>
+                      )}
+                    </button>
+                    <a
+                      href={cardSrc(c.metricId)}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Open ${c.label} card full size`}
+                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-ink-400 hover:text-ink-100 flex items-center justify-center text-caption"
+                    >
+                      ↗
+                    </a>
+                  </div>
                 );
               })}
             </div>
@@ -193,9 +208,11 @@ export function MetricCardPicker({ groups, period, dateSlug }: { groups: PickerG
       {/* Selection strip + export — the whole workflow in one row */}
       <div className="sticky bottom-4 rounded-xl border border-white/[0.12] bg-[#0a0e14]/95 p-4 space-y-3">
         {selected.length > 0 ? (
-          <ol className="flex flex-wrap gap-2">
+          /* One row, horizontally scrollable — several selections must not
+             balloon the sticky strip on a phone (founder correction). */
+          <ol className="flex gap-2 overflow-x-auto pb-1">
             {selected.map((id, i) => (
-              <li key={id} className="flex items-center gap-1 rounded-full border border-white/[0.12] bg-white/[0.04] pl-3 pr-1 py-1 text-caption text-ink-100">
+              <li key={id} className="flex flex-shrink-0 items-center gap-1 rounded-full border border-white/[0.12] bg-white/[0.04] pl-3 pr-1 py-1 text-caption text-ink-100">
                 <span className="font-mono text-ink-400">{i + 1}</span>
                 <span className="mx-1">{labelById.get(id) ?? id}</span>
                 <button type="button" aria-label={`Move ${id} earlier`} onClick={() => move(id, -1)} className="px-1 text-ink-500 hover:text-ink-100 disabled:opacity-30" disabled={i === 0}>

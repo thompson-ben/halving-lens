@@ -223,6 +223,7 @@ console.log("Selection/export discipline (MW2-C):");
   const pkCode = stripCm(pk);
   check("picker thumbnails ARE the card images (visual editorial desk, not a table)", /\/cards\/metric\//.test(pk) && /<img/.test(pk));
   check("click toggles selection; selection order is click order (append/remove only)", /s\.includes\(metricId\) \? s\.filter\(\(x\) => x !== metricId\) : \[\.\.\.s, metricId\]/.test(pk));
+  check("picker, not a link directory — tap selects (button), full card is a secondary ↗ affordance", /onClick=\{\(\) => onToggle\(c\.metricId\)\}/.test(pk) && /Open \$\{c\.label\} card full size/.test(pk) && /target="_blank"/.test(pk));
   check("selected state is visible: numbered badge + aria-pressed + count line", /aria-pressed/.test(pk) && /pos \+ 1/.test(pk) && /ordered ZIP/.test(pk));
   check("routine thumbnails stay receded until selected", /opacity-60/.test(pk));
   check("export filenames carry position prefixes so upload order matches", /padStart\(2, "0"\)/.test(pk));
