@@ -9,7 +9,7 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { briefIntel, BRIEF_INTEL_VERSION, DASHBOARD_CTA } from "../src/lib/briefIntel";
+import { briefIntel, BRIEF_INTEL_VERSION, DASHBOARD_CTA, FEEDBACK_LINE } from "../src/lib/briefIntel";
 import { cycleDashboardIntel, isUnusualRow, marketBoard } from "../src/lib/cycleDashboardIntel";
 import { consideredMovers, marketMovers, metricById, formatValue, formatMovement, meaningLine, rarityLine } from "../src/lib/marketMovers";
 import { stateWordFor } from "../src/lib/metricCards";
@@ -156,8 +156,8 @@ console.log("ETF discipline (as-of, vocabulary):");
   check("…the flow ROW (anchored, honest) may still be the story", b0630.story.kind === "mover" && b0630.story.metricId === "etf_flows");
 }
 
-// ── 5 · States, CTA, FRP, alsoToday bounds ──────────────────────────────────
-console.log("States, CTA, FRP conditional, bounds:");
+// ── 5 · States, CTA, collision rule, FRP, feedback ──────────────────────────
+console.log("States, CTA, collision rule, FRP conditional, feedback:");
 for (const a of ANCHORS) {
   const b = briefIntel(a);
   const strip = cycleDashboardIntel(a).strip;
@@ -165,14 +165,25 @@ for (const a of ANCHORS) {
     b.states.length === strip.length &&
       b.states.every((r, i) => r.stateLabel === strip[i].stateLabel && r.detail === strip[i].detail && r.sinceDate === strip[i].sinceDate && r.asOf === strip[i].asOf && r.href === strip[i].href));
   check(`[${a}] /cycle-dashboard CTA present in every edition`, b.cta === DASHBOARD_CTA && b.cta.href === "/cycle-dashboard" && b.verdict.href === "/cycle-dashboard");
-  check(`[${a}] alsoToday within bounds (≤2)`, b.alsoToday.length <= 2);
-  check(`[${a}] anchored editions never evaluate the live-only FRP pack`, b.frp.include === false || a === undefined);
+  check(`[${a}] ONE secondary insight maximum (founder collision rule)`, b.alsoToday.length <= 1);
+  check(`[${a}] feedback open door present and subordinate (payload constant, reply kind)`, b.feedback === FEEDBACK_LINE && b.feedback.kind === "reply");
+  check(`[${a}] anchored editions never evaluate the live-only FRP pack`,
+    !b.alsoToday.some((x) => x.source === "frp_configuration"));
   check(`[${a}] version pinned`, b.version === BRIEF_INTEL_VERSION);
 }
 {
+  // Displaced secondaries are recorded, never rendered — the collision is
+  // visible in the diagnostics whenever more than one candidate qualified.
   const live = briefIntel();
-  check("FRP conditional uses only the framework's own spell fact (include ⇒ configuration present)",
-    !live.frp.include || (live.frp.configuration != null));
+  const qualifiedSecondaries = live.selection.considered.filter(
+    (c) => c.qualified && (c.outcome.includes("secondary slot") || c.outcome.includes("displaced")),
+  );
+  check("collision rule: qualifying secondaries beyond the first are displaced with a recorded reason",
+    live.alsoToday.length <= 1 &&
+      (qualifiedSecondaries.length <= 1 || qualifiedSecondaries.some((c) => c.outcome.includes("displaced"))));
+  check("FRP secondary (when it wins the slot) quotes the framework's configuration verbatim",
+    !live.alsoToday.some((x) => x.source === "frp_configuration") ||
+      live.alsoToday[0].text.startsWith("New configuration this week:"));
 }
 
 // ── 6 · Subjects ────────────────────────────────────────────────────────────
@@ -185,6 +196,14 @@ console.log("Subject discipline:");
     if (b.verdict.activity !== "quiet") {
       check(`[${a}] non-quiet edition never wears a quiet subject`, !quietWords.test(b.subject));
     }
+  }
+  {
+    // Founder amendment: quiet-floor subjects are evidence-led — never the
+    // absolutist "nothing needs your attention" framing.
+    const floor = briefIntel("2026-01-01");
+    check("quiet-floor subjects are evidence-led (no 'nothing needs your attention')",
+      floor.subjectCandidates.every((c) => !/nothing needs your attention/i.test(c)) &&
+        floor.subjectCandidates.some((c) => /A quiet week across all \d+ Bitcoin readings/.test(c)));
   }
   const BANNED = [/\bwill\b/i, /\bforecast/i, /\bpredict/i, /\btarget\b/i, /\bbuy\b/i, /\bsell\b/i, /guarantee/i, /\bshould (rise|fall|hit)\b/i];
   const all = ANCHORS.map((a) => JSON.stringify(briefIntel(a))).join(" ");

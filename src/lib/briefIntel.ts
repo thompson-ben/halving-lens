@@ -64,6 +64,13 @@ export const DASHBOARD_CTA = {
   href: "/cycle-dashboard",
 } as const;
 
+/** The footer's permanent, visually subordinate feedback affordance — a
+ *  genuine reply invitation (no forms, no survey infrastructure). */
+export const FEEDBACK_LINE = {
+  line: "What would make this Brief more useful? Reply and tell us.",
+  kind: "reply",
+} as const;
+
 // ── Payload shapes ──────────────────────────────────────────────────────────
 
 export interface BriefVerdict {
@@ -154,7 +161,7 @@ export interface BriefAlsoItem {
   text: string;
   href: string;
   /** Which existing gate admitted it — for review and tests, not rendering. */
-  source: "second_unusual" | "one_to_watch" | "etf_swing";
+  source: "second_unusual" | "one_to_watch" | "etf_swing" | "frp_configuration";
 }
 
 export interface BriefStateRow {
@@ -181,14 +188,13 @@ export interface BriefIntel {
   asOf: string;
   verdict: BriefVerdict;
   story: BriefStory;
-  /** Max 2; empty on most days — absence is the signal. */
+  /** ONE secondary insight maximum (founder collision rule); empty on most
+   *  days — absence is the signal. */
   alsoToday: BriefAlsoItem[];
   states: BriefStateRow[];
-  /** Four Reference Prices — CONDITIONAL (founder §8): included only when
-   *  the configuration's current spell began this week (spellWeeks === 1,
-   *  the framework engine's own fact — no new threshold). */
-  frp: { include: boolean; configuration: string | null; paragraph: string | null };
   cta: typeof DASHBOARD_CTA;
+  /** The permanent open door — rendered subordinate to the Dashboard CTA. */
+  feedback: typeof FEEDBACK_LINE;
   /** Truthful, data-gated candidates (the house subject discipline) and the
    *  freshest pick versus recent editions. */
   subjectCandidates: string[];
@@ -408,34 +414,59 @@ export function briefIntel(anchor?: string): BriefIntel {
     story.thirtyDay = row30 && row30.movement != null ? `${formatMovement(row30)} over 30 days` : null;
   }
 
-  // ── Also today — conditional, max 2, existing gates only ─────────────────
+  // ── The secondary slot — ONE insight maximum (founder collision rule) ────
+  //
+  // Qualifying secondaries COMPETE for a single slot; they never stack. The
+  // ordering is not a new score: it is the V2.1 Cycle Dashboard's own
+  // approved information hierarchy — movement intelligence (WHAT CHANGED /
+  // the Watch) before ETF EXPLAINED before framework context — with each
+  // family's own engine ranking inside it (the board's ranking supplies the
+  // second unusual row; the Watch's own hierarchy supplies one-to-watch).
+  // Displaced candidates are recorded in the diagnostics, never rendered.
   const alsoToday: BriefAlsoItem[] = [];
   const storyMetricId = story.kind === "mover" || story.kind === "state_change" ? story.metricId : null;
+  const take = (item: BriefAlsoItem, candidate: string, outcome: string) => {
+    if (alsoToday.length === 0) {
+      alsoToday.push(item);
+      considered.push({ candidate, qualified: true, outcome });
+    } else {
+      considered.push({ candidate, qualified: true, outcome: `displaced by "${alsoToday[0].source}" (one-secondary rule)` });
+    }
+  };
   const secondUnusual = summary.activity === "quiet"
     ? undefined
     : board.rows.find((m) => m.metricId !== storyMetricId && isUnusualRow(m) && m.metricId !== (story.kind === "etf" ? "etf_flows" : ""));
   if (secondUnusual) {
     const meta = metricById(secondUnusual.metricId);
     const evidence = secondUnusual.rarityState === "available" ? ` — ${rarityLine(secondUnusual)}` : "";
-    alsoToday.push({
-      text: `${meta?.label ?? secondUnusual.metricId} also moved: ${formatMovement(secondUnusual)} in 7 days${evidence}`,
-      href: meta?.href ?? "/cycle-dashboard",
-      source: "second_unusual",
-    });
-    considered.push({ candidate: `also: ${secondUnusual.metricId}`, qualified: true, outcome: "alsoToday (second unusual row)" });
+    take(
+      {
+        text: `${meta?.label ?? secondUnusual.metricId} also moved: ${formatMovement(secondUnusual)} in 7 days${evidence}`,
+        href: meta?.href ?? "/cycle-dashboard",
+        source: "second_unusual",
+      },
+      `also: ${secondUnusual.metricId}`,
+      "secondary slot (second unusual row — board's own ranking)",
+    );
   }
-  if (alsoToday.length < 2 && watch.oneToWatch && watch.oneToWatch.metricId !== storyMetricId) {
-    alsoToday.push({ text: watch.oneToWatch.headline, href: watch.oneToWatch.href, source: "one_to_watch" });
-    considered.push({ candidate: "watch.oneToWatch", qualified: true, outcome: "alsoToday" });
+  if (watch.oneToWatch && watch.oneToWatch.metricId !== storyMetricId) {
+    take(
+      { text: watch.oneToWatch.headline, href: watch.oneToWatch.href, source: "one_to_watch" },
+      "watch.oneToWatch",
+      "secondary slot (the Watch's own hierarchy)",
+    );
   }
-  if (alsoToday.length < 2 && summary.activity !== "quiet" && story.kind !== "etf" && etfUsable && etf.contextLine) {
+  if (summary.activity !== "quiet" && story.kind !== "etf" && etfUsable && etf.contextLine) {
     // The card's own swing/streak gate admitted a demand development.
-    alsoToday.push({
-      text: `ETF demand: ${etf.contextLine} Net ${etf.netLabel} over the past ${etf.windowDays} trading days.`,
-      href: "/etf",
-      source: "etf_swing",
-    });
-    considered.push({ candidate: "etf swing", qualified: true, outcome: "alsoToday (context gate)" });
+    take(
+      {
+        text: `ETF demand: ${etf.contextLine} Net ${etf.netLabel} over the past ${etf.windowDays} trading days.`,
+        href: "/etf",
+        source: "etf_swing",
+      },
+      "etf swing",
+      "secondary slot (ETF card's context gate)",
+    );
   }
 
   // ── State of the Cycle — the strip, quoted ───────────────────────────────
@@ -451,21 +482,24 @@ export function briefIntel(anchor?: string): BriefIntel {
     href: s.href,
   }));
 
-  // ── FRP — conditional on the framework's own "spell began this week" ─────
+  // ── FRP — conditional on the framework's own "spell began this week", and
+  //    a COMPETITOR for the single secondary slot (framework context sits
+  //    below movement and ETF intelligence in the dashboard's hierarchy) ────
   const pack = live ? todaysConfigurationPack() : null;
-  const frpInclude = pack != null && pack.available && pack.spellWeeks === 1;
-  const frp = {
-    include: frpInclude,
-    configuration: frpInclude && pack ? pack.configuration : null,
-    paragraph: frpInclude && pack ? pack.paragraph : null,
-  };
-  considered.push({
-    candidate: "four reference prices",
-    qualified: frpInclude,
-    outcome: frpInclude
-      ? "included — configuration's current spell began this week (spellWeeks === 1)"
-      : `omitted — ${pack == null ? "framework pack is live-only (as-of discipline at review anchors)" : pack.available ? `standing configuration (spell ${pack.spellWeeks ?? "?"} weeks)` : "pack unavailable"}`,
-  });
+  const frpQualifies = pack != null && pack.available && pack.spellWeeks === 1 && pack.configuration != null;
+  if (frpQualifies && pack.configuration) {
+    take(
+      { text: `New configuration this week: ${pack.configuration}.`, href: "/four-reference-prices", source: "frp_configuration" },
+      "four reference prices",
+      "secondary slot (framework's own spellWeeks === 1)",
+    );
+  } else {
+    considered.push({
+      candidate: "four reference prices",
+      qualified: false,
+      outcome: `omitted — ${pack == null ? "framework pack is live-only (as-of discipline at review anchors)" : pack.available ? `standing configuration (spell ${pack.spellWeeks ?? "?"} weeks)` : "pack unavailable"}`,
+    });
+  }
 
   // ── Subject — truthful candidates from the day's qualified facts only ────
   const subjectCandidates = buildSubjectCandidates(verdict, story, quietLine);
@@ -476,10 +510,10 @@ export function briefIntel(anchor?: string): BriefIntel {
     asOf: intel.asOf,
     verdict,
     story,
-    alsoToday: alsoToday.slice(0, 2),
+    alsoToday: alsoToday.slice(0, 1),
     states,
-    frp,
     cta: DASHBOARD_CTA,
+    feedback: FEEDBACK_LINE,
     subjectCandidates,
     subject,
     selection: { storyReason, considered },
@@ -528,8 +562,8 @@ function buildSubjectCandidates(verdict: BriefVerdict, story: BriefStory, quietL
       break;
     case "quiet_floor":
       pool.push(
+        `A quiet week across all ${verdict.analysed} Bitcoin readings`,
         `Quiet week — all ${verdict.analysed} monitored readings held their range`,
-        "Nothing needs your attention today — and we checked",
         `A quiet week across the monitored market`,
       );
       break;
