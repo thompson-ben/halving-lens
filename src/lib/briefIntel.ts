@@ -561,9 +561,11 @@ function buildSubjectCandidates(verdict: BriefVerdict, story: BriefStory, quietL
       pool.push(story.sentence.replace(/\.$/, ""), "What this point in past cycles looked like");
       break;
     case "quiet_floor":
+      // Founder copy decision (DBV2-A final review): the count-led phrasing
+      // below is the preferred floor subject; the "held their range" variant
+      // was dropped as clunkier for the same fact.
       pool.push(
         `A quiet week across all ${verdict.analysed} Bitcoin readings`,
-        `Quiet week — all ${verdict.analysed} monitored readings held their range`,
         `A quiet week across the monitored market`,
       );
       break;
