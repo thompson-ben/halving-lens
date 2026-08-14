@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { AdminLogin } from "@/components/AdminLogin";
 import { adminConfigured, isAdmin } from "@/lib/adminAuth";
+import { MetricCardPicker, type PickerGroup } from "@/components/MetricCardPicker";
 import { metricCardsGallery, type CardPeriod, type AnyCardPayload } from "@/lib/metricCards";
 
-// MW2-B — the Metric Content Pack gallery: a VISUAL EDITORIAL DESK, not
+// MW2-B/C — the Metric Content Pack gallery: a VISUAL EDITORIAL DESK, not
 // another analytics table. The grid shows the ACTUAL social creatives
 // (the same images the export produces), grouped and sized by the
 // canonical significance hierarchy — Worth Looking At dominates, routine
 // recedes — so the founder's workflow is OPEN → SCAN → something jumps
-// out → select. The verdict header is the dashboard's own week verdict;
-// Most Interesting / One to Watch stay distinct from the movers grouping.
-// Selection + export land in MW2-C; this page is the scanning surface.
+// out → SELECT → EXPORT. The verdict header is the dashboard's own week
+// verdict; Most Interesting / One to Watch stay distinct from the movers
+// grouping. Selection/export (MW2-C) is the client-side MetricCardPicker;
+// this page stays a server component that hands it only display facts
+// (metricId + label per group) — never engine internals.
 
 export const dynamic = "force-dynamic";
 export const metadata = { robots: { index: false, follow: false } };
@@ -22,34 +25,11 @@ function Shell({ children }: { children: React.ReactNode }) {
   return <div className="max-w-6xl mx-auto space-y-8">{children}</div>;
 }
 
-function Thumb({ card, period, big }: { card: AnyCardPayload; period: CardPeriod; big?: boolean }) {
-  const src = `/cards/metric/${card.metricId}${period === 7 ? "" : `?period=${period}`}`;
-  return (
-    <a href={src} target="_blank" rel="noreferrer" className={`block ${big ? "" : "opacity-60 hover:opacity-100 transition-opacity"}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={`${card.label} card`}
-        className={`w-full rounded-lg border ${big ? "border-editorial/30" : "border-white/[0.08]"}`}
-        style={{ aspectRatio: "4 / 5" }}
-      />
-    </a>
-  );
-}
-
-function Group({ title, cards, period, big }: { title: string; cards: AnyCardPayload[]; period: CardPeriod; big?: boolean }) {
-  if (cards.length === 0) return null;
-  return (
-    <section aria-label={title}>
-      <h2 className={`eyebrow mb-3 ${big ? "text-editorial" : "text-ink-500"}`}>{title}</h2>
-      <div className={`grid gap-4 ${big ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"}`}>
-        {cards.map((c) => (
-          <Thumb key={c.metricId} card={c} period={period} big={big} />
-        ))}
-      </div>
-    </section>
-  );
-}
+const pickerGroup = (title: string, big: boolean, cards: AnyCardPayload[]): PickerGroup => ({
+  title,
+  big,
+  cards: cards.map((c) => ({ metricId: c.metricId, label: c.label })),
+});
 
 export default function MetricCardsPage({ searchParams }: { searchParams?: { period?: string; anchor?: string } }) {
   if (!adminConfigured()) {
@@ -120,7 +100,7 @@ export default function MetricCardsPage({ searchParams }: { searchParams?: { per
             </>
           )}
           <p className="text-micro text-ink-600">
-            Cards as of {g.asOf} · 1080×1350 · selection &amp; export arrive in MW2-C
+            Cards as of {g.asOf} · 1080×1350 · click to select · selection order = export order
           </p>
           {anchor && (
             <p className="text-micro text-editorial">
@@ -130,10 +110,16 @@ export default function MetricCardsPage({ searchParams }: { searchParams?: { per
         </div>
       </header>
 
-      <Group title="Worth looking at" cards={g.worthLookingAt} period={period} big />
-      <Group title="Also moving" cards={g.alsoMoving} period={period} />
-      <Group title="Routine" cards={g.routine} period={period} />
-      <Group title="Comparison maturing" cards={g.maturing} period={period} />
+      <MetricCardPicker
+        period={period}
+        dateSlug={g.asOf}
+        groups={[
+          pickerGroup("Worth looking at", true, g.worthLookingAt),
+          pickerGroup("Also moving", false, g.alsoMoving),
+          pickerGroup("Routine", false, g.routine),
+          pickerGroup("Comparison maturing", false, g.maturing),
+        ]}
+      />
 
       {g.unavailable.length > 0 && (
         <section aria-label="Not observable">

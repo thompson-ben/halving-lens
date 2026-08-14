@@ -209,10 +209,32 @@ console.log("Render-layer discipline (MW2-B):");
   const gal = readFileSync(join(__dirname, "../src/app/admin/metric-cards/page.tsx"), "utf8");
   check("gallery is admin-gated and noindex", /isAdmin\(\)/.test(gal) && /adminConfigured\(\)/.test(gal) && /robots: \{ index: false/.test(gal));
   check("gallery header is the dashboard's verdict + the Watch's own claims, verbatim", /verdict\.activityLabel/.test(gal) && /verdict\.countsLine/.test(gal) && /watch\.quietLine/.test(gal));
-  check("gallery thumbnails ARE the card images (visual editorial desk, not a table)", /\/cards\/metric\//.test(gal) && /<img/.test(gal));
-  check("significance hierarchy: worth-looking-at big, routine receded", /big/.test(gal) && /opacity-60/.test(gal));
   check("not-observable entries close the gallery with the engine's reason", /unavailable/.test(gal) && /u\.reason/.test(gal));
-  check("gallery is server-only — no client state (selection is MW2-C)", !/useState|"use client"/.test(gal));
+  check("gallery page stays a server component — client state lives only in the picker", !/useState|"use client"/.test(gal));
+  check("gallery hands the picker display facts only (metricId + label per group)", /MetricCardPicker/.test(gal) && /metricId: c\.metricId, label: c\.label/.test(gal));
+  check("significance hierarchy survives the picker handoff (worth-looking-at big)", /pickerGroup\("Worth looking at", true,/.test(gal) && /pickerGroup\("Routine", false,/.test(gal));
+}
+
+// ── 8 · MW2-C selection & export (source scans) ─────────────────────────────
+console.log("Selection/export discipline (MW2-C):");
+{
+  const stripCm = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const pk = readFileSync(join(__dirname, "../src/components/MetricCardPicker.tsx"), "utf8");
+  const pkCode = stripCm(pk);
+  check("picker thumbnails ARE the card images (visual editorial desk, not a table)", /\/cards\/metric\//.test(pk) && /<img/.test(pk));
+  check("click toggles selection; selection order is click order (append/remove only)", /s\.includes\(metricId\) \? s\.filter\(\(x\) => x !== metricId\) : \[\.\.\.s, metricId\]/.test(pk));
+  check("picker, not a link directory — tap selects (button), full card is a secondary ↗ affordance", /onClick=\{\(\) => onToggle\(c\.metricId\)\}/.test(pk) && /Open \$\{c\.label\} card full size/.test(pk) && /target="_blank"/.test(pk));
+  check("selected state is visible: numbered badge + aria-pressed + count line", /aria-pressed/.test(pk) && /pos \+ 1/.test(pk) && /ordered ZIP/.test(pk));
+  check("routine thumbnails stay receded until selected", /opacity-60/.test(pk));
+  check("export filenames carry position prefixes so upload order matches", /padStart\(2, "0"\)/.test(pk));
+  check("one card → PNG, several → ordered ZIP via the shared makeZip", /from "@\/lib\/zip"/.test(pk) && /halvinglens-metric-pack-/.test(pk) && /out\.length === 1/.test(pk));
+  check("Save to Photos only where image files are shareable (canShare probe)", /canShare\(\{ files:/.test(pk) && /navigator\.share\(\{ files/.test(pk));
+  check("Save to Photos reuses the packs' proven mechanism — files pre-fetched, share() synchronous in the tap", /setFilesReady\(false\)/.test(pk) && /const files = filesRef\.current/.test(pk) && !/fetch/.test(stripCm(pk).split("async function saveToPhotos")[1]?.split("async function exportSelected")[0] ?? "fetch"));
+  check("Save to Photos preserves selection order (files staged in selected order)", /selected\.map\(async \(id, i\)/.test(pk) && /nameFor\(id, i, selected\.length\)/.test(pk));
+  check("honest platform handling: button gated on filesReady with the packs' iPhone guidance", /filesReady \? |!filesReady/.test(pk) && /photo library/.test(pk) && /Save to Photos/.test(pk));
+  check("picker consumes the image routes only — no engine, intel or payload imports", !/marketMovers|metricWatch|cycleDashboardIntel|metricCards|storyEngine|contentCards/.test(pk));
+  check("no editing, no overrides: no text inputs, colour or template controls", !/<input|<textarea|contentEditable|color|template|significance/i.test(pkCode));
+  check("ETF licence notice appears when the ETF card is selected (founder governance item)", /etf_flows/.test(pk) && /SoSoValue licence confirmation/.test(pk));
 }
 
 console.log("");
