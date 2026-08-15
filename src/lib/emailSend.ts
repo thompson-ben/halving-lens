@@ -5,7 +5,10 @@
 
 import { sbSelect, sbInsert, sbUpdate, supabaseConfigured } from "./supabase";
 import { sendEmail, resendConfigured } from "./resend";
-import { dailyEmailHtml, dailyEmailText, dailyEmailSubject } from "./emailBrief";
+// DBV2-C cutover: the daily send renders the Daily Brief V2 (canonical
+// payload + renderer). The legacy emailBrief content path is no longer sent.
+import { briefEmailV2Html, briefEmailV2Text, briefEmailV2Subject } from "./briefEmailV2";
+import { briefIntel } from "./briefIntel";
 import { showcaseEmailHtml, showcaseEmailText, showcaseEmailSubject } from "./showcaseEmail";
 import { weeklyEmailHtml, weeklyEmailText, weeklyEmailSubject } from "./weeklyEmail";
 import { latestWeekly } from "./weekly";
@@ -62,9 +65,9 @@ export async function sendDailyBrief(opts: { force?: boolean; testTo?: string } 
     const unsubUrl = absoluteUrl(`/api/unsubscribe?e=${encodeURIComponent(email)}&t=${unsubToken(email)}`);
     const res = await sendEmail({
       to: email,
-      subject: `[TEST] ${dailyEmailSubject()}`,
-      html: dailyEmailHtml(unsubUrl, "pro", emailTracking(email, `daily-test-${date}`)),
-      text: dailyEmailText(),
+      subject: `[TEST] ${briefEmailV2Subject()}`,
+      html: briefEmailV2Html(unsubUrl, emailTracking(email, `daily-test-${date}`)),
+      text: briefEmailV2Text(),
       headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
     });
     return { ...base, ok: res.ok, subscriberCount: 1, sent: 1, delivered: res.ok ? 1 : 0, failed: res.ok ? 0 : 1, reason: res.ok ? "test_sent" : (res.error ?? "send_failed") };
@@ -83,8 +86,11 @@ export async function sendDailyBrief(opts: { force?: boolean; testTo?: string } 
       "brief_subscribers?select=id,email&or=(status.is.null,status.eq.active)&limit=20000",
     )) ?? [];
 
-  const subject = dailyEmailSubject();
-  const text = dailyEmailText();
+  const subject = briefEmailV2Subject();
+  const text = briefEmailV2Text();
+  // Verdict-class measurement (DBV2-C): the tracking campaign carries the
+  // canonical activity class, so opens/clicks split by edition type for free.
+  const campaign = `daily-${date}-${briefIntel().verdict.activity}`;
 
   let delivered = 0;
   let failed = 0;
@@ -93,7 +99,7 @@ export async function sendDailyBrief(opts: { force?: boolean; testTo?: string } 
   for (const sub of subs) {
     const email = sub.email;
     const unsubUrl = absoluteUrl(`/api/unsubscribe?e=${encodeURIComponent(email)}&t=${unsubToken(email)}`);
-    const html = dailyEmailHtml(unsubUrl, "pro", emailTracking(email, `daily-${date}`));
+    const html = briefEmailV2Html(unsubUrl, emailTracking(email, campaign));
     const res = await sendEmail({
       to: email,
       subject,
