@@ -251,6 +251,48 @@ console.log("Source discipline (scans):");
   check("FRP conditional quotes the framework's own spell fact", /pack\.spellWeeks === 1/.test(src) && !/spellWeeks [<>]/.test(code));
 }
 
+// ── 9 · DBV2-B render layer (source + output scans) ─────────────────────────
+console.log("Render-layer discipline (DBV2-B):");
+{
+  const stripCm = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const src = readFileSync(join(__dirname, "../src/lib/briefEmailV2.ts"), "utf8");
+  const code = stripCm(src);
+  check("renderer consumes the payload only — no engines, no legacy email content",
+    /from "\.\/briefIntel"/.test(src) &&
+      !/from "\.\/emailBrief"|from "\.\/dailyChange"|from "\.\/marketMovers"|from "\.\/cycleDashboardIntel"|from "\.\/metricWatch"|from "\.\/cycleLens"|from "\.\/cycleSummary"|from "\.\/accumulation"|from "\.\/sentiment"|from "\.\/similarity"|from "\.\/editorial"/.test(src));
+  check("founder hierarchy fixed: verdict → story → secondary → states → CTA → footer",
+    (() => {
+      const order = ["rows.push(section(verdict", "rows.push(section(story", "if (secondary) rows.push(section(secondary", "rows.push(section(states", "rows.push(section(cta"];
+      let last = -1;
+      for (const o of order) {
+        const i = src.indexOf(o);
+        if (i < 0 || i < last) return false;
+        last = i;
+      }
+      return true;
+    })());
+  check("no extra modules beyond the approved hierarchy (no charts, scores, research, memory blocks)",
+    !/contextScore|confidence|Did you know|research library|Signature Read|bitcoinMemory|analyst/i.test(code));
+  check("renderer trusts the one-secondary contract (renders alsoToday[0] only)",
+    /b\.alsoToday\[0\]/.test(src) && !/alsoToday\.map|alsoToday\[1\]/.test(code));
+  check("dominant CTA + subordinate feedback footer, in that order",
+    src.indexOf("v2_dashboard_cta") < src.indexOf("b.feedback.line") && /padding:17px 30px/.test(src));
+  check("subject is the payload's own", /briefIntel\(anchor\)\.subject/.test(src));
+  check("plain-text part mirrors the same hierarchy", /briefEmailV2Text/.test(src) && /THE VERDICT/.test(src) && /STATE OF THE CYCLE/.test(src));
+  check("unsubscribe handled; escaping applied to every quoted string", /forHtmlAttr\(unsubUrl\)/.test(src) && /function esc\(/.test(src));
+
+  // Output scans on real editions — hierarchy and honesty in the artifact.
+  const { briefEmailV2Html, briefEmailV2Text } = require("../src/lib/briefEmailV2") as typeof import("../src/lib/briefEmailV2");
+  for (const a of ["2026-08-13", "2026-01-01"]) {
+    const html = briefEmailV2Html("https://example.com/unsub", undefined, a);
+    check(`[${a}] rendered email carries the dashboard CTA exactly once`, (html.match(/Open the Cycle Dashboard/g) ?? []).length === 1);
+    check(`[${a}] rendered email carries the feedback line after the CTA`, html.indexOf("Reply and tell us") > html.indexOf("Open the Cycle Dashboard"));
+    check(`[${a}] rendered email quotes the verdict verbatim`, html.includes(briefIntel(a).verdict.countsLine.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/—/g, "—")));
+    const text = briefEmailV2Text(a);
+    check(`[${a}] plain-text part present with verdict + CTA`, text.includes(briefIntel(a).verdict.activityLabel) && text.includes("/cycle-dashboard"));
+  }
+}
+
 console.log("");
 if (failures) {
   console.error(`${failures} failure(s).`);
