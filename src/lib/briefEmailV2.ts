@@ -90,6 +90,7 @@ function storyBlock(s: BriefStory, link: (path: string, label: string) => string
       <div style="font:500 24px/1.35 ${SERIF};color:${C.ink};">Net ${esc(s.nowLine)}${s.changeLine ? `, against the ${esc(s.changeLine)}` : ""}.</div>
       ${s.contextLine ? `<div style="font:400 16px/1.6 ${SANS};color:${C.sub};margin-top:12px;">${esc(s.contextLine)}</div>` : ""}
       ${s.concentrationLine ? `<div style="font:400 15px/1.55 ${SANS};color:${C.dim};margin-top:8px;">${esc(s.concentrationLine)}</div>` : ""}
+      ${s.asOf ? `<div style="font:400 12.5px/1.5 ${SANS};color:${C.faint};margin-top:8px;">Trading-day series · as of ${esc(prettyDate(s.asOf))}</div>` : ""}
       ${more("Explore ETF flows", s.href)}`;
   }
   if (s.kind === "quiet_duration") {
@@ -149,19 +150,33 @@ export function briefEmailV2Html(unsubUrl: string, tracking: EmailTracking = NO_
     </div>`
     : "";
 
+  // Founder polish (DBV2-B review): the right cell renders as TWO predictable
+  // lines — state word, then detail — instead of one long ragged wrap; the
+  // date fragments are nbsp-joined so "since 4 Jul 2026" can never break
+  // mid-phrase. The ETF row (a latest-only read) always prints its own as-of
+  // date so temporal provenance stays unambiguous — presentation only, the
+  // date is the payload's own per-series asOf.
+  const noBreak = (s: string) => esc(s).replace(/ /g, "&nbsp;");
   const stateRows = b.states
     .filter((r) => r.available && r.stateLabel)
-    .map(
-      (r) => `<tr>
-        <td style="padding:12px 0;border-bottom:1px solid ${C.hair};font:400 14px/1.4 ${SANS};color:${C.dim};white-space:nowrap;">${esc(r.label)}</td>
-        <td style="padding:12px 0 12px 16px;border-bottom:1px solid ${C.hair};text-align:right;">
+    .map((r) => {
+      const tail = [
+        r.detail ? esc(r.detail) : "",
+        r.sinceDate && !r.sinceIsSeriesStart ? `since&nbsp;${noBreak(prettyDate(r.sinceDate))}` : "",
+        r.id === "etf" && r.asOf ? `as&nbsp;of&nbsp;${noBreak(prettyDate(r.asOf))}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      return `<tr>
+        <td style="padding:11px 0;border-bottom:1px solid ${C.hair};font:400 14px/1.4 ${SANS};color:${C.dim};white-space:nowrap;vertical-align:top;">${esc(r.label)}</td>
+        <td style="padding:11px 0 11px 16px;border-bottom:1px solid ${C.hair};text-align:right;">
           <a href="${link(r.href, `v2_state_${r.id}`)}" style="text-decoration:none;">
-            <span style="font:600 15px/1.4 ${SANS};color:${C.ink};">${esc(r.stateLabel ?? "")}</span>
-            <span style="font:400 13px/1.4 ${SANS};color:${C.faint};margin-left:10px;">${esc(r.detail ?? "")}${r.sinceDate && !r.sinceIsSeriesStart ? ` · since ${esc(prettyDate(r.sinceDate))}` : ""}</span>
+            <div style="font:600 15px/1.35 ${SANS};color:${C.ink};">${esc(r.stateLabel ?? "")}</div>
+            <div style="font:400 12.5px/1.5 ${SANS};color:${C.faint};margin-top:2px;">${tail}</div>
           </a>
         </td>
-      </tr>`,
-    )
+      </tr>`;
+    })
     .join("");
   const states = `
     ${eyebrow("State of the cycle")}
@@ -171,7 +186,7 @@ export function briefEmailV2Html(unsubUrl: string, tracking: EmailTracking = NO_
   const cta = `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
       <div style="font:400 14px/1.5 ${SANS};color:${C.dim};margin-bottom:14px;">${esc(b.cta.label)}</div>
-      <a href="${link(b.cta.href, "v2_dashboard_cta")}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 16px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:18px 42px;border-radius:12px;">${esc(b.cta.sub)}&nbsp;→</a>
+      <a href="${link(b.cta.href, "v2_dashboard_cta")}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 30px;border-radius:12px;white-space:nowrap;">${esc(b.cta.sub)}&nbsp;→</a>
     </td></tr></table>`;
 
   // Footer: the subordinate reply/feedback door, then disclaimer + unsubscribe.
@@ -227,6 +242,7 @@ export function briefEmailV2Text(anchor?: string): string {
     L.push(`THE STORY IS DEMAND: net ${s.nowLine}${s.changeLine ? `, against the ${s.changeLine}` : ""}.`);
     if (s.contextLine) L.push(s.contextLine);
     if (s.concentrationLine) L.push(s.concentrationLine);
+    if (s.asOf) L.push(`Trading-day series · as of ${prettyDate(s.asOf)}`);
   } else if (s.kind === "quiet_duration") {
     L.push(`THE QUIET FINDING: ${s.line}${s.alsoLine ? ` ${s.alsoLine}` : ""}`);
   } else if (s.kind === "quiet_lens") {
@@ -242,7 +258,7 @@ export function briefEmailV2Text(anchor?: string): string {
   L.push("STATE OF THE CYCLE");
   for (const r of b.states) {
     if (!r.available || !r.stateLabel) continue;
-    L.push(`· ${r.label}: ${r.stateLabel} · ${r.detail}${r.sinceDate && !r.sinceIsSeriesStart ? ` · since ${prettyDate(r.sinceDate)}` : ""}`);
+    L.push(`· ${r.label}: ${r.stateLabel} · ${r.detail}${r.sinceDate && !r.sinceIsSeriesStart ? ` · since ${prettyDate(r.sinceDate)}` : ""}${r.id === "etf" && r.asOf ? ` · as of ${prettyDate(r.asOf)}` : ""}`);
   }
   L.push("");
   L.push(`${b.cta.label}: ${b.cta.sub} → ${SITE_URL}${b.cta.href}`);

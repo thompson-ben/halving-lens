@@ -276,7 +276,7 @@ console.log("Render-layer discipline (DBV2-B):");
   check("renderer trusts the one-secondary contract (renders alsoToday[0] only)",
     /b\.alsoToday\[0\]/.test(src) && !/alsoToday\.map|alsoToday\[1\]/.test(code));
   check("dominant CTA + subordinate feedback footer, in that order",
-    src.indexOf("v2_dashboard_cta") < src.indexOf("b.feedback.line") && /padding:18px 42px/.test(src));
+    src.indexOf("v2_dashboard_cta") < src.indexOf("b.feedback.line") && /padding:17px 30px/.test(src));
   check("subject is the payload's own", /briefIntel\(anchor\)\.subject/.test(src));
   check("plain-text part mirrors the same hierarchy", /briefEmailV2Text/.test(src) && /THE VERDICT/.test(src) && /STATE OF THE CYCLE/.test(src));
   check("unsubscribe handled; escaping applied to every quoted string", /forHtmlAttr\(unsubUrl\)/.test(src) && /function esc\(/.test(src));
