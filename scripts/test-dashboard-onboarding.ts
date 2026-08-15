@@ -6,7 +6,7 @@
 // approved day-1 tour corrections hold, and the broadcast cannot send without
 // an explicit confirm flag.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { LIFECYCLE_STEPS, liveVerdictLine } from "../src/lib/lifecycleEmails";
 import { previewLifecycleStep } from "../src/lib/lifecycleEmails";
@@ -102,9 +102,36 @@ console.log("Broadcast safety:");
     script.includes("BROADCAST_STEP_ID") && /sbInsert\("lifecycle_sends", \{ email: sub\.email, step: BROADCAST_STEP_ID \}\)/.test(script));
   check("day-3 onboarding recipients are excluded — nobody gets both",
     script.includes("ONBOARDING_STEP_ID") && /excluded\.has/.test(script));
+  check("subscribers whose day-3 window is STILL OPEN are excluded too (no double-messaging)",
+    /willStillReceiveOnboarding/.test(script) && /pendingOnboarding/.test(script));
+  check("that eligibility reuses the lifecycle engine's own anchor + constants",
+    /enrolAnchorMs/.test(script) && /LIFECYCLE_CATCHUP_DAYS/.test(script) && /step\.dayOffset/.test(script));
+  check("the dry run reports the pending-onboarding exclusion as its own line",
+    /day-3 onboarding still due/.test(script));
   check("only successful sends are recorded (failures retry)", /if \(res\.ok\) \{[\s\S]*?sbInsert\("lifecycle_sends"/.test(script));
-  check("the daily sync never calls the broadcast",
-    !readFileSync(join(__dirname, "../.github/workflows/sync.yml"), "utf8").includes("broadcast-dashboard"));
+  check("no SCHEDULED workflow can trigger the broadcast",
+    (() => {
+      const dir = join(__dirname, "../.github/workflows");
+      return readdirSync(dir)
+        .filter((f) => f.endsWith(".yml"))
+        .every((f) => {
+          const y = readFileSync(join(dir, f), "utf8");
+          if (!/broadcast-dashboard/.test(y)) return true;
+          return !/^\s*schedule:/m.test(y) && !/^\s*push:/m.test(y);
+        });
+    })());
+  check("the manual broadcast workflow is dispatch-only and defaults to dry run",
+    (() => {
+      const y = readFileSync(join(__dirname, "../.github/workflows/dashboard-broadcast.yml"), "utf8");
+      return /workflow_dispatch:/.test(y) && !/^\s*schedule:/m.test(y) && /default: dry-run/.test(y);
+    })());
+  check("send mode additionally requires an exact typed confirmation phrase",
+    (() => {
+      const y = readFileSync(join(__dirname, "../.github/workflows/dashboard-broadcast.yml"), "utf8");
+      return /SEND THE BROADCAST/.test(y) && /!= "SEND THE BROADCAST"/.test(y) && /exit 1/.test(y);
+    })());
+  check("a send run proves idempotency with a follow-up dry run",
+    /Post-send verification/.test(readFileSync(join(__dirname, "../.github/workflows/dashboard-broadcast.yml"), "utf8")));
   check("step ids are distinct", String(BROADCAST_STEP_ID) !== String(ONBOARDING_STEP_ID));
 }
 

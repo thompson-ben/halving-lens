@@ -17,10 +17,18 @@
  *     second run re-enumerates to zero and can never double-send;
  *   · anyone who already received the day-3 onboarding email (ONBOARDING_STEP_ID)
  *     is excluded — nobody gets both;
+ *   · anyone who WILL STILL receive it is excluded too. The drip keeps the
+ *     day-3 step eligible until anchor + (dayOffset + catch-up) days, so a
+ *     recent subscriber who has not reached day 3 yet would otherwise get the
+ *     broadcast today AND the onboarding email days later — two emails about
+ *     the same product. Eligibility is computed with the lifecycle engine's
+ *     OWN anchor function and constants, never a re-implementation;
  *   · only active subscribers (status active or legacy null) are eligible;
  *   · a failed send is NOT recorded, so it retries on a later run.
  */
 import { sbSelect, sbInsert, supabaseConfigured } from "../src/lib/supabase";
+import { enrolAnchorMs, LIFECYCLE_STEPS } from "../src/lib/lifecycle";
+import { LIFECYCLE_CATCHUP_DAYS } from "../src/lib/lifecycleConfig";
 import { sendEmail, resendConfigured } from "../src/lib/resend";
 import {
   dashboardBroadcastHtml,
@@ -36,6 +44,20 @@ import { absoluteUrl } from "../src/lib/site";
 interface Subscriber {
   id: number;
   email: string;
+  signup_at: string | null;
+}
+
+const DAY = 86_400_000;
+
+/** Will this subscriber still receive the day-3 onboarding email? True while
+ *  the drip's own eligibility window for that step is open — computed from the
+ *  engine's anchor function, the step's own dayOffset and the configured
+ *  catch-up window, so it can never drift from what the drip actually does. */
+function willStillReceiveOnboarding(signupISO: string | null, nowMs: number): boolean {
+  const step = LIFECYCLE_STEPS.find((x) => x.id === ONBOARDING_STEP_ID);
+  if (!step) return false;
+  const closesAt = enrolAnchorMs(signupISO, nowMs) + (step.dayOffset + LIFECYCLE_CATCHUP_DAYS) * DAY;
+  return nowMs <= closesAt;
 }
 
 async function main() {
@@ -69,7 +91,7 @@ async function main() {
 
   // Active subscribers.
   const subs =
-    (await sbSelect<Subscriber[]>("brief_subscribers?select=id,email&or=(status.is.null,status.eq.active)&limit=20000")) ?? [];
+    (await sbSelect<Subscriber[]>("brief_subscribers?select=id,email,signup_at&or=(status.is.null,status.eq.active)&limit=20000")) ?? [];
   // Everyone who already had this broadcast, or the day-3 onboarding email.
   // lifecycle_sends is keyed by { email, step } — the same shape the drip writes.
   const sent =
@@ -77,7 +99,12 @@ async function main() {
       `lifecycle_sends?select=email,step&step=in.(${BROADCAST_STEP_ID},${ONBOARDING_STEP_ID})&limit=200000`,
     )) ?? [];
   const excluded = new Set(sent.map((r) => r.email.trim().toLowerCase()));
-  const audience = subs.filter((s) => !excluded.has(s.email.trim().toLowerCase()));
+  const now = Date.now();
+  const remaining = subs.filter((s) => !excluded.has(s.email.trim().toLowerCase()));
+  // Recent subscribers whose day-3 window is still open receive the onboarding
+  // version naturally — they must not also receive the broadcast.
+  const pendingOnboarding = remaining.filter((s) => willStillReceiveOnboarding(s.signup_at, now));
+  const audience = remaining.filter((s) => !willStillReceiveOnboarding(s.signup_at, now));
 
   const alreadyBroadcast = sent.filter((r) => r.step === BROADCAST_STEP_ID).length;
   const gotOnboarding = sent.filter((r) => r.step === ONBOARDING_STEP_ID).length;
@@ -87,6 +114,7 @@ async function main() {
   console.log(`  active subscribers: ${subs.length}`);
   console.log(`  excluded (already broadcast): ${alreadyBroadcast}`);
   console.log(`  excluded (received day-3 onboarding): ${gotOnboarding}`);
+  console.log(`  excluded (day-3 onboarding still due): ${pendingOnboarding.length}`);
   console.log(`  AUDIENCE          : ${audience.length}`);
 
   if (!confirm) {
