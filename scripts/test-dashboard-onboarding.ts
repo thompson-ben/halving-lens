@@ -102,6 +102,12 @@ console.log("Broadcast safety:");
     script.includes("BROADCAST_STEP_ID") && /sbInsert\("lifecycle_sends", \{ email: sub\.email, step: BROADCAST_STEP_ID \}\)/.test(script));
   check("day-3 onboarding recipients are excluded — nobody gets both",
     script.includes("ONBOARDING_STEP_ID") && /excluded\.has/.test(script));
+  check("subscribers whose day-3 window is STILL OPEN are excluded too (no double-messaging)",
+    /willStillReceiveOnboarding/.test(script) && /pendingOnboarding/.test(script));
+  check("that eligibility reuses the lifecycle engine's own anchor + constants",
+    /enrolAnchorMs/.test(script) && /LIFECYCLE_CATCHUP_DAYS/.test(script) && /step\.dayOffset/.test(script));
+  check("the dry run reports the pending-onboarding exclusion as its own line",
+    /day-3 onboarding still due/.test(script));
   check("only successful sends are recorded (failures retry)", /if \(res\.ok\) \{[\s\S]*?sbInsert\("lifecycle_sends"/.test(script));
   check("the daily sync never calls the broadcast",
     !readFileSync(join(__dirname, "../.github/workflows/sync.yml"), "utf8").includes("broadcast-dashboard"));
