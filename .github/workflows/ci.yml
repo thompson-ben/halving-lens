@@ -68,6 +68,12 @@ jobs:
       - name: Brief-intel agreement tests
         run: npm run test-brief-intel
 
+      # Cycle Dashboard onboarding email (CDOE) — the email quotes canonical
+      # dashboard intelligence, and the one-off broadcast cannot send without
+      # an explicit confirm flag.
+      - name: Dashboard-onboarding tests
+        run: npm run test-dashboard-onboarding
+
       # Observed-window registry (PR141) — the registry faithfully mirrors
       # the committed snapshot's windows and never exposes synthetic history.
       - name: Observed-window tests
