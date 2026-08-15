@@ -1,0 +1,101 @@
+name: Cycle Dashboard broadcast (one-off)
+
+# The execution path for the one-off Cycle Dashboard broadcast to the veteran
+# cohort — the subscribers the onboarding drip can no longer reach.
+#
+# SAFETY BY DESIGN:
+#   · workflow_dispatch ONLY. There is deliberately no schedule and no push
+#     trigger: this workflow cannot fire on its own, ever.
+#   · The default mode is DRY RUN. Running it with no changes enumerates the
+#     audience and sends nothing.
+#   · Sending requires BOTH selecting mode "send" AND typing the confirmation
+#     phrase exactly. A mis-click cannot send.
+#   · The underlying script is itself gated: it sends only when passed
+#     --confirm, and records recipients in lifecycle_sends so a second run
+#     proposes zero already-sent recipients.
+#
+# Intended use: run in dry-run mode first, check the counts against the
+# approved audience, and only then run in send mode.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run enumerates the audience and sends nothing. send delivers the broadcast."
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - send
+      confirmation:
+        description: 'Required for send mode only — type exactly: SEND THE BROADCAST'
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: dashboard-broadcast # never two broadcast runs at once
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  broadcast:
+    name: ${{ inputs.mode == 'send' && 'SEND the broadcast' || 'Dry run (nothing sent)' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+
+      # Send mode is refused unless the confirmation phrase matches exactly.
+      - name: Verify send confirmation
+        if: ${{ inputs.mode == 'send' }}
+        run: |
+          if [ "${{ inputs.confirmation }}" != "SEND THE BROADCAST" ]; then
+            echo "::error title=Confirmation missing::Send mode requires the confirmation phrase typed exactly: SEND THE BROADCAST"
+            exit 1
+          fi
+          echo "Confirmation accepted — proceeding to send."
+
+      - name: Dry run — enumerate the audience (sends nothing)
+        if: ${{ inputs.mode != 'send' }}
+        run: npm run broadcast-dashboard
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+      - name: Send the broadcast
+        if: ${{ inputs.mode == 'send' }}
+        run: npm run broadcast-dashboard -- --confirm
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+      # Proof of idempotency: after a send, a fresh dry run must propose zero
+      # recipients (everyone delivered is now recorded in lifecycle_sends).
+      - name: Post-send verification — a second dry run must propose zero
+        if: ${{ inputs.mode == 'send' }}
+        run: npm run broadcast-dashboard
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
