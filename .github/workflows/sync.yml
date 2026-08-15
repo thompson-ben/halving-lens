@@ -112,12 +112,12 @@ jobs:
       - name: Commit snapshot + brief archive (deploy today's build first)
         if: steps.gate.outputs.run == 'true'
         run: |
-          if git diff --quiet src/lib/data/snapshot.ts src/lib/data/priceArchiveData.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/weeklies.ts; then
+          if git diff --quiet src/lib/data/snapshot.ts src/lib/data/priceArchiveData.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/briefV2Editions.ts src/lib/data/weeklies.ts; then
             echo "No data changes — nothing to deploy; will warm the existing deployment."
           else
             git config user.name "halving-lens-bot"
             git config user.email "actions@users.noreply.github.com"
-            git add src/lib/data/snapshot.ts src/lib/data/priceArchiveData.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/weeklies.ts
+            git add src/lib/data/snapshot.ts src/lib/data/priceArchiveData.ts src/lib/data/briefs.ts src/lib/data/editions.ts src/lib/data/briefV2Editions.ts src/lib/data/weeklies.ts
             git commit -m "chore(data): refresh snapshot + brief ($(date -u +%Y-%m-%d))"
             git push
           fi
