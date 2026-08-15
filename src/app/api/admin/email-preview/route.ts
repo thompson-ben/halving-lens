@@ -1,4 +1,4 @@
-import { dailyEmailHtml } from "@/lib/emailBrief";
+import { briefEmailV2Html } from "@/lib/briefEmailV2";
 import { welcomeEmailHtml } from "@/lib/welcomeEmail";
 import { showcaseEmailHtml } from "@/lib/showcaseEmail";
 import { previewLifecycleStep, LIFECYCLE_STEPS } from "@/lib/lifecycleEmails";
@@ -38,6 +38,6 @@ export async function GET(req: Request) {
   }
 
   const html =
-    which === "welcome" ? welcomeEmailHtml(unsub) : which === "showcase" ? showcaseEmailHtml(unsub) : dailyEmailHtml(unsub);
+    which === "welcome" ? welcomeEmailHtml(unsub) : which === "showcase" ? showcaseEmailHtml(unsub) : briefEmailV2Html(unsub);
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }

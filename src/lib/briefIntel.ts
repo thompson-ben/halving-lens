@@ -53,7 +53,8 @@ import { stateWordFor } from "./metricCards";
 import { lensObservation, type LensObservation } from "./cycleLens";
 import { cycleDayAt } from "./cycleDay";
 import { todaysConfigurationPack } from "./fourReferencePrices";
-import { pickFreshest, recentSubjects, seedFromString, SEED_OFFSET } from "./editorialVariety";
+import { pickFreshest, seedFromString, SEED_OFFSET } from "./editorialVariety";
+import { recentBriefSubjects } from "./briefV2Archive";
 
 export const BRIEF_INTEL_VERSION = "brief-intel-v1";
 
@@ -503,7 +504,7 @@ export function briefIntel(anchor?: string): BriefIntel {
 
   // ── Subject — truthful candidates from the day's qualified facts only ────
   const subjectCandidates = buildSubjectCandidates(verdict, story, quietLine);
-  const subject = pickFreshest(subjectCandidates, recentSubjects(10), seedFromString(intel.asOf) + SEED_OFFSET.subject).value;
+  const subject = pickFreshest(subjectCandidates, recentBriefSubjects(10), seedFromString(intel.asOf) + SEED_OFFSET.subject).value;
 
   const out: BriefIntel = {
     version: BRIEF_INTEL_VERSION,
