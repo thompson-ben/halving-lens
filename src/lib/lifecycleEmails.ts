@@ -10,6 +10,7 @@ import { SITE_URL, SITE_HOST } from "./site";
 import { unsubToken } from "./emailToken";
 import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
 import { YOUTUBE_URL, YOUTUBE_LIVE } from "./lifecycleConfig";
+import { cycleDashboardIntel } from "./cycleDashboardIntel";
 
 const C = {
   bg: "#0a0c10",
@@ -56,11 +57,12 @@ function shell(opts: {
   title: string;
   intro: string;
   body: string;
-  cta?: { label: string; url: string };
+  cta?: { label: string; url: string; track?: string };
+  ctaNote?: string;
   ctx: LifecycleCtx;
   preheader: string;
 }): string {
-  const { eyebrow, tag, title, intro, body, cta, ctx, preheader } = opts;
+  const { eyebrow, tag, title, intro, body, cta, ctaNote, ctx, preheader } = opts;
   const t = ctx.tracking;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -89,9 +91,10 @@ function shell(opts: {
           ? `<tr><td style="padding:22px 36px 28px;">
         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
           <td style="border-radius:10px;background:${C.gold};">
-            <a href="${t.link(cta.url, "lc_cta")}" style="display:inline-block;padding:13px 26px;font:600 14px/1 ${SANS};color:#15120a;text-decoration:none;border-radius:10px;">${esc(cta.label)} →</a>
+            <a href="${t.link(cta.url, cta.track ?? "lc_cta")}" style="display:inline-block;padding:13px 26px;font:600 14px/1 ${SANS};color:#15120a;text-decoration:none;border-radius:10px;">${esc(cta.label)} →</a>
           </td>
         </tr></table>
+        ${ctaNote ? `<div style="font:400 12.5px/1.6 ${SANS};color:${C.faint};margin-top:12px;">${esc(ctaNote)}</div>` : ""}
       </td></tr>`
           : ""
       }
@@ -124,6 +127,37 @@ function bullet(text: string): string {
   return `<tr><td style="padding:6px 0;font:400 15px/1.55 ${SANS};color:${C.sub};"><span style="color:${C.green};font-weight:700;">✓</span>&nbsp;&nbsp;${text}</td></tr>`;
 }
 
+
+// ── The live "Right now" verdict (CDOE) ──────────────────────────────────────
+// ONE sentence, quoted verbatim from the canonical Cycle Dashboard summary —
+// the same object the Daily Brief quotes, so the email and the dashboard can
+// never disagree. This computes nothing: no email-specific intelligence, no
+// thresholds, no classifications. If the verdict cannot be rendered safely at
+// send time it is OMITTED ENTIRELY (founder rule) — never a placeholder, never
+// a stale cached line — and the copy stands alone as a static proposition.
+export function liveVerdictLine(): string | null {
+  try {
+    const s = cycleDashboardIntel().summary;
+    if (!s?.activityLabel || !s?.countsLine) return null;
+    return `${s.activityLabel}. ${s.countsLine}`;
+  } catch {
+    return null;
+  }
+}
+
+/** The gold "Right now" card — rendered only when the canonical verdict is
+ *  available. Presentation only; the sentence is engine output. */
+function rightNowCard(line: string | null): string {
+  if (!line) return "";
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.cardHi};border:1px solid ${C.goldBorder};border-radius:12px;margin-top:18px;">
+      <tr><td style="padding:16px 18px;">
+        <div style="font:700 10px/1.3 ${SANS};letter-spacing:.14em;text-transform:uppercase;color:${C.gold};">Right now</div>
+        <div style="font:500 17px/1.45 ${SERIF};color:${C.ink};margin-top:7px;">${esc(line)}</div>
+      </td></tr>
+    </table>`;
+}
+
 // ── The sequence ──────────────────────────────────────────────────────────────
 export const LIFECYCLE_STEPS: LifecycleStep[] = [
   // Day 1 — the tour (this supersedes the old standalone "showcase" email).
@@ -135,18 +169,18 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
       const t = ctx.tracking;
       const body =
         featureRow(t, "Cycle comparison", "Cycle Summary", "All four halving cycles on one axis — see how today's is tracking against 2012, 2016 and 2020.", "/cycles", "tour_cycles") +
-        featureRow(t, "Context Score", "Risk Gauge", "One number for how today's market compares to historically significant moments.", "/accumulation", "tour_risk") +
+        featureRow(t, "The whole picture", "Cycle Dashboard", "Where we are in the cycle, what changed, and what stayed ordinary — the full monitored market in one place.", "/cycle-dashboard", "tour_cycle_dashboard") +
         featureRow(t, "Similar moments", "Similar Moments", "The historical moments today most resembles, ranked by similarity.", "/similar-moments", "tour_similar") +
         featureRow(t, "Accumulation index", "Accumulation Index", "How attractive today is versus Bitcoin's entire history.", "/accumulation", "tour_accumulation") +
         featureRow(t, "Daily brief", "The Daily Brief", "The one thing that matters each morning, in a 30-second read.", "/brief", "tour_brief");
       return {
         html: shell({
           eyebrow: "A place to begin",
-          tag: "Getting started · 1 of 5",
+          tag: "Getting started · 1 of 6",
           title: "There's more here than a newsletter.",
           intro: "HalvingLens is a research platform. Here are the five things most readers return to — each is one tap away.",
           body,
-          cta: { label: "Open your dashboard", url: `${SITE_URL}/dashboard` },
+          cta: { label: "Open your profile", url: `${SITE_URL}/dashboard` },
           ctx,
           preheader: "The five analyses HalvingLens readers return to most.",
         }),
@@ -177,7 +211,7 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
       return {
         html: shell({
           eyebrow: "Our approach",
-          tag: "Getting started · 2 of 5",
+          tag: "Getting started · 2 of 6",
           title: "Calm evidence, not noise.",
           intro: "Most crypto content is built to make you feel something. HalvingLens is built to help you think clearly.",
           body,
@@ -204,6 +238,61 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
     },
   },
 
+  // Day 3 — the Cycle Dashboard (CDOE). The flagship product's adoption email:
+  // sells the OUTCOME (know whether anything actually changed, either way) and
+  // the FEELING (no need to monitor constantly), with the 15 readings as
+  // evidence rather than the proposition. One destination only.
+  {
+    id: "cycle_dashboard",
+    dayOffset: 3,
+    subject: "Know what changed. Know what didn't.",
+    build: (ctx) => {
+      const verdict = liveVerdictLine();
+      const body = `
+        <div style="font:400 15px/1.65 ${SANS};color:${C.sub};">
+          <span style="color:${C.ink};font-weight:600;">The Cycle Dashboard does that checking for you.</span>
+          Fifteen readings across the market — valuation, sentiment, on-chain activity, ETF demand — each judged
+          against its own history, so anything genuinely unusual surfaces by itself. And when nothing much has
+          moved, that&rsquo;s the answer you get: a checked conclusion, not a guess.
+        </div>
+        ${rightNowCard(verdict)}
+        <div style="font:400 15px/1.65 ${SANS};color:${C.sub};margin-top:18px;">
+          ${verdict ? "That verdict is the same intelligence behind your Daily Brief." : "It&rsquo;s the same intelligence behind your Daily Brief."}
+          The Brief gives you the quick answer each morning; the Dashboard is where you see the whole picture behind
+          it — where we are in the cycle, what state each signal is in, and how today compares with Bitcoin&rsquo;s own history.
+        </div>
+        <div style="font:400 15px/1.65 ${SERIF};color:${C.sub};margin-top:16px;border-left:2px solid ${C.gold};padding-left:14px;font-style:italic;">
+          You shouldn&rsquo;t need fifteen charts open to know whether Bitcoin changed. One page should tell you — either way.
+        </div>`;
+      return {
+        html: shell({
+          eyebrow: "The whole picture",
+          tag: "Getting started · 3 of 6",
+          title: "Know what changed. Know what didn't.",
+          intro:
+            "Most people check Bitcoin by checking the price. But the price only tells you what happened to the price — not whether anything underneath actually changed.",
+          body,
+          cta: { label: "Open the Cycle Dashboard", url: `${SITE_URL}/cycle-dashboard`, track: "cdoe_dashboard_cta" },
+          ctaNote: "Free, no login — the same page your Daily Brief links to every morning.",
+          ctx,
+          preheader: "The Cycle Dashboard checks 15 readings so you don't have to.",
+        }),
+        text: simpleText(
+          "Know what changed. Know what didn't.",
+          [
+            "Most people check Bitcoin by checking the price. But the price only tells you what happened to the price — not whether anything underneath actually changed.",
+            "The Cycle Dashboard does that checking for you. Fifteen readings across the market — valuation, sentiment, on-chain activity, ETF demand — each judged against its own history, so anything genuinely unusual surfaces by itself. And when nothing much has moved, that's the answer you get: a checked conclusion, not a guess.",
+            ...(verdict ? [`Right now: ${verdict}`] : []),
+            "The Brief gives you the quick answer each morning; the Dashboard is where you see the whole picture behind it.",
+            "You shouldn't need fifteen charts open to know whether Bitcoin changed. One page should tell you — either way.",
+            `Open the Cycle Dashboard: ${SITE_URL}/cycle-dashboard`,
+          ],
+          ctx,
+        ),
+      };
+    },
+  },
+
   // Day 4 — YouTube (adapts if the channel isn't live yet).
   {
     id: "youtube",
@@ -221,7 +310,7 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
       return {
         html: shell({
           eyebrow: "Another way in",
-          tag: "Getting started · 3 of 5",
+          tag: "Getting started · 4 of 6",
           title: YOUTUBE_LIVE ? "Prefer watching?" : "Coming soon: watch the cycle.",
           intro: YOUTUBE_LIVE
             ? "Some ideas land better on screen. Our channel covers the cycle in more depth than a morning email can."
@@ -276,7 +365,7 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
       return {
         html: shell({
           eyebrow: "Grow the community",
-          tag: "Getting started · 4 of 5",
+          tag: "Getting started · 5 of 6",
           title: "Bring someone with you.",
           intro: "Referrals are how HalvingLens grows without hype — one recommendation at a time.",
           body,
@@ -313,7 +402,7 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
       return {
         html: shell({
           eyebrow: "The full platform",
-          tag: "Getting started · 5 of 5",
+          tag: "Getting started · 6 of 6",
           title: "Make it a habit.",
           intro: "The investors who do best are the consistent ones. HalvingLens is built to reward showing up.",
           body,
