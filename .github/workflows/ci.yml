@@ -81,6 +81,12 @@ jobs:
       - name: Conversion-truth tests
         run: npm run test-conversion-truth
 
+      # Acquisition measurement (Founder Gate 1) — unusable spend can never
+      # render as a real £0.00 cost, and a conversion rate's numerator and
+      # denominator must describe the same eligible landing population.
+      - name: Acquisition-metric tests
+        run: npm run test-acquisition-metrics
+
       # Observed-window registry (PR141) — the registry faithfully mirrors
       # the committed snapshot's windows and never exposes synthetic history.
       - name: Observed-window tests

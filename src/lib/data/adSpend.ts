@@ -25,6 +25,12 @@ export interface AdSpend {
 // Add real campaigns here as you run them. `spend` is the running total you've
 // spent so far — update it as the campaign runs and the dashboard recomputes
 // cost-per-subscriber and cost-per-WAES automatically.
+// JOIN KEY (documented for the Acquisition Evidence Review): `campaign` below
+// must equal, character for character, the `utm_campaign` value configured in
+// the live ad's URL Parameters. If Meta is auto-populating {{campaign.name}}
+// instead, the two will not match and every spend join silently returns
+// nothing — no error, just an empty table. Verify the live URL Parameters
+// before trusting any cost figure derived from this file.
 export const AD_SPEND: AdSpend[] = [
   {
     campaign: "meta_learn_jul26",
@@ -42,6 +48,25 @@ export const AD_SPEND: AdSpend[] = [
 // or an internal value-per-engaged-reader) and the dashboard computes ROI as
 // (subscribers × value − spend) ÷ spend. Override via env without a code change.
 export const SUBSCRIBER_VALUE_GBP: number = Number(process.env.SUBSCRIBER_VALUE_GBP) || 0;
+
+/**
+ * THE spend-validity rule (defect D-1, Acquisition Evidence Review).
+ *
+ * Spend is USABLE only when it is a finite, strictly positive number. Zero
+ * means "not entered yet" — it is the file's own default and it is NOT a real
+ * cost of nothing. Before this rule existed, cost-per-subscriber divided that
+ * zero by the signup count and reported a confident "£0.00 per subscriber" in
+ * the founder dashboard: missing data rendered as a precise number.
+ *
+ * Every cost calculation must pass its spend through here first, so an
+ * un-entered campaign reports UNKNOWN ("—") rather than free.
+ *
+ * This never invents, estimates or defaults a figure — it only decides whether
+ * the figure we have can honestly be divided by anything.
+ */
+export function usableSpend(spend: number | null | undefined): number | null {
+  return typeof spend === "number" && Number.isFinite(spend) && spend > 0 ? spend : null;
+}
 
 // Total spend across all campaigns (single currency assumed; default GBP).
 export function adSpendTotal(): number {
