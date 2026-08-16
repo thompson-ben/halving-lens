@@ -45,8 +45,11 @@ export interface NavSection {
 // how attractive conditions are vs history, and the full historical range from
 // here. Surfaced first, on their own, so they stand out.
 export const FLAGSHIP: readonly NavLink[] = [
-  // The Journal is the publication and the primary destination; The State of
-  // Bitcoin is its current Chapter, read live.
+  // The Cycle Dashboard leads (Programme 1): it is where the Daily Brief's own
+  // CTA, the day-3 onboarding email and the veteran broadcast all send people,
+  // so the navigation now agrees with the product. The Journal is the
+  // publication; The State of Bitcoin is its current Chapter, read live.
+  { href: "/cycle-dashboard", label: "Cycle Dashboard", icon: Gauge },
   { href: "/journal", label: "The Journal", icon: BookMarked },
   { href: "/state-of-bitcoin", label: "The State of Bitcoin", icon: Radar },
   { href: "/four-reference-prices", label: "Four Reference Prices", icon: Layers },
@@ -58,7 +61,6 @@ export const FLAGSHIP: readonly NavLink[] = [
 // flagship journey: what's happening now (Today) → positioning (Invest) →
 // deeper study (Research). Each theme echoes one flagship page.
 const TODAY: readonly NavLink[] = [
-  { href: "/cycle-dashboard", label: "Cycle dashboard", icon: Gauge },
   { href: "/brief", label: "Daily brief", icon: Newspaper },
   { href: "/market-health", label: "Market Health", icon: HeartPulse },
   { href: "/sentiment", label: "Sentiment", icon: Activity },
@@ -66,7 +68,10 @@ const TODAY: readonly NavLink[] = [
 ];
 
 const INVEST: readonly NavLink[] = [
-  { href: "/dashboard", label: "Your dashboard", icon: LayoutDashboard },
+  // LABEL ONLY (Programme 1): "Your dashboard" collided with the Cycle
+  // Dashboard. This uses the page's own established name — its metadata title
+  // and on-page eyebrow — so no route, link or magic-link target changes.
+  { href: "/dashboard", label: "Your HalvingLens", icon: LayoutDashboard },
   { href: "/similar-moments", label: "Similar moments", icon: History },
 ];
 

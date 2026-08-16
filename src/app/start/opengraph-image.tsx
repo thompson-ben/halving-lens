@@ -22,7 +22,7 @@ export default function Image() {
           The clearest view of the Bitcoin cycle.
         </div>
         <div style={{ display: "flex", fontSize: 26, color: "#9aa0aa" }}>
-          Understand today&apos;s Bitcoin market in under 60 seconds — historical context, not hype.
+          Understand today&apos;s Bitcoin market in about thirty seconds — historical context, not hype.
         </div>
       </div>
     ),

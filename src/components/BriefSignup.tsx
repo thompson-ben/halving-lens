@@ -7,6 +7,7 @@ import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
 import { fireLead } from "@/lib/marketing";
 import { decideFromResponse, type SubscribeResponseBody, type UiState } from "@/lib/subscription";
+import { BRIEF_PROMISE } from "@/lib/briefPromise";
 import { SignupConfirmation } from "./SignupConfirmation";
 
 // Real email capture for the daily brief. POSTs to /api/subscribe and shows a
@@ -94,16 +95,10 @@ export function BriefSignup({
         </p>
 
         {!done && (
-          <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-            {[
-              "30-second read",
-              "What changed today",
-              "Historical context",
-              "What to watch next",
-              "No hype, no predictions",
-            ].map((b) => (
-              <li key={b} className="flex items-center gap-2 text-[12.5px] text-ink-300">
-                <Check size={13} className="text-accent shrink-0" strokeWidth={2.4} />
+          <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+            {BRIEF_PROMISE.map((b) => (
+              <li key={b} className="flex items-start gap-2 text-[12.5px] text-ink-300 leading-snug">
+                <Check size={13} className="text-accent shrink-0 mt-0.5" strokeWidth={2.4} />
                 {b}
               </li>
             ))}

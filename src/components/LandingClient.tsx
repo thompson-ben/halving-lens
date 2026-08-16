@@ -51,11 +51,14 @@ export function LandingHero({
         {headline ?? HEADLINES[variant] ?? HEADLINES.a}
       </h1>
       <p className="mt-6 text-[16px] sm:text-[18px] text-ink-300 leading-relaxed max-w-xl mx-auto">
-        {sub ?? "Understand today's Bitcoin market in under 60 seconds. No hype. No predictions. Just historical context."}
+        {sub ?? "Understand today's Bitcoin market in about thirty seconds. No hype. No predictions. Just historical context."}
       </p>
+      {/* ONE action. The secondary "Explore today's analysis" CTA (→ /accumulation)
+          was removed in Programme 1: it sent paid traffic off the landing page
+          before the primary conversion, the exact pattern /free had already
+          deliberately dropped. */}
       <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
         <LandingCta href="#signup" label="hero_primary" variant={variant} source={source}>Get today&apos;s free research</LandingCta>
-        <LandingCta href="/accumulation" label="hero_secondary" variant={variant} source={source} kind="secondary">Explore today&apos;s analysis</LandingCta>
       </div>
     </section>
   );
@@ -108,7 +111,7 @@ export function FreeHero({ previewHref = "#preview" }: { previewHref?: string })
         <span aria-hidden>·</span>
         <span>Arrives ~8am UK</span>
         <span aria-hidden>·</span>
-        <span>60-second read</span>
+        <span>30-second read</span>
         <span aria-hidden>·</span>
         <span>Unsubscribe anytime</span>
         <span aria-hidden>·</span>

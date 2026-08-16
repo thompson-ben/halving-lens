@@ -52,7 +52,7 @@ export default async function ProfilePage() {
           <span className="text-[12px] text-ink-500">· Member since {ip.memberSince}</span>
         </div>
         <div className="mt-4 flex items-center gap-3 flex-wrap">
-          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft">Open your dashboard <ArrowUpRight size={13} /></Link>
+          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:text-accent-soft">Open your HalvingLens <ArrowUpRight size={13} /></Link>
           <Link href="/dashboard/referrals" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">Referrals <ArrowUpRight size={13} /></Link>
           {ip.identity.isFounder && <Link href="/admin/growth" className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-400 hover:text-ink-200">Founder Dashboard <ArrowUpRight size={13} /></Link>}
           <SignOutButton />

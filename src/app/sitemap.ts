@@ -12,8 +12,8 @@ import { allQuestions } from "@/lib/questions";
 
 // Public, indexable, canonical, 200-status routes only (PR131). Excluded on
 // purpose: /admin/* and /api/* (robots-disallowed), noindex pages (/start,
-// /free, /dashboard*, /profile*, /founders, /testimonial, /alerts,
-// /derivatives, print views), and /downside-scenarios + /snapshot, which
+// /free, /dashboard*, /profile*, /founders, /testimonial, /derivatives,
+// print views), and /downside-scenarios, /snapshot, /replay + /alerts, which
 // 308-redirect — a sitemap must never advertise a redirecting URL.
 const STATIC_PATHS = [
   "/",

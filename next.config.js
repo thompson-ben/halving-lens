@@ -68,6 +68,17 @@ const nextConfig = {
       // Dashboard's Lens — one canonical interactive cycle exploration.
       // Query strings are preserved automatically.
       { source: "/replay", destination: "/cycle-dashboard", permanent: true },
+      // /alerts is RETIRED (Programme 1). It described an alerts product that
+      // does not exist — four delivery channels, configurable thresholds and a
+      // prediction-adjacent claim about calling cycle peaks — and the route
+      // audit found it noindex, absent from the sitemap, linked from nowhere in
+      // the app and carrying no capture form, so it earned no standalone route.
+      // Interest in "tell me when something changes" belongs to the ONE
+      // early-access list that already exists at the foot of the Cycle
+      // Dashboard; this sends anyone holding an old link straight to it rather
+      // than inventing a second waitlist. Permanent (308), same treatment
+      // /replay received.
+      { source: "/alerts", destination: "/cycle-dashboard#pro-early-access", permanent: true },
     ];
   },
 };

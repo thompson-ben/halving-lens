@@ -105,7 +105,10 @@ export async function buildInvestorProfile(email: string, state: ProfileState, n
     { id: "email", label: "Email verified", done: true }, // signed in ⇒ verified
     { id: "referral", label: "Referral link created", done: !!code, href: "/dashboard/referrals" },
     { id: "brief", label: "Read your first Daily Brief", done: daysActive >= 1 || briefsRead >= 1, href: "/brief" },
-    { id: "analysis", label: "Visited today's analysis", done: visited((h) => /^\/(accumulation|cycles|brief|dashboard)/.test(h)), href: "/dashboard" },
+    // Programme 1: the Cycle Dashboard is where the post-signup journey, the
+    // Brief's CTA and the day-3 email all send people — visiting it must count,
+    // and the task's own destination is the page that completes it.
+    { id: "analysis", label: "Visited today's analysis", done: visited((h) => /^\/(cycle-dashboard|accumulation|cycles|brief|dashboard)/.test(h)), href: "/cycle-dashboard" },
     { id: "similar", label: "Explored Similar Moments", done: visited((h) => h.startsWith("/similar-moments")), href: "/similar-moments" },
     { id: "saved", label: "Saved a piece of research", done: (state.saved ?? []).length > 0, href: "/research/findings" },
     { id: "streak7", label: "Reached a 7-day reading streak", done: streak.longest >= 7, href: "/brief" },
