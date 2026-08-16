@@ -15,7 +15,7 @@
 // must be byte-for-byte unaffected by this programme, and the audit's
 // do-not-change list must survive.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { briefIntel } from "../src/lib/briefIntel";
 import { BRIEF_PROMISE, BRIEF_PROMISE_TEXT } from "../src/lib/briefPromise";
@@ -31,6 +31,17 @@ const code = (p: string) =>
   read(p)
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "");
+
+/** Every .ts/.tsx file under src/ — repo-wide vocabulary bans need all of it. */
+function srcFiles(dir = "src"): string[] {
+  const out: string[] = [];
+  for (const e of readdirSync(join(root, dir))) {
+    const rel = `${dir}/${e}`;
+    if (statSync(join(root, rel)).isDirectory()) out.push(...srcFiles(rel));
+    else if (/\.tsx?$/.test(e)) out.push(rel);
+  }
+  return out;
+}
 
 let failures = 0;
 function check(name: string, ok: boolean, extra?: unknown) {
@@ -160,21 +171,33 @@ console.log("Navigation:");
     !/\/dashboard/.test((() => { try { return read("next.config.js"); } catch { return ""; } })()));
 }
 
-// ── 7 · /alerts is honest ──────────────────────────────────────────────────
-console.log("Alerts honesty:");
+// ── 7 · /alerts is retired, and its claims are gone repo-wide ──────────────
+console.log("Alerts retirement:");
 {
-  const src = code("src/app/alerts/page.tsx");
-  check("the prediction-adjacent 'called every cycle peak' claim is gone",
-    !/called every cycle peak/i.test(src));
-  check("no unbuilt delivery channel is named",
-    !/Telegram|webhook|push notification/i.test(src) && !/\bpush\b/i.test(src));
-  check("it states plainly that alerts are not built", /not built yet/i.test(src));
-  check("it distinguishes what runs from what does not",
-    /What already runs/.test(src) && /What does not exist/.test(src));
-  check("it implies no paid product", /Nothing on HalvingLens costs anything today/.test(src));
-  check("it adds no second capture form — it points at the one early-access list",
-    !/\/api\/pro-waitlist/.test(src) && /cycle-dashboard#pro-early-access/.test(src));
-  check("it stays out of the organic index", /robots: \{ index: false/.test(src));
+  const cfg = read("next.config.js");
+  check("the route no longer exists", !existsSync(join(root, "src/app/alerts/page.tsx")));
+  check("old links 308 to the EXISTING early-access surface — no new destination",
+    /source: "\/alerts", destination: "\/cycle-dashboard#pro-early-access", permanent: true/.test(cfg));
+  check("no second waitlist or Pro destination was invented",
+    (cfg.match(/pro-early-access/g) ?? []).length === 1 &&
+    !/\/pro\b|\/waitlist|\/premium/.test(cfg));
+  check("the one early-access capture still lives where it always did",
+    /id="pro-early-access"/.test(read("src/components/lens/ProEarlyAccess.tsx")) &&
+    /\/api\/pro-waitlist/.test(read("src/components/lens/ProEarlyAccess.tsx")));
+  check("the sitemap does not advertise the redirecting URL",
+    !/"\/alerts"/.test(read("src/app/sitemap.ts")));
+  check("nothing in the app links to the retired route",
+    srcFiles().every((f) => !/["'`]\/alerts/.test(read(f))));
+  // The claims must be gone from the REPOSITORY, not merely from one page.
+  const rendered = srcFiles().map((f) => code(f)).join("\n");
+  check("the 'called every cycle peak' claim exists nowhere in the app",
+    !/called every cycle peak/i.test(rendered));
+  // Narrow and precise: the ban is on promising ALERT DELIVERY, not on the
+  // unrelated legitimate uses of these words (Resend delivery webhooks in the
+  // admin tooling, share-preview comments naming chat apps).
+  check("no unbuilt alert-delivery channel is promised anywhere",
+    !rendered.split("\n").some((l) =>
+      /alert/i.test(l) && /telegram|webhook|push notification|browser notification/i.test(l)));
 }
 
 // ── 8 · The untouchables ───────────────────────────────────────────────────
