@@ -14,7 +14,6 @@ import { EvidenceDashboard } from "@/components/EvidenceDashboard";
 import { BriefSignup } from "@/components/BriefSignup";
 import { DailyBriefPreview } from "@/components/DailyBriefPreview";
 import { SocialProof } from "@/components/SocialProof";
-import { editionContent } from "@/lib/emailBrief";
 import { CycleOverlayChart } from "@/components/CycleOverlayChart";
 import { TrackedSection } from "@/components/TrackedSection";
 import { FeatureVote } from "@/components/FeatureVote";
@@ -29,7 +28,6 @@ export const metadata = {
 };
 
 export default function CycleDashboardPage() {
-  const edition = editionContent();
   return (
     <div className="space-y-14 lg:space-y-20">
       {/* 1. Demonstrate first — dynamic insight + mini cycle-context chart */}
@@ -65,7 +63,7 @@ export default function CycleDashboardPage() {
             title="The Bitcoin cycle, explained in one morning brief"
             subtitle="Free, evidence-led, and written without hype or predictions. Here's a live example of what lands in your inbox."
           />
-          <DailyBriefPreview edition={edition} label="A live example — today's actual brief" />
+          <DailyBriefPreview label="A live example — today’s actual Brief" />
           <div className="mt-6">
             <Link
               href="/#subscribe"

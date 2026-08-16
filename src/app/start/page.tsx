@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { ArrowUpRight, Check, X } from "lucide-react";
 import { LandingHero, LandingCta, StartSignup } from "@/components/LandingClient";
-import { editionContent } from "@/lib/emailBrief";
-import { sentimentRead, SENTIMENT_AVAILABLE } from "@/lib/sentiment";
+import { cycleDashboardIntel } from "@/lib/cycleDashboardIntel";
 import { libraryStats } from "@/lib/research";
 import { absoluteUrl } from "@/lib/site";
 
 const DESC =
-  "Understand today's Bitcoin market in under 60 seconds. Daily research grounded in historical context — no hype, no predictions, no price targets.";
+  "Understand today's Bitcoin market in about thirty seconds. Daily research grounded in historical context — no hype, no predictions, no price targets.";
 export const metadata = {
   title: { absolute: "HalvingLens — The Clearest View of the Bitcoin Cycle" },
   description: DESC,
@@ -20,8 +19,13 @@ export const metadata = {
 const GOLD = "#d9b96a";
 
 export default function StartPage() {
-  const e = editionContent();
-  const sr = SENTIMENT_AVAILABLE ? sentimentRead() : null;
+  // Programme 1 (truth correction): this page's proof now comes from the SAME
+  // canonical authority the Daily Brief and the Cycle Dashboard both quote, so
+  // a visitor cannot be shown a reading the product no longer produces. It
+  // previously led with the retired Context Score and the retired edition
+  // engine's take line — neither of which a subscriber meets after signing up.
+  const intel = cycleDashboardIntel();
+  const states = intel.strip.filter((r) => r.available && r.stateLabel);
   const stats = libraryStats();
 
   return (
@@ -32,13 +36,16 @@ export default function StartPage() {
       <section>
         <SectionLabel>Today&apos;s Bitcoin check</SectionLabel>
         <div className="card-glow p-6 sm:p-8">
-          <p className="font-display text-[20px] sm:text-[26px] text-ink-50 leading-snug max-w-3xl">{e.take}</p>
-          <div className="mt-7 grid grid-cols-2 lg:grid-cols-4 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
-            <Check2 label="Context Score" value={`${e.contextScore.score}/100`} sub={e.contextScore.label} />
-            <Check2 label="Accumulation Index" value={`${e.metrics.accumulationScore}/100`} sub={e.metrics.accumulationBand.replace("Historically ", "")} />
-            <Check2 label="Fear & Greed" value={sr ? `${sr.value}` : "—"} sub={sr ? sr.band.label : "Sentiment"} />
-            <Check2 label="Closest moment" value={e.historicalContext ? e.historicalContext.match : "—"} sub={e.historicalContext ? `${e.historicalContext.similarity}% match` : "Similar moments"} />
-          </div>
+          <p className="font-display text-[20px] sm:text-[26px] text-ink-50 leading-snug max-w-3xl">
+            {intel.summary.activityLabel}. {intel.summary.countsLine}
+          </p>
+          {states.length > 0 && (
+            <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+              {states.map((r) => (
+                <Check2 key={r.id} label={r.label} value={r.stateLabel ?? "—"} sub={r.detail ?? ""} />
+              ))}
+            </div>
+          )}
           <p className="mt-5 text-[12px] text-ink-500">Historical context — not a prediction, not financial advice.</p>
         </div>
       </section>
@@ -71,6 +78,9 @@ export default function StartPage() {
         <SectionLabel>Inside HalvingLens</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
+            // Programme 1: the signature product was missing from the showcase on
+            // both paid landings; it now leads here as it does on /free.
+            { t: "Cycle Dashboard", d: "The whole checked market — the working behind the brief.", href: "/cycle-dashboard" },
             { t: "Morning Research", d: "A daily analyst note — the day's one thing that matters.", href: "/research" },
             { t: "Research Library", d: "Every edition, permanently archived and searchable.", href: "/research" },
             { t: "Accumulation Index", d: "How attractive today is versus Bitcoin's whole history.", href: "/accumulation" },
@@ -154,7 +164,7 @@ function Check2({ label, value, sub }: { label: string; value: string; sub: stri
   return (
     <div className="bg-[#0b0f15] px-4 py-5">
       <div className="text-[9.5px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
-      <div className="mt-1.5 font-display text-[24px] text-ink-50 leading-none">{value}</div>
+      <div className="mt-1.5 font-display text-[19px] text-ink-50 leading-snug">{value}</div>
       <div className="mt-1.5 text-[11.5px]" style={{ color: GOLD }}>{sub}</div>
     </div>
   );

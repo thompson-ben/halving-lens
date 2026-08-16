@@ -292,7 +292,7 @@ export default function AccumulationPage({ searchParams }: { searchParams: { pre
       {/* Email conversion — accumulation framing */}
       <BriefSignup
         heading="Get tomorrow's Accumulation Index by email"
-        blurb="Join the free Daily Bitcoin Cycle Brief — it includes the Accumulation Index, where today sits in history, and what to watch. No hype, no predictions."
+        blurb="Join the free Daily Bitcoin Cycle Brief — it carries the Accumulation Index and how long it has read this way, alongside one verdict on what changed across the market. No hype, no predictions."
       />
 
       {/* Methodology */}

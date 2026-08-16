@@ -9,7 +9,11 @@ import { Check, Mail, ArrowRight, User, TrendingUp, Share2 } from "lucide-react"
 // Presentational only — the form has already decided the variant and fired the
 // right events. `readHref` is the single recommended "today" page.
 
-const READ_HREF = "/state-of-bitcoin";
+// Programme 1 (continuity): the recommended "today" destination is the Cycle
+// Dashboard — the surface the Daily Brief's only CTA, the day-3 onboarding
+// email and the veteran broadcast all point at. This is the highest-intent
+// moment in the whole journey and it previously pointed elsewhere.
+const READ_HREF = "/cycle-dashboard";
 const SHARE_HREF =
   "https://x.com/intent/tweet?text=" +
   encodeURIComponent("Reading HalvingLens — daily Bitcoin cycle research in historical context, no hype or predictions.") +
@@ -28,7 +32,7 @@ export function SignupConfirmation({ variant }: { variant: "success" | "existing
           up where you left off:
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg">
-          <NextCard href={READ_HREF} icon={TrendingUp} title="Read today&apos;s analysis" body="Where Bitcoin sits in its cycle right now." />
+          <NextCard href={READ_HREF} icon={TrendingUp} title="See this morning&apos;s check" body="The whole checked market, as of this morning." />
           <NextCard href="/profile" icon={User} title="Access your profile" body="Sign in or request a new access link." />
         </div>
         <p className="text-[11px] text-ink-500 leading-relaxed max-w-md">
@@ -53,8 +57,8 @@ export function SignupConfirmation({ variant }: { variant: "success" | "existing
           contacts, so the daily brief always reaches your inbox (check spam or promotions if it&apos;s not there in a
           minute).
         </Step>
-        <Step n={2} icon={TrendingUp} title="Read today&apos;s cycle analysis" href={READ_HREF} cta="See where Bitcoin sits today">
-          One clear read on where Bitcoin sits in its cycle right now.
+        <Step n={2} icon={TrendingUp} title="See this morning&apos;s check" href={READ_HREF} cta="Open the Cycle Dashboard">
+          The whole checked market, as of this morning — the working behind tomorrow&apos;s brief.
         </Step>
         <Step n={3} icon={User} title="Set up your member profile" href="/profile" cta="Create your free profile">
           Save your reading streak, referrals and Founding Member status.

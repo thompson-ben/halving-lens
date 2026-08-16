@@ -74,6 +74,13 @@ jobs:
       - name: Dashboard-onboarding tests
         run: npm run test-dashboard-onboarding
 
+      # Conversion truth & continuity (Programme 1) — no acquisition surface
+      # may show a retired product, promise something the Daily Brief does not
+      # deliver, or route peak intent away from the Cycle Dashboard; and the
+      # audit's do-not-change list must survive future edits.
+      - name: Conversion-truth tests
+        run: npm run test-conversion-truth
+
       # Observed-window registry (PR141) — the registry faithfully mirrors
       # the committed snapshot's windows and never exposes synthetic history.
       - name: Observed-window tests

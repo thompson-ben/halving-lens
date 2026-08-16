@@ -5,6 +5,7 @@
 // deliverability. Historical context, not advice.
 
 import { SITE_HOST, SITE_URL } from "./site";
+import { BRIEF_PROMISE, BRIEF_PROMISE_TEXT } from "./briefPromise";
 import { type EmailTracking, NO_EMAIL_TRACKING, forHtmlAttr } from "./emailTracking";
 
 const C = {
@@ -42,22 +43,21 @@ export function welcomeEmailText(): string {
     "You'll get the Daily Cycle Brief each morning, around 8am UK time. Your first edition lands with the next morning's send.",
     "",
     "What's inside, every day:",
-    "• A 30-second read",
-    "• What changed today",
-    "• Historical context",
-    "• What to watch next",
-    "• No hype, no predictions",
+    ...BRIEF_PROMISE_TEXT.map((b) => `• ${b}`),
     "",
     `Tip: add brief@${SITE_HOST} to your contacts so the brief always reaches your inbox — and if you don't see it, check your spam or junk folder.`,
     "",
     `Read today's brief now: ${SITE_URL}/brief`,
+    `The Cycle Dashboard — the whole checked market, the working behind your brief: ${SITE_URL}/cycle-dashboard`,
     "",
     "Historical context, not a prediction. Educational analysis — not financial advice, no price targets.",
   ].join("\n");
 }
 
 export function welcomeEmailHtml(unsubUrl: string, tracking: EmailTracking = NO_EMAIL_TRACKING): string {
-  const bullets = ["A 30-second read", "What changed today", "Historical context", "What to watch next", "No hype, no predictions"];
+  // The promise comes from ONE authority shared with the signup form, so the
+  // two can never drift (Programme 1). Every line ships in every edition.
+  const bullets = BRIEF_PROMISE;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><title>${esc(welcomeEmailSubject())}</title></head>
@@ -136,7 +136,10 @@ export function welcomeEmailHtml(unsubUrl: string, tracking: EmailTracking = NO_
         <div style="font:700 10.5px/1.4 ${SANS};letter-spacing:.16em;text-transform:uppercase;color:${C.dim};margin-bottom:10px;">Start exploring</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           ${[
-            { name: "Today's analysis", desc: "Where Bitcoin sits right now.", path: "/brief", label: "welcome_today" },
+            // Programme 1 (continuity): the duplicate "/brief" link (already the
+            // primary CTA above) is replaced by the Cycle Dashboard — the
+            // Brief's own destination. Consolidation, not an extra CTA.
+            { name: "The Cycle Dashboard", desc: "The whole checked market — the working behind your brief.", path: "/cycle-dashboard", label: "welcome_dashboard" },
             { name: "Daily Brief archive", desc: "Every past edition, dated and searchable.", path: "/brief/archive", label: "welcome_archive" },
             { name: "Your Investor Profile", desc: "Reading streak, achievements and referrals.", path: "/profile", label: "welcome_profile" },
           ]

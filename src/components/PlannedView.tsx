@@ -40,7 +40,7 @@ export function PlannedView({
         href="/"
         className="inline-flex items-center gap-1.5 text-[13px] text-accent hover:text-accent-soft"
       >
-        Back to dashboard <ArrowRight size={14} />
+        Back to the homepage <ArrowRight size={14} />
       </Link>
     </div>
   );

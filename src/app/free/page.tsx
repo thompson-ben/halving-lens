@@ -5,7 +5,6 @@ import { DailyBriefPreview } from "@/components/DailyBriefPreview";
 import { TodaysConfigurationStrip } from "@/components/TodaysConfigurationStrip";
 import { SocialProof } from "@/components/SocialProof";
 import { Testimonials } from "@/components/Testimonials";
-import { editionContent } from "@/lib/emailBrief";
 import { libraryStats } from "@/lib/research";
 import { FOUNDING_MEMBER_LIMIT } from "@/lib/entitlements";
 
@@ -15,7 +14,7 @@ import { FOUNDING_MEMBER_LIMIT } from "@/lib/entitlements";
 // organic sitemap and marked noindex (paid entry point, not organic content).
 
 const DESC =
-  "Free daily Bitcoin cycle research — know where Bitcoin sits in its cycle in under 60 seconds. No hype, no predictions, no price targets. Always free.";
+  "Free daily Bitcoin cycle research — know where Bitcoin sits in its cycle in about thirty seconds. No hype, no predictions, no price targets. Always free.";
 export const metadata = {
   title: "Free Bitcoin Cycle Research",
   description: DESC,
@@ -28,7 +27,6 @@ export const metadata = {
 const GOLD = "#d9b96a";
 
 export default function FreePage() {
-  const e = editionContent();
   const stats = libraryStats();
 
   return (
@@ -41,7 +39,7 @@ export default function FreePage() {
 
       {/* The actual product — a live example of tomorrow's brief */}
       <section id="preview" className="scroll-mt-24">
-        <DailyBriefPreview edition={e} />
+        <DailyBriefPreview />
       </section>
 
       {/* Self-evidencing proof, directly under the product it evidences.
@@ -70,6 +68,9 @@ export default function FreePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { t: "Morning Research Brief", d: "The day's one thing that matters, in a 30-second read." },
+            // Programme 1 (continuity): the Cycle Dashboard is the Brief's own
+            // destination and the day-3 onboarding product — it belonged here.
+            { t: "Cycle Dashboard", d: "The whole checked market, open at any hour — the working behind the brief." },
             { t: "Accumulation Index", d: "How attractive today is versus Bitcoin's whole history." },
             { t: "Similar Moments", d: "The historical moments today most resembles." },
             { t: "Weekly Research", d: "A deeper report every Sunday, in context." },

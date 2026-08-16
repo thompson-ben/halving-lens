@@ -189,7 +189,7 @@ export default function MarketHealthPage() {
       {/* Email conversion */}
       <BriefSignup
         heading="Get the Market Health read by email"
-        blurb="Join the free Daily Bitcoin Cycle Brief — the health score, what changed overnight, and what to watch. No hype, no predictions."
+        blurb="Join the free Daily Bitcoin Cycle Brief — the readings behind this page, checked each morning against their own history, and one verdict on whether anything moved. No hype, no predictions."
       />
 
       {/* Section 6 — Related content */}

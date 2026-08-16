@@ -173,7 +173,7 @@ export default async function ReferralsPage() {
 
       <p className="text-[11px] text-ink-500 border-t border-white/[0.06] pt-5">
         Qualified (WAES) referral counts and 30-day retention finish linking as referred readers create their own
-        Profiles. <Link href="/dashboard" className="text-accent">Back to your dashboard →</Link>
+        Profiles. <Link href="/dashboard" className="text-accent">Back to your HalvingLens →</Link>
       </p>
     </div>
   );
