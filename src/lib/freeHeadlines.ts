@@ -1,23 +1,22 @@
 // Ad-congruent headlines for the /free paid landing (message match).
 //
 // The strongest known lever on paid-landing conversion is repeating the
-// clicked ad's promise verbatim on arrival. Each Meta/paid creative sets
-// `utm_content` and the hero repeats that promise; anything else — absent,
-// unknown, or attacker-crafted — falls back to the default. The resolved key
-// travels on `landing_view` (and `utm_content` rides every funnel event via
-// first-touch attribution), so each creative's conversion is measurable
-// end-to-end with no new event names.
+// clicked ad's promise on arrival. Each paid creative sets `utm_content` and
+// the hero repeats that promise; anything else — absent, unknown, retired, or
+// attacker-crafted — falls back to the default. The resolved key travels on
+// `landing_view` (and `utm_content` rides every funnel event via first-touch
+// attribution), so each creative's conversion is measurable end-to-end with no
+// new event names.
 //
 // TWO KEY SPACES, ONE MESSAGE
 // ---------------------------
 // `utm_content` does not arrive in one shape. Meta substitutes whatever the
 // ad's tracking template asks for, so the SAME creative reaches us as either
-// the ad NAME (`hl_meta_001_ad001_803`) or the immutable ad ID
-// (`52532453901711`). Ad names are also not stable identities: the live
-// account already reuses the `ad003`/`ad004` slots for different angles across
-// campaigns, and one creative angle can carry SEVERAL ad IDs (the same ad
-// duplicated into a second campaign gets a new ID). So neither the name nor
-// "the" ad ID is a usable canonical identity on its own.
+// the ad NAME (`hl_meta_001_ad001_803`) or the ad ID (`52532453901711`). Ad
+// names are not stable identities either: the account has reused the
+// `ad003`/`ad004` slots for different angles, and one creative can carry
+// several ad IDs (duplicating an ad into another campaign mints a new one). So
+// neither the name nor "the" ad ID is a usable canonical identity on its own.
 //
 // The canonical identity is therefore the MESSAGE, not the ad object: every
 // known name and every known ad ID is an alias that resolves to one short
@@ -28,12 +27,25 @@
 //
 //   incoming utm_content → PAID_CREATIVE_ALIASES → message key → headline
 //
-// Unknown, absent or malformed values resolve to DEFAULT_FREE_HEADLINE. There
-// is no blank, error or placeholder state.
+// Unknown, absent, malformed or retired values resolve to DEFAULT_FREE_HEADLINE.
+// There is no blank, error or placeholder state.
+//
+// CURRENT vs HISTORICAL
+// ---------------------
+// Only CURRENTLY ACTIVE creatives get a message of their own, and every one of
+// those messages is written from the ad's real copy — never from its filename.
+// Abandoned challengers are NOT current propositions: they get no bespoke
+// landing promise and fall through to the default. The one exception is an
+// abandoned ad that is a straight duplicate of a current one (same ad name, new
+// ad ID); those IDs keep pointing at the current message, because an old paid
+// link should not behave worse than a new one and no new promise is invented.
 //
 // Rules for every entry, enforced by scripts/test-free-headlines.ts:
 // same honest register as the site (no hype, no urgency, no prediction
-// promises, none of the banned vocabulary), keys are short url-safe slugs.
+// promises, no trading instruction, none of the banned vocabulary), keys are
+// short url-safe slugs, and no paid message may quote a live reading that goes
+// stale (a cycle day, a score) or a concept Programme 1 retired from
+// acquisition.
 
 export interface FreeHeadline {
   headline: string;
@@ -59,93 +71,97 @@ export const FREE_HEADLINES: Record<string, FreeHeadline> = {
     headline: "One calm Bitcoin read, every morning.",
   },
 
-  // ── Paid messages, one per live creative angle ────────────────────────────
-  // Each continues the promise the visitor just clicked. None of them makes a
-  // claim the product does not already deliver, and none answers a question the
-  // product deliberately refuses to answer.
+  // ── Paid messages, one per CURRENTLY ACTIVE creative ──────────────────────
+  // Each is written from the ad's actual primary text, headline and creative —
+  // continuing the promise the visitor just clicked, and never making a
+  // stronger one. None quotes the ad's live figures (cycle day 803, score
+  // 17/100): those were true when the ad was built and are already stale, so
+  // repeating them on the landing page would make it false.
 
+  // ad001 · "Most Bitcoin investors know today's price. Very few know where we
+  // actually are in the cycle." The landing continues that sentence.
   "cycle-day": {
-    headline: "Day by day, where this Bitcoin cycle stands.",
-    sub: "We count every day since the halving and compare today against the same day in Bitcoin's previous cycles. One free read each morning, written without hype or predictions.",
+    headline: "You know the price. Here's where the cycle stands.",
+    sub: "Today's cycle day, placed against the same point in every previous Bitcoin cycle — what changed, and what followed. Free each morning, written without hype or predictions.",
   },
+  // ad002 · "It becomes attractive when history says it is." Continued verbatim.
+  // The ad's "Accumulation Score" is the product's Accumulation Index; the
+  // landing uses the product's own name for it.
   accumulation: {
-    headline: "Where today sits in Bitcoin's historical range.",
-    sub: "The accumulation reading places today against Bitcoin's recorded history — historically cheap, neutral or stretched — and shows what similar conditions looked like. Free each morning, written without hype or predictions.",
+    headline: "Bitcoin becomes attractive when history says it is.",
+    sub: "The Accumulation Index places today against Bitcoin's recorded history — historically cheap, neutral or stretched — and shows what similar conditions looked like. How much you buy stays your decision. Free each morning, written without hype or predictions.",
   },
+  // ad003 · the Meta headline, continued word for word, with the ad's own
+  // question and cadence beneath it.
   "clearest-view": {
     headline: "The clearest view of the Bitcoin cycle.",
-    sub: "One page for where this cycle stands, what moved today, and how that compares with Bitcoin's earlier cycles. Free each morning, written without hype or predictions.",
+    sub: "Where does today's market sit against 13+ years of Bitcoin history? One clear answer, every morning, completely free — written without hype or predictions.",
   },
-  "market-indifferent": {
-    headline: "The market doesn't care how the week felt.",
-    sub: "We read the record rather than the mood: what actually changed, how unusual it was, and what similar conditions looked like before. Free each morning, written without hype or predictions.",
-  },
-  "where-are-we": {
-    headline: "Where are we in the Bitcoin cycle?",
-    sub: "That is the question we answer every morning — how far into this cycle we are, what changed, and how today compares with the same point in earlier cycles. Free, written without hype or predictions.",
-  },
+  // ad005 · "We won't tell you what to do... Then you decide." The ad asks a
+  // question the product refuses to answer; the landing refuses it in the open
+  // rather than implying an answer.
   "should-you-buy": {
-    headline: "We won't tell you whether to buy Bitcoin.",
-    sub: "We show you where this cycle stands, what changed today, and what similar conditions looked like in Bitcoin's history. The decision stays yours. Free each morning, written without hype or predictions.",
+    headline: "We won't tell you what to do.",
+    sub: "We'll show you where today's market sits compared to every previous Bitcoin cycle. Then you decide. Free each morning, written without hype or predictions.",
   },
+  // ad006 · the creative's own line, then its own primary text.
   "daily-brief": {
-    headline: "One calm Bitcoin read, every morning.",
-    sub: "A verdict every morning — including “nothing changed” — the one reading that moved and how unusual it was, and what has held. Thirty seconds, written without hype or predictions.",
+    headline: "One clear briefing. Every morning. Free.",
+    sub: "One email each morning that explains where Bitcoin sits in its cycle, in plain English — a calm daily briefing grounded in 13+ years of market history. Written without hype or predictions.",
   },
+  // ad007 · the Meta headline, continued word for word.
   "crowd-fear": {
-    headline: "When the crowd is fearful, what does history show?",
-    sub: "Sentiment extremes have historically clustered near cycle turning points — a contrarian read, not a timing tool. We show the reading, its history, and what followed. Free each morning, written without hype or predictions.",
+    headline: "The crowd is fearful. History wasn't.",
+    sub: "The loudest voices arrive when markets are most emotional. Every morning we compare today against 13+ years of Bitcoin history, so you can see where today's price sits in the cycle. Free, and written without hype or predictions.",
   },
 };
 
 // Every known paid identity → its message key. BOTH shapes are listed for each
-// creative: the ad name as it is authored in Meta, and every ad ID that has
-// carried that creative (a creative duplicated into another campaign gets a
-// second ID). Adding an alias is the whole cost of a new creative; nothing in
-// Meta has to change, and an ad can be renamed without breaking its ID alias.
+// creative: the ad name as authored in Meta, and every ad ID that has carried
+// it. Adding a creative costs one line here; nothing in Meta has to change, and
+// an ad can be renamed without breaking its ID alias.
 //
-// Verified against the Meta ad export for 18 Jul – 16 Aug 2026: 9 distinct ad
-// names, 13 distinct ad IDs, 9 message angles.
+// Verified against the ad-copy export of 17 Aug 2026 and the delivery report
+// for 18 Jul – 16 Aug 2026.
 export const PAID_CREATIVE_ALIASES: Record<string, string> = {
-  // ad001 — cycle-day count
+  // ── CURRENTLY ACTIVE (campaign hl_meta_001) ─────────────────────────────
   hl_meta_001_ad001_803: "cycle-day",
   "52532453901711": "cycle-day",
-  "52547863281711": "cycle-day",
 
-  // ad002 — accumulation reading
   hl_meta_001_ad002_accumulation17: "accumulation",
   "52532999193711": "accumulation",
-  "52547863281311": "accumulation",
 
-  // ad003 (campaign 1) — the clearest view
   hl_meta_001_ad003_clearest_view: "clearest-view",
   "52532999193911": "clearest-view",
 
-  // ad003 (campaign 2) — the slot is REUSED for a different angle
-  hl_meta_001_ad003_doesnt_care: "market-indifferent",
-  "52547863281111": "market-indifferent",
-
-  // ad004 (campaign 1) — history as context
-  hl_meta_001_ad004_history_context: "context",
-  "52532999193511": "context",
-
-  // ad004 (campaign 2) — the slot is REUSED for a different angle
-  hl_meta_001_ad004_where_are_we: "where-are-we",
-  "52547863281511": "where-are-we",
-
-  // ad005 — the question we decline to answer
   hl_meta_001_ad005_should_you_buy: "should-you-buy",
   "52532999194511": "should-you-buy",
-  "52547863280511": "should-you-buy",
 
-  // ad006 — the daily brief itself
   hl_meta_001_ad006_daily_brief: "daily-brief",
   "52532999194311": "daily-brief",
-  "52547863280711": "daily-brief",
 
-  // ad007 — sentiment extremes
   hl_meta_001_ad007_crowd_fearful: "crowd-fear",
   "52532999194111": "crowd-fear",
+
+  // ── HISTORICAL DUPLICATES (campaign hl_meta_002, no longer delivering) ───
+  // Same ad NAME as a current creative, new ad ID because the ad was
+  // duplicated into a challenger campaign that was not continued. They keep
+  // the current message: it is the same creative, so no new promise is
+  // invented, and an old paid link keeps working rather than degrading to the
+  // generic default.
+  "52547863281711": "cycle-day", // dup of ad001_803
+  "52547863281311": "accumulation", // dup of ad002_accumulation17
+  "52547863280511": "should-you-buy", // dup of ad005_should_you_buy
+  "52547863280711": "daily-brief", // dup of ad006_daily_brief
+
+  // ── DELIBERATELY ABSENT ─────────────────────────────────────────────────
+  // hl_meta_001_ad003_doesnt_care  / 52547863281111  — abandoned challenger
+  // hl_meta_001_ad004_where_are_we / 52547863281511  — abandoned challenger
+  // hl_meta_001_ad004_history_context / 52532999193511 — inactive, never spent
+  //
+  // These are not current propositions and their copy has never been supplied,
+  // so there is nothing to continue truthfully. They resolve to the existing
+  // default, which is the correct behaviour for a promise we cannot verify.
 };
 
 const own = (o: Record<string, unknown>, k: string) => Object.prototype.hasOwnProperty.call(o, k);
