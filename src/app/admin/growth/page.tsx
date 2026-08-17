@@ -213,6 +213,35 @@ function GrowthBody({
             </div>
           ))}
         </div>
+        {/* D-2 repair, made visible: each landing is measured against its OWN
+            signups. The blended "Landing conv." KPI above previously counted
+            every landing's visitors but only /start's signups, so /free showed
+            a structural 0%. */}
+        {a.landing.byLanding.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-white/[0.06]">
+            <div className="text-[10.5px] uppercase tracking-[0.14em] text-ink-500 mb-2">Conversion by landing</div>
+            <div className="space-y-1.5">
+              {a.landing.byLanding.map((l) => (
+                <div key={l.landing} className="flex items-center gap-3 text-[12.5px]">
+                  <div className="w-40 shrink-0 font-mono text-ink-200">{l.landing}</div>
+                  <div className="flex-1 text-ink-500 font-mono">
+                    {l.views.toLocaleString()} views · {l.signups.toLocaleString()} signups
+                  </div>
+                  <div className="w-20 text-right font-mono text-ink-100">
+                    {l.conversionRate != null ? `${l.conversionRate}%` : "—"}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {a.landing.signupsOutsideLandings > 0 && (
+              <p className="mt-2 text-[11px] text-ink-500">
+                {a.landing.signupsOutsideLandings.toLocaleString()} further signups came from surfaces that are not
+                measured landings (the homepage block, article subscribe forms). They are excluded from these rates
+                rather than folded into them.
+              </p>
+            )}
+          </div>
+        )}
         <p className="mt-3 text-[11px] text-ink-500">Last column = step conversion from the previous stage. Opens are estimated (Apple Mail Privacy Protection inflates them); clicks are confirmed.</p>
       </Panel>
 

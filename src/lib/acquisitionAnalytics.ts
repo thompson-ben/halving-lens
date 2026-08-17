@@ -11,7 +11,7 @@
 //   Meta convention: utm_content = ad (creative), utm_term = adset (audience).
 
 import { sbSelect, supabaseConfigured } from "./supabase";
-import { AD_SPEND, SUBSCRIBER_VALUE_GBP, adSpendCurrency } from "./data/adSpend";
+import { AD_SPEND, SUBSCRIBER_VALUE_GBP, adSpendCurrency, usableSpend } from "./data/adSpend";
 
 interface PropRow {
   session_id: string | null;
@@ -133,7 +133,10 @@ export async function acquisitionQuality(): Promise<AcquisitionQuality> {
   const value = SUBSCRIBER_VALUE_GBP;
   const campaigns: CampaignQuality[] = [...camp.entries()]
     .map(([campaign, v]) => {
-      const spend = spendByCamp.get(campaign) ?? null;
+      // D-1: an un-entered (0) or invalid spend is UNKNOWN, never a real cost.
+      // `spend` itself reports null too, so the dashboard shows "—" rather
+      // than a £0 that reads as "this campaign was free".
+      const spend = usableSpend(spendByCamp.get(campaign));
       const engagedUsers = engagedByCampaign.get(campaign) ?? 0;
       return {
         campaign,
@@ -143,14 +146,16 @@ export async function acquisitionQuality(): Promise<AcquisitionQuality> {
         engagedUsers,
         cps: spend != null && v.signups > 0 ? round2(spend / v.signups) : null,
         cpe: spend != null && engagedUsers > 0 ? round2(spend / engagedUsers) : null,
-        roiPct: spend != null && spend > 0 && value > 0 ? Math.round(((v.signups * value - spend) / spend) * 100) : null,
+        roiPct: spend != null && value > 0 ? Math.round(((v.signups * value - spend) / spend) * 100) : null,
       };
     })
     .sort((a, b) => b.signups - a.signups || b.engagedUsers - a.engagedUsers);
 
   // Aggregate cost-per-engaged-user across paid campaigns only.
-  const paidEngaged = campaigns.reduce((n, c) => (c.spend != null && c.spend > 0 ? n + c.engagedUsers : n), 0);
-  const totalSpend = AD_SPEND.reduce((s, a) => s + a.spend, 0);
+  const paidEngaged = campaigns.reduce((n, c) => (c.spend != null ? n + c.engagedUsers : n), 0);
+  // Only usable spend contributes to the total, so an all-zero file totals 0
+  // and every downstream cost stays "—".
+  const totalSpend = AD_SPEND.reduce((s, a) => s + (usableSpend(a.spend) ?? 0), 0);
 
   return {
     configured: true,

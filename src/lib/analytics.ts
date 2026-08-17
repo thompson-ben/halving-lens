@@ -4,7 +4,8 @@
 
 import { sbCount, sbSelect, supabaseConfigured } from "./supabase";
 import { allEditions } from "./research";
-import { AD_SPEND } from "./data/adSpend";
+import { landingFunnel, variantFunnel, type LandingFunnelRow } from "./acquisitionMetrics";
+import { AD_SPEND, usableSpend } from "./data/adSpend";
 
 // ── Founder growth dashboard (/admin/analytics) ──────────────────────────────
 // A focused, fast read on what users value and where the email list grows from.
@@ -61,6 +62,12 @@ export interface GrowthDashboard {
     ctaClicks: number;
     signups: number;
     conversionRate: number | null; // %
+    /** Per-landing rows — /free and /start each measured against their OWN
+     *  signups, so one landing can never be judged by another's conversions. */
+    byLanding: LandingFunnelRow[];
+    /** Signups from surfaces that are not measured landings (the homepage
+     *  block, article subscribe forms) — reported, never folded into the rate. */
+    signupsOutsideLandings: number;
     topSources: LabelCount[];
     topCampaigns: LabelCount[];
   };
@@ -123,8 +130,8 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     accumulation: { views: 0, dcaChanges: 0, timelineChanges: 0, copies: 0, signups: 0, avgSeconds: null, avgScroll: null },
     brief: { views: 0, avgSeconds: null, avgScroll: null },
     research: { ...editionLibrary(), views: 0, topEditions: [], topShared: [], topSearches: [], topFeatures: [] },
-    landing: { views: 0, ctaClicks: 0, signups: 0, conversionRate: null, topSources: [], topCampaigns: [] },
-    growth: { campaigns: [], variants: [], topCTAs: [], referralSignups: 0, adSpendTotal: AD_SPEND.reduce((s, a) => s + a.spend, 0), costPerCtaClick: null, avgSessionSeconds: null, avgScroll: null },
+    landing: { views: 0, ctaClicks: 0, signups: 0, conversionRate: null, byLanding: [], signupsOutsideLandings: 0, topSources: [], topCampaigns: [] },
+    growth: { campaigns: [], variants: [], topCTAs: [], referralSignups: 0, adSpendTotal: AD_SPEND.reduce((s, a) => s + (usableSpend(a.spend) ?? 0), 0), costPerCtaClick: null, avgSessionSeconds: null, avgScroll: null },
     email: { sent: 0, delivered: 0, failed: 0, deliveryRate: null, failureRate: null, recent: [] },
     trend: [],
   };
@@ -294,9 +301,16 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
     const s = Number(r.props?.seconds);
     if (Number.isFinite(s)) { gSec += s; gScroll += Number.isFinite(Number(r.props?.scrollPct)) ? Number(r.props?.scrollPct) : 0; gN += 1; }
   }
-  const landingViews = (landingViewRows ?? []).length;
+  // D-2: the numerator and denominator must describe the SAME eligible
+  // population. This previously counted landing views from EVERY landing but
+  // only signups whose source was "/start", so /free — the primary paid
+  // destination — contributed visitors and no conversions and reported a
+  // structural 0%. landingFunnel() pairs each landing's views with its own
+  // signups and reports the per-landing breakdown alongside the total.
+  const funnel = landingFunnel(landingViewRows ?? [], signupRows ?? []);
+  const landingViews = funnel.views;
   const landingCtas = (landingCtaRows ?? []).length;
-  const landingSignups = (signupRows ?? []).filter((r) => (r.props?.source as string) === "/start").length;
+  const landingSignups = funnel.signups;
   const landingTopSources = tallyProp(landingViewRows, "utm_source");
   const landingTopCampaigns = tallyProp(landingViewRows, "utm_campaign");
 
@@ -320,42 +334,22 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
   for (const a of AD_SPEND) if (!campMap.has(a.campaign)) campMap.set(a.campaign, { visitors: 0, signups: 0 });
   const campaigns = [...campMap.entries()]
     .map(([campaign, v]) => {
-      const spend = spendByCamp.get(campaign) ?? null;
+      // D-1: zero / invalid spend is UNKNOWN, never a real £0.00 cost.
+      const spend = usableSpend(spendByCamp.get(campaign));
       return { campaign, visitors: v.visitors, signups: v.signups, spend, cps: spend != null && v.signups > 0 ? Math.round((spend / v.signups) * 100) / 100 : null };
     })
     .sort((a, b) => b.signups - a.signups || b.visitors - a.visitors);
 
-  // A/B variant performance (landing headline experiment).
-  const varMap = new Map<string, { views: number; ctaClicks: number; signups: number }>();
-  const blank = () => ({ views: 0, ctaClicks: 0, signups: 0 });
-  for (const r of landingViewRows ?? []) {
-    const v = String(r.props?.variant ?? "");
-    if (!v) continue;
-    const e = varMap.get(v) ?? blank();
-    e.views += 1;
-    varMap.set(v, e);
-  }
-  for (const r of landingCtaRows ?? []) {
-    const v = String(r.props?.variant ?? "");
-    if (!v) continue;
-    const e = varMap.get(v) ?? blank();
-    e.ctaClicks += 1;
-    varMap.set(v, e);
-  }
-  for (const r of signupRows ?? []) {
-    const v = String(r.props?.variant ?? "");
-    if (!v || r.props?.source !== "/start") continue;
-    const e = varMap.get(v) ?? blank();
-    e.signups += 1;
-    varMap.set(v, e);
-  }
-  const variants = [...varMap.entries()]
-    .map(([variant, v]) => ({ variant, views: v.views, ctaClicks: v.ctaClicks, signups: v.signups, cvr: v.views ? Math.round((v.signups / v.views) * 1000) / 10 : null }))
-    .sort((a, b) => (a.variant < b.variant ? -1 : 1));
+  // A/B variant performance. Selected by `variant` on BOTH sides — filtering
+  // the signups by landing source kept every arm's views and discarded the
+  // conversions of any arm belonging to a different landing (the "free" arm
+  // recorded a permanent 0%). Variant values are already disjoint per surface.
+  const variants = variantFunnel(landingViewRows ?? [], landingCtaRows ?? [], signupRows ?? []);
+
   const topCTAs = tallyProp(landingCtaRows, "cta");
 
   const referralSignups = (signupRows ?? []).filter((r) => r.props?.ref).length;
-  const adSpendTotal = AD_SPEND.reduce((s, a) => s + a.spend, 0);
+  const adSpendTotal = AD_SPEND.reduce((s, a) => s + (usableSpend(a.spend) ?? 0), 0);
   const costPerCtaClick = adSpendTotal > 0 && landingCtas > 0 ? Math.round((adSpendTotal / landingCtas) * 100) / 100 : null;
 
   // Accumulation engagement averages.
@@ -407,7 +401,9 @@ export async function growthDashboard(): Promise<GrowthDashboard> {
       views: landingViews,
       ctaClicks: landingCtas,
       signups: landingSignups,
-      conversionRate: landingViews ? Math.round((landingSignups / landingViews) * 1000) / 10 : null,
+      conversionRate: funnel.conversionRate,
+      byLanding: funnel.byLanding,
+      signupsOutsideLandings: funnel.signupsOutsideLandings,
       topSources: landingTopSources,
       topCampaigns: landingTopCampaigns,
     },
