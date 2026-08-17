@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-08-17",
+    "subject": "RHODL Ratio: −29.4% in 7 days — unusual by its own record",
+    "activity": "active",
+    "storyKind": "mover",
+    "text": "HALVINGLENS DAILY BRIEF — 17 Aug 2026\n\nTHE VERDICT: Active week. 12 of 15 monitored readings held within their own ordinary 7-day ranges — 3 moved materially.\n\nSOMETHING CHANGED: RHODL Ratio — −29.4% in 7 days · Unusual.\nA larger 7-day move than most in its own record. Larger than 80% of 7-day moves · 1,476 observations since Jul 2022.\nNow 696 · Deep value · −40.3% over 30 days.\n\nALSO TODAY: Market Price also moved: −3.16% in 7 days — Larger than 36% of 7-day moves · 5,867 observations since Jul 2010\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 22/100 · weekly · since 4 Jul 2026\n· Sentiment: Fear · 31/100 · since 15 Jul 2026\n· ETF demand: 3-day outflow streak · −$162.18M over 7 trading days · as of 14 Aug 2026\n\nSee the whole picture: Open the Cycle Dashboard → https://halvinglens.com/cycle-dashboard\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-intel-v1"
+  },
+  {
     "slug": "2026-08-16",
     "subject": "An unusual 7-day move in RHODL Ratio",
     "activity": "active",
