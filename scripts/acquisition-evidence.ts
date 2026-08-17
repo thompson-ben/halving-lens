@@ -28,6 +28,7 @@
  *   npm run acquisition-evidence
  */
 import { supabaseConfigured } from "../src/lib/supabase";
+import { canonicalCreative } from "../src/lib/freeHeadlines";
 
 // ── Completeness-proving reader (defect E-1) ───────────────────────────────
 //
@@ -190,23 +191,37 @@ async function main() {
   q1(P1_CUTOVER, undefined, "POST-P1 (cutover to now)");
   q1(since30, undefined, "FULL 30-DAY WINDOW — DESCRIPTIVE ONLY, spans the cutover; not a causal comparison");
 
-  // ═══ Q2 · Creative conversion by utm_content ════════════════════════════
-  head("Q2 · CREATIVE CONVERSION BY utm_content — FIRST-TOUCH");
+  // ═══ Q2 · Creative conversion by canonical creative ═════════════════════
+  head("Q2 · CREATIVE CONVERSION BY CANONICAL CREATIVE — FIRST-TOUCH");
   {
+    // `utm_content` arrives as either the Meta ad NAME or the ad ID, and one
+    // creative angle can carry several ad IDs. Grouping on the raw value split
+    // a single creative across two or three rows and made every one of them
+    // look smaller than it was. Known identities are collapsed onto their
+    // message key; anything unrecognised is still shown verbatim, never guessed
+    // at and never silently merged.
     const rows = events.filter((r) => inWindow(r, since30));
+    const groupOf = (r: EventRow): string => {
+      const raw = S(r.props?.utm_content);
+      if (!raw) return "(none)";
+      const key = canonicalCreative(raw);
+      return key ? `${key} (canonical)` : `${raw} (unmatched)`;
+    };
     const keys = new Set<string>();
-    for (const r of rows) keys.add(S(r.props?.utm_content) || "(none)");
+    for (const r of rows) keys.add(groupOf(r));
     const out = [...keys]
       .map((k) => {
-        const match = (r: EventRow) => (S(r.props?.utm_content) || "(none)") === k;
+        const match = (r: EventRow) => groupOf(r) === k;
         const views = rows.filter((r) => r.name === "landing_view" && match(r)).length;
         const signups = rows.filter((r) => r.name === "signup" && match(r)).length;
         return [k, views, signups, views > 0 ? pct(signups, views) : "—"];
       })
       .sort((a, b) => Number(b[1]) - Number(a[1]));
-    table(["creative (utm_content)", "views", "signups", "view→signup"], out);
+    table(["creative (canonical message)", "views", "signups", "view→signup"], out);
     console.log("\n  Small denominators are shown deliberately. A creative with <200 views");
     console.log("  cannot separate a 5% from a 7% conversion rate — read counts, not rates.");
+    console.log("  Rows marked (unmatched) are ad identities with no entry in the alias map:");
+    console.log("  they arrive tagged but cannot be message-matched on the landing page.");
   }
 
   // ═══ Q3 · /free message-match integrity ════════════════════════════════
