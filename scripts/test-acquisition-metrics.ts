@@ -212,7 +212,24 @@ console.log("Boundaries:");
 console.log("Analysis tooling safety:");
 {
   const script = read("scripts/acquisition-evidence.ts");
-  check("the evidence script only ever READS", !/sbInsert|sbUpdate|sbDelete|sendEmail/.test(script));
+  check("the evidence script only ever READS",
+    !/sbInsert|sbUpdate|sbDelete|sendEmail/.test(script) &&
+    !/method:\s*"(POST|PUT|PATCH|DELETE)"/.test(script));
+  // E-1 repair: a zero is only meaningful when the fetch is provably complete.
+  check("every read proves its own completeness (exact count + order + paging)",
+    /Prefer: "count=exact"/.test(script) && /order=\$\{orderBy\}/.test(script) &&
+    /Range: `\$\{from\}-/.test(script) && /function completeness\(/.test(script));
+  check("incomplete fetches are labelled so zeros are not misread",
+    /INCOMPLETE — treat zeros as UNKNOWN/.test(script));
+  check("per-event totals are requested independently of the bulk page",
+    /total in 90d/.test(script));
+  // E-2 repair: pre-instrumentation rows cannot be scored as matched.
+  check("message-match separates PRE-INSTRUMENTATION from matched/dropped",
+    /not instrumented/.test(script) && /PRE-INSTRUMENTATION/.test(script) &&
+    /instrumented denominator/.test(script));
+  check("an empty instrumented denominator reports UNKNOWN, not zero opportunity",
+    /is UNKNOWN,/.test(script) && /not zero/.test(script));
+  check("no NUL-joined composite keys remain", !script.includes("\u0000"));
   check("it computes hashes in memory and persists nothing", /emailHash/.test(script) && !/sbInsert/.test(script));
   check("it splits PRE-P1 / POST-P1 and labels the blended window descriptive-only",
     /PRE-P1/.test(script) && /POST-P1/.test(script) && /DESCRIPTIVE ONLY/.test(script));
