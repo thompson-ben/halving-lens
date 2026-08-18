@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-08-18",
+    "subject": "Market Price: +0.82% in 7 days — unusual by its own record",
+    "activity": "active",
+    "storyKind": "mover",
+    "text": "HALVINGLENS DAILY BRIEF — 18 Aug 2026\n\nTHE VERDICT: Active week. 11 of 15 monitored readings held within their own ordinary 7-day ranges — 4 moved materially.\n\nSOMETHING CHANGED: Market Price — +0.82% in 7 days · Unusual.\nMarket Price moved from above to below the estimated mining cost. Larger than 10% of 7-day moves · 5,868 observations since Jul 2010.\nNow $64,434 · −0.53% over 30 days.\n\nALSO TODAY: SOPR is approaching its Mild profit range.\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 22/100 · weekly · since 4 Jul 2026\n· Sentiment: Fear · 41/100 · since 15 Jul 2026\n· ETF demand: 3-day outflow streak · −$162.18M over 7 trading days · as of 14 Aug 2026\n\nSee the whole picture: Open the Cycle Dashboard → https://halvinglens.com/cycle-dashboard\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-intel-v1"
+  },
+  {
     "slug": "2026-08-17",
     "subject": "RHODL Ratio: −29.4% in 7 days — unusual by its own record",
     "activity": "active",
