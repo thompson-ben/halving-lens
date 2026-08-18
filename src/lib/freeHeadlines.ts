@@ -55,7 +55,10 @@ export interface FreeHeadline {
 
 export const DEFAULT_FREE_HEADLINE: FreeHeadline = {
   headline: "Know where Bitcoin sits in its cycle.",
-  sub: "Get one clear Bitcoin cycle update each morning — what changed, what history shows, and what to watch next. Free, evidence-led, and written without hype or predictions.",
+  // "what has held" (not the older "what to watch next"): the shipped Daily
+  // Brief V2 has no what-to-watch section — its State of the Cycle reports
+  // what has held, in the promise's own words. Truth correction, 18 Aug 2026.
+  sub: "Get one clear Bitcoin cycle update each morning — what changed, what history shows, and what has held. Free, evidence-led, and written without hype or predictions.",
 };
 
 // One entry per MESSAGE. Never remove a key while an alias still points at it.
@@ -142,6 +145,18 @@ export const PAID_CREATIVE_ALIASES: Record<string, string> = {
 
   hl_meta_001_ad007_crowd_fearful: "crowd-fear",
   "52532999194111": "crowd-fear",
+
+  // ── REFRESHED IDENTITIES (approved 18 Aug 2026 truth refresh) ───────────
+  // The four refreshed replacements for the truth-debt creatives. They carry
+  // the SAME promise as the ad they replace, so they alias onto the same
+  // message key — no new landing variant, nothing that can drift. Added
+  // BEFORE the Meta ads exist so the landing page is ready from first click;
+  // each ad's Meta-assigned numeric ID gets its own alias line once the ad
+  // object actually exists (never guessed in advance).
+  hl_meta_001_ad001b_cycle_question: "cycle-day",
+  hl_meta_001_ad002b_accumulation_index: "accumulation",
+  hl_meta_001_ad003b_clearest_view: "clearest-view",
+  hl_meta_001_ad006b_daily_brief_v2: "daily-brief",
 
   // ── HISTORICAL DUPLICATES (campaign hl_meta_002, no longer delivering) ───
   // Same ad NAME as a current creative, new ad ID because the ad was
