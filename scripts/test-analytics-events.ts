@@ -79,6 +79,73 @@ for (const file of walk("src")) {
 }
 assert(offenders.length === 0, `no source file references a removed event name${offenders.length ? ` (${offenders.join(", ")})` : ""}`);
 
+// ── 2b. First-touch attribution is captured BEFORE the page's own effects ────
+//
+// React flushes effects in tree order, so a component mounted below {children}
+// runs its effect AFTER everything on the page. AttributionCapture used to sit
+// below {children} in the root layout: on a visitor's FIRST paid landing, the
+// hero fired `landing_view` before first-touch attribution had been persisted,
+// so the event carried no utm_content and a genuinely paid arrival was recorded
+// as untagged. Proven in a browser: WRITE hl.attr came AFTER landing_view.
+//
+// The fix is positional, so the guard has to be positional too — a future edit
+// that moves the component back below the page content must fail the build.
+
+// Comments are stripped first: the layout explains this ordering in a JSX
+// comment that necessarily names both tokens, and a prose mention must not be
+// mistaken for a mount point.
+const stripComments = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+const layoutSrc = stripComments(readFileSync("src/app/layout.tsx", "utf8"));
+{
+  const capture = layoutSrc.indexOf("<AttributionCapture />");
+  const children = layoutSrc.indexOf("{children}");
+  assert(capture !== -1 && children !== -1, "root layout mounts AttributionCapture and renders children");
+  assert(capture < children,
+    "AttributionCapture mounts BEFORE the page content — its effect runs first, so the page's first event can carry attribution");
+  assert(layoutSrc.split("<AttributionCapture />").length - 1 === 1,
+    "AttributionCapture is mounted exactly once (no duplicate capture)");
+}
+
+// The capture itself must stay first-touch: it writes once, never overwrites,
+// and never invents attribution for an organic arrival.
+{
+  const attr = readFileSync("src/lib/attribution.ts", "utf8");
+  assert(/if \(localStorage\.getItem\(KEY\)\) return;/.test(attr),
+    "first-touch wins — captureAttribution returns early when attribution already exists");
+  assert(/if \(Object\.keys\(o\)\.length\)/.test(attr),
+    "nothing is written when the URL carries no attribution — organic visits create no paid attribution");
+  assert((attr.match(/localStorage\.setItem/g) ?? []).length === 1,
+    "attribution has exactly one writer");
+  assert(!/fetch\(|supabase|from "\.\/track"/.test(attr),
+    "attribution stores nothing server-side and emits no event — no schema or table involvement");
+}
+
+// The mount-time consumers of stored attribution. Each fires once per mount and
+// now runs after the capture. Listed explicitly so a new one cannot be added
+// without this test being considered.
+for (const [file, event] of [
+  ["src/components/LandingClient.tsx", "landing_view"],
+  ["src/components/HomeHeroCta.tsx", "home_hero_view"],
+] as const) {
+  const s = readFileSync(file, "utf8");
+  assert(new RegExp(`track\\("${event}"[\\s\\S]{0,200}getAttribution\\(\\)`).test(s),
+    `${event} carries first-touch attribution`);
+  assert(/fired\.current|seen\.current|useRef\(false\)/.test(s),
+    `${file} guards against firing its mount event more than once`);
+}
+
+// The message-match repair (#208) is unaffected: the hero headline is resolved
+// from the CURRENT url, never from stored first-touch attribution. Attribution
+// answers "which source do we credit"; the URL answers "which promise do we
+// continue now". This ordering fix must not blur the two.
+{
+  const hero = readFileSync("src/components/LandingClient.tsx", "utf8");
+  assert(/resolveFreeHeadline\(\s*utmContent\s*\)/.test(hero) && /new URLSearchParams\(window\.location\.search\)/.test(hero),
+    "the hero still resolves its headline from the CURRENT landing URL");
+  assert(!/resolveFreeHeadline\(\s*getAttribution/.test(hero),
+    "the hero never resolves its headline from stored first-touch attribution");
+}
+
 // ── 3. Single conversion event per signup ────────────────────────────────────
 
 const created = decideFromResponse(200, { ok: true, outcome: "created" });

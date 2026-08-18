@@ -73,6 +73,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable} dark`}
     >
       <body className="min-h-screen bg-ink-950 text-ink-100 font-sans antialiased">
+        {/* FIRST, deliberately. React flushes effects in tree order, so anything
+            mounted above the page content runs its effect before the page's own.
+            AttributionCapture used to sit below {children}: on a visitor's first
+            paid landing the hero fired `landing_view` BEFORE first-touch
+            attribution had been persisted, so the event carried no utm_content
+            and the arrival looked untagged. It renders null, so the skip link
+            below is still the first element in the tab order. */}
+        <AttributionCapture />
         {/* Keyboard bypass for the sidebar/topbar chrome (PR132). Visually
             hidden until focused; first element in the tab order. */}
         <a
@@ -133,7 +141,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
         <PageTracker />
-        <AttributionCapture />
         <ProfileBeacon />
         <BareChromeSync />
         <MarketingScripts />
