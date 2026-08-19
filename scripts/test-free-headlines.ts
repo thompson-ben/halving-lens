@@ -88,6 +88,43 @@ for (const c of CURRENT_ACTIVE) {
 }
 assert(CURRENT_ACTIVE.length === 6, "all six currently active creatives are covered");
 
+// ── Refreshed identities (18 Aug 2026 truth refresh) ─────────────────────────
+// The four approved replacements for the truth-debt creatives. Each carries
+// the SAME promise as the ad it replaces, so each must resolve to the SAME
+// canonical message OBJECT as its predecessor — an alias, never a copy that
+// could drift. Their Meta numeric IDs do not exist yet and are deliberately
+// absent (added only once Meta assigns them — never guessed).
+
+const REFRESHED: { id: string; replaces: string; message: string; headline: string }[] = [
+  { id: "hl_meta_001_ad001b_cycle_question", replaces: "hl_meta_001_ad001_803", message: "cycle-day",
+    headline: "You know the price. Here's where the cycle stands." },
+  { id: "hl_meta_001_ad002b_accumulation_index", replaces: "hl_meta_001_ad002_accumulation17", message: "accumulation",
+    headline: "Bitcoin becomes attractive when history says it is." },
+  { id: "hl_meta_001_ad003b_clearest_view", replaces: "hl_meta_001_ad003_clearest_view", message: "clearest-view",
+    headline: "The clearest view of the Bitcoin cycle." },
+  { id: "hl_meta_001_ad006b_daily_brief_v2", replaces: "hl_meta_001_ad006_daily_brief", message: "daily-brief",
+    headline: "One clear briefing. Every morning. Free." },
+];
+
+console.log("Refreshed identities (Meta ads not yet live):");
+for (const r of REFRESHED) {
+  const next = resolveFreeHeadline(r.id);
+  const prev = resolveFreeHeadline(r.replaces);
+  assert(next.key === r.message, `"${r.id}" → "${r.message}"`);
+  assert(next.copy === prev.copy, `"${r.id}" ≡ "${r.replaces}" (the SAME canonical message object, not a duplicate)`);
+  assert(next.copy.headline === r.headline, `"${r.id}" shows the approved headline`);
+  assert(next.copy !== DEFAULT_FREE_HEADLINE, `"${r.id}" never lands on the default`);
+}
+assert(REFRESHED.length === 4, "exactly the four approved refreshed identities are covered");
+// ad005 and ad007 are deliberately NOT refreshed; no ad005b/ad007b alias exists.
+assert(resolveFreeHeadline("hl_meta_001_ad005b_should_you_buy").key === "default" &&
+  resolveFreeHeadline("hl_meta_001_ad007b_crowd_fearful").key === "default",
+  "no refreshed identity was invented for ad005 or ad007");
+// The deferred challenger creatives are OUT of this refresh and must not match.
+assert(resolveFreeHeadline("hl_meta_001_ad004_where_are_we").key === "default" &&
+  resolveFreeHeadline("hl_meta_001_ad003_doesnt_care").key === "default",
+  "challenger identities remain unmapped — they are not part of the truth refresh");
+
 // ── Historical duplicates keep working; abandoned challengers do not ─────────
 
 const HISTORICAL_DUPLICATES: [string, string][] = [
@@ -124,7 +161,7 @@ assert(!("market-indifferent" in FREE_HEADLINES) && !("where-are-we" in FREE_HEA
 console.log("Alias map integrity:");
 {
   const aliases = Object.keys(PAID_CREATIVE_ALIASES);
-  assert(aliases.length === 16, "16 aliases: 6 active names + 6 active IDs + 4 historical duplicate IDs");
+  assert(aliases.length === 20, "20 aliases: 6 active names + 6 active IDs + 4 refreshed identities + 4 historical duplicate IDs");
   assert(aliases.every((a) => !Object.prototype.hasOwnProperty.call(FREE_HEADLINES, a)),
     "no alias collides with a message key (an alias can never shadow one)");
   assert(Object.values(PAID_CREATIVE_ALIASES).every((k) => Object.prototype.hasOwnProperty.call(FREE_HEADLINES, k)),
@@ -150,9 +187,14 @@ console.log("Alias map integrity:");
 console.log("Pre-existing copy is unchanged:");
 assert(DEFAULT_FREE_HEADLINE.headline === "Know where Bitcoin sits in its cycle.",
   "the default headline is unchanged");
+// The sub was deliberately corrected on 18 Aug 2026: "what to watch next"
+// promised a Daily Brief section V2 no longer ships; "what has held" is the
+// promise's own language for the real State of the Cycle. Pinned byte-exact.
 assert(DEFAULT_FREE_HEADLINE.sub ===
-  "Get one clear Bitcoin cycle update each morning — what changed, what history shows, and what to watch next. Free, evidence-led, and written without hype or predictions.",
-  "the default sub is unchanged");
+  "Get one clear Bitcoin cycle update each morning — what changed, what history shows, and what has held. Free, evidence-led, and written without hype or predictions.",
+  "the default sub carries the corrected truthful promise, byte-exact");
+assert(!/what to watch/i.test(`${DEFAULT_FREE_HEADLINE.headline} ${DEFAULT_FREE_HEADLINE.sub}`),
+  "the withdrawn 'what to watch next' promise is gone from the default");
 assert(FREE_HEADLINES.calm.headline === "Bitcoin research, without the noise." && FREE_HEADLINES.calm.sub === undefined,
   '"calm" is unchanged');
 assert(FREE_HEADLINES.context.headline === "What history says about today's Bitcoin market." &&
