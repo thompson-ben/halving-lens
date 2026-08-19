@@ -7,7 +7,7 @@ import type { BriefV2Edition } from "../briefV2Archive";
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
     "slug": "2026-08-19",
-    "subject": "Fear & Greed has entered Neutral.",
+    "subject": "A state changed: Fear & Greed",
     "activity": "active",
     "storyKind": "state_change",
     "text": "HALVINGLENS DAILY BRIEF — 19 Aug 2026\n\nTHE VERDICT: Active week. 12 of 15 monitored readings held within their own ordinary 7-day ranges — 3 moved materially.\n\nA STATE CHANGED: Fear & Greed has entered Neutral. Current reading: 46.\n\nALSO TODAY: ETF demand: 2 straight trading days of net inflows. Net +$97.14M over the past 7 trading days.\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 22/100 · weekly · since 4 Jul 2026\n· Sentiment: Neutral · 46/100 · since 19 Aug 2026\n· ETF demand: 2-day inflow streak · +$97.14M over 7 trading days · as of 18 Aug 2026\n\nSee the whole picture: Open the Cycle Dashboard → https://halvinglens.com/cycle-dashboard\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
