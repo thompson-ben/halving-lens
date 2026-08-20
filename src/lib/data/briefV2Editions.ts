@@ -7,7 +7,7 @@ import type { BriefV2Edition } from "../briefV2Archive";
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
     "slug": "2026-08-20",
-    "subject": "One of NUPL's largest 24-hour moves on record.",
+    "subject": "A state changed: NUPL",
     "activity": "active",
     "storyKind": "state_change",
     "text": "HALVINGLENS DAILY BRIEF — 20 Aug 2026\n\nTHE VERDICT: Active week. 6 of 15 monitored readings held within their own ordinary 7-day ranges — 9 moved materially.\n\nA STATE CHANGED: One of NUPL's largest 24-hour moves on record. Current reading: 0.245.\n\nALSO TODAY: Fear & Greed also moved: +33 points in 7 days — Larger than 97% of 7-day moves · 3,112 observations since Feb 2018\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 22/100 · weekly · since 4 Jul 2026\n· Sentiment: Greed · 62/100 · since 20 Aug 2026\n· ETF demand: 3-day inflow streak · +$759.01M over 7 trading days · as of 19 Aug 2026\n\nSee the whole picture: Open the Cycle Dashboard → https://halvinglens.com/cycle-dashboard\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
