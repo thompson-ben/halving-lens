@@ -92,28 +92,39 @@ assert(CURRENT_ACTIVE.length === 6, "all six currently active creatives are cove
 // The four approved replacements for the truth-debt creatives. Each carries
 // the SAME promise as the ad it replaces, so each must resolve to the SAME
 // canonical message OBJECT as its predecessor — an alias, never a copy that
-// could drift. Their Meta numeric IDs do not exist yet and are deliberately
-// absent (added only once Meta assigns them — never guessed).
+// could drift. `metaId` is the real numeric Ad ID Meta assigned when the ad
+// was created (founder-supplied post-creation export, 20 Aug 2026 — never
+// guessed), and name-shaped and ID-shaped arrivals must be functionally
+// identical.
 
-const REFRESHED: { id: string; replaces: string; message: string; headline: string }[] = [
-  { id: "hl_meta_001_ad001b_cycle_question", replaces: "hl_meta_001_ad001_803", message: "cycle-day",
+const REFRESHED: { id: string; metaId: string; replaces: string; message: string; headline: string }[] = [
+  { id: "hl_meta_001_ad001b_cycle_question", metaId: "52553798102111",
+    replaces: "hl_meta_001_ad001_803", message: "cycle-day",
     headline: "You know the price. Here's where the cycle stands." },
-  { id: "hl_meta_001_ad002b_accumulation_index", replaces: "hl_meta_001_ad002_accumulation17", message: "accumulation",
+  { id: "hl_meta_001_ad002b_accumulation_index", metaId: "52553799560111",
+    replaces: "hl_meta_001_ad002_accumulation17", message: "accumulation",
     headline: "Bitcoin becomes attractive when history says it is." },
-  { id: "hl_meta_001_ad003b_clearest_view", replaces: "hl_meta_001_ad003_clearest_view", message: "clearest-view",
+  { id: "hl_meta_001_ad003b_clearest_view", metaId: "52553800427711",
+    replaces: "hl_meta_001_ad003_clearest_view", message: "clearest-view",
     headline: "The clearest view of the Bitcoin cycle." },
-  { id: "hl_meta_001_ad006b_daily_brief_v2", replaces: "hl_meta_001_ad006_daily_brief", message: "daily-brief",
+  { id: "hl_meta_001_ad006b_daily_brief_v2", metaId: "52553800644311",
+    replaces: "hl_meta_001_ad006_daily_brief", message: "daily-brief",
     headline: "One clear briefing. Every morning. Free." },
 ];
 
-console.log("Refreshed identities (Meta ads not yet live):");
+console.log("Refreshed identities (live in Meta since 20 Aug 2026):");
 for (const r of REFRESHED) {
   const next = resolveFreeHeadline(r.id);
   const prev = resolveFreeHeadline(r.replaces);
+  const byMetaId = resolveFreeHeadline(r.metaId);
   assert(next.key === r.message, `"${r.id}" → "${r.message}"`);
   assert(next.copy === prev.copy, `"${r.id}" ≡ "${r.replaces}" (the SAME canonical message object, not a duplicate)`);
   assert(next.copy.headline === r.headline, `"${r.id}" shows the approved headline`);
   assert(next.copy !== DEFAULT_FREE_HEADLINE, `"${r.id}" never lands on the default`);
+  // The Meta-assigned numeric ID is the same identity in a different shape:
+  // same key, same OBJECT — name- and ID-shaped utm_content cannot diverge.
+  assert(byMetaId.key === r.message, `Meta ad ID ${r.metaId} → "${r.message}"`);
+  assert(byMetaId.copy === next.copy, `Meta ad ID ${r.metaId} ≡ "${r.id}" (identical message object)`);
 }
 assert(REFRESHED.length === 4, "exactly the four approved refreshed identities are covered");
 // ad005 and ad007 are deliberately NOT refreshed; no ad005b/ad007b alias exists.
@@ -161,7 +172,7 @@ assert(!("market-indifferent" in FREE_HEADLINES) && !("where-are-we" in FREE_HEA
 console.log("Alias map integrity:");
 {
   const aliases = Object.keys(PAID_CREATIVE_ALIASES);
-  assert(aliases.length === 20, "20 aliases: 6 active names + 6 active IDs + 4 refreshed identities + 4 historical duplicate IDs");
+  assert(aliases.length === 24, "24 aliases: 6 active names + 6 active IDs + 4 refreshed names + 4 refreshed Meta IDs + 4 historical duplicate IDs");
   assert(aliases.every((a) => !Object.prototype.hasOwnProperty.call(FREE_HEADLINES, a)),
     "no alias collides with a message key (an alias can never shadow one)");
   assert(Object.values(PAID_CREATIVE_ALIASES).every((k) => Object.prototype.hasOwnProperty.call(FREE_HEADLINES, k)),
