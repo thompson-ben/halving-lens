@@ -23,6 +23,7 @@ import {
 } from "../src/lib/marketMovers";
 import { stateRunFrom } from "../src/lib/metricWatch";
 import { watchStateFor } from "../src/lib/metricWatch/states";
+import { bandFor as sentimentBandFor } from "../src/lib/sentiment";
 
 let failures = 0;
 function check(name: string, cond: boolean, detail?: unknown) {
@@ -235,6 +236,119 @@ console.log("Selection/export discipline (MW2-C):");
   check("picker consumes the image routes only — no engine, intel or payload imports", !/marketMovers|metricWatch|cycleDashboardIntel|metricCards|storyEngine|contentCards/.test(pk));
   check("no editing, no overrides: no text inputs, colour or template controls", !/<input|<textarea|contentEditable|color|template|significance/i.test(pkCode));
   check("ETF licence notice appears when the ETF card is selected (founder governance item)", /etf_flows/.test(pk) && /SoSoValue licence confirmation/.test(pk));
+}
+
+// ── 9 · The hero typeface can draw a plus sign (render-shape guard) ──────────
+//
+// Found 20 Aug 2026: the bundled Fraunces subsets carried a corrupted `plus`
+// glyph — a composite of two `minus` components whose rotation transform was
+// lost in an earlier processing pipeline. Every POSITIVE hero movement on
+// every card therefore rendered looking negative ("+9.33%" read as "−9.33%"),
+// while true negatives (U+2212) rendered correctly. Source-level payload
+// assertions cannot catch this — the payload was always right — so this guard
+// checks the GLYPH GEOMETRY inside the shipped font binaries: a plus must be
+// a simple outline whose box is roughly square and tall; the broken composite
+// was flat and wide (and not simple at all), so it fails both gates.
+
+console.log("Hero typeface render-shape guard:");
+{
+  // Just enough TTF parsing to find one glyph's kind and bounding box.
+  const glyphBox = (file: string, codepoint: number) => {
+    const b = readFileSync(join(__dirname, `../src/lib/fonts/${file}`));
+    const u16 = (o: number) => b.readUInt16BE(o);
+    const i16 = (o: number) => b.readInt16BE(o);
+    const u32 = (o: number) => b.readUInt32BE(o);
+    const tables = new Map<string, number>();
+    for (let i = 0; i < u16(4); i++) {
+      const rec = 12 + i * 16;
+      tables.set(b.toString("latin1", rec, rec + 4), u32(rec + 8));
+    }
+    const head = tables.get("head")!;
+    const upm = u16(head + 18);
+    const longLoca = i16(head + 50) === 1;
+    // cmap: take the first format-4 or format-12 subtable.
+    const cmap = tables.get("cmap")!;
+    let gid = 0;
+    for (let i = 0; i < u16(cmap + 2); i++) {
+      const sub = cmap + u32(cmap + 4 + i * 8 + 4);
+      const fmt = u16(sub);
+      if (fmt === 4) {
+        const segX2 = u16(sub + 6);
+        for (let s = 0; s < segX2 / 2; s++) {
+          const end = u16(sub + 14 + s * 2);
+          const start = u16(sub + 16 + segX2 + s * 2);
+          if (codepoint >= start && codepoint <= end) {
+            const idDeltaOff = sub + 16 + segX2 * 2 + s * 2;
+            const idRangeOff = sub + 16 + segX2 * 3 + s * 2;
+            const ro = u16(idRangeOff);
+            gid = ro === 0
+              ? (codepoint + i16(idDeltaOff)) & 0xffff
+              : (u16(idRangeOff + ro + (codepoint - start) * 2) + i16(idDeltaOff)) & 0xffff;
+            break;
+          }
+        }
+        if (gid) break;
+      } else if (fmt === 12) {
+        const n = u32(sub + 12);
+        for (let g = 0; g < n; g++) {
+          const rec = sub + 16 + g * 12;
+          if (codepoint >= u32(rec) && codepoint <= u32(rec + 4)) { gid = u32(rec + 8) + (codepoint - u32(rec)); break; }
+        }
+        if (gid) break;
+      }
+    }
+    if (!gid) return null;
+    const loca = tables.get("loca")!;
+    const glyf = tables.get("glyf")!;
+    const off = longLoca ? u32(loca + gid * 4) : u16(loca + gid * 2) * 2;
+    const next = longLoca ? u32(loca + (gid + 1) * 4) : u16(loca + (gid + 1) * 2) * 2;
+    if (next <= off) return { contours: 0, w: 0, h: 0, upm };
+    const g = glyf + off;
+    return { contours: i16(g), w: i16(g + 6) - i16(g + 2), h: i16(g + 8) - i16(g + 4), upm };
+  };
+
+  for (const f of ["fraunces-600.ttf", "fraunces-700.ttf"]) {
+    const plus = glyphBox(f, 0x2b);
+    const minus = glyphBox(f, 0x2212);
+    check(`${f}: plus is a SIMPLE outline (the broken glyph was an untransformed composite)`, !!plus && plus.contours >= 1, plus);
+    check(`${f}: plus is roughly square and tall — a drawable cross, not a bar`, !!plus && plus.h >= 0.3 * plus.upm && plus.w / plus.h > 0.6 && plus.w / plus.h < 1.6, plus);
+    check(`${f}: minus (U+2212) exists and is a wide flat bar (parser sanity)`, !!minus && minus.contours >= 1 && minus.h < 0.25 * minus.upm && minus.w > minus.h, minus);
+  }
+}
+
+// ── 10 · Sentiment canonical-binding pins (D2, 21 Aug 2026) ──────────────────
+//
+// The Sentiment commission's audit found fear_greed already a first-class MW2
+// card — nothing was built, and these pins lock that membership against
+// regression. Every fact-agreement guarantee in section 2 already covers it
+// generically; what is pinned here is the MEMBERSHIP and the SOURCES.
+
+console.log("Sentiment canonical bindings:");
+{
+  check("fear_greed sits in the considered population (not composite-excluded)", (() => {
+    const { movements, steady } = consideredMovers(marketMovers(7, asOf));
+    return [...movements, ...steady].some((m) => m.metricId === "fear_greed");
+  })());
+  check("fear_greed is present in the gallery at every honest period (1, 7, 30)", ([1, 7, 30] as const).every((p) => {
+    const g = metricCardsGallery(p, asOf);
+    return allCards(g).some((c) => c.metricId === "fear_greed") && !g.unavailable.some((u) => u.metricId === "fear_greed");
+  }));
+  check("its band vocabulary is the sentiment authority's own (no second mapping)", (() => {
+    const metric = metricById("fear_greed")!;
+    const series = metric.series();
+    const v = series[series.length - 1].value;
+    return metric.band?.label(v) === sentimentBandFor(v).label;
+  })());
+  check("its what-line is the registry's (no bespoke sentiment copy)", (() => {
+    const c = allCards(metricCardsGallery(7, asOf)).find((x): x is MetricCardPayload => x.kind === "metric" && x.metricId === "fear_greed");
+    return c?.what === metricById("fear_greed")!.what;
+  })());
+  check("no sentiment special-casing exists in the card payload or template layers", (() => {
+    const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    const payload = strip(readFileSync(join(__dirname, "../src/lib/metricCards.ts"), "utf8"));
+    const tpl = strip(readFileSync(join(__dirname, "../src/lib/metricCardTemplates.tsx"), "utf8"));
+    return !/fear_greed/.test(payload) && !/fear_greed/.test(tpl);
+  })());
 }
 
 console.log("");
