@@ -1,0 +1,47 @@
+name: Audience evidence (read-only)
+
+# Runs the authorised read-only audience-intelligence analysis (D2) and prints
+# the report to the job log. Nothing is written, sent or changed.
+#
+# SAFETY BY DESIGN:
+#   · workflow_dispatch ONLY — no schedule, no push trigger, so it cannot fire
+#     on its own;
+#   · the script issues GET requests exclusively (paged sbSelect reads). There
+#     is no insert, update or delete anywhere in it, and no email is sent;
+#   · secrets are used to READ production data and are never echoed;
+#   · RESEND_API_KEY is deliberately NOT provided — the job has no way to send.
+#
+# EMAIL_SECRET is required so subscriber hashes match the ones recorded at send
+# time; the script self-checks the match rate and withholds engagement figures
+# if the secret is wrong, rather than printing false zeros.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: audience-evidence
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    name: Read-only audience evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run the analysis (read-only)
+        run: npm run audience-evidence
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}

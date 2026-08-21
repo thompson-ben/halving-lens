@@ -18,6 +18,7 @@
     "send-lifecycle": "tsx scripts/send-lifecycle.ts",
     "broadcast-dashboard": "tsx scripts/send-dashboard-broadcast.ts",
     "acquisition-evidence": "tsx scripts/acquisition-evidence.ts",
+    "audience-evidence": "tsx scripts/audience-evidence.ts",
     "send-weekly": "tsx scripts/send-weekly.ts",
     "send-roundup": "tsx scripts/send-roundup.ts",
     "send-founder-report": "tsx scripts/send-founder-report.ts",
