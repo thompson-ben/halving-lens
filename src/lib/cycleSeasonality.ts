@@ -80,10 +80,14 @@ export function cycleCells(
   for (const s of spans) {
     const cells: CycleMonthCell[] = [];
     for (let k = 0; monthBoundaries(s.anchor, k).from < s.endExclusive; k++) {
+      // The current cycle's running month stays partial through its final
+      // day (boundary rule in the core): its edge is todayIso itself, while
+      // completed cycles keep the halving-cut semantics.
+      const runningEdge = s.completed ? undefined : todayIso;
       const cell =
         mode === "returns"
-          ? cycleMonthReturn(line, s.anchor, k, s.endExclusive, s.id)
-          : cycleMonthGap(closes, ref!, s.anchor, k, s.endExclusive, s.id);
+          ? cycleMonthReturn(line, s.anchor, k, s.endExclusive, s.id, runningEdge)
+          : cycleMonthGap(closes, ref!, s.anchor, k, s.endExclusive, s.id, runningEdge);
       cells.push(
         cell ?? {
           cycleId: s.id,

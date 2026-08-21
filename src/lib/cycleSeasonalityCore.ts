@@ -10,6 +10,18 @@
 // today (the current cycle's running month) — is PARTIAL: rendered, never
 // fed to agreement facts.
 //
+// BOUNDARY RULE (repair, 21 Aug 2026): the current cycle's running month is
+// partial for as long as TODAY is still inside it — including its final
+// day. Completion requires the calendar to have moved past the month's
+// boundary, not merely that the month's return basis (the last close
+// strictly before the boundary) can no longer change. Before this rule, an
+// archive whose newest close fell on a month's final day declared that
+// month complete while `currentCyclePosition` still placed today inside
+// it — the two authorities disagreed, no partial month existed, and the
+// suite (correctly) failed for the whole boundary day, once per month.
+// Completed cycles are untouched: their stub is partial exactly when the
+// next halving cut it short.
+//
 // FRAMING (founder-approved discovery): with three completed cycles this is
 // cycle COMPARISON, never seasonality statistics. The only generated
 // cross-cycle claims are agreement facts — months where every completed
@@ -71,18 +83,22 @@ export interface CycleMonthCell {
 
 /** Month-k return of a cycle. `endExclusive` clips the month (next halving
  *  for completed cycles; the day after the last close for the current one).
- *  Returns null when the month has no baseline or no observation. */
+ *  `runningEdge` — the current cycle's todayIso — marks the month partial
+ *  while today is still inside it (boundary rule above); completed cycles
+ *  omit it and keep the halving-cut semantics. Returns null when the month
+ *  has no baseline or no observation. */
 export function cycleMonthReturn(
   closes: readonly OnchainPoint[],
   anchor: string,
   k: number,
   endExclusive: string,
   cycleId: number,
+  runningEdge?: string,
 ): CycleMonthCell | null {
   const { from, to } = monthBoundaries(anchor, k);
   if (from >= endExclusive) return null; // month never started — no cell
   const clippedTo = to < endExclusive ? to : endExclusive;
-  const partial = to > endExclusive;
+  const partial = runningEdge != null ? to > runningEdge : to > endExclusive;
   const base = k === 0 ? lastOnOrBefore(closes, anchor) : lastBefore(closes, from);
   const end = lastBefore(closes, clippedTo);
   if (!base || !end || end.date < from || base.value <= 0) return null;
@@ -100,11 +116,12 @@ export function cycleMonthGap(
   k: number,
   endExclusive: string,
   cycleId: number,
+  runningEdge?: string,
 ): CycleMonthCell | null {
   const { from, to } = monthBoundaries(anchor, k);
   if (from >= endExclusive) return null;
   const clippedTo = to < endExclusive ? to : endExclusive;
-  const partial = to > endExclusive;
+  const partial = runningEdge != null ? to > runningEdge : to > endExclusive;
   const ref = new Map<string, number>();
   for (const p of reference) {
     if (p.date >= from && p.date < clippedTo && p.value > 0) ref.set(p.date, p.value);
