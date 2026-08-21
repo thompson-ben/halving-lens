@@ -155,6 +155,76 @@ if (PRICE_ARCHIVE.length > 1000) {
   console.log("  note   archive empty in this checkout — real-data assertions skipped");
 }
 
+// ── Boundary-day repair (21 Aug 2026): the running month never vanishes ──────
+//
+// Before the repair, an archive whose newest close fell on a cycle month's
+// FINAL day declared that month complete while currentCyclePosition still
+// placed today inside it: partialMonth was null, the two authorities
+// disagreed, and this suite failed for the entire boundary day — a recurring
+// one-day CI outage on each cycle-month boundary (the 20th). The rule now:
+// the current cycle's running month is partial while today is inside it;
+// it completes only once the calendar moves past its boundary. These cases
+// drive the REAL archive with injected todayIso values around the current
+// cycle's month-27 boundary (2024-04-20 + 27 months = 2026-07-20), so the
+// exact failing instant is pinned forever, not just on the 20th of a month.
+
+console.log("Boundary-day behaviour (injected todayIso, real archive):");
+if (PRICE_ARCHIVE.length > 0) {
+  const at = (todayIso: string) => {
+    const cov = cycleCoverage(todayIso).find((c) => c.id === 5)!;
+    const pos = currentCyclePosition(todayIso)!;
+    const cells = cycleCells("returns", "market", undefined, todayIso).get(5)!;
+    return { cov, pos, last: cells[cells.length - 1], cells };
+  };
+
+  // (a) DAY BEFORE THE BOUNDARY — the month's final day. This exact archive
+  // state is the one that failed on 20 Aug 2026 (todayIso = boundary − 1).
+  const a = at("2026-07-19");
+  assert(a.cov.partialMonth === 26 && a.cov.completeMonths === 26,
+    "final day of a month: the running month is STILL partial (the 20 Aug failure state, repaired)");
+  assert(a.pos.month === 26 && a.last.month === 26 && a.last.partial && a.last.value != null,
+    "final day of a month: position, coverage and the last cell agree on the running month");
+
+  // (b) EXACT BOUNDARY — today IS the next month's first day.
+  const b = at("2026-07-20");
+  assert(b.cov.completeMonths === 27 && b.cov.partialMonth === 27,
+    "exact boundary: the old month completes, the new month is the partial");
+  assert(b.pos.month === 27 && b.last.month === 27 && b.last.partial,
+    "exact boundary: position and last cell move to the new month together");
+
+  // (c) FIRST OBSERVATIONS AFTER THE BOUNDARY.
+  const c = at("2026-07-21");
+  assert(c.cov.completeMonths === 27 && c.cov.partialMonth === 27 && c.pos.month === 27 && c.last.partial,
+    "after the boundary: the new running month accumulates as the partial");
+
+  // Finality across the flip: month 26's RETURN is identical on its final
+  // day and after completion — only the partial flag changes. The repair
+  // relabels, it never recomputes.
+  const m26a = a.cells.find((x) => x.month === 26)!;
+  const m26b = b.cells.find((x) => x.month === 26)!;
+  assert(m26a.raw === m26b.raw && m26a.partial && !m26b.partial,
+    "the flip is a label, not a number: month-26 return identical before/after, only partial changes");
+
+  // The repaired invariant, swept across the whole boundary window: the
+  // current cycle ALWAYS carries exactly one running partial month, and it
+  // is always the month position says we are in.
+  const sweep = ["2026-07-15", "2026-07-16", "2026-07-17", "2026-07-18", "2026-07-19", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24"];
+  assert(sweep.every((d) => {
+    const s = at(d);
+    return s.cov.partialMonth != null && s.cov.partialMonth === s.pos.month && s.last.month === s.pos.month;
+  }), "sweeping across the boundary: a running partial month exists on EVERY day and matches the position");
+
+  // Completed cycles are untouched by the boundary rule: their stubs and
+  // agreement facts are identical on both sides of the flip.
+  const factsA = agreementFacts("2026-07-19");
+  const factsB = agreementFacts("2026-07-20");
+  assert(factsA.length === factsB.length && factsA.every((f, i) => f.text === factsB[i].text),
+    "agreement facts (completed cycles only) are identical across the boundary");
+  const stubs = (d: string) => cycleCoverage(d).filter((x) => x.completed).map((x) => `${x.id}:${x.completeMonths}/${x.partialMonth}`).join();
+  assert(stubs("2026-07-19") === stubs("2026-07-20"),
+    "completed cycles' complete/stub accounting is untouched by the running-edge rule");
+}
+
 // ── Structure: client-safe core, one calculation path ────────────────────────
 
 const coreSrc = readFileSync("src/lib/cycleSeasonalityCore.ts", "utf8");
