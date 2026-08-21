@@ -150,13 +150,21 @@ export const PAID_CREATIVE_ALIASES: Record<string, string> = {
   // The four refreshed replacements for the truth-debt creatives. They carry
   // the SAME promise as the ad they replace, so they alias onto the same
   // message key — no new landing variant, nothing that can drift. Added
-  // BEFORE the Meta ads exist so the landing page is ready from first click;
-  // each ad's Meta-assigned numeric ID gets its own alias line once the ad
-  // object actually exists (never guessed in advance).
+  // BEFORE the Meta ads existed so the landing page was ready from first
+  // click; the numeric IDs below are the ones Meta actually assigned at ad
+  // creation (from the founder's post-creation export, 20 Aug 2026) — never
+  // guessed in advance.
   hl_meta_001_ad001b_cycle_question: "cycle-day",
+  "52553798102111": "cycle-day",
+
   hl_meta_001_ad002b_accumulation_index: "accumulation",
+  "52553799560111": "accumulation",
+
   hl_meta_001_ad003b_clearest_view: "clearest-view",
+  "52553800427711": "clearest-view",
+
   hl_meta_001_ad006b_daily_brief_v2: "daily-brief",
+  "52553800644311": "daily-brief",
 
   // ── HISTORICAL DUPLICATES (campaign hl_meta_002, no longer delivering) ───
   // Same ad NAME as a current creative, new ad ID because the ad was
