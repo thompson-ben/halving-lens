@@ -46,6 +46,7 @@
     "test-reference-framework": "tsx scripts/test-reference-framework.ts",
     "test-growth-opportunities": "tsx scripts/test-growth-opportunities.ts",
     "test-free-headlines": "tsx scripts/test-free-headlines.ts",
+    "test-pro-waitlist-count": "tsx scripts/test-pro-waitlist-count.ts",
     "test-start-here": "tsx scripts/test-start-here.ts",
     "test-founder-trends": "tsx scripts/test-founder-trends.ts",
     "test-price-archive": "tsx scripts/test-price-archive.ts",

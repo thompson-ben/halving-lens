@@ -109,6 +109,12 @@ jobs:
       - name: Free-headline tests
         run: npm run test-free-headlines
 
+      # Admin Pro-waitlist demand count — canonical semantics pinned: the
+      # pro_waitlist table is the only counting authority (never analytics
+      # events), incomplete reads void the secondary stat, no PII on page.
+      - name: Pro-waitlist count tests
+        run: npm run test-pro-waitlist-count
+
       # Start Here narrative — seven-chapter structure, approved hero, the
       # bridge ladder (configuration → framework → signup), register and
       # integration (journey map, nav, sitemap, analytics labels).

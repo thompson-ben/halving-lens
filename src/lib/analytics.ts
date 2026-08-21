@@ -453,6 +453,54 @@ export async function subscriberStats(): Promise<SubscriberStats> {
   return { total, active, unsubscribed, unsubscribeRate };
 }
 
+// ── Pro waitlist demand (D1, founder-commissioned) ───────────────────────────
+//
+// CANONICAL COUNTING SEMANTICS (audit, 21 Aug 2026): one waitlist member =
+// one row in `pro_waitlist` = one unique normalised email (email is unique,
+// case-insensitively, at the database; the capture route is idempotent). The
+// table is the authoritative demand count — the `pro_waitlist_join` analytics
+// event is a lossy convenience signal and is NEVER counted here.
+//
+// `alsoBriefSubscribers` is the founder-approved SECONDARY stat: waitlist
+// members whose email is also in `brief_subscribers`. It is a different
+// population from the demand count and is computed only when provably
+// complete — a silently-capped read must degrade to null, never to a
+// wrong-but-confident number (the E-1 lesson). Emails never leave the
+// server; only counts are returned.
+
+export interface ProWaitlistStats {
+  /** COUNT(*) of pro_waitlist — the authoritative unique-member count. */
+  members: number | null;
+  /** Members whose email is also a Brief subscriber — secondary, may be null
+   *  when it cannot be computed completely. */
+  alsoBriefSubscribers: number | null;
+}
+
+export async function proWaitlistStats(): Promise<ProWaitlistStats> {
+  if (!supabaseConfigured) return { members: null, alsoBriefSubscribers: null };
+  const members = await sbCount("pro_waitlist");
+  if (members == null) return { members: null, alsoBriefSubscribers: null };
+  if (members === 0) return { members: 0, alsoBriefSubscribers: 0 };
+
+  // Completeness-guarded email read: if the API returns fewer rows than the
+  // authoritative count (server row cap), the secondary stat is UNKNOWN.
+  const rows = await sbSelect<Array<{ email: string }>>(
+    `pro_waitlist?select=email&order=id.asc&limit=${Math.max(members, 1000)}`,
+  );
+  if (!rows || rows.length !== members) return { members, alsoBriefSubscribers: null };
+
+  // Membership via chunked exact counts against brief_subscribers — no
+  // subscriber emails are fetched, and any failed chunk voids the stat.
+  let also = 0;
+  for (let i = 0; i < rows.length; i += 100) {
+    const list = rows.slice(i, i + 100).map((r) => `"${r.email}"`).join(",");
+    const n = await sbCount("brief_subscribers", `email=in.(${encodeURIComponent(list)})`);
+    if (n == null) return { members, alsoBriefSubscribers: null };
+    also += n;
+  }
+  return { members, alsoBriefSubscribers: also };
+}
+
 export interface AnalyticsSummary {
   configured: boolean;
   totals: {
