@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { makeZip } from "@/lib/zip";
+import { cardCaptionLink } from "@/lib/cardCaption";
 
 // MW2-C — the editorial selection tool, deliberately simple: click a card
 // to select it, click again to deselect; SELECTION ORDER = EXPORT ORDER,
@@ -120,6 +121,33 @@ export function MetricCardPicker({ groups, period, dateSlug }: { groups: PickerG
       await navigator.share({ files, title: `halvinglens.com — Metric cards ${dateSlug}` });
     } catch {
       /* user cancelled or share unavailable — no-op */
+    }
+  }
+
+  // B-1 — the canonical caption link(s) for the current selection, derived
+  // from the actual selected cards (metricId + period + card date), never
+  // re-typed by hand. One link per card in selection order; a malformed
+  // identity yields no link at all rather than a mislabelled one.
+  const [copied, setCopied] = useState(false);
+  const [copyFallback, setCopyFallback] = useState(false);
+  const captionLinks = useMemo(
+    () => selected.map((id) => cardCaptionLink(id, period, dateSlug)).filter((l): l is string => l != null),
+    [selected, period, dateSlug],
+  );
+  useEffect(() => {
+    setCopied(false);
+    setCopyFallback(false);
+  }, [selectedKey, period, dateSlug]);
+
+  async function copyCaptionLinks() {
+    if (!captionLinks.length) return;
+    try {
+      await navigator.clipboard.writeText(captionLinks.join("\n"));
+      setCopied(true);
+      setCopyFallback(false);
+    } catch {
+      // Clipboard unavailable — show the links for manual copy instead.
+      setCopyFallback(true);
     }
   }
 
@@ -257,11 +285,31 @@ export function MetricCardPicker({ groups, period, dateSlug }: { groups: PickerG
           >
             {busy ? "Exporting…" : selected.length > 1 ? `Export ${selected.length} cards (ZIP)` : "Export selected"}
           </button>
+          {captionLinks.length > 0 && (
+            <button
+              type="button"
+              onClick={copyCaptionLinks}
+              className="rounded-lg border border-white/[0.15] text-ink-100 font-semibold px-4 py-2"
+            >
+              {copied ? "Copied" : captionLinks.length > 1 ? `Copy ${captionLinks.length} caption links` : "Copy caption link"}
+            </button>
+          )}
           <span className="text-caption text-ink-500">
             {selected.length === 0 ? "Nothing selected" : selected.length === 1 ? "1 card → PNG" : `${selected.length} cards → ordered ZIP`}
           </span>
           {error && <span className="text-caption text-signal-red">Export failed — try again.</span>}
         </div>
+        {captionLinks.length > 0 && (
+          <p className="text-micro text-ink-500">
+            Caption link{captionLinks.length > 1 ? "s" : ""} for card attribution — paste next to the posted card so
+            arrivals attribute to it. One link per card, in selection order.
+          </p>
+        )}
+        {copyFallback && (
+          <pre className="text-micro text-ink-300 whitespace-pre-wrap break-all rounded-lg border border-white/[0.12] bg-white/[0.04] p-3">
+            {captionLinks.join("\n")}
+          </pre>
+        )}
         {shareable && selected.length > 0 && (
           <p className="text-micro text-ink-500">
             On iPhone, &ldquo;Save to Photos&rdquo; opens the share sheet — choose{" "}
