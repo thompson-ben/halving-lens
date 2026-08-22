@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-08-22",
+    "subject": "NUPL has entered Optimism.",
+    "activity": "active",
+    "storyKind": "state_change",
+    "text": "HALVINGLENS DAILY BRIEF — 22 Aug 2026\n\nTHE VERDICT: Active week. 4 of 15 monitored readings held within their own ordinary 7-day ranges — 11 moved materially.\n\nA STATE CHANGED: NUPL has entered Optimism. Current reading: 0.331.\n\nALSO TODAY: Reserve Risk also moved: +23.8% in 7 days — Larger than 98% of 7-day moves · 1,481 observations since Jul 2022\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 22/100 · weekly · since 4 Jul 2026\n· Sentiment: Greed · 71/100 · since 20 Aug 2026\n· ETF demand: 5-day inflow streak · +$1.73B over 7 trading days · as of 21 Aug 2026\n\nSee the whole picture: Open the Cycle Dashboard → https://halvinglens.com/cycle-dashboard\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-intel-v1"
+  },
+  {
     "slug": "2026-08-21",
     "subject": "A state changed: NUPL",
     "activity": "active",
