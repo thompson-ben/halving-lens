@@ -1,4 +1,4 @@
-import { growthDashboard, subscriberStats, type LabelCount } from "@/lib/analytics";
+import { growthDashboard, proWaitlistStats, subscriberStats, type LabelCount } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
@@ -39,7 +39,7 @@ export default async function AdminAnalyticsPage() {
     );
   }
 
-  const [a, subs] = await Promise.all([growthDashboard(), subscriberStats()]);
+  const [a, subs, pro] = await Promise.all([growthDashboard(), subscriberStats(), proWaitlistStats()]);
   if (!a.configured) {
     return (
       <Shell>
@@ -76,6 +76,17 @@ export default async function AdminAnalyticsPage() {
         <Stat label="Total signups" value={a.totals.signups} />
         <Stat label="Active subscribers" value={subs.active ?? a.totals.subscribers} />
         <Stat label="Views · 7d" value={a.windows.views7} />
+      </section>
+
+      {/* Pro demand — the canonical waitlist count (D1). The primary number is
+          COUNT(*) of pro_waitlist (one row = one unique email — the table is
+          the authoritative demand count; analytics events are never counted).
+          The second tile is a DIFFERENT, subordinate population: members whose
+          email is also a Brief subscriber — shown as "—" whenever it cannot be
+          computed completely rather than as a capped wrong number. */}
+      <section className="grid grid-cols-2 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+        <Stat label="Pro waitlist" value={pro.members} />
+        <Stat label="Waitlist members who are also Brief subscribers" value={pro.alsoBriefSubscribers} />
       </section>
 
       {/* Yesterday — the morning glance */}
