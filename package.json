@@ -25,6 +25,7 @@
     "test-founder-intelligence": "tsx scripts/test-founder-intelligence.ts",
     "test-intelligence-api": "tsx scripts/test-intelligence-api.ts",
     "test-resend-webhook": "tsx scripts/test-resend-webhook.ts",
+    "test-webhook-routing": "tsx scripts/test-webhook-routing.ts",
     "test-subscribe": "tsx scripts/test-subscribe.ts",
     "test-social-proof": "tsx scripts/test-social-proof.ts",
     "test-testimonials": "tsx scripts/test-testimonials.ts",
