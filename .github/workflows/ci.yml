@@ -115,6 +115,13 @@ jobs:
       - name: Pro-waitlist count tests
         run: npm run test-pro-waitlist-count
 
+      # Card caption link (B-1) — the canonical share-attribution convention
+      # (source=social, medium=card, card_<metricId>_p<period>_<yyyymmdd>,
+      # /cycle-dashboard destination) and the refusal rule for malformed
+      # card identity. Founder tool only: no event, no consumer change.
+      - name: Card-caption tests
+        run: npm run test-card-caption
+
       # Resend webhook reachability (Webhook-307 investigation) — no in-repo
       # layer (middleware, next.config redirects/rewrites, vercel.json,
       # trailing slash, the handler itself) may ever redirect
