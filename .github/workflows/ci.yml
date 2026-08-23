@@ -122,6 +122,13 @@ jobs:
       - name: Card-caption tests
         run: npm run test-card-caption
 
+      # Resend webhook reachability (Webhook-307 investigation) — no in-repo
+      # layer (middleware, next.config redirects/rewrites, vercel.json,
+      # trailing slash, the handler itself) may ever redirect
+      # /api/webhooks/resend; the handler stays terminal and signature-gated.
+      - name: Webhook-routing tests
+        run: npm run test-webhook-routing
+
       # Start Here narrative — seven-chapter structure, approved hero, the
       # bridge ladder (configuration → framework → signup), register and
       # integration (journey map, nav, sitemap, analytics labels).
