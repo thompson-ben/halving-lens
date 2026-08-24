@@ -8,7 +8,7 @@ export const STORED_BRIEFS: StoredBrief[] = [
   {
     "slug": "2026-08-24",
     "dateLabel": "24 August 2026",
-    "generatedAt": "2026-08-24T07:01:37.873Z",
+    "generatedAt": "2026-08-24T07:59:07.785Z",
     "headline": "Sentiment improves despite conditions heat up",
     "phaseLabel": "Later-running mid-cycle expansion",
     "heat": "neutral",
@@ -77,7 +77,7 @@ export const STORED_BRIEFS: StoredBrief[] = [
       },
       {
         "signal": "Miner stress",
-        "status": "Miner revenue suppressed, hashrate 889 EH/s",
+        "status": "Miner revenue suppressed, hashrate 885 EH/s",
         "level": "calm",
         "confidence": "medium"
       }
