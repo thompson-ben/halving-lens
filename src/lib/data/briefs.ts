@@ -8,7 +8,7 @@ export const STORED_BRIEFS: StoredBrief[] = [
   {
     "slug": "2026-08-26",
     "dateLabel": "26 August 2026",
-    "generatedAt": "2026-08-26T07:01:38.794Z",
+    "generatedAt": "2026-08-26T07:49:29.702Z",
     "headline": "Sentiment cools despite conditions cool",
     "phaseLabel": "Later-running mid-cycle expansion",
     "heat": "neutral",
