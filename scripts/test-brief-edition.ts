@@ -24,6 +24,7 @@ import {
   METRIC_COHORT,
   PRIORITY_FALLBACK,
   EXTREME_RARITY_PERCENTILE,
+  D4_INVERSE_NUPL_STATES,
   fallbackOrder,
   divergenceStatus,
   orderDevelopments,
@@ -72,6 +73,7 @@ const legFacts = (over: Partial<LegFacts>): LegFacts => ({
   sentimentKey: "neutral",
   accumulationKey: "neutral",
   nuplIdxFromOptimism: null,
+  nuplStateLabel: null,
   priceMaterialUp7: false,
   priceMaterialDown7: false,
   soprValue: null,
@@ -142,7 +144,12 @@ console.log("2 · Divergence formation / leg-change / persistence");
 
   const d4 = DIVERGENCE_REGISTRY.find((d) => d.id === "D4")!;
   check("D4 primary: NUPL at/above Optimism while accumulation open", divergenceStatus(d4, legFacts({ nuplIdxFromOptimism: 0, accumulationKey: "attractive", activeToday: { nupl: true } }), null)?.orientation === "primary");
-  check("D4 inverse: below Optimism without value conditions", divergenceStatus(d4, legFacts({ nuplIdxFromOptimism: -1, accumulationKey: "neutral", activeToday: { nupl: true } }), null)?.orientation === "inverse");
+  // Founder amendment (28 Aug): the inverse's bearish leg is the NARROWEST
+  // canonical state — Capitulation ONLY. Intermediate states never qualify.
+  check("D4 inverse allowed states pinned to exactly ['Capitulation']", JSON.stringify(D4_INVERSE_NUPL_STATES) === JSON.stringify(["Capitulation"]));
+  check("D4 inverse: Capitulation without value conditions", divergenceStatus(d4, legFacts({ nuplIdxFromOptimism: -2, nuplStateLabel: "Capitulation", accumulationKey: "neutral", activeToday: { nupl: true } }), null)?.orientation === "inverse");
+  check("D4 inverse does NOT fire on the intermediate 'Hope / fear' zone", divergenceStatus(d4, legFacts({ nuplIdxFromOptimism: -1, nuplStateLabel: "Hope / fear", accumulationKey: "neutral", activeToday: { nupl: true } }), null) == null);
+  check("D4 inverse also holds when accumulation reads elevated (still not attractive)", divergenceStatus(d4, legFacts({ nuplIdxFromOptimism: -2, nuplStateLabel: "Capitulation", accumulationKey: "elevated", activeToday: { nupl: true } }), null)?.orientation === "inverse");
 
   const d5 = DIVERGENCE_REGISTRY.find((d) => d.id === "D5")!;
   check(
@@ -150,6 +157,14 @@ console.log("2 · Divergence formation / leg-change / persistence");
     divergenceStatus(d5, legFacts({ soprValue: 1.04, soprAbove1SustainedDays: 12, priceMaterialUp7: true, activeToday: { sopr: true } }), null)?.orientation === "primary",
   );
   check("D5 inverse: loss realisation absorbed", divergenceStatus(d5, legFacts({ soprValue: 0.97, priceMaterialUp7: false, activeToday: { sopr: true } }), null)?.orientation === "inverse");
+  // Founder amendment (28 Aug): the primary REQUIRES SOPR above 1 — a
+  // material 7-day rise while still below 1 can never read as profit
+  // realisation (it is the inverse when price holds/rises).
+  const subOne = divergenceStatus(d5, legFacts({ soprValue: 0.98, soprMaterialUp7: true, priceMaterialUp7: true, activeToday: { sopr: true } }), null);
+  check("D5: material SOPR rise BELOW 1 never qualifies as primary", subOne == null || subOne.orientation !== "primary", subOne?.orientation);
+  check("D5 primary also reachable via the material 7-day rise path (SOPR > 1, not yet sustained)", divergenceStatus(d5, legFacts({ soprValue: 1.02, soprMaterialUp7: true, soprAbove1SustainedDays: 0, priceMaterialUp7: true, activeToday: { sopr: true } }), null)?.orientation === "primary");
+  const engineSrc = readFileSync("src/lib/briefSignificance.ts", "utf8");
+  check("D5 primary predicate pins soprValue > 1 in source", /soprValue > 1 && \(f\.soprMaterialUp7 \|\| \(f\.soprAbove1SustainedDays \?\? 0\) >= 7\)/.test(engineSrc));
 }
 
 // ═══ 3 · Ranking, tie-breaks and day types (fixtures) ══════════════════════

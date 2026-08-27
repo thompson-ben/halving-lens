@@ -161,6 +161,8 @@ export interface LegFacts {
   accumulationKey: string | null;
   /** NUPL ladder index relative to the "Optimism" band (0 = Optimism). */
   nuplIdxFromOptimism: number | null;
+  /** Canonical NUPL zone label (metrics.ts's own band vocabulary). */
+  nuplStateLabel: string | null;
   /** Price movement over 7 days (the honest span against weekly/streak legs). */
   priceMaterialUp7: boolean;
   priceMaterialDown7: boolean;
@@ -186,6 +188,16 @@ export interface DivergenceDef {
    *  each leg's qualifying state so a leg STATE CHANGE is detectable. */
   evaluate: (f: LegFacts) => { orientation: "primary" | "inverse"; legKeys: [string, string]; interpretation: string } | null;
 }
+
+/** D4 inverse — founder amendment (28 Aug): the approved "Anxiety/
+ *  Capitulation" bearish leg maps to the NARROWEST canonical NUPL state
+ *  that faithfully represents profit erosion. metrics.ts declares
+ *  Capitulation (<0, net unrealised loss), "Hope / fear" (0–0.25, the
+ *  ambivalent intermediate zone), Optimism, Belief, Euphoria. Only
+ *  Capitulation cleanly matches, so v1 uses Capitulation ONLY — "below
+ *  Optimism" as a blanket inverse would fire on ordinary intermediate
+ *  states. CI-pinned; expanding this list is a product decision. */
+export const D4_INVERSE_NUPL_STATES: readonly string[] = ["Capitulation"];
 
 const GREED_SIDE = new Set(["greed", "extreme-greed"]);
 const FEAR_SIDE = new Set(["fear", "extreme-fear"]);
@@ -286,12 +298,12 @@ export const DIVERGENCE_REGISTRY: readonly DivergenceDef[] = [
           interpretation: "Holder paper profits are building while value conditions persist.",
         };
       }
-      // "Anxiety/Capitulation" = the ladder below Optimism (Hope/fear and
-      // Capitulation zones — metrics.ts's own bands, mapped by label).
-      if (f.nuplIdxFromOptimism < 0 && !ATTRACTIVE_SIDE.has(f.accumulationKey)) {
+      // Inverse: ONLY the pinned canonical bearish state(s) qualify — see
+      // D4_INVERSE_NUPL_STATES.
+      if (f.nuplStateLabel != null && D4_INVERSE_NUPL_STATES.includes(f.nuplStateLabel) && !ATTRACTIVE_SIDE.has(f.accumulationKey)) {
         return {
           orientation: "inverse",
-          legKeys: [`nupl${f.nuplIdxFromOptimism}`, f.accumulationKey],
+          legKeys: [f.nuplStateLabel, f.accumulationKey],
           interpretation: "Profit erosion without value conditions emerging.",
         };
       }
@@ -510,10 +522,9 @@ export function legFactsAt(asOf: string): LegFacts {
   const nuplRun = runFor("nupl", asOf);
   const nuplDef = METRICS.find((m) => m.slug === "nupl");
   const optimismIdx = nuplDef ? nuplDef.bands.findIndex((b) => b.label === "Optimism") : -1;
-  const nuplIdx =
-    nuplRun && nuplDef && optimismIdx >= 0
-      ? nuplDef.bands.findIndex((b) => nuplRun.value >= b.min && nuplRun.value < b.max) - optimismIdx
-      : null;
+  const nuplBand =
+    nuplRun && nuplDef ? nuplDef.bands.find((b) => nuplRun.value >= b.min && nuplRun.value < b.max) ?? null : null;
+  const nuplIdx = nuplBand && nuplDef && optimismIdx >= 0 ? nuplDef.bands.indexOf(nuplBand) - optimismIdx : null;
 
   const price7 = row7("price");
   const sopr7 = row7("sopr");
@@ -523,6 +534,7 @@ export function legFactsAt(asOf: string): LegFacts {
     sentimentKey: sentRun?.current.key ?? null,
     accumulationKey: accRun?.current.key ?? null,
     nuplIdxFromOptimism: nuplIdx,
+    nuplStateLabel: nuplBand?.label ?? null,
     priceMaterialUp7: price7 != null && price7.significance >= MATERIAL_SIGNIFICANCE && price7.direction === "up",
     priceMaterialDown7: price7 != null && price7.significance >= MATERIAL_SIGNIFICANCE && price7.direction === "down",
     soprValue: soprRun?.value ?? null,
