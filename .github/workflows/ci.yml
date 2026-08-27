@@ -68,6 +68,14 @@ jobs:
       - name: Brief-intel agreement tests
         run: npm run test-brief-intel
 
+      # Daily Brief v2 significance engine (PR1) — four editorial ranks, the
+      # six-entry divergence registry (D6 deferred), formation/persistence,
+      # cohort-safe rarity, the deterministic fallback, three day types,
+      # hero + bounded supporting, first-party attribution labels, single
+      # dominant CTA, honest snapshot-to-snapshot price, compliance scans.
+      - name: Brief-edition tests
+        run: npm run test-brief-edition
+
       # Cycle Dashboard onboarding email (CDOE) — the email quotes canonical
       # dashboard intelligence, and the one-off broadcast cannot send without
       # an explicit confirm flag.

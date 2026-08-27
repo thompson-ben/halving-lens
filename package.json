@@ -41,6 +41,7 @@
     "test-etf-archive": "tsx scripts/test-etf-archive.ts",
     "test-metric-cards": "tsx scripts/test-metric-cards.ts",
     "test-brief-intel": "tsx scripts/test-brief-intel.ts",
+    "test-brief-edition": "tsx scripts/test-brief-edition.ts",
     "test-dashboard-onboarding": "tsx scripts/test-dashboard-onboarding.ts",
     "test-conversion-truth": "tsx scripts/test-conversion-truth.ts",
     "test-acquisition-metrics": "tsx scripts/test-acquisition-metrics.ts",
