@@ -1,4 +1,5 @@
 import { briefFunnel, growthDashboard, proWaitlistStats, subscriberStats, type LabelCount } from "@/lib/analytics";
+import { formatQualifiedRate } from "@/lib/briefFunnel";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
@@ -100,10 +101,7 @@ export default async function AdminAnalyticsPage() {
         <div className="grid grid-cols-3 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
           <Stat label="Brief-attributed arrivals" value={funnel.arrivals} />
           <Stat label="Qualified visits" value={funnel.qualified} />
-          <Stat
-            label="Qualified-visit rate"
-            value={funnel.arrivals != null && funnel.qualified != null && funnel.arrivals > 0 ? `${funnel.qualified}/${funnel.arrivals} (${Math.round((funnel.qualified / funnel.arrivals) * 100)}%)` : "—"}
-          />
+          <Stat label="Qualified-visit rate" value={formatQualifiedRate(funnel.qualified, funnel.arrivals)} />
         </div>
         <p className="text-micro text-ink-600">
           {funnel.measuringSince

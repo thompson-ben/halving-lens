@@ -669,10 +669,10 @@ export async function analyticsSummary(): Promise<AnalyticsSummary> {
 // canonical email_click events (recipient identity never enters URLs).
 
 import {
+  arrivalSessions,
   BRIEF_INTERACTION_EVENTS,
   isQualifyingInteraction,
-  parseBriefMarker,
-  qualifiesVisit,
+  qualifiedVisitKpis,
 } from "./briefFunnel";
 
 export interface BriefFunnelCampaignRow {
@@ -720,12 +720,9 @@ export async function briefFunnel(): Promise<BriefFunnelReport> {
   );
   if (entries == null) return empty;
 
-  const sessions = new Map<string, { campaign: string; first: string }>();
-  for (const e of entries) {
-    const campaign = parseBriefMarker(e.props?.brief);
-    if (!campaign || !e.session_id) continue;
-    if (!sessions.has(e.session_id)) sessions.set(e.session_id, { campaign, first: e.created_at });
-  }
+  // Session-level arrival dedup — the canonical module owns it (KPI
+  // contract: one valid attributed session = one arrival).
+  const sessions = arrivalSessions(entries.map((e) => ({ sessionId: e.session_id, brief: e.props?.brief })));
 
   // The sessions' engagement time + allowlisted interactions, chunked.
   const ids = [...sessions.keys()];
@@ -753,16 +750,12 @@ export async function briefFunnel(): Promise<BriefFunnelReport> {
     }
   }
 
-  const byCampaign = new Map<string, { arrivals: number; qualified: number }>();
-  let qualified = 0;
-  for (const [sid, s] of sessions) {
-    const q = qualifiesVisit({ engagedSeconds: engaged.get(sid) ?? 0, interactions: interactions.get(sid) ?? 0 });
-    if (q) qualified++;
-    const c = byCampaign.get(s.campaign) ?? { arrivals: 0, qualified: 0 };
-    c.arrivals++;
-    if (q) c.qualified++;
-    byCampaign.set(s.campaign, c);
-  }
+  // THE KPI reduction — canonical-module owned: numerator = qualified
+  // attributed sessions, denominator = attributed ARRIVAL sessions.
+  const kpis = qualifiedVisitKpis(sessions, (sid) => ({
+    engagedSeconds: engaged.get(sid) ?? 0,
+    interactions: interactions.get(sid) ?? 0,
+  }));
 
   // Aggregate click mix by content label for daily campaigns (existing
   // canonical email_click events — the label never rides a URL).
@@ -779,12 +772,9 @@ export async function briefFunnel(): Promise<BriefFunnelReport> {
   return {
     configured: true,
     measuringSince: entries[0]?.created_at?.slice(0, 10) ?? null,
-    arrivals: sessions.size,
-    qualified,
-    byCampaign: [...byCampaign.entries()]
-      .map(([campaign, v]) => ({ campaign, ...v }))
-      .sort((a, b) => (a.campaign < b.campaign ? 1 : -1))
-      .slice(0, 30),
+    arrivals: kpis.arrivals,
+    qualified: kpis.qualified,
+    byCampaign: [...kpis.byCampaign].sort((a, b) => (a.campaign < b.campaign ? 1 : -1)).slice(0, 30),
     clicksByLabel: [...labelCounts.entries()].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n),
     complete,
   };

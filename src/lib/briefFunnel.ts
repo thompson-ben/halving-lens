@@ -86,3 +86,70 @@ export function isQualifyingInteraction(name: string, path: string | null): bool
 export function qualifiesVisit(f: { engagedSeconds: number; interactions: number }): boolean {
   return f.engagedSeconds >= QUALIFIED_ENGAGED_SECONDS || f.interactions >= QUALIFIED_INTERACTIONS;
 }
+
+// ── The founder-report KPI contract (PR #219 final review, §4) ──────────────
+//
+// QUALIFIED-VISIT RATE = qualified Brief-attributed dashboard sessions
+//                      ÷ Brief-attributed dashboard ARRIVAL sessions.
+//
+// The denominator is DASHBOARD ARRIVALS — never email clicks, unique
+// clickers, deliveries, opens, subscribers or the send population. Email
+// click behaviour is a SEPARATE stage reported with its own denominators.
+// Counting is at the SESSION level: one valid hlb-attributed session = one
+// arrival (deduplicated by the existing session id, first valid marker
+// wins), and the same session qualifying contributes one qualified visit —
+// so qualified ≤ arrivals holds structurally. A zero denominator renders
+// as unavailable ("—"), never as a manufactured 0%.
+
+export interface BriefArrivalEntry {
+  sessionId: string | null;
+  brief: unknown;
+}
+
+/** Session-level arrival deduplication: sessionId → campaign. Entries with
+ *  no session id or an invalid marker never become arrivals. */
+export function arrivalSessions(entries: readonly BriefArrivalEntry[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const e of entries) {
+    const campaign = parseBriefMarker(e.brief);
+    if (!campaign || !e.sessionId) continue;
+    if (!out.has(e.sessionId)) out.set(e.sessionId, campaign);
+  }
+  return out;
+}
+
+export interface BriefKpis {
+  arrivals: number;
+  qualified: number;
+  byCampaign: Array<{ campaign: string; arrivals: number; qualified: number }>;
+}
+
+/** THE KPI reduction, owned here so reporting can never redefine it: each
+ *  arrival session is evaluated once with the canonical predicate. */
+export function qualifiedVisitKpis(
+  arrivals: ReadonlyMap<string, string>,
+  factsOf: (sessionId: string) => { engagedSeconds: number; interactions: number },
+): BriefKpis {
+  const byCampaign = new Map<string, { arrivals: number; qualified: number }>();
+  let qualified = 0;
+  for (const [sid, campaign] of arrivals) {
+    const q = qualifiesVisit(factsOf(sid));
+    if (q) qualified++;
+    const c = byCampaign.get(campaign) ?? { arrivals: 0, qualified: 0 };
+    c.arrivals++;
+    if (q) c.qualified++;
+    byCampaign.set(campaign, c);
+  }
+  return {
+    arrivals: arrivals.size,
+    qualified,
+    byCampaign: [...byCampaign.entries()].map(([campaign, v]) => ({ campaign, ...v })),
+  };
+}
+
+/** "n/d (x%)" — or unavailable when the denominator is zero/unknown. A
+ *  percentage is never manufactured from a zero denominator. */
+export function formatQualifiedRate(qualified: number | null, arrivals: number | null): string {
+  if (qualified == null || arrivals == null || arrivals <= 0) return "—";
+  return `${qualified}/${arrivals} (${Math.round((qualified / arrivals) * 100)}%)`;
+}

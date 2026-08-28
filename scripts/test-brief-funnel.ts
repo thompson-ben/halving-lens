@@ -18,8 +18,11 @@ import {
   QUALIFIED_ENGAGED_SECONDS,
   QUALIFIED_INTERACTIONS,
   appendBriefMarker,
+  arrivalSessions,
+  formatQualifiedRate,
   isQualifyingInteraction,
   parseBriefMarker,
+  qualifiedVisitKpis,
   qualifiesVisit,
   scrubBriefProp,
 } from "../src/lib/briefFunnel";
@@ -164,11 +167,50 @@ async function main() {
 
     const analytics = strip(readFileSync("src/lib/analytics.ts", "utf8"));
     check("reporting joins content labels from existing email_click events (aggregate), never URLs", /email_click/.test(analytics) && /clicksByLabel/.test(analytics));
-    check("reporting computes qualification with the canonical predicate (no second definition)", /qualifiesVisit\(/.test(analytics) && !/>=\s*60|>=\s*2\b/.test(analytics.slice(analytics.indexOf("briefFunnel"))));
+    check("reporting computes qualification only via the canonical reduction (no second definition)", /qualifiedVisitKpis\(/.test(analytics) && !/qualifiesVisit\(/.test(analytics) && !/>=\s*60|>=\s*2\b/.test(analytics.slice(analytics.indexOf("briefFunnel"))));
   }
 
-  // ═══ 6 · Existing measurement operational ════════════════════════════════
-  console.log("6 · Existing dashboard + email measurement untouched");
+  // ═══ 6 · The founder-report KPI contract (final review §4) ═══════════════
+  console.log("6 · Qualified-visit rate: numerator/denominator contract");
+  {
+    // Denominator = ARRIVAL SESSIONS, deduplicated at the session level:
+    // three marked page_views across two sessions = two arrivals.
+    const arrivals = arrivalSessions([
+      { sessionId: "s1", brief: "daily-2026-08-29-active" },
+      { sessionId: "s1", brief: "daily-2026-08-29-active" },
+      { sessionId: "s2", brief: "daily-2026-08-29-active" },
+      { sessionId: null, brief: "daily-2026-08-29-active" }, // no session — never an arrival
+      { sessionId: "s3", brief: "forged-marker" }, // invalid — never an arrival
+    ]);
+    check("arrivals are SESSION-level and deduplicated (3 marked views, 2 sessions → 2 arrivals)", arrivals.size === 2);
+    check("entries without a session id or with an invalid marker never become arrivals", !arrivals.has("s3"));
+
+    const facts: Record<string, { engagedSeconds: number; interactions: number }> = {
+      s1: { engagedSeconds: 75, interactions: 0 }, // qualifies via clause A
+      s2: { engagedSeconds: 10, interactions: 1 }, // does NOT qualify
+    };
+    const kpis = qualifiedVisitKpis(arrivals, (sid) => facts[sid] ?? { engagedSeconds: 0, interactions: 0 });
+    check("numerator = qualified attributed sessions (exactly the sessions meeting the predicate)", kpis.qualified === 1);
+    check("denominator = attributed arrival sessions", kpis.arrivals === 2);
+    check("qualified ≤ arrivals holds structurally", kpis.qualified <= kpis.arrivals && kpis.byCampaign.every((c) => c.qualified <= c.arrivals));
+    check("a session is evaluated once — re-marking cannot double-count a qualified visit", kpis.byCampaign.reduce((n, c) => n + c.qualified, 0) === kpis.qualified);
+
+    check("zero denominator renders unavailable, never a manufactured 0%", formatQualifiedRate(0, 0) === "—" && formatQualifiedRate(null, null) === "—" && formatQualifiedRate(0, null) === "—");
+    check("a real denominator renders n/d (x%)", formatQualifiedRate(1, 2) === "1/2 (50%)");
+
+    // The reporting layer must consume the canonical reduction — never a
+    // local re-definition of the KPI or its denominator.
+    const analytics = strip(readFileSync("src/lib/analytics.ts", "utf8"));
+    const funnelSrc = analytics.slice(analytics.indexOf("briefFunnel"));
+    check("analytics consumes the canonical KPI reduction (qualifiedVisitKpis + arrivalSessions)", /qualifiedVisitKpis\(/.test(funnelSrc) && /arrivalSessions\(/.test(funnelSrc));
+    check("no local qualification thresholds or rate formula in reporting", !/>=\s*60|>=\s*2|\* 100/.test(funnelSrc));
+    check("the rate's denominator can never be email clicks (email_click feeds only the label mix)", !/email_click[^]*arrivals[^]*\//.test(funnelSrc));
+    const admin = strip(readFileSync("src/app/admin/analytics/page.tsx", "utf8"));
+    check("the admin page renders the rate ONLY via formatQualifiedRate", /formatQualifiedRate\(funnel\.qualified, funnel\.arrivals\)/.test(admin) && !/funnel\.qualified \/ funnel\.arrivals/.test(admin));
+  }
+
+  // ═══ 7 · Existing measurement operational ════════════════════════════════
+  console.log("7 · Existing dashboard + email measurement untouched");
   {
     const events = strip(readFileSync("src/lib/analyticsEvents.ts", "utf8"));
     check("existing core events unchanged (page_view/engagement/section_*)", /"page_view"/.test(events) && /"engagement"/.test(events) && /"section_click"/.test(events) && /"section_dwell"/.test(events));
