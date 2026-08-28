@@ -147,6 +147,16 @@ export function qualifiedVisitKpis(
   };
 }
 
+/** Reporting hygiene (founder decision, 28 Aug): only GENUINE daily-edition
+ *  campaigns enter subscriber behavioural reporting. Founder test/preview
+ *  sends deliberately use the distinct `daily-test-<date>` campaign, which
+ *  fails the canonical grammar — so they are excluded from the email-stage
+ *  label mix exactly as they are structurally excluded from the funnel.
+ *  Persistence is untouched: this filters REPORTING only. */
+export function isGenuineDailyCampaign(campaign: unknown): boolean {
+  return parseBriefMarker(campaign) != null;
+}
+
 /** "n/d (x%)" — or unavailable when the denominator is zero/unknown. A
  *  percentage is never manufactured from a zero denominator. */
 export function formatQualifiedRate(qualified: number | null, arrivals: number | null): string {
