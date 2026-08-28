@@ -1,4 +1,4 @@
-import { growthDashboard, proWaitlistStats, subscriberStats, type LabelCount } from "@/lib/analytics";
+import { briefFunnel, growthDashboard, proWaitlistStats, subscriberStats, type LabelCount } from "@/lib/analytics";
 import { AdminLogin } from "@/components/AdminLogin";
 import { SendTestEmailButton } from "@/components/SendTestEmailButton";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
@@ -39,7 +39,7 @@ export default async function AdminAnalyticsPage() {
     );
   }
 
-  const [a, subs, pro] = await Promise.all([growthDashboard(), subscriberStats(), proWaitlistStats()]);
+  const [a, subs, pro, funnel] = await Promise.all([growthDashboard(), subscriberStats(), proWaitlistStats(), briefFunnel()]);
   if (!a.configured) {
     return (
       <Shell>
@@ -87,6 +87,53 @@ export default async function AdminAnalyticsPage() {
       <section className="grid grid-cols-2 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
         <Stat label="Pro waitlist" value={pro.members} />
         <Stat label="Waitlist members who are also Brief subscribers" value={pro.alsoBriefSubscribers} />
+      </section>
+
+      {/* Brief → Dashboard qualified visits (PR2) — PROSPECTIVE measurement
+          only, from the first observed marker onward. Counts and denominators;
+          no optimisation reads: INSTRUMENT → ACCUMULATE → INTERPRET WHEN
+          MATURE. Qualified = ≥60s engagement OR ≥2 allowlisted interactions
+          in a Brief-attributed dashboard session (canonical predicate in
+          briefFunnel.ts). */}
+      <section className="space-y-2">
+        <h2 className="eyebrow text-ink-500">Brief → Dashboard (prospective)</h2>
+        <div className="grid grid-cols-3 gap-px rounded-xl border border-white/[0.06] bg-white/[0.06] overflow-hidden">
+          <Stat label="Brief-attributed arrivals" value={funnel.arrivals} />
+          <Stat label="Qualified visits" value={funnel.qualified} />
+          <Stat
+            label="Qualified-visit rate"
+            value={funnel.arrivals != null && funnel.qualified != null && funnel.arrivals > 0 ? `${funnel.qualified}/${funnel.arrivals} (${Math.round((funnel.qualified / funnel.arrivals) * 100)}%)` : "—"}
+          />
+        </div>
+        <p className="text-micro text-ink-600">
+          {funnel.measuringSince
+            ? `Measuring since ${funnel.measuringSince} — data accumulating; no engagement conclusions at this volume.`
+            : "Instrument deployed — no Brief-attributed arrival observed yet."}
+          {!funnel.complete && funnel.configured ? " Partial read — figures are a floor, not a total." : ""}
+        </p>
+        {funnel.byCampaign.length > 0 && (
+          <div className="text-caption text-ink-400 space-y-1">
+            {funnel.byCampaign.map((c) => (
+              <div key={c.campaign} className="flex justify-between">
+                <span>{c.campaign}</span>
+                <span>
+                  {c.qualified}/{c.arrivals} qualified
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {funnel.clicksByLabel.length > 0 && (
+          <div className="text-caption text-ink-500 space-y-1">
+            <div className="text-micro text-ink-600">Brief click mix by content label (aggregate, all daily editions)</div>
+            {funnel.clicksByLabel.map((l) => (
+              <div key={l.label} className="flex justify-between">
+                <span>{l.label}</span>
+                <span>{l.n}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Yesterday — the morning glance */}

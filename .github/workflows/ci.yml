@@ -76,6 +76,15 @@ jobs:
       - name: Brief-edition tests
         run: npm run test-brief-edition
 
+      # Brief → Dashboard qualified-visit join (PR2) — the non-personal
+      # campaign marker (no recipient identity in destination URLs), the
+      # signed-click redirect append, marker ingestion + forgery scrubbing,
+      # the canonical qualified-visit predicate (≥60s OR ≥2 allowlisted
+      # interactions), channel separation from UTMs/acquisition, and the
+      # untouched PR1 labels + email measurement.
+      - name: Brief-funnel tests
+        run: npm run test-brief-funnel
+
       # Cycle Dashboard onboarding email (CDOE) — the email quotes canonical
       # dashboard intelligence, and the one-off broadcast cannot send without
       # an explicit confirm flag.

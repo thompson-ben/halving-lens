@@ -9,6 +9,7 @@
 // build instead of silently returning 400 in production.
 
 import type { TrackedEvent } from "./analyticsEvents";
+import { BRIEF_MARKER_PARAM, parseBriefMarker } from "./briefFunnel";
 
 const SESSION_KEY = "hl.sid";
 const VISITOR_KEY = "hl.seen"; // localStorage: have we seen this visitor before?
@@ -164,6 +165,11 @@ function entryContext(): Record<string, unknown> {
       const v = q.get(k);
       if (v) out[k] = v.slice(0, 120);
     }
+    // PR2 — the Daily Brief campaign/edition marker (non-personal; shape-
+    // validated). Its own first-party channel: deliberately NOT a UTM and
+    // NOT part of first-touch acquisition attribution (hl.attr ignores it).
+    const brief = parseBriefMarker(q.get(BRIEF_MARKER_PARAM));
+    if (brief) out.brief = brief;
     return out;
   } catch {
     return {};

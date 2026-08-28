@@ -658,3 +658,134 @@ export async function analyticsSummary(): Promise<AnalyticsSummary> {
     subscribers,
   };
 }
+
+// ── Brief → Dashboard qualified-visit funnel (PR2) ──────────────────────────
+//
+// PROSPECTIVE measurement only: rows exist solely from the moment the PR2
+// join deployed, so the earliest observed arrival IS the measurement start
+// (no backfill is possible by construction). The report shows counts and
+// denominators and stops there — INSTRUMENT → ACCUMULATE → INTERPRET ONLY
+// WHEN MATURE. Content-label mix joins at the aggregate level from the
+// canonical email_click events (recipient identity never enters URLs).
+
+import {
+  BRIEF_INTERACTION_EVENTS,
+  isQualifyingInteraction,
+  parseBriefMarker,
+  qualifiesVisit,
+} from "./briefFunnel";
+
+export interface BriefFunnelCampaignRow {
+  campaign: string;
+  arrivals: number;
+  qualified: number;
+}
+
+export interface BriefFunnelReport {
+  configured: boolean;
+  /** Earliest observed Brief-attributed arrival — the de-facto
+   *  measurement-start date; null until the first arrival exists. */
+  measuringSince: string | null;
+  /** Sessions that entered the dashboard carrying a valid Brief marker. */
+  arrivals: number | null;
+  /** Arrivals meeting the canonical qualified-visit predicate. */
+  qualified: number | null;
+  byCampaign: BriefFunnelCampaignRow[];
+  /** Aggregate Brief click mix by content label (daily campaigns only) —
+   *  from the canonical email_click events. */
+  clicksByLabel: LabelCount[];
+  /** True only when every read below its cap — a partial read must never
+   *  present as a complete funnel. */
+  complete: boolean;
+}
+
+const FUNNEL_ARRIVAL_CAP = 5000;
+const FUNNEL_EVENT_CAP = 20000;
+
+export async function briefFunnel(): Promise<BriefFunnelReport> {
+  const empty: BriefFunnelReport = {
+    configured: supabaseConfigured,
+    measuringSince: null,
+    arrivals: null,
+    qualified: null,
+    byCampaign: [],
+    clicksByLabel: [],
+    complete: false,
+  };
+  if (!supabaseConfigured) return empty;
+
+  // Session entries carrying the (server-scrubbed, shape-valid) marker.
+  const entries = await sbSelect<Array<{ session_id: string | null; props: Record<string, unknown>; created_at: string }>>(
+    `events?select=session_id,props,created_at&name=eq.page_view&props->>brief=not.is.null&order=created_at.asc&limit=${FUNNEL_ARRIVAL_CAP}`,
+  );
+  if (entries == null) return empty;
+
+  const sessions = new Map<string, { campaign: string; first: string }>();
+  for (const e of entries) {
+    const campaign = parseBriefMarker(e.props?.brief);
+    if (!campaign || !e.session_id) continue;
+    if (!sessions.has(e.session_id)) sessions.set(e.session_id, { campaign, first: e.created_at });
+  }
+
+  // The sessions' engagement time + allowlisted interactions, chunked.
+  const ids = [...sessions.keys()];
+  const engaged = new Map<string, number>();
+  const interactions = new Map<string, number>();
+  let complete = entries.length < FUNNEL_ARRIVAL_CAP;
+  for (let i = 0; i < ids.length; i += 50) {
+    const list = ids.slice(i, i + 50).map((s) => `"${s}"`).join(",");
+    const rows = await sbSelect<Array<{ session_id: string | null; name: string; path: string | null; props: Record<string, unknown> }>>(
+      `events?select=session_id,name,path,props&session_id=in.(${encodeURIComponent(list)})&name=in.(engagement,${BRIEF_INTERACTION_EVENTS.join(",")})&limit=${FUNNEL_EVENT_CAP}`,
+    );
+    if (rows == null) {
+      complete = false;
+      continue;
+    }
+    if (rows.length >= FUNNEL_EVENT_CAP) complete = false;
+    for (const r of rows) {
+      if (!r.session_id) continue;
+      if (r.name === "engagement") {
+        const secs = Number(r.props?.seconds);
+        if (Number.isFinite(secs) && secs > 0) engaged.set(r.session_id, (engaged.get(r.session_id) ?? 0) + secs);
+      } else if (isQualifyingInteraction(r.name, r.path)) {
+        interactions.set(r.session_id, (interactions.get(r.session_id) ?? 0) + 1);
+      }
+    }
+  }
+
+  const byCampaign = new Map<string, { arrivals: number; qualified: number }>();
+  let qualified = 0;
+  for (const [sid, s] of sessions) {
+    const q = qualifiesVisit({ engagedSeconds: engaged.get(sid) ?? 0, interactions: interactions.get(sid) ?? 0 });
+    if (q) qualified++;
+    const c = byCampaign.get(s.campaign) ?? { arrivals: 0, qualified: 0 };
+    c.arrivals++;
+    if (q) c.qualified++;
+    byCampaign.set(s.campaign, c);
+  }
+
+  // Aggregate click mix by content label for daily campaigns (existing
+  // canonical email_click events — the label never rides a URL).
+  const clicks = await sbSelect<Array<{ props: Record<string, unknown> }>>(
+    `events?select=props&name=eq.email_click&props->>campaign=like.daily-*&limit=${FUNNEL_EVENT_CAP}`,
+  );
+  const labelCounts = new Map<string, number>();
+  for (const c of clicks ?? []) {
+    const cta = typeof c.props?.cta === "string" ? c.props.cta.slice(0, 40) : null;
+    if (cta) labelCounts.set(cta, (labelCounts.get(cta) ?? 0) + 1);
+  }
+  if (clicks == null || clicks.length >= FUNNEL_EVENT_CAP) complete = false;
+
+  return {
+    configured: true,
+    measuringSince: entries[0]?.created_at?.slice(0, 10) ?? null,
+    arrivals: sessions.size,
+    qualified,
+    byCampaign: [...byCampaign.entries()]
+      .map(([campaign, v]) => ({ campaign, ...v }))
+      .sort((a, b) => (a.campaign < b.campaign ? 1 : -1))
+      .slice(0, 30),
+    clicksByLabel: [...labelCounts.entries()].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n),
+    complete,
+  };
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { track } from "@/lib/track";
 import { fmtUsd } from "@/lib/format";
 import type { LensClientPayload, LensPayloadCycle } from "@/lib/lensPayload";
 
@@ -112,10 +113,19 @@ export function CycleLensExplorer({ payload, initialDay }: { payload: LensClient
     [payload.currentCycleDay, payload.cycles],
   );
 
+  // PR2 — one `lens_interact` per interaction burst (10s throttle): a real
+  // scrub/control gesture becomes a single allowlisted qualified-visit
+  // interaction, never a per-pixel event stream.
+  const lastInteract = useRef(0);
   const moveTo = useCallback(
     (d: number) => {
       const clamped = Math.min(Math.max(Math.round(d), 0), payload.maxDay);
       interacted.current = true;
+      const now = Date.now();
+      if (now - lastInteract.current > 10_000) {
+        lastInteract.current = now;
+        track("lens_interact", { control: "day" });
+      }
       setDay(clamped);
       commit(clamped);
     },

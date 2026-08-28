@@ -3,6 +3,7 @@ import { sbInsert } from "@/lib/supabase";
 import { verifyUnsub } from "@/lib/emailToken";
 import { emailHash } from "@/lib/emailTracking";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "@/lib/site";
+import { appendBriefMarker } from "@/lib/briefFunnel";
 
 // Email click redirect. Records an `email_click` event (hashed subscriber +
 // campaign + CTA label) and 302-redirects to the target. Clicks are "confirmed"
@@ -53,7 +54,22 @@ function safeTarget(raw: string | null): string {
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const target = safeTarget(url.searchParams.get("u"));
+  let target = safeTarget(url.searchParams.get("u"));
+  // PR2 — the Brief → Dashboard join: same-host destinations of a DAILY
+  // BRIEF campaign carry the non-personal campaign/edition marker (hlb=
+  // daily-<date>-<activity>), so the dashboard session can attribute
+  // itself to the edition WITHOUT any recipient identity in the URL.
+  // Other campaigns (weekly, welcome…) and external destinations are
+  // untouched; a malformed campaign appends nothing (fail safe).
+  try {
+    const t = new URL(target);
+    if (t.host === SAME_HOST || t.host === SITE_HOST) {
+      appendBriefMarker(t, url.searchParams.get("c") ?? "");
+      target = t.toString();
+    }
+  } catch {
+    /* keep the already-safe target */
+  }
   try {
     const email = (url.searchParams.get("e") ?? "").trim().toLowerCase();
     const token = url.searchParams.get("t") ?? "";
