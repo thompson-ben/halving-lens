@@ -1,4 +1,5 @@
-import { briefEmailV2Html } from "@/lib/briefEmailV2";
+// PR1 (Daily Brief v2): the preview must show the exact edition that sends.
+import { briefEditionEmailHtml } from "@/lib/briefEditionEmail";
 import { welcomeEmailHtml } from "@/lib/welcomeEmail";
 import { showcaseEmailHtml } from "@/lib/showcaseEmail";
 import { previewLifecycleStep, LIFECYCLE_STEPS } from "@/lib/lifecycleEmails";
@@ -38,6 +39,6 @@ export async function GET(req: Request) {
   }
 
   const html =
-    which === "welcome" ? welcomeEmailHtml(unsub) : which === "showcase" ? showcaseEmailHtml(unsub) : briefEmailV2Html(unsub);
+    which === "welcome" ? welcomeEmailHtml(unsub) : which === "showcase" ? showcaseEmailHtml(unsub) : briefEditionEmailHtml(unsub);
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }

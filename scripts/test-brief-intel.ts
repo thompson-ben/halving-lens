@@ -299,23 +299,25 @@ console.log("Cutover discipline (DBV2-C):");
   const stripCm = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
   const send = readFileSync(join(__dirname, "../src/lib/emailSend.ts"), "utf8");
   const sendCode = stripCm(send);
-  check("the daily send renders Daily Brief V2 (subject, html, text)",
-    /briefEmailV2Subject\(\)/.test(send) && /briefEmailV2Html\(/.test(send) && /briefEmailV2Text\(\)/.test(send));
+  // PR1 (Daily Brief v2): the send path renders the significance-led
+  // edition. Same discipline, new canonical renderer.
+  check("the daily send renders the Brief edition (subject, html, text)",
+    /briefEditionSubject\(\)/.test(send) && /briefEditionEmailHtml\(/.test(send) && /briefEditionText\(\)/.test(send));
   check("the legacy daily email content path is no longer sent", !/dailyEmailHtml|dailyEmailText|dailyEmailSubject/.test(sendCode));
   check("verdict-class measurement: the campaign tag carries the canonical activity",
-    /`daily-\$\{date\}-\$\{briefIntel\(\)\.verdict\.activity\}`/.test(send));
-  check("test-send mode renders the same V2 email", /\[TEST\] \$\{briefEmailV2Subject\(\)\}/.test(send));
+    /`daily-\$\{date\}-\$\{briefEdition\(\)\.activity\}`/.test(send));
+  check("test-send mode renders the same edition email", /\[TEST\] \$\{briefEditionSubject\(\)\}/.test(send));
   check("weekly/showcase/founder sends untouched", /weeklyEmailHtml/.test(send) && /showcaseEmailHtml/.test(send) && /founderReportHtml/.test(send));
 
   const preview = readFileSync(join(__dirname, "../src/app/api/admin/email-preview/route.ts"), "utf8");
-  check("admin daily preview shows the exact V2 HTML that would be sent",
-    /briefEmailV2Html/.test(preview) && !/dailyEmailHtml/.test(preview));
+  check("admin daily preview shows the exact edition HTML that would be sent",
+    /briefEditionEmailHtml/.test(preview) && !/dailyEmailHtml/.test(preview) && !/briefEmailV2Html/.test(preview));
 
   const persist = readFileSync(join(__dirname, "../scripts/persist-edition.ts"), "utf8");
-  check("persist-edition freezes the legacy store and writes the V2 record",
-    /briefV2Editions\.ts/.test(persist) && /briefEmailV2Text\(\)/.test(persist) && !/editionContent/.test(persist) && !/data\/editions\.ts/.test(stripCm(persist)));
-  check("V2 edition record carries slug/subject/activity/storyKind/text (measurement + provenance)",
-    /activity: b\.verdict\.activity/.test(persist) && /storyKind: b\.story\.kind/.test(persist));
+  check("persist-edition freezes the legacy store and writes the sent edition",
+    /briefV2Editions\.ts/.test(persist) && /briefEditionText\(\)/.test(persist) && !/editionContent/.test(persist) && !/data\/editions\.ts/.test(stripCm(persist)));
+  check("edition record carries slug/subject/activity/storyKind/text (measurement + provenance)",
+    /activity: b\.activity/.test(persist) && /storyKind: b\.hero \? b\.hero\.kind : "quiet"/.test(persist));
 
   const archive = readFileSync(join(__dirname, "../src/lib/briefV2Archive.ts"), "utf8");
   check("subject freshness bridges the cutover (v2 subjects first, legacy fill)",

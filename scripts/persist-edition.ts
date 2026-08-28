@@ -13,8 +13,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { briefIntel } from "../src/lib/briefIntel";
-import { briefEmailV2Text } from "../src/lib/briefEmailV2";
+import { briefEdition } from "../src/lib/briefEdition";
+import { briefEditionText } from "../src/lib/briefEditionEmail";
 import type { BriefV2Edition } from "../src/lib/briefV2Archive";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,13 +23,16 @@ const FILE = resolve(ROOT, "src/lib/data/briefV2Editions.ts");
 const KEEP = 4000; // ~11 years of daily editions
 
 async function main() {
-  const b = briefIntel();
+  // PR1 (Daily Brief v2): the archive freezes the SENT edition — the
+  // significance-led payload. Shape unchanged; storyKind carries the hero
+  // development kind (or "quiet"), activity stays the canonical class.
+  const b = briefEdition();
   const today: BriefV2Edition = {
     slug: b.asOf,
     subject: b.subject,
-    activity: b.verdict.activity,
-    storyKind: b.story.kind,
-    text: briefEmailV2Text(),
+    activity: b.activity,
+    storyKind: b.hero ? b.hero.kind : "quiet",
+    text: briefEditionText(),
     version: b.version,
   };
 
