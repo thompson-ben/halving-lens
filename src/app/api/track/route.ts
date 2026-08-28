@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { scrubBriefProp } from "@/lib/briefFunnel";
 import { sbInsert } from "@/lib/supabase";
 import { isBot } from "@/lib/botCheck";
 import { currentProfile } from "@/lib/profile";
@@ -47,6 +48,11 @@ export async function POST(req: Request) {
   }
 
   const props: Record<string, unknown> = body.props && typeof body.props === "object" ? { ...body.props } : {};
+
+  // PR2 — a `brief` prop must be a valid non-personal Daily Brief campaign
+  // marker; anything malformed/forged is scrubbed (the event survives, the
+  // marker does not).
+  scrubBriefProp(props);
 
   // WEAS instrumentation: when the request carries a valid member session cookie,
   // stamp the recognised subscriber's privacy-safe hash (same emailHash the email

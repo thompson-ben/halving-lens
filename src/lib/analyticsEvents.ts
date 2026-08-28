@@ -79,6 +79,10 @@ const CONTENT = [
   "timeline_range",
   "copy_summary",
   "dashboard_view",
+  // PR2 (Brief → Dashboard join): a meaningful Cycle Lens interaction (day
+  // scrub / control use), throttled client-side to one event per burst.
+  // One of the two allowlisted qualified-visit interactions (briefFunnel).
+  "lens_interact",
   "favourite_toggle",
   "profile_request",
   "profile_signin",
