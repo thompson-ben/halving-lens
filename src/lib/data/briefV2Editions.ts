@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-08-28",
+    "subject": "One of Accumulation Index's largest 7-day moves on record.",
+    "activity": "active",
+    "storyKind": "state_change",
+    "text": "HALVINGLENS DAILY BRIEF — 28 Aug 2026\n\nTHE VERDICT: Active week. 3 of 15 monitored readings held within their own ordinary 7-day ranges — 12 moved materially.\n\nA STATE CHANGED: One of Accumulation Index's largest 7-day moves on record. Current reading: 35.\n\nALSO TODAY: RHODL Ratio also moved: +42.9% in 7 days — Larger than 92% of 7-day moves · 1,487 observations since Jul 2022\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 35/100 · weekly · since 4 Jul 2026\n· Sentiment: Greed · 73/100 · since 20 Aug 2026\n· ETF demand: 9-day inflow streak · +$2.56B over 7 trading days · as of 27 Aug 2026\n\nSee the whole picture: Open the Cycle Dashboard → https://halvinglens.com/cycle-dashboard\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-intel-v1"
+  },
+  {
     "slug": "2026-08-27",
     "subject": "A state changed: NUPL",
     "activity": "active",
