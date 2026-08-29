@@ -671,6 +671,7 @@ export async function analyticsSummary(): Promise<AnalyticsSummary> {
 import {
   arrivalSessions,
   BRIEF_INTERACTION_EVENTS,
+  isGenuineDailyCampaign,
   isQualifyingInteraction,
   qualifiedVisitKpis,
 } from "./briefFunnel";
@@ -764,6 +765,10 @@ export async function briefFunnel(): Promise<BriefFunnelReport> {
   );
   const labelCounts = new Map<string, number>();
   for (const c of clicks ?? []) {
+    // Reporting hygiene: founder test/preview campaigns (daily-test-*) are
+    // excluded from the SUBSCRIBER label mix — same canonical grammar the
+    // funnel uses. Events themselves are untouched.
+    if (!isGenuineDailyCampaign(c.props?.campaign)) continue;
     const cta = typeof c.props?.cta === "string" ? c.props.cta.slice(0, 40) : null;
     if (cta) labelCounts.set(cta, (labelCounts.get(cta) ?? 0) + 1);
   }

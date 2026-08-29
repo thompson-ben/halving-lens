@@ -20,6 +20,7 @@ import {
   appendBriefMarker,
   arrivalSessions,
   formatQualifiedRate,
+  isGenuineDailyCampaign,
   isQualifyingInteraction,
   parseBriefMarker,
   qualifiedVisitKpis,
@@ -207,6 +208,18 @@ async function main() {
     check("the rate's denominator can never be email clicks (email_click feeds only the label mix)", !/email_click[^]*arrivals[^]*\//.test(funnelSrc));
     const admin = strip(readFileSync("src/app/admin/analytics/page.tsx", "utf8"));
     check("the admin page renders the rate ONLY via formatQualifiedRate", /formatQualifiedRate\(funnel\.qualified, funnel\.arrivals\)/.test(admin) && !/funnel\.qualified \/ funnel\.arrivals/.test(admin));
+  }
+
+  // ═══ 6b · Label-mix reporting hygiene (founder decision, 28 Aug) ═════════
+  console.log("6b · Subscriber label mix excludes founder test traffic");
+  {
+    check("a genuine daily campaign is included in subscriber label reporting", isGenuineDailyCampaign("daily-2026-08-29-active") && isGenuineDailyCampaign("daily-2026-08-29-quiet"));
+    check("daily-test-* campaigns are excluded (the founder's exact observed campaign)", !isGenuineDailyCampaign("daily-test-2026-08-28"));
+    check("preview/other campaign shapes are excluded too", !isGenuineDailyCampaign("weekly-2026-W35") && !isGenuineDailyCampaign("welcome") && !isGenuineDailyCampaign(null));
+    const analyticsSrc = strip(readFileSync("src/lib/analytics.ts", "utf8"));
+    const labelLoop = analyticsSrc.slice(analyticsSrc.indexOf("labelCounts"));
+    check("the label-mix loop applies the canonical genuine-campaign filter before counting", /isGenuineDailyCampaign\(c\.props\?\.campaign\)/.test(labelLoop));
+    check("hygiene is reporting-only: click persistence and the signed route untouched", /email_click/.test(strip(readFileSync("src/app/api/email/click/route.ts", "utf8"))) && !/isGenuineDailyCampaign/.test(readFileSync("src/app/api/email/click/route.ts", "utf8")));
   }
 
   // ═══ 7 · Existing measurement operational ════════════════════════════════
