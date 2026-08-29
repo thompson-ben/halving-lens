@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-08-29",
+    "subject": "Nothing crossed a line today — all 15 readings held",
+    "activity": "active",
+    "storyKind": "quiet",
+    "text": "HALVINGLENS DAILY BRIEF — 29 Aug 2026\nBTC $77,717 · −3.2% since yesterday's 08:00 London snapshot\n\nTHE VERDICT: Little changed across the 15 monitored readings today. Crowd enthusiasm is heating up while the accumulation window remains open.\n10 of 15 monitored readings held within their own ordinary 7-day ranges — 5 moved materially.\n\nA QUIET DAY: No reading crossed a state boundary, made a top-5% move for its own record, or extended a notable streak today.\nStable readings are information: every standing state below keeps counting, and the day's calm is measured against each reading's own history, not a feeling.\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 35/100 · weekly · since 4 Jul 2026\n· Sentiment: Greed · 68/100 · since 20 Aug 2026\n· ETF demand: 1-day outflow streak · +$1.84B over 7 trading days · as of 28 Aug 2026\n\nSee all 15 signals holding steady → https://halvinglens.com/cycle-dashboard#dashboard-market-board\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-edition-v1"
+  },
+  {
     "slug": "2026-08-28",
     "subject": "One of Accumulation Index's largest 7-day moves on record.",
     "activity": "active",
