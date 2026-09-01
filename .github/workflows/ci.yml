@@ -132,6 +132,13 @@ jobs:
       - name: Pro-waitlist count tests
         run: npm run test-pro-waitlist-count
 
+      # Admin Hub navigation (navigation-hygiene micro-fix) — every Analytics
+      # label routes to a genuine existing destination, anchored links have
+      # real targets, the duplicate Behaviour item stays removed, and the
+      # Website Analytics link reaches the PR2 funnel section.
+      - name: Admin-navigation tests
+        run: npm run test-admin-nav
+
       # Card caption link (B-1) — the canonical share-attribution convention
       # (source=social, medium=card, card_<metricId>_p<period>_<yyyymmdd>,
       # /cycle-dashboard destination) and the refusal rule for malformed

@@ -246,7 +246,7 @@ function GrowthBody({
       </Panel>
 
       {/* Email engagement by campaign */}
-      <Panel title="Email engagement">
+      <Panel title="Email engagement" id="email">
         {!email.configured || email.byCampaign.length === 0 ? (
           <p className="text-[12.5px] text-ink-500">No email opens or clicks recorded yet. They appear here once subscribers open/click tracked emails.</p>
         ) : (
@@ -283,7 +283,7 @@ function GrowthBody({
       </Panel>
 
       {/* Campaign performance / CPS */}
-      <Panel title="Campaign performance (cost per subscriber)">
+      <Panel title="Campaign performance (cost per subscriber)" id="campaigns">
         {g.campaigns.length === 0 ? (
           <p className="text-[12.5px] text-ink-500">No campaign traffic yet. Point ads at /start with utm_campaign, and add spend in src/lib/data/adSpend.ts.</p>
         ) : (
@@ -629,9 +629,9 @@ function DimensionTable({ title, rows }: { title: string; rows: { key: string; v
     </div>
   );
 }
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
   return (
-    <div className="card p-6">
+    <div id={id} className="card p-6">
       <h2 className="text-[12.5px] font-medium text-ink-100 mb-4 uppercase tracking-[0.16em]">{title}</h2>
       {children}
     </div>
