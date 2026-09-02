@@ -5,7 +5,7 @@ import { SendTestEmailButton } from "@/components/SendTestEmailButton";
 import { isAdmin, adminConfigured } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Growth analytics — halvinglens.com", robots: { index: false } };
+export const metadata = { title: "Website analytics — halvinglens.com", robots: { index: false } };
 
 // Format an average time-on-page (seconds) as a readable duration. Raw seconds
 // like "1878s" are hard to read and easy to misjudge; "31m 18s" is instantly

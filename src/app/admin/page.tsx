@@ -57,10 +57,11 @@ const SECTIONS: AdminSection[] = [
       { label: "Lifecycle Analytics", href: "/admin/lifecycle" },
       { label: "Website Analytics", href: "/admin/analytics" },
       { label: "Visitor Journeys", href: "/admin/journeys" },
-      { label: "Email Analytics", href: "/admin/growth" },
-      { label: "Campaign Analytics", href: "/admin/growth" },
+      // No dedicated email/campaign analytics pages exist — these two land on
+      // the Growth panels that genuinely hold that reporting (anchored).
+      { label: "Email Analytics", href: "/admin/growth#email" },
+      { label: "Campaign Analytics", href: "/admin/growth#campaigns" },
       { label: "Metrics admin", href: "/admin/metrics" },
-      { label: "Behaviour", href: "/admin/analytics" },
     ],
   },
   {
