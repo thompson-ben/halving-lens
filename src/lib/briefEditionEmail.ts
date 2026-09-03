@@ -43,6 +43,12 @@ const C = {
 const SERIF = "Georgia, 'Times New Roman', serif";
 const SANS = "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
+// THE one desktop-width authority. Outlook's Word engine ignores max-width,
+// so the same number must also feed the MSO-conditional fixed ghost table —
+// a single constant keeps the responsive cap and the Outlook column from
+// ever disagreeing.
+const EMAIL_WIDTH = 600;
+
 function esc(s: string): string {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -173,11 +179,26 @@ export function briefEditionEmailHtmlFor(b: BriefEdition, unsubUrl: string, trac
     ),
   );
 
-  // The ONE dominant, day-contextual CTA.
+  // The ONE dominant, day-contextual CTA. One tracked URL and one generated
+  // label feed BOTH renderings below, so the Outlook fallback can never
+  // diverge in destination, label or click semantics. Word's engine ignores
+  // display/padding on <a>, so MSO clients get the padded gold table cell
+  // (the smallest standard fallback); everyone else keeps the existing
+  // anchor button. Exactly one is visible per client: [if mso] shows only
+  // the cell, [if !mso] shows only the anchor — never both.
+  const ctaUrl = link(b.cta.href, "primary-cta");
+  const ctaText = `${esc(b.cta.label)}&nbsp;→`;
   rows.push(
     section(
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-        <a href="${link(b.cta.href, "primary-cta")}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 30px;border-radius:12px;white-space:nowrap;">${esc(b.cta.label)}&nbsp;→</a>
+        <!--[if mso]>
+        <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr>
+          <td bgcolor="${C.gold}" style="padding:17px 30px;">
+            <a href="${ctaUrl}" style="color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;white-space:nowrap;">${ctaText}</a>
+          </td>
+        </tr></table>
+        <![endif]-->
+        <!--[if !mso]><!--><a href="${ctaUrl}" style="display:inline-block;background:${C.gold};color:#15120a;font:600 15px/1 ${SANS};letter-spacing:.2px;text-decoration:none;padding:17px 30px;border-radius:12px;white-space:nowrap;">${ctaText}</a><!--<![endif]-->
       </td></tr></table>`,
       "22px 36px 20px",
     ),
@@ -191,18 +212,27 @@ export function briefEditionEmailHtmlFor(b: BriefEdition, unsubUrl: string, trac
       <a href="${forHtmlAttr(unsubUrl)}" style="color:${C.dim};text-decoration:underline;">Unsubscribe</a>.
     </div>`;
 
+  // Outlook desktop (Word engine) skeleton defences: the MSO namespaces +
+  // PixelsPerInch=96 restore correct DPI arithmetic (attribute widths are
+  // otherwise not scaled with Windows display scaling while text is); the
+  // [if mso] ghost table gives Word a deterministic fixed reading column,
+  // because it ignores the max-width that caps every other client; and the
+  // outer padding lives on the <td>, since Word drops padding on <table>.
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><title>${esc(b.subject)}</title></head>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><title>${esc(b.subject)}</title>
+<!--[if gte mso 9]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]--></head>
 <body style="margin:0;padding:0;background:${C.bg};">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(b.preheader)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg};padding:28px 12px;">
-  <tr><td align="center">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:${C.bg};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg};">
+  <tr><td align="center" style="padding:28px 12px;">
+    <!--[if mso]><table role="presentation" width="${EMAIL_WIDTH}" align="center" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
+    <table role="presentation" width="${EMAIL_WIDTH}" cellpadding="0" cellspacing="0" style="width:100%;max-width:${EMAIL_WIDTH}px;background:${C.bg};">
       <tr><td style="padding:8px 36px 18px;">${masthead}</td></tr>
       ${rows.join("")}
       <tr><td style="padding:20px 36px 30px;border-top:1px solid ${C.hair};">${footer}</td></tr>
     </table>
+    <!--[if mso]></td></tr></table><![endif]-->
   </td></tr>
 </table>
 ${tracking.openPixel}

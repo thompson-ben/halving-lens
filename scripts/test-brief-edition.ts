@@ -260,9 +260,17 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
   };
   const tracked = emailTracking("reader@example.com", "daily-2026-08-27-active");
 
+  // The CTA renders once per CLIENT PATH: Outlook (Word engine) sees only
+  // the [if mso] table-cell button, every other client only the anchor —
+  // so "exactly one primary CTA" is asserted per rendering path, and both
+  // paths must carry the identical tracked URL and generated label.
+  const msoView = (html: string) => [...html.matchAll(/<!--\[if mso\]>([\s\S]*?)<!\[endif\]-->/g)].map((m) => m[1]).join("");
+  const nonMsoView = (html: string) => html.replace(/<!--\[if (?:gte )?mso[^\]]*\]>[\s\S]*?<!\[endif\]-->/g, "");
+
   for (const [name, payload] of Object.entries(fixtures)) {
     const html = briefEditionEmailHtmlFor(payload, "https://halvinglens.com/unsub", tracked);
-    check(`${name}: exactly ONE primary-cta link`, (html.match(/cta=primary-cta/g) ?? []).length === 1);
+    check(`${name}: exactly ONE primary-cta in the normal-client path`, (nonMsoView(html).match(/cta=primary-cta/g) ?? []).length === 1);
+    check(`${name}: exactly ONE primary-cta in the Outlook (MSO) path`, (msoView(html).match(/cta=primary-cta/g) ?? []).length === 1);
     check(`${name}: whole state table is one state-table link`, (html.match(/cta=state-table/g) ?? []).length === 1);
     check(`${name}: no UTM parameters anywhere in the email`, !/utm_/.test(html));
     check(`${name}: every link rides the signed first-party tracker (or unsubscribe)`, (html.match(/href="https?:\/\/[^"]*"/g) ?? []).every((h) => /\/api\/email\/click\?/.test(h) || /unsub/.test(h)));
@@ -284,6 +292,45 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
 
   const text = briefEditionTextFor(fixtures.active);
   check("plain-text mirrors the hierarchy (verdict → hero → states → CTA)", /THE VERDICT/.test(text) && /STATE OF THE CYCLE/.test(text) && text.indexOf("THE VERDICT") < text.indexOf("STATE OF THE CYCLE"));
+
+  // ── 5b · Outlook desktop compatibility envelope (founder-approved patch) ──
+  // Word's engine ignores max-width, un-DPI-corrected attribute widths and
+  // padding/display on <a>/<table>; these pins keep the standard defences —
+  // and the one-width / one-CTA-per-path contract — from ever drifting.
+  console.log("5b · Outlook desktop compatibility envelope");
+  {
+    const html = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked);
+    check("MSO namespaces declared on <html>", /<html [^>]*xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"/.test(html));
+    check("PixelsPerInch=96 DPI correction present for Outlook", /<!--\[if gte mso 9\]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96<\/o:PixelsPerInch><\/o:OfficeDocumentSettings><\/xml><!\[endif\]-->/.test(html));
+    check(
+      "MSO conditional blocks are balanced",
+      (html.match(/<!--\[if /g) ?? []).length === (html.match(/<!\[endif\]-->/g) ?? []).length &&
+        (html.match(/<!--\[if !mso\]><!-->/g) ?? []).length === (html.match(/<!--<!\[endif\]-->/g) ?? []).length,
+    );
+    check("ghost table gives Word a fixed 600 column", /<!--\[if mso\]><table role="presentation" width="600" align="center"/.test(html));
+    check("responsive table keeps the same 600 authority (attribute + max-width)", /<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;/.test(html));
+    check("outer table style carries no padding (Word drops it)", !/<table role="presentation" width="100%"[^>]*style="[^"]*padding/.test(html));
+    check("outer breathing space lives on the centring <td>", /<td align="center" style="padding:28px 12px;">/.test(html));
+
+    const src = readFileSync("src/lib/briefEditionEmail.ts", "utf8");
+    check("EMAIL_WIDTH = 600 is the one desktop-width authority in source", /const EMAIL_WIDTH = 600;/.test(src));
+    check("no competing hard-coded 600 width literals in source", !/width="600"|max-width:600px/.test(src));
+
+    // Outlook CTA fallback: same tracked destination, same generated label,
+    // no VML, and never a second logical CTA.
+    const ctaHref = (view: string) => {
+      const m = view.match(/href="([^"]*cta=primary-cta[^"]*)"/);
+      return m ? m[1] : null;
+    };
+    const msoHref = ctaHref(msoView(html));
+    const normalHref = ctaHref(nonMsoView(html));
+    check("MSO and normal CTA resolve to the IDENTICAL tracked destination", msoHref != null && msoHref === normalHref, `${msoHref} vs ${normalHref}`);
+    const ctaLabel = `${fixtures.active.cta.label}&nbsp;→`;
+    check("MSO CTA carries the identical generated label", msoView(html).includes(ctaLabel));
+    check("normal CTA carries the identical generated label", nonMsoView(html).includes(ctaLabel));
+    check("MSO CTA is the padded gold table cell, not VML", /<td bgcolor="#d9b96a" style="padding:17px 30px;">/.test(msoView(html)) && !/<v:/.test(html));
+    check("normal-client CTA rendering is unchanged (anchor button)", /<!--\[if !mso\]><!--><a href="[^"]+" style="display:inline-block;background:#d9b96a;/.test(html));
+  }
 }
 
 // ═══ 6 · Live payload, price honesty, agreement, compliance ════════════════
