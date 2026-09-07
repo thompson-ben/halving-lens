@@ -114,8 +114,8 @@ async function main() {
     for (const l of BRIEF_SECONDARY_LABELS) {
       check(`secondary label ${l} is never marker-eligible`, !briefMarkerEligibleLabel(l));
     }
-    const refClick = await call("daily-2026-08-29-active", "https://halvinglens.com/?ref=k3x9q2", "referral-invite");
-    check("referral-invite click on a daily campaign carries NO hlb", refClick.status === 302 && !refClick.location.includes("hlb=") && refClick.location.includes("ref=k3x9q2"), refClick.location);
+    const refClick = await call("daily-2026-08-29-active", "https://halvinglens.com/dashboard/referrals", "referral-invite");
+    check("referral-invite click on a daily campaign carries NO hlb", refClick.status === 302 && !refClick.location.includes("hlb=") && refClick.location.includes("/dashboard/referrals"), refClick.location);
     const proClick = await call("daily-2026-08-29-active", "https://halvinglens.com/cycle-dashboard?pro=brief-footer#pro-early-access", "pro-invite");
     check(
       "pro-invite click carries NO hlb; source param + anchor survive",

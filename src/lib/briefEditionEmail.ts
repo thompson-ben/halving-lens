@@ -102,21 +102,29 @@ function developmentCard(d: Development, link: (path: string, label: string) => 
 // ── The Member footer (secondary growth area, founder commission 7 Sep) ────
 //
 // ONE compact, visually subordinate block after the primary CTA: a referral
-// invitation (the recipient's deterministic personal link — a derived code,
-// never a raw email or id) and a Pro early-access invitation to the existing
-// dashboard demand-test surface. Both ride the signed click tracker with the
-// two pinned SECONDARY labels (referral-invite / pro-invite), which the
-// click route excludes from the hlb marker — PR2 stays editorial-only.
-// Rendered only when a recipient referral link exists (i.e. real sends);
-// recipient-less renders (the archive text) carry no member content.
+// invitation and a Pro early-access invitation. Both ride the signed click
+// tracker with the two pinned SECONDARY labels (referral-invite /
+// pro-invite), which the click route excludes from the hlb marker — PR2
+// stays editorial-only. Rendered only on real sends (member: true); the
+// archive text and other recipient-less renders carry no member content.
+//
+// Founder UX correction (7 Sep, post-deploy): the referral CTA is a
+// MEMBER-facing action, so it navigates to the referral dashboard — where
+// progress, rewards and the copy/share/QR tools live — NEVER to the
+// friend-facing /?ref=<code> landing link. The friend-facing link stays the
+// dashboard's and the lifecycle emails' job; the Brief embeds no
+// recipient-specific referral URL at all.
+
+/** The referral invitation's destination: the member's referral dashboard. */
+export const REFERRAL_INVITE_PATH = "/dashboard/referrals";
 
 /** The Pro invitation's destination: the existing landing surface, plus the
  *  non-personal source-carrier param the waitlist form reads. */
 export const PRO_INVITE_PATH = `/cycle-dashboard?${PRO_SOURCE_PARAM}=${PRO_SOURCE_BRIEF_FOOTER}#pro-early-access`;
 
 export interface BriefEditionEmailOpts {
-  /** The recipient's personal referral URL (canonical referralLink(email)). */
-  referralUrl?: string | null;
+  /** Render the Member footer (real sends set this; archive renders don't). */
+  member?: boolean;
 }
 
 // ── The email (pure over a payload — day-type fixtures render directly) ────
@@ -232,12 +240,12 @@ export function briefEditionEmailHtmlFor(
 
   // Secondary Member area — quieter than every editorial element and the
   // gold CTA: small dim type, plain underlined links, no button, no card.
-  if (opts.referralUrl) {
+  if (opts.member) {
     rows.push(
       section(
         `<div style="border-top:1px solid ${C.hair};padding-top:14px;">
         <div style="font:600 10px/1.4 ${SANS};letter-spacing:.2em;text-transform:uppercase;color:${C.faint};">Member</div>
-        <div style="font:400 12.5px/1.7 ${SANS};color:${C.dim};margin-top:8px;">Know someone who follows Bitcoin? <a href="${tracking.link(opts.referralUrl, "referral-invite")}" style="color:${C.sub};text-decoration:underline;">Share HalvingLens and unlock member rewards&nbsp;→</a></div>
+        <div style="font:400 12.5px/1.7 ${SANS};color:${C.dim};margin-top:8px;">Know someone who follows Bitcoin? <a href="${link(REFERRAL_INVITE_PATH, "referral-invite")}" style="color:${C.sub};text-decoration:underline;">Share HalvingLens and unlock member rewards&nbsp;→</a></div>
         <div style="font:400 12.5px/1.7 ${SANS};color:${C.dim};margin-top:5px;">Want to know when something meaningful changes? <a href="${link(PRO_INVITE_PATH, "pro-invite")}" style="color:${C.sub};text-decoration:underline;">Join the HalvingLens Pro early-access list&nbsp;→</a></div>
       </div>`,
         "4px 36px 6px",
@@ -316,9 +324,9 @@ export function briefEditionTextFor(b: BriefEdition, opts: BriefEditionEmailOpts
   }
   L.push("");
   L.push(`${b.cta.label} → ${SITE_URL}${b.cta.href}`);
-  if (opts.referralUrl) {
+  if (opts.member) {
     L.push("");
-    L.push(`Know someone who follows Bitcoin? Share HalvingLens and unlock member rewards: ${opts.referralUrl}`);
+    L.push(`Know someone who follows Bitcoin? Share HalvingLens and unlock member rewards: ${SITE_URL}${REFERRAL_INVITE_PATH}`);
     L.push(`Want to know when something meaningful changes? Join the HalvingLens Pro early-access list: ${SITE_URL}${PRO_INVITE_PATH}`);
   }
   L.push("");

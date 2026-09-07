@@ -259,10 +259,8 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
     major_transition: { ...base, dayType: "major_transition" as const, hero: t, supporting: [x], quiet: null, cta: ctaFor("major_transition", t, base.analysed) },
   };
   const tracked = emailTracking("reader@example.com", "daily-2026-08-27-active");
-  // The recipient's canonical personal referral URL (a derived code, no PII) —
-  // real sends compute it via referralLink(email); fixtures pin the contract.
-  const REF_URL = "https://halvinglens.com/?ref=k3x9q2";
-  const memberOpts = { referralUrl: REF_URL };
+  // Real sends render the Member footer; the archive render never does.
+  const memberOpts = { member: true };
 
   // The CTA renders once per CLIENT PATH: Outlook (Word engine) sees only
   // the [if mso] table-cell button, every other client only the anchor —
@@ -363,7 +361,8 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
     check("Pro copy is the approved wording (no unbuilt features enumerated)", html.includes("Want to know when something meaningful changes?") && html.includes("Join the HalvingLens Pro early-access list") && !/alert|watchlist/i.test(memberBlock));
 
     const refDest = decodedTarget(html, "referral-invite");
-    check("referral destination is the canonical personal referral URL", refDest === REF_URL, String(refDest));
+    check("referral destination is the MEMBER-facing referral dashboard", refDest === "https://halvinglens.com/dashboard/referrals", String(refDest));
+    check("referral destination is never the friend-facing /?ref link", refDest != null && !refDest.includes("ref="));
     check("referral destination carries NO raw email/identity", refDest != null && !refDest.includes("@") && !refDest.includes("reader"));
     const proDest = decodedTarget(html, "pro-invite");
     check(
@@ -376,7 +375,7 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
     check("Pro source/param come from the canonical proWaitlist constants", /PRO_SOURCE_BRIEF_FOOTER/.test(src) && /PRO_SOURCE_PARAM/.test(src) && !/"brief-footer"/.test(src.replace(/\/\/[^\n]*/g, "")));
 
     const textWith = briefEditionTextFor(fixtures.active, memberOpts);
-    check("plain-text part mirrors both member lines", textWith.includes(REF_URL) && textWith.includes("/cycle-dashboard?pro=brief-footer#pro-early-access"));
+    check("plain-text part mirrors both member lines", textWith.includes("/dashboard/referrals") && textWith.includes("/cycle-dashboard?pro=brief-footer#pro-early-access"));
     const textWithout = briefEditionTextFor(fixtures.active);
     check("recipient-less renders (the archive text) carry NO member content", !/member rewards|early-access list/.test(textWithout));
     const htmlWithout = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked);

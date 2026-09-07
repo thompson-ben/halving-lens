@@ -21,7 +21,6 @@ import { captureMonthlySnapshot, updateRecords } from "./companyHistory";
 import { briefDate } from "./briefArchive";
 import { unsubToken } from "./emailToken";
 import { emailTracking } from "./emailTracking";
-import { referralLink } from "./referral";
 import { absoluteUrl, resolveEmailImageBase } from "./site";
 
 export interface SendSummary {
@@ -70,8 +69,8 @@ export async function sendDailyBrief(opts: { force?: boolean; testTo?: string } 
     const res = await sendEmail({
       to: email,
       subject: `[TEST] ${briefEditionSubject()}`,
-      html: briefEditionEmailHtml(unsubUrl, emailTracking(email, `daily-test-${date}`), undefined, { referralUrl: referralLink(email) }),
-      text: briefEditionText(undefined, { referralUrl: referralLink(email) }),
+      html: briefEditionEmailHtml(unsubUrl, emailTracking(email, `daily-test-${date}`), undefined, { member: true }),
+      text: briefEditionText(undefined, { member: true }),
       headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
     });
     return { ...base, ok: res.ok, subscriberCount: 1, sent: 1, delivered: res.ok ? 1 : 0, failed: res.ok ? 0 : 1, reason: res.ok ? "test_sent" : (res.error ?? "send_failed") };
@@ -91,6 +90,7 @@ export async function sendDailyBrief(opts: { force?: boolean; testTo?: string } 
     )) ?? [];
 
   const subject = briefEditionSubject();
+  const text = briefEditionText(undefined, { member: true });
   // Verdict-class measurement (DBV2-C): the tracking campaign carries the
   // canonical activity class, so opens/clicks split by edition type for free.
   const campaign = `daily-${date}-${briefEdition().activity}`;
@@ -102,13 +102,12 @@ export async function sendDailyBrief(opts: { force?: boolean; testTo?: string } 
   for (const sub of subs) {
     const email = sub.email;
     const unsubUrl = absoluteUrl(`/api/unsubscribe?e=${encodeURIComponent(email)}&t=${unsubToken(email)}`);
-    const referral = { referralUrl: referralLink(email) };
-    const html = briefEditionEmailHtml(unsubUrl, emailTracking(email, campaign), undefined, referral);
+    const html = briefEditionEmailHtml(unsubUrl, emailTracking(email, campaign), undefined, { member: true });
     const res = await sendEmail({
       to: email,
       subject,
       html,
-      text: briefEditionText(undefined, referral),
+      text,
       headers: {
         "List-Unsubscribe": `<${unsubUrl}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
