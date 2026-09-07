@@ -43,6 +43,6 @@ export async function GET(req: Request) {
       ? welcomeEmailHtml(unsub)
       : which === "showcase"
         ? showcaseEmailHtml(unsub)
-        : briefEditionEmailHtml(unsub, undefined, undefined, { referralUrl: "https://halvinglens.com/?ref=preview" });
+        : briefEditionEmailHtml(unsub, undefined, undefined, { member: true });
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }

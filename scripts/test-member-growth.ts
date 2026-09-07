@@ -42,11 +42,21 @@ console.log("1 · Pro waitlist source contract");
   check("join event carries the resolved source", /track\("pro_waitlist_join", \{ source, /.test(form));
 }
 
-console.log("2 · Referral URL generation stays canonical");
+console.log("2 · Referral destinations stay canonical (member vs friend facing)");
 {
+  // Founder UX correction (7 Sep): the Brief's referral CTA is MEMBER-facing
+  // (the referral dashboard) — the Brief embeds NO friend-facing /?ref link
+  // and no per-recipient referral plumbing.
   const send = strip(readFileSync("src/lib/emailSend.ts", "utf8"));
-  check("daily send derives recipient referral URLs via referralLink(email)", /referralLink\(email\)/.test(send));
-  check("no second referral-code implementation in the send path", !/\?ref=\$\{(?!referralCode)/.test(send));
+  check("daily send embeds no friend-facing referral link (no referralLink plumbing)", !/referralLink/.test(send) && !/\?ref=/.test(send));
+  const brief = strip(readFileSync("src/lib/briefEditionEmail.ts", "utf8"));
+  check("Brief referral CTA targets the member referral dashboard", /REFERRAL_INVITE_PATH = "\/dashboard\/referrals"/.test(brief) && !/\?ref=/.test(brief));
+  // The friend-facing link remains the canonical generator's job where it
+  // belongs: the referral dashboard and the lifecycle emails — untouched.
+  const dash = strip(readFileSync("src/app/dashboard/referrals/page.tsx", "utf8"));
+  check("referral dashboard still shares via canonical referralLink", /referralLink\(p\.email/.test(dash));
+  const lifecycle = strip(readFileSync("src/lib/lifecycleSend.ts", "utf8"));
+  check("lifecycle referral emails unchanged (canonical referralCode link)", /referralCode\(email\)/.test(lifecycle));
   const code = referralCode("reader@example.com");
   check("canonical link shape is /?ref=<derived code>, no PII", referralLink("reader@example.com") === `https://halvinglens.com/?ref=${code}` && !code.includes("@"));
 }
