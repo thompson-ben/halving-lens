@@ -28,7 +28,7 @@ export function ProEarlyAccess() {
   const [state, setState] = useState<ProUiState | "idle">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // Arrival from the Daily Brief's Member-footer invitation carries the
+  // Arrival from the daily email's Member-footer invitation carries the
   // non-personal ?pro=brief-footer param — joins then attribute to that
   // canonical source instead of the dashboard-native one.
   const [source, setSource] = useState(SOURCE);
