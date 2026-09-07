@@ -302,7 +302,7 @@ console.log("Cutover discipline (DBV2-C):");
   // PR1 (Daily Brief v2): the send path renders the significance-led
   // edition. Same discipline, new canonical renderer.
   check("the daily send renders the Brief edition (subject, html, text)",
-    /briefEditionSubject\(\)/.test(send) && /briefEditionEmailHtml\(/.test(send) && /briefEditionText\(\)/.test(send));
+    /briefEditionSubject\(\)/.test(send) && /briefEditionEmailHtml\(/.test(send) && /briefEditionText\(/.test(send));
   check("the legacy daily email content path is no longer sent", !/dailyEmailHtml|dailyEmailText|dailyEmailSubject/.test(sendCode));
   check("verdict-class measurement: the campaign tag carries the canonical activity",
     /`daily-\$\{date\}-\$\{briefEdition\(\)\.activity\}`/.test(send));

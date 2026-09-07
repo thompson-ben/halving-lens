@@ -256,7 +256,16 @@ check("RLS also listed in the consolidated rls.sql", /public\.pro_waitlist\s+ena
 check("the route points at the schema file, not inline SQL", /supabase\/pro_waitlist\.sql/.test(route) && !/create table/.test(route));
 const health = read("../src/app/api/pro-waitlist/health/route.ts");
 check("health endpoint verifies the live table (deployment gate)", /rest\/v1\/pro_waitlist/.test(health) && /table: true/.test(health));
-check("the allowlisted source matches what the seam sends", route.includes('"/cycle-dashboard#pro-early-access"') && pro.includes('"/cycle-dashboard#pro-early-access"'));
+// Member-footer commission (7 Sep): the source strings moved into canonical
+// constants in proWaitlist.ts, so the route allowlist and the seam can NEVER
+// disagree — the pin now asserts both derive from the ONE constant, whose
+// literal value is pinned exactly once at its definition.
+check(
+  "the allowlisted source matches what the seam sends (one canonical constant)",
+  route.includes("PRO_SOURCE_DASHBOARD") &&
+    pro.includes("PRO_SOURCE_DASHBOARD") &&
+    read("../src/lib/proWaitlist.ts").includes('PRO_SOURCE_DASHBOARD = "/cycle-dashboard#pro-early-access"'),
+);
 
 console.log("Privacy coverage:");
 const privacy = read("../src/app/privacy/page.tsx");

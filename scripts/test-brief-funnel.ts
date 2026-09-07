@@ -15,6 +15,8 @@ import {
   BRIEF_MARKER_PARAM,
   BRIEF_MARKER_RE,
   BRIEF_INTERACTION_EVENTS,
+  BRIEF_SECONDARY_LABELS,
+  briefMarkerEligibleLabel,
   QUALIFIED_ENGAGED_SECONDS,
   QUALIFIED_INTERACTIONS,
   appendBriefMarker,
@@ -76,8 +78,8 @@ async function main() {
     const { GET } = await import("../src/app/api/email/click/route");
     const email = "reader@example.com";
     const t = unsubToken(email);
-    const call = async (campaign: string, u: string) => {
-      const q = `e=${encodeURIComponent(email)}&t=${t}&c=${encodeURIComponent(campaign)}&cta=primary-cta&u=${encodeURIComponent(u)}`;
+    const call = async (campaign: string, u: string, cta = "primary-cta") => {
+      const q = `e=${encodeURIComponent(email)}&t=${t}&c=${encodeURIComponent(campaign)}&cta=${encodeURIComponent(cta)}&u=${encodeURIComponent(u)}`;
       const res = await GET(new Request(`https://halvinglens.com/api/email/click?${q}`));
       return { status: res.status, location: res.headers.get("location") ?? "" };
     };
@@ -98,6 +100,30 @@ async function main() {
     check("allowlisted external destinations never receive the marker", external.status === 302 && !external.location.includes("hlb="));
     const offsite = await call("daily-2026-08-29-active", "https://evil.example.com/x");
     check("open-redirect safety unchanged (off-site falls back to root)", offsite.status === 302 && new URL(offsite.location).host === "halvinglens.com");
+
+    // Member-footer commission (7 Sep): the SECONDARY labels never carry the
+    // hlb marker — the exclusion is the SEMANTIC label contract, so PR2
+    // Brief → Dashboard measurement stays reserved for the editorial journey.
+    check(
+      "secondary-label contract is exactly referral-invite + pro-invite",
+      JSON.stringify([...BRIEF_SECONDARY_LABELS].sort()) === JSON.stringify(["pro-invite", "referral-invite"]),
+    );
+    for (const l of ["primary-cta", "hero-card", "supporting-nupl", "state-table"]) {
+      check(`editorial label ${l} stays marker-eligible`, briefMarkerEligibleLabel(l));
+    }
+    for (const l of BRIEF_SECONDARY_LABELS) {
+      check(`secondary label ${l} is never marker-eligible`, !briefMarkerEligibleLabel(l));
+    }
+    const refClick = await call("daily-2026-08-29-active", "https://halvinglens.com/?ref=k3x9q2", "referral-invite");
+    check("referral-invite click on a daily campaign carries NO hlb", refClick.status === 302 && !refClick.location.includes("hlb=") && refClick.location.includes("ref=k3x9q2"), refClick.location);
+    const proClick = await call("daily-2026-08-29-active", "https://halvinglens.com/cycle-dashboard?pro=brief-footer#pro-early-access", "pro-invite");
+    check(
+      "pro-invite click carries NO hlb; source param + anchor survive",
+      proClick.status === 302 && !proClick.location.includes("hlb=") && proClick.location.includes("pro=brief-footer") && proClick.location.includes("#pro-early-access"),
+      proClick.location,
+    );
+    const clickSrc = strip(readFileSync("src/app/api/email/click/route.ts", "utf8"));
+    check("click route excludes by the semantic label contract, not by destination", /briefMarkerEligibleLabel\(/.test(clickSrc));
     delete process.env.EMAIL_SECRET;
   }
 

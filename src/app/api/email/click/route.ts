@@ -3,7 +3,7 @@ import { sbInsert } from "@/lib/supabase";
 import { verifyUnsub } from "@/lib/emailToken";
 import { emailHash } from "@/lib/emailTracking";
 import { SITE_URL, SITE_HOST, absoluteUrl } from "@/lib/site";
-import { appendBriefMarker } from "@/lib/briefFunnel";
+import { appendBriefMarker, briefMarkerEligibleLabel } from "@/lib/briefFunnel";
 
 // Email click redirect. Records an `email_click` event (hashed subscriber +
 // campaign + CTA label) and 302-redirects to the target. Clicks are "confirmed"
@@ -60,10 +60,13 @@ export async function GET(req: Request) {
   // daily-<date>-<activity>), so the dashboard session can attribute
   // itself to the edition WITHOUT any recipient identity in the URL.
   // Other campaigns (weekly, welcome…) and external destinations are
-  // untouched; a malformed campaign appends nothing (fail safe).
+  // untouched; a malformed campaign appends nothing (fail safe). Secondary
+  // member-growth labels (referral-invite / pro-invite) are excluded by the
+  // SEMANTIC label contract in briefFunnel — never by destination — so the
+  // marker stays reserved for the analytical Brief journey (PR2).
   try {
     const t = new URL(target);
-    if (t.host === SAME_HOST || t.host === SITE_HOST) {
+    if ((t.host === SAME_HOST || t.host === SITE_HOST) && briefMarkerEligibleLabel(url.searchParams.get("cta"))) {
       appendBriefMarker(t, url.searchParams.get("c") ?? "");
       target = t.toString();
     }

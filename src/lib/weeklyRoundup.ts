@@ -12,6 +12,7 @@ import { sbSelect } from "./supabase";
 import { ROUNDUP_FEATURES } from "./roundupConfig";
 import { YOUTUBE_URL, YOUTUBE_LIVE } from "./lifecycleConfig";
 import { communityStatus } from "./community";
+import { nextReward } from "./referral";
 
 const C = {
   bg: "#0a0c10", card: "#13161d", cardHi: "#171b24", border: "#23272f", goldBorder: "#4a3f23",
@@ -42,11 +43,14 @@ export interface RoundupPersonal {
 
 // A gentle, milestone-aware progress line for the weekly note — enriches an
 // existing email, never a new one. Nudges toward the next referral milestone,
-// otherwise reflects reading progress.
-function progressLine(p: RoundupPersonal): string {
-  if (p.referrals >= 1 && p.referrals < 5) {
-    const left = 5 - p.referrals;
-    return `You're ${left} referral${left === 1 ? "" : "s"} away from Community Builder.`;
+// otherwise reflects reading progress. The milestone ALWAYS derives from the
+// canonical reward ladder (REWARD_TIERS via nextReward) — never a second
+// hard-coded ladder — so this line can never again promise a reward that
+// does not exist. Exported for the truthfulness contract test.
+export function progressLine(p: RoundupPersonal): string {
+  const next = p.referrals >= 1 ? nextReward(p.referrals) : null;
+  if (next) {
+    return `You're ${next.remaining} referral${next.remaining === 1 ? "" : "s"} away from your next reward: ${next.tier.reward}.`;
   }
   return `You've now read ${p.briefsRead} Daily Brief${p.briefsRead === 1 ? "" : "s"}.`;
 }

@@ -10,6 +10,14 @@
 // when something meaningful changes" is first-class Pro intent, not a
 // newsletter subscription.
 
+// Canonical Pro-interest sources (the API's allowlist derives from these).
+// The Daily Brief's Member-footer invitation carries its source in a
+// non-personal query param on the existing landing destination, so waitlist
+// joins segment cleanly by where the intent came from.
+export const PRO_SOURCE_DASHBOARD = "/cycle-dashboard#pro-early-access";
+export const PRO_SOURCE_BRIEF_FOOTER = "brief-footer";
+export const PRO_SOURCE_PARAM = "pro";
+
 export type ProWaitlistOutcome = "created" | "existing" | "invalid" | "rate_limited" | "error";
 
 export interface ProWaitlistResponseBody {

@@ -54,6 +54,25 @@ export function scrubBriefProp(props: Record<string, unknown>): void {
   if ("brief" in props && parseBriefMarker(props.brief) == null) delete props.brief;
 }
 
+// ── Secondary member-growth labels (Member footer commission, 7 Sep) ────────
+//
+// The Daily Brief's SECONDARY invitations (referral / Pro early access) are
+// non-editorial journeys: their clicks must NEVER carry the hlb marker, so
+// PR2 Brief → Dashboard measurement stays reserved for the analytical Brief
+// journey (primary-cta / hero-card / supporting-* / state-table). The
+// exclusion is SEMANTIC — keyed on the content label, never inferred from
+// the destination route — so future destination changes cannot silently
+// contaminate PR2.
+
+export const BRIEF_SECONDARY_LABELS: readonly string[] = ["referral-invite", "pro-invite"];
+
+/** May a click with this content label receive the hlb marker? Editorial
+ *  labels (and anything unknown) keep the existing behaviour; the secondary
+ *  member-growth labels never do. */
+export function briefMarkerEligibleLabel(label: string | null | undefined): boolean {
+  return !BRIEF_SECONDARY_LABELS.includes((label ?? "").trim());
+}
+
 // ── The canonical qualified-visit predicate (PR2 commission §4) ─────────────
 
 /** Clause A: total recorded engagement time in the session. */
