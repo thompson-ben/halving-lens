@@ -39,6 +39,10 @@ export async function GET(req: Request) {
   }
 
   const html =
-    which === "welcome" ? welcomeEmailHtml(unsub) : which === "showcase" ? showcaseEmailHtml(unsub) : briefEditionEmailHtml(unsub);
+    which === "welcome"
+      ? welcomeEmailHtml(unsub)
+      : which === "showcase"
+        ? showcaseEmailHtml(unsub)
+        : briefEditionEmailHtml(unsub, undefined, undefined, { referralUrl: "https://halvinglens.com/?ref=preview" });
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }

@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, AlertCircle } from "lucide-react";
 import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
-import { decideProWaitlist, type ProWaitlistResponseBody, type ProUiState } from "@/lib/proWaitlist";
+import {
+  decideProWaitlist,
+  PRO_SOURCE_BRIEF_FOOTER,
+  PRO_SOURCE_DASHBOARD,
+  PRO_SOURCE_PARAM,
+  type ProWaitlistResponseBody,
+  type ProUiState,
+} from "@/lib/proWaitlist";
 
 // HalvingLens Pro early-access capture (CD2) — a demand-validation seam,
 // not a product. Explicitly a FUTURE feature: no payment, no gating, and
@@ -14,13 +21,26 @@ import { decideProWaitlist, type ProWaitlistResponseBody, type ProUiState } from
 // store via /api/pro-waitlist and joins nothing else. Success renders only
 // on confirmed durable capture; repeat submissions are harmless. The table
 // is the authoritative demand count.
-const SOURCE = "/cycle-dashboard#pro-early-access";
+const SOURCE = PRO_SOURCE_DASHBOARD;
 
 export function ProEarlyAccess() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<ProUiState | "idle">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Arrival from the Daily Brief's Member-footer invitation carries the
+  // non-personal ?pro=brief-footer param — joins then attribute to that
+  // canonical source instead of the dashboard-native one.
+  const [source, setSource] = useState(SOURCE);
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get(PRO_SOURCE_PARAM) === PRO_SOURCE_BRIEF_FOOTER) {
+        setSource(PRO_SOURCE_BRIEF_FOOTER);
+      }
+    } catch {
+      /* keep the dashboard source */
+    }
+  }, []);
 
   const done = state === "success" || state === "existing";
   const error = state === "invalid" || state === "rate_limited" || state === "error" ? message : null;
@@ -41,7 +61,7 @@ export function ProEarlyAccess() {
       const res = await fetch("/api/pro-waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: SOURCE }),
+        body: JSON.stringify({ email, source }),
       });
       status = res.status;
       body = (await res.json().catch(() => null)) as ProWaitlistResponseBody | null;
@@ -49,7 +69,7 @@ export function ProEarlyAccess() {
       status = null;
     }
     const d = decideProWaitlist(status, body);
-    if (d.fireJoin) track("pro_waitlist_join", { source: SOURCE, ...getAttribution() });
+    if (d.fireJoin) track("pro_waitlist_join", { source, ...getAttribution() });
     setState(d.state);
     setMessage(d.message);
     setSubmitting(false);

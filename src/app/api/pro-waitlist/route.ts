@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { rateLimitAll, clientIp } from "@/lib/rateLimit";
 import { normalizeEmail, isValidEmail } from "@/lib/subscribeCore";
+import { PRO_SOURCE_DASHBOARD, PRO_SOURCE_BRIEF_FOOTER } from "@/lib/proWaitlist";
 
 // Pro early-access waitlist capture (CD2) — first-class Pro intent,
 // deliberately SEPARATE from the Daily Brief subscription:
@@ -31,7 +32,7 @@ interface Body {
 // Durable attribution stays trustworthy: only sources this product actually
 // renders may be recorded. Anything else — junk, probes, stale clients —
 // lands as "unknown" rather than polluting the demand dataset.
-const KNOWN_SOURCES = new Set(["/cycle-dashboard#pro-early-access"]);
+const KNOWN_SOURCES = new Set([PRO_SOURCE_DASHBOARD, PRO_SOURCE_BRIEF_FOOTER]);
 
 type StoreResult = "created" | "duplicate" | "unavailable";
 

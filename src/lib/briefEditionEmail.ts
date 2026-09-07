@@ -25,6 +25,7 @@ import { briefEdition, type BriefEdition } from "./briefEdition";
 import type { Development } from "./briefSignificance";
 import { SITE_URL, SITE_HOST } from "./site";
 import { type EmailTracking, NO_EMAIL_TRACKING, forHtmlAttr } from "./emailTracking";
+import { PRO_SOURCE_BRIEF_FOOTER, PRO_SOURCE_PARAM } from "./proWaitlist";
 
 // ── Palette (dark + gold — the house email system) ──────────────────────────
 const C = {
@@ -98,9 +99,34 @@ function developmentCard(d: Development, link: (path: string, label: string) => 
   </a>`;
 }
 
+// ── The Member footer (secondary growth area, founder commission 7 Sep) ────
+//
+// ONE compact, visually subordinate block after the primary CTA: a referral
+// invitation (the recipient's deterministic personal link — a derived code,
+// never a raw email or id) and a Pro early-access invitation to the existing
+// dashboard demand-test surface. Both ride the signed click tracker with the
+// two pinned SECONDARY labels (referral-invite / pro-invite), which the
+// click route excludes from the hlb marker — PR2 stays editorial-only.
+// Rendered only when a recipient referral link exists (i.e. real sends);
+// recipient-less renders (the archive text) carry no member content.
+
+/** The Pro invitation's destination: the existing landing surface, plus the
+ *  non-personal source-carrier param the waitlist form reads. */
+export const PRO_INVITE_PATH = `/cycle-dashboard?${PRO_SOURCE_PARAM}=${PRO_SOURCE_BRIEF_FOOTER}#pro-early-access`;
+
+export interface BriefEditionEmailOpts {
+  /** The recipient's personal referral URL (canonical referralLink(email)). */
+  referralUrl?: string | null;
+}
+
 // ── The email (pure over a payload — day-type fixtures render directly) ────
 
-export function briefEditionEmailHtmlFor(b: BriefEdition, unsubUrl: string, tracking: EmailTracking = NO_EMAIL_TRACKING): string {
+export function briefEditionEmailHtmlFor(
+  b: BriefEdition,
+  unsubUrl: string,
+  tracking: EmailTracking = NO_EMAIL_TRACKING,
+  opts: BriefEditionEmailOpts = {},
+): string {
   const link = (path: string, label: string) => tracking.link(`${SITE_URL}${path}`, label);
   const major = b.dayType === "major_transition";
 
@@ -204,6 +230,21 @@ export function briefEditionEmailHtmlFor(b: BriefEdition, unsubUrl: string, trac
     ),
   );
 
+  // Secondary Member area — quieter than every editorial element and the
+  // gold CTA: small dim type, plain underlined links, no button, no card.
+  if (opts.referralUrl) {
+    rows.push(
+      section(
+        `<div style="border-top:1px solid ${C.hair};padding-top:14px;">
+        <div style="font:600 10px/1.4 ${SANS};letter-spacing:.2em;text-transform:uppercase;color:${C.faint};">Member</div>
+        <div style="font:400 12.5px/1.7 ${SANS};color:${C.dim};margin-top:8px;">Know someone who follows Bitcoin? <a href="${tracking.link(opts.referralUrl, "referral-invite")}" style="color:${C.sub};text-decoration:underline;">Share HalvingLens and unlock member rewards&nbsp;→</a></div>
+        <div style="font:400 12.5px/1.7 ${SANS};color:${C.dim};margin-top:5px;">Want to know when something meaningful changes? <a href="${link(PRO_INVITE_PATH, "pro-invite")}" style="color:${C.sub};text-decoration:underline;">Join the HalvingLens Pro early-access list&nbsp;→</a></div>
+      </div>`,
+        "4px 36px 6px",
+      ),
+    );
+  }
+
   const footer = `
     <div style="font:400 13px/1.6 ${SANS};color:${C.dim};">${esc(b.feedback.line)}</div>
     <div style="font:400 11px/1.7 ${SANS};color:${C.faint};margin-top:14px;">
@@ -241,7 +282,7 @@ ${tracking.openPixel}
 
 // ── Plain-text part — the same hierarchy, no styling ────────────────────────
 
-export function briefEditionTextFor(b: BriefEdition): string {
+export function briefEditionTextFor(b: BriefEdition, opts: BriefEditionEmailOpts = {}): string {
   const L: string[] = [];
   L.push(`HALVINGLENS DAILY BRIEF — ${prettyDate(b.asOf)}`);
   if (b.price) {
@@ -275,6 +316,11 @@ export function briefEditionTextFor(b: BriefEdition): string {
   }
   L.push("");
   L.push(`${b.cta.label} → ${SITE_URL}${b.cta.href}`);
+  if (opts.referralUrl) {
+    L.push("");
+    L.push(`Know someone who follows Bitcoin? Share HalvingLens and unlock member rewards: ${opts.referralUrl}`);
+    L.push(`Want to know when something meaningful changes? Join the HalvingLens Pro early-access list: ${SITE_URL}${PRO_INVITE_PATH}`);
+  }
   L.push("");
   L.push(b.feedback.line);
   L.push("Historical context, not a prediction. Educational analysis, not financial advice.");
@@ -286,9 +332,14 @@ export function briefEditionTextFor(b: BriefEdition): string {
 export function briefEditionSubject(anchor?: string): string {
   return briefEdition(anchor).subject;
 }
-export function briefEditionEmailHtml(unsubUrl: string, tracking: EmailTracking = NO_EMAIL_TRACKING, anchor?: string): string {
-  return briefEditionEmailHtmlFor(briefEdition(anchor), unsubUrl, tracking);
+export function briefEditionEmailHtml(
+  unsubUrl: string,
+  tracking: EmailTracking = NO_EMAIL_TRACKING,
+  anchor?: string,
+  opts: BriefEditionEmailOpts = {},
+): string {
+  return briefEditionEmailHtmlFor(briefEdition(anchor), unsubUrl, tracking, opts);
 }
-export function briefEditionText(anchor?: string): string {
-  return briefEditionTextFor(briefEdition(anchor));
+export function briefEditionText(anchor?: string, opts: BriefEditionEmailOpts = {}): string {
+  return briefEditionTextFor(briefEdition(anchor), opts);
 }

@@ -7,7 +7,7 @@ import { sendEmail, resendConfigured } from "./resend";
 import { roundupGeneral, roundupEmailHtml, roundupEmailSubject, type RoundupPersonal } from "./weeklyRoundup";
 import { streakStats } from "./streak";
 import { referralCountsByCode } from "./referralLeaderboard";
-import { referralCode } from "./referral";
+import { referralCode, REWARD_TIERS } from "./referral";
 import { EARLY_SUPPORTER_LIMIT, displayNamesByCode, type ProfileState } from "./profile";
 import { unsubToken } from "./emailToken";
 import { emailTracking } from "./emailTracking";
@@ -40,7 +40,9 @@ function isoWeekSlug(d: Date): string {
 function achievementTally(longest: number, refs: number, daysActive: number, memberNo: number): number {
   return (
     [7, 30, 100].filter((m) => longest >= m).length +
-    [1, 5, 25].filter((m) => refs >= m).length +
+    // Referral achievements = reward tiers actually unlocked on the CANONICAL
+    // ladder — never a private milestone list that can drift from it.
+    REWARD_TIERS.filter((t) => refs >= t.referrals).length +
     (daysActive >= 1 ? 1 : 0) +
     (memberNo <= EARLY_SUPPORTER_LIMIT ? 1 : 0)
   );

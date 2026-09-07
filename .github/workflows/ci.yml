@@ -132,6 +132,13 @@ jobs:
       - name: Pro-waitlist count tests
         run: npm run test-pro-waitlist-count
 
+      # Member growth footer (7 Sep) — the Pro-waitlist source allowlist and
+      # source-carrier param stay canonical-constant derived, the send path
+      # keeps the ONE referral-link generator, and the weekly roundup can
+      # never again promise a milestone off the canonical reward ladder.
+      - name: Member-growth tests
+        run: npm run test-member-growth
+
       # Admin Hub navigation (navigation-hygiene micro-fix) — every Analytics
       # label routes to a genuine existing destination, anchored links have
       # real targets, the duplicate Behaviour item stays removed, and the

@@ -259,6 +259,10 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
     major_transition: { ...base, dayType: "major_transition" as const, hero: t, supporting: [x], quiet: null, cta: ctaFor("major_transition", t, base.analysed) },
   };
   const tracked = emailTracking("reader@example.com", "daily-2026-08-27-active");
+  // The recipient's canonical personal referral URL (a derived code, no PII) —
+  // real sends compute it via referralLink(email); fixtures pin the contract.
+  const REF_URL = "https://halvinglens.com/?ref=k3x9q2";
+  const memberOpts = { referralUrl: REF_URL };
 
   // The CTA renders once per CLIENT PATH: Outlook (Word engine) sees only
   // the [if mso] table-cell button, every other client only the anchor —
@@ -268,7 +272,7 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
   const nonMsoView = (html: string) => html.replace(/<!--\[if (?:gte )?mso[^\]]*\]>[\s\S]*?<!\[endif\]-->/g, "");
 
   for (const [name, payload] of Object.entries(fixtures)) {
-    const html = briefEditionEmailHtmlFor(payload, "https://halvinglens.com/unsub", tracked);
+    const html = briefEditionEmailHtmlFor(payload, "https://halvinglens.com/unsub", tracked, memberOpts);
     check(`${name}: exactly ONE primary-cta in the normal-client path`, (nonMsoView(html).match(/cta=primary-cta/g) ?? []).length === 1);
     check(`${name}: exactly ONE primary-cta in the Outlook (MSO) path`, (msoView(html).match(/cta=primary-cta/g) ?? []).length === 1);
     check(`${name}: whole state table is one state-table link`, (html.match(/cta=state-table/g) ?? []).length === 1);
@@ -276,18 +280,18 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
     check(`${name}: every link rides the signed first-party tracker (or unsubscribe)`, (html.match(/href="https?:\/\/[^"]*"/g) ?? []).every((h) => /\/api\/email\/click\?/.test(h) || /unsub/.test(h)));
     check(`${name}: no competing secondary 'Explore' links`, !/Explore /.test(html));
     const labels = [...html.matchAll(/cta=([a-z0-9-]+(?:%[0-9A-Fa-f]{2}|[a-z0-9_-])*)/g)].map((m) => decodeURIComponent(m[1]));
-    check(`${name}: attribution labels stay within the approved vocabulary`, labels.every((l) => l === "primary-cta" || l === "hero-card" || l === "state-table" || /^supporting-[a-z0-9_]+$/.test(l)), labels.join(","));
+    check(`${name}: attribution labels stay within the approved vocabulary`, labels.every((l) => l === "primary-cta" || l === "hero-card" || l === "state-table" || l === "referral-invite" || l === "pro-invite" || /^supporting-[a-z0-9_]+$/.test(l)), labels.join(","));
   }
 
-  const activeHtml = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked);
+  const activeHtml = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked, memberOpts);
   check("active: hero renders as a whole clickable card", /cta=hero-card/.test(activeHtml));
   check("active: supporting card labelled by its signal", /cta=supporting-nupl/.test(activeHtml));
-  const quietHtml = briefEditionEmailHtmlFor(fixtures.quiet, "https://halvinglens.com/unsub", tracked);
+  const quietHtml = briefEditionEmailHtmlFor(fixtures.quiet, "https://halvinglens.com/unsub", tracked, memberOpts);
   check("quiet: no hero card, markedly shorter edition", !/cta=hero-card/.test(quietHtml) && quietHtml.length < activeHtml.length);
   check("quiet: BTC price line remains", base.price == null || /BTC \$/.test(quietHtml));
   check("quiet: state of the cycle remains", /State of the cycle/i.test(quietHtml));
 
-  const majorHtml = briefEditionEmailHtmlFor(fixtures.major_transition, "https://halvinglens.com/unsub", tracked);
+  const majorHtml = briefEditionEmailHtmlFor(fixtures.major_transition, "https://halvinglens.com/unsub", tracked, memberOpts);
   check("major: the transition leads the hero treatment", /NUPL entered Optimism/.test(majorHtml));
 
   const text = briefEditionTextFor(fixtures.active);
@@ -299,7 +303,7 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
   // and the one-width / one-CTA-per-path contract — from ever drifting.
   console.log("5b · Outlook desktop compatibility envelope");
   {
-    const html = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked);
+    const html = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked, memberOpts);
     check("MSO namespaces declared on <html>", /<html [^>]*xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"/.test(html));
     check("PixelsPerInch=96 DPI correction present for Outlook", /<!--\[if gte mso 9\]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96<\/o:PixelsPerInch><\/o:OfficeDocumentSettings><\/xml><!\[endif\]-->/.test(html));
     check(
@@ -330,6 +334,53 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
     check("normal CTA carries the identical generated label", nonMsoView(html).includes(ctaLabel));
     check("MSO CTA is the padded gold table cell, not VML", /<td bgcolor="#d9b96a" style="padding:17px 30px;">/.test(msoView(html)) && !/<v:/.test(html));
     check("normal-client CTA rendering is unchanged (anchor button)", /<!--\[if !mso\]><!--><a href="[^"]+" style="display:inline-block;background:#d9b96a;/.test(html));
+  }
+
+  // ── 5c · Member growth footer (founder commission, 7 Sep) ────────────────
+  // ONE compact secondary area after the primary CTA: a referral invitation
+  // (personal derived-code link, no PII) and a Pro early-access invitation.
+  // Subordinate by construction; secondary labels pinned; PR2 untouched.
+  console.log("5c · Member growth footer");
+  {
+    const decodedTarget = (html: string, label: string): string | null => {
+      const m = html.match(new RegExp(`href="([^"]*cta=${label}[^"]*)"`));
+      if (!m) return null;
+      const u = new URL(m[1].replace(/&amp;/g, "&")).searchParams.get("u");
+      return u ? decodeURIComponent(u) : null;
+    };
+
+    for (const [name, payload] of Object.entries(fixtures)) {
+      const html = briefEditionEmailHtmlFor(payload, "https://halvinglens.com/unsub", tracked, memberOpts);
+      check(`${name}: Member area present with exactly one referral-invite`, (html.match(/cta=referral-invite/g) ?? []).length === 1);
+      check(`${name}: Member area present with exactly one pro-invite`, (html.match(/cta=pro-invite/g) ?? []).length === 1);
+      check(`${name}: Member area sits AFTER the primary analytical CTA`, html.indexOf("cta=primary-cta") < html.indexOf("cta=referral-invite"));
+    }
+
+    const html = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked, memberOpts);
+    const memberBlock = html.slice(html.indexOf(">Member<"), html.indexOf("cta=pro-invite") + 2000);
+    check("member area is visually subordinate: no gold button, no card, small dim type", !memberBlock.includes("background:#d9b96a") && !memberBlock.includes("bgcolor=") && /font:400 12\.5px/.test(memberBlock) && !/font:[^"]*(1[5-9]|[2-9]\d)px/.test(memberBlock));
+    check("referral copy is the approved wording", html.includes("Know someone who follows Bitcoin?") && html.includes("Share HalvingLens and unlock member rewards"));
+    check("Pro copy is the approved wording (no unbuilt features enumerated)", html.includes("Want to know when something meaningful changes?") && html.includes("Join the HalvingLens Pro early-access list") && !/alert|watchlist/i.test(memberBlock));
+
+    const refDest = decodedTarget(html, "referral-invite");
+    check("referral destination is the canonical personal referral URL", refDest === REF_URL, String(refDest));
+    check("referral destination carries NO raw email/identity", refDest != null && !refDest.includes("@") && !refDest.includes("reader"));
+    const proDest = decodedTarget(html, "pro-invite");
+    check(
+      "Pro destination is the existing landing surface with the brief-footer source carrier",
+      proDest === "https://halvinglens.com/cycle-dashboard?pro=brief-footer#pro-early-access",
+      String(proDest),
+    );
+
+    const src = readFileSync("src/lib/briefEditionEmail.ts", "utf8");
+    check("Pro source/param come from the canonical proWaitlist constants", /PRO_SOURCE_BRIEF_FOOTER/.test(src) && /PRO_SOURCE_PARAM/.test(src) && !/"brief-footer"/.test(src.replace(/\/\/[^\n]*/g, "")));
+
+    const textWith = briefEditionTextFor(fixtures.active, memberOpts);
+    check("plain-text part mirrors both member lines", textWith.includes(REF_URL) && textWith.includes("/cycle-dashboard?pro=brief-footer#pro-early-access"));
+    const textWithout = briefEditionTextFor(fixtures.active);
+    check("recipient-less renders (the archive text) carry NO member content", !/member rewards|early-access list/.test(textWithout));
+    const htmlWithout = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked);
+    check("recipient-less HTML renders no member area", !/cta=referral-invite|cta=pro-invite/.test(htmlWithout));
   }
 }
 
