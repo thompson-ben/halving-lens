@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-09-17",
+    "subject": "A quiet day for the 15 monitored readings",
+    "activity": "active",
+    "storyKind": "quiet",
+    "text": "HALVINGLENS DAILY BRIEF — 17 Sep 2026\nBTC $76,082 · +0.6% since yesterday's 08:00 London snapshot\n\nTHE VERDICT: Little changed across the 15 monitored readings today. Holder paper profits are building while value conditions persist.\n12 of 15 monitored readings held within their own ordinary 7-day ranges — 3 moved materially.\n\nA QUIET DAY: No reading crossed a state boundary, made a top-5% move for its own record, or extended a notable streak today.\nStable readings are information: every standing state below keeps counting, and the day's calm is measured against each reading's own history, not a feeling.\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 34/100 · weekly · since 4 Jul 2026\n· Sentiment: Neutral · 50/100 · since 16 Sep 2026\n· ETF demand: 2-day outflow streak · −$1.05B over 7 trading days · as of 16 Sep 2026\n\nSee all 15 signals holding steady → https://halvinglens.com/cycle-dashboard#dashboard-market-board\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-edition-v1"
+  },
+  {
     "slug": "2026-09-16",
     "subject": "A top-5% move in Fear & Greed",
     "activity": "active",
