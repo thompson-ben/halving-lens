@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-09-19",
+    "subject": "A top-5% move in Fear & Greed",
+    "activity": "active",
+    "storyKind": "historical_extreme",
+    "text": "HALVINGLENS DAILY BRIEF — 19 Sep 2026\nBTC $80,944 · +6.0% since yesterday's 08:00 London snapshot\n\nTHE VERDICT: Fear & Greed just made a top-5% 24h move for its own record. Crowd enthusiasm is heating up while the accumulation window remains open.\n12 of 15 monitored readings held within their own ordinary 7-day ranges — 3 moved materially.\n\nA TOP-5% MOVE FOR ITS OWN RECORD: Fear & Greed just made a top-5% 24h move for its own record.\n+15 points — Larger than 96% of 24-hour moves · 3,148 observations since Feb 2018.\nOne of the largest 24-hour moves in its observed record.\nNow 71 · Greed.\nWindow: 24h · as of 19 Sep 2026\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 34/100 · weekly · since 4 Jul 2026\n· Sentiment: Greed · 71/100 · since 18 Sep 2026\n· ETF demand: 2-day inflow streak · −$289.63M over 7 trading days · as of 18 Sep 2026\n\nSee Fear & Greed in full context → https://halvinglens.com/cycle-dashboard#dashboard-market-board\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-edition-v1"
+  },
+  {
     "slug": "2026-09-18",
     "subject": "Crowd enthusiasm is heating up while the accumulation window remains open",
     "activity": "mostly_quiet",
