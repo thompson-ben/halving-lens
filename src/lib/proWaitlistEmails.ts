@@ -22,7 +22,7 @@
 //     overlapping.
 
 import { sendEmail, resendConfigured } from "./resend";
-import { sbSelect, sbInsert } from "./supabase";
+import { sbSelect, sbDelete } from "./supabase";
 
 export type ProWaitlistEmailKind = "confirmation" | "feedback";
 
@@ -92,6 +92,13 @@ export function proEmailContent(kind: ProWaitlistEmailKind): ProEmailContent {
 
 // ── Send log (pro_waitlist_emails — the once-per-person-per-kind authority) ─
 
+/** The date the confirmation flow shipped — members who joined on/after this
+ *  but hold no confirmation row were MISSED (schema not yet applied, or a
+ *  send failure) and must be reported, never silently lost. */
+export const PRO_FEEDBACK_FLOW_LIVE_FROM = "2026-09-20";
+
+/** Read-only view of the log — used for REPORTING (eligibility lists).
+ *  Duplicate SAFETY never relies on this: that is the claim's job below. */
 export async function hasProEmail(email: string, kind: ProWaitlistEmailKind): Promise<boolean | null> {
   const rows = await sbSelect<{ id: number }[]>(
     `pro_waitlist_emails?select=id&email=ilike.${encodeURIComponent(email)}&kind=eq.${kind}&limit=1`,
@@ -100,24 +107,62 @@ export async function hasProEmail(email: string, kind: ProWaitlistEmailKind): Pr
   return rows.length > 0;
 }
 
+// ── The atomic claim (AT-MOST-ONCE, arbitrated by the database) ─────────────
+//
+// The log row is written BEFORE the send, as a CLAIM: the unique index on
+// (lower(email), kind) makes exactly one concurrent claimant win — the loser
+// sees a 409 and sends nothing. sbInsert deliberately treats 409 as success,
+// so the claim uses its own conflict-aware insert. Ordering guarantee: a
+// successful send can never lose its record (the record already exists), so
+// "Resend accepted but recording failed" is impossible by construction. If
+// the send itself fails, the claim is RELEASED so a retry can re-claim; if
+// even the release fails, the claim stays (retries blocked = no duplicate —
+// always the safe direction) and the stuck state is reported loudly.
+
+type ClaimResult = "claimed" | "already" | "unavailable";
+
+async function claimSend(email: string, kind: ProWaitlistEmailKind): Promise<ClaimResult> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return "unavailable";
+  try {
+    const res = await fetch(`${url}/rest/v1/pro_waitlist_emails`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ email: email.toLowerCase(), kind, sent_at: new Date().toISOString() }),
+    });
+    if (res.status === 409) return "already"; // someone (or an earlier run) holds the claim
+    if (res.ok) return "claimed";
+    return "unavailable"; // schema missing / store down — nothing may send
+  } catch {
+    return "unavailable";
+  }
+}
+
+async function releaseClaim(email: string, kind: ProWaitlistEmailKind): Promise<boolean> {
+  return sbDelete("pro_waitlist_emails", `email=eq.${encodeURIComponent(email.toLowerCase())}&kind=eq.${kind}`);
+}
+
 export interface ProEmailSendResult {
-  outcome: "sent" | "already_sent" | "skipped_unconfigured" | "skipped_unverifiable" | "send_failed" | "record_failed";
+  outcome: "sent" | "already_sent" | "skipped_unconfigured" | "skipped_unverifiable" | "send_failed" | "send_failed_claim_stuck";
   error?: string;
 }
 
-/** Send one kind to one member, at most once ever. Fails SAFE on every edge:
- *  if the send log cannot be read, nothing is sent (better a missed email
- *  than a duplicate); if recording fails after a successful send, that is
- *  reported loudly so it can be reconciled before any re-run. */
+/** Send one kind to one member, AT MOST ONCE EVER — concurrency-safe:
+ *  claim (atomic unique insert) → send → on send failure, release the claim.
+ *  Every failure biases toward a missed email (identifiable, retryable),
+ *  never a duplicate. */
 export async function sendProWaitlistEmail(email: string, kind: ProWaitlistEmailKind): Promise<ProEmailSendResult> {
   const replyTo = proReplyTo();
   if (!resendConfigured || !replyTo) return { outcome: "skipped_unconfigured" };
-  const already = await hasProEmail(email, kind);
-  if (already == null) return { outcome: "skipped_unverifiable" };
-  if (already) return { outcome: "already_sent" };
+  const claim = await claimSend(email, kind);
+  if (claim === "already") return { outcome: "already_sent" };
+  if (claim === "unavailable") return { outcome: "skipped_unverifiable" };
   const c = proEmailContent(kind);
   const res = await sendEmail({ to: email, subject: c.subject, html: c.html, text: c.text, replyTo });
-  if (!res.ok) return { outcome: "send_failed", error: res.error };
-  const recorded = await sbInsert("pro_waitlist_emails", { email: email.toLowerCase(), kind, sent_at: new Date().toISOString() });
-  return recorded ? { outcome: "sent" } : { outcome: "record_failed" };
+  if (res.ok) return { outcome: "sent" };
+  const released = await releaseClaim(email, kind);
+  return released
+    ? { outcome: "send_failed", error: res.error } // claim released — eligible again on retry
+    : { outcome: "send_failed_claim_stuck", error: res.error }; // no duplicate possible; reconcile the row before retrying
 }

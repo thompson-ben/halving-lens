@@ -129,7 +129,18 @@ console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
   if (prevFounder != null) process.env.FOUNDER_EMAIL = prevFounder;
 
   const lib = strip(readFileSync("src/lib/proWaitlistEmails.ts", "utf8"));
-  check("send checks the once-ever log BEFORE sending, and fails safe when unreadable", /hasProEmail\(email, kind\)/.test(lib) && /skipped_unverifiable/.test(lib) && /already_sent/.test(lib));
+  // AT-MOST-ONCE by construction (founder review, 20 Sep): the log row is an
+  // ATOMIC CLAIM written before the send — concurrent executions are
+  // arbitrated by the unique index (409 loses), and a successful send can
+  // never lose its record because the record precedes it. A failed send
+  // releases the claim (retryable); a stuck claim blocks retries — no
+  // duplicate is possible in any failure ordering.
+  const sendFn = lib.slice(lib.indexOf("export async function sendProWaitlistEmail"));
+  check("the claim PRECEDES the send — a successful send can never lose its record", sendFn.indexOf("await claimSend(") > 0 && sendFn.indexOf("await claimSend(") < sendFn.indexOf("await sendEmail("));
+  check("the claim is conflict-aware (409 = someone else holds it, send nothing)", /status === 409/.test(lib) && /"already"/.test(lib));
+  check("an unavailable store means nothing sends (fail safe)", /skipped_unverifiable/.test(lib) && sendFn.includes('claim === "unavailable"'));
+  check("a failed send RELEASES the claim so a retry can re-claim", /releaseClaim\(email, kind\)/.test(sendFn) && /sbDelete\("pro_waitlist_emails"/.test(lib));
+  check("a stuck claim is loud and blocks retries in the safe direction", /send_failed_claim_stuck/.test(sendFn));
   check("Reply-To wired on the actual send", /replyTo/.test(lib) && /sendEmail\(\{ to: email, subject: c\.subject, html: c\.html, text: c\.text, replyTo \}\)/.test(lib));
 
   const schema = readFileSync("supabase/pro_waitlist_emails.sql", "utf8");
@@ -151,6 +162,7 @@ console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
   check("one-off excludes BOTH kinds — flows can never overlap", script.includes('hasProEmail(email, "feedback")') && script.includes('hasProEmail(email, "confirmation")'));
   check("one-off honours suppression (unsubscribed Brief subscribers skipped)", /status=eq\.unsubscribed/.test(script));
   check("one-off fails safe when the send log is unreadable", /fail safe, skipped/.test(script) || /skipped_unverifiable/.test(script));
+  check("missed confirmations are reported, never silently lost", /PRO_FEEDBACK_FLOW_LIVE_FROM/.test(script) && /MISSED CONFIRMATIONS/.test(script));
   check("real send is double-gated (MODE=send + CONFIRM_SEND=SEND)", /CONFIRM_SEND !== "SEND"/.test(script) && /MODE !== "send"/.test(script));
   check("a founder-inbox test mode exists before any real send", /MODE === "test"/.test(script) && /\[TEST\] /.test(script));
   check("recipient addresses are masked in job logs", /const mask = /.test(script) && !/\$\{m\.email\}/.test(script) && !/\$\{x\.email\}/.test(script));

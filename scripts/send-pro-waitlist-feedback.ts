@@ -25,6 +25,7 @@ import { sbSelect } from "../src/lib/supabase";
 import { resendConfigured, sendEmail } from "../src/lib/resend";
 import {
   hasProEmail,
+  PRO_FEEDBACK_FLOW_LIVE_FROM,
   proConfirmationEmail,
   proFeedbackEmail,
   proReplyTo,
@@ -114,6 +115,16 @@ async function main(): Promise<void> {
   console.log(`[feedback] waitlist total: ${eligible.length + excluded.length}`);
   console.log(`[feedback] ELIGIBLE for the one-off feedback email: ${eligible.length}`);
   for (const m of eligible) console.log(`  · ${mask(m.email)} (joined ${m.created_at.slice(0, 10)}, source ${m.source})`);
+  // Members who joined AFTER the confirmation flow shipped but hold no
+  // confirmation row were MISSED (schema not yet applied, or a send
+  // failure). Never silently lost: they are reported here explicitly, and
+  // the one-off founder note is their remediation — it asks the fuller
+  // questions and its claim permanently prevents any double-ask.
+  const missed = eligible.filter((m) => m.created_at.slice(0, 10) >= PRO_FEEDBACK_FLOW_LIVE_FROM);
+  if (missed.length > 0) {
+    console.log(`[feedback] of which MISSED CONFIRMATIONS (joined on/after ${PRO_FEEDBACK_FLOW_LIVE_FROM}, none recorded): ${missed.length}`);
+    for (const m of missed) console.log(`  · ${mask(m.email)} (joined ${m.created_at.slice(0, 10)}) — will receive the founder note instead`);
+  }
   console.log(`[feedback] excluded: ${excluded.length}`);
   for (const x of excluded) console.log(`  · ${mask(x.email)} — ${x.reason}`);
 
