@@ -116,11 +116,21 @@ if (PRICE_ARCHIVE.length > 1000) {
     assert(r.steady.every((m) => m.significance < MATERIAL_SIGNIFICANCE) && r.movements.every((m) => m.significance >= MATERIAL_SIGNIFICANCE), `${period}d: the material threshold splits movers from steady readings`);
   }
 
-  // Short-history metric: Market Health ranks but makes no rarity claim.
+  // Market Health's young archive grows one real observation per sync, so
+  // WHERE it sits against the rarity floor is a fact of the data, not of
+  // this suite: it genuinely crossed RARITY_MIN_OBSERVATIONS in Sep 2026.
+  // The pinned contract is the HONESTY RULE on both sides of the floor —
+  // below it, no claim ever escapes; at/above it, a real percentile with a
+  // real count — never a frozen assumption about which side today is on.
   const health = [...marketMovers(7).movements, ...marketMovers(7).steady].find((m) => m.metricId === "market_health");
-  assert(health != null && !health.rarityClaimAllowed && health.rarityPercentile === null, "Market Health ranks but withholds any rarity claim — its archive is below the floor");
-  assert(health!.observations < RARITY_MIN_OBSERVATIONS, `Market Health's short history is real (n=${health!.observations}), not assumed`);
-  assert(health!.rarityState === "maturing" && health!.observations > 0, "Market Health reads as MATURING with real observations — never as 'comparison unavailable'");
+  assert(health != null && health.observations > 0, "Market Health carries a real observation count, not an assumed one");
+  if (health!.observations < RARITY_MIN_OBSERVATIONS) {
+    assert(!health!.rarityClaimAllowed && health!.rarityPercentile === null, "below the floor, Market Health ranks but withholds any rarity claim");
+    assert(health!.rarityState === "maturing", "below the floor with real observations, Market Health reads as MATURING — never 'comparison unavailable'");
+  } else {
+    assert(health!.rarityState === "available" && health!.rarityClaimAllowed, `at/above the floor (n=${health!.observations} ≥ ${RARITY_MIN_OBSERVATIONS}), Market Health's matured history earns a genuine rarity claim`);
+    assert(health!.rarityPercentile != null && health!.rarityPercentile >= 0 && health!.rarityPercentile <= 100, "…and the exposed percentile is a real 0–100 value");
+  }
   assert(health!.current != null && health!.previous != null && health!.state != null, "…while still carrying value, previous value and band so it ranks and renders fully");
 
   // ETF flows: a genuine claim, but always with its short window attached.
