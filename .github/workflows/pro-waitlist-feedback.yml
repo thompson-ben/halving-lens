@@ -55,3 +55,4 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           FOUNDER_EMAIL: ${{ secrets.FOUNDER_EMAIL }}
+          PRO_REPLY_TO_EMAIL: ${{ secrets.PRO_REPLY_TO_EMAIL }}

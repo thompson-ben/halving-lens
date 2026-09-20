@@ -10,10 +10,13 @@
 //     the confirmation flow existed, sent by the dispatch-only workflow.
 //
 // Contracts (CI-pinned in test-member-growth):
-//   · Reply-To is the founder's monitored inbox — the EXISTING configuration
-//     (the FOUNDER_EMAIL secret, the same address every founder-facing send
-//     already uses). Without it, nothing sends: a reply-first email with a
-//     broken reply path must never go out.
+//   · Reply-To is the PUBLIC HalvingLens founder address — its own dedicated
+//     PRO_REPLY_TO_EMAIL configuration (ben@halvinglens.com), kept separate
+//     from FOUNDER_EMAIL, which stays internal-only (notifications and test
+//     recipients). There is deliberately NO fallback: without the public
+//     address configured, nothing sends — a reply-first email must never go
+//     out with a broken reply path, and the internal business address must
+//     never be exposed to subscribers.
 //   · No prices, no alert/feature pitching — these emails LISTEN, they do
 //     not steer (the founder's explicit rule).
 //   · Once per person per kind, ever: the pro_waitlist_emails log (unique on
@@ -26,9 +29,10 @@ import { sbSelect, sbDelete } from "./supabase";
 
 export type ProWaitlistEmailKind = "confirmation" | "feedback";
 
-/** The founder's monitored inbox — the existing FOUNDER_EMAIL configuration. */
+/** The PUBLIC reply address for waitlist conversations (PRO_REPLY_TO_EMAIL,
+ *  ben@halvinglens.com). NEVER falls back to any other address. */
 export function proReplyTo(): string | null {
-  const v = (process.env.FOUNDER_EMAIL || "").trim().toLowerCase();
+  const v = (process.env.PRO_REPLY_TO_EMAIL || "").trim().toLowerCase();
   return v || null;
 }
 
