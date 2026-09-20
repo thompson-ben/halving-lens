@@ -89,10 +89,15 @@ async function main(): Promise<void> {
   console.log(`[feedback] mode=${MODE}`);
 
   if (MODE === "test") {
+    // Recipient = the INTERNAL founder inbox (FOUNDER_EMAIL); Reply-To = the
+    // PUBLIC address (PRO_REPLY_TO_EMAIL), exactly as production sends it —
+    // so the test verifies the real reply routing, and refuses rather than
+    // ever exposing an internal address.
     const to = (process.env.FOUNDER_EMAIL || "").trim().toLowerCase();
-    if (!to) throw new Error("test mode needs FOUNDER_EMAIL");
+    if (!to) throw new Error("test mode needs FOUNDER_EMAIL (the internal test recipient)");
     if (!resendConfigured) throw new Error("test mode needs RESEND_API_KEY");
-    const replyTo = proReplyTo()!;
+    const replyTo = proReplyTo();
+    if (!replyTo) throw new Error("test mode needs PRO_REPLY_TO_EMAIL (the public reply address) — no fallback");
     for (const [name, c] of [
       ["feedback", proFeedbackEmail()],
       ["confirmation", proConfirmationEmail()],
@@ -138,7 +143,7 @@ async function main(): Promise<void> {
     return;
   }
   if (!resendConfigured || !proReplyTo()) {
-    console.error("[feedback] send needs RESEND_API_KEY and FOUNDER_EMAIL (the Reply-To) — refusing.");
+    console.error("[feedback] send needs RESEND_API_KEY and PRO_REPLY_TO_EMAIL (the public Reply-To) — refusing.");
     process.exitCode = 1;
     return;
   }

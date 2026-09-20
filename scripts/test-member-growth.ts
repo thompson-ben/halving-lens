@@ -119,14 +119,23 @@ console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
     check(`${name}: personal presentation — not the house dark template`, !c.html.includes("#0a0c10") && !/table role="presentation" width="600"/.test(c.html));
   }
 
+  // Public/internal reply split (founder decision, 20 Sep): subscriber
+  // conversations use the DEDICATED public address (PRO_REPLY_TO_EMAIL,
+  // ben@halvinglens.com); FOUNDER_EMAIL stays internal-only (notifications
+  // and test recipients) and must NEVER leak into a subscriber Reply-To.
+  const prevPublic = process.env.PRO_REPLY_TO_EMAIL;
   const prevFounder = process.env.FOUNDER_EMAIL;
-  process.env.FOUNDER_EMAIL = "Founder@Example.com ";
-  check("Reply-To comes from the EXISTING FOUNDER_EMAIL configuration (normalised)", proReplyTo() === "founder@example.com");
-  delete process.env.FOUNDER_EMAIL;
-  check("no monitored inbox configured → no Reply-To", proReplyTo() == null);
+  process.env.PRO_REPLY_TO_EMAIL = "Ben@HalvingLens.com ";
+  check("Reply-To comes from the dedicated PUBLIC configuration (normalised)", proReplyTo() === "ben@halvinglens.com");
+  delete process.env.PRO_REPLY_TO_EMAIL;
+  process.env.FOUNDER_EMAIL = "internal@example.com";
+  check("FOUNDER_EMAIL alone yields NO Reply-To — no fallback can expose the internal address", proReplyTo() == null);
   const unconfigured = await sendProWaitlistEmail("reader@example.com", "feedback");
-  check("reply-first email never sends without the monitored Reply-To (fail safe)", unconfigured.outcome === "skipped_unconfigured");
+  check("reply-first email never sends without the public Reply-To (fail safe)", unconfigured.outcome === "skipped_unconfigured");
+  delete process.env.FOUNDER_EMAIL;
+  if (prevPublic != null) process.env.PRO_REPLY_TO_EMAIL = prevPublic;
   if (prevFounder != null) process.env.FOUNDER_EMAIL = prevFounder;
+  check("the email module never references the internal FOUNDER_EMAIL at all", !/FOUNDER_EMAIL/.test(strip(readFileSync("src/lib/proWaitlistEmails.ts", "utf8"))));
 
   const lib = strip(readFileSync("src/lib/proWaitlistEmails.ts", "utf8"));
   // AT-MOST-ONCE by construction (founder review, 20 Sep): the log row is an
@@ -165,6 +174,9 @@ console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
   check("missed confirmations are reported, never silently lost", /PRO_FEEDBACK_FLOW_LIVE_FROM/.test(script) && /MISSED CONFIRMATIONS/.test(script));
   check("real send is double-gated (MODE=send + CONFIRM_SEND=SEND)", /CONFIRM_SEND !== "SEND"/.test(script) && /MODE !== "send"/.test(script));
   check("a founder-inbox test mode exists before any real send", /MODE === "test"/.test(script) && /\[TEST\] /.test(script));
+  check("test recipient is the INTERNAL inbox; test Reply-To is the PUBLIC address, required with no fallback", /FOUNDER_EMAIL \(the internal test recipient\)/.test(script) && /PRO_REPLY_TO_EMAIL \(the public reply address\) — no fallback/.test(script));
+  const wf2 = readFileSync(".github/workflows/pro-waitlist-feedback.yml", "utf8");
+  check("workflow supplies the public reply secret", /PRO_REPLY_TO_EMAIL: \$\{\{ secrets\.PRO_REPLY_TO_EMAIL \}\}/.test(wf2));
   check("recipient addresses are masked in job logs", /const mask = /.test(script) && !/\$\{m\.email\}/.test(script) && !/\$\{x\.email\}/.test(script));
 
   const wf = readFileSync(".github/workflows/pro-waitlist-feedback.yml", "utf8");
