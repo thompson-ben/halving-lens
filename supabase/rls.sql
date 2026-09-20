@@ -29,6 +29,7 @@ alter table public.profiles                 enable row level security;
 alter table public.profile_otps             enable row level security;
 alter table public.brief_subscribers        enable row level security;
 alter table public.pro_waitlist             enable row level security;
+alter table public.pro_waitlist_emails      enable row level security;
 
 -- Rate limiting --------------------------------------------------------------
 alter table public.rate_limits              enable row level security;

@@ -14,6 +14,7 @@
 
 import { readFileSync } from "node:fs";
 import { PRO_SOURCE_BRIEF_FOOTER, PRO_SOURCE_DASHBOARD, PRO_SOURCE_PARAM } from "../src/lib/proWaitlist";
+import { proFeedbackEmail, proConfirmationEmail, proReplyTo, sendProWaitlistEmail } from "../src/lib/proWaitlistEmails";
 import { REWARD_TIERS, nextReward, referralLink, referralCode } from "../src/lib/referral";
 import { progressLine, type RoundupPersonal } from "../src/lib/weeklyRoundup";
 
@@ -92,8 +93,86 @@ console.log("4 · Reward ladder untouched (commission hold)");
   check("no paid-Pro/months/discount promises introduced", !/free month|discount|paid Pro|lifetime Pro/i.test(ref));
 }
 
-if (failures > 0) {
-  console.error(`\n${failures} check(s) failed`);
-  process.exit(1);
-}
-console.log("\nAll member-growth checks passed");
+console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
+(async () => {
+  const fb = proFeedbackEmail();
+  check("feedback subject is the approved copy", fb.subject === "A quick question about HalvingLens Pro");
+  check(
+    "feedback body carries the founder's three questions verbatim",
+    fb.text.includes("Ben here, founder of HalvingLens. Thanks for joining the Pro waitlist.") &&
+      fb.text.includes("1. What caught your attention enough to join the waitlist?") &&
+      fb.text.includes("which tools or sources did you use?") &&
+      fb.text.includes("3. What was frustrating or missing from that experience?") &&
+      fb.text.includes("Just hit reply—even a quick answer to one question would be helpful."),
+  );
+  const cf = proConfirmationEmail();
+  check("confirmation subject is the approved copy", cf.subject === "You’re on the HalvingLens Pro waitlist");
+  check(
+    "confirmation body asks the one open question verbatim",
+    cf.text.includes("I’ll email you when there’s an update on availability and what’s included.") &&
+      cf.text.includes("One quick question: what are you hoping Pro will help you with?") &&
+      cf.text.includes("Just hit reply—I’d appreciate hearing what matters most to you"),
+  );
+  for (const [name, c] of [["feedback", fb], ["confirmation", cf]] as const) {
+    check(`${name}: listens, never steers — no price or feature pitch`, !/£|\$\d|price|alert|watchlist|discount|per month|\/month/i.test(c.text + c.subject));
+    check(`${name}: HTML mirrors the plain-text words`, ["Just hit reply", "Founder, HalvingLens"].every((s) => c.html.includes(s)));
+    check(`${name}: personal presentation — not the house dark template`, !c.html.includes("#0a0c10") && !/table role="presentation" width="600"/.test(c.html));
+  }
+
+  const prevFounder = process.env.FOUNDER_EMAIL;
+  process.env.FOUNDER_EMAIL = "Founder@Example.com ";
+  check("Reply-To comes from the EXISTING FOUNDER_EMAIL configuration (normalised)", proReplyTo() === "founder@example.com");
+  delete process.env.FOUNDER_EMAIL;
+  check("no monitored inbox configured → no Reply-To", proReplyTo() == null);
+  const unconfigured = await sendProWaitlistEmail("reader@example.com", "feedback");
+  check("reply-first email never sends without the monitored Reply-To (fail safe)", unconfigured.outcome === "skipped_unconfigured");
+  if (prevFounder != null) process.env.FOUNDER_EMAIL = prevFounder;
+
+  const lib = strip(readFileSync("src/lib/proWaitlistEmails.ts", "utf8"));
+  // AT-MOST-ONCE by construction (founder review, 20 Sep): the log row is an
+  // ATOMIC CLAIM written before the send — concurrent executions are
+  // arbitrated by the unique index (409 loses), and a successful send can
+  // never lose its record because the record precedes it. A failed send
+  // releases the claim (retryable); a stuck claim blocks retries — no
+  // duplicate is possible in any failure ordering.
+  const sendFn = lib.slice(lib.indexOf("export async function sendProWaitlistEmail"));
+  check("the claim PRECEDES the send — a successful send can never lose its record", sendFn.indexOf("await claimSend(") > 0 && sendFn.indexOf("await claimSend(") < sendFn.indexOf("await sendEmail("));
+  check("the claim is conflict-aware (409 = someone else holds it, send nothing)", /status === 409/.test(lib) && /"already"/.test(lib));
+  check("an unavailable store means nothing sends (fail safe)", /skipped_unverifiable/.test(lib) && sendFn.includes('claim === "unavailable"'));
+  check("a failed send RELEASES the claim so a retry can re-claim", /releaseClaim\(email, kind\)/.test(sendFn) && /sbDelete\("pro_waitlist_emails"/.test(lib));
+  check("a stuck claim is loud and blocks retries in the safe direction", /send_failed_claim_stuck/.test(sendFn));
+  check("Reply-To wired on the actual send", /replyTo/.test(lib) && /sendEmail\(\{ to: email, subject: c\.subject, html: c\.html, text: c\.text, replyTo \}\)/.test(lib));
+
+  const schema = readFileSync("supabase/pro_waitlist_emails.sql", "utf8");
+  check("send log is once-per-person-per-kind by schema", /create unique index if not exists pro_waitlist_emails_email_kind_idx\s*\n\s*on public\.pro_waitlist_emails \(lower\(email\), kind\)/.test(schema));
+  check("send log locked down (RLS), and listed in the consolidated rls.sql", /alter table public\.pro_waitlist_emails enable row level security/.test(schema) && /public\.pro_waitlist_emails\s+enable row level security/.test(readFileSync("supabase/rls.sql", "utf8")));
+
+  const route = strip(readFileSync("src/app/api/pro-waitlist/route.ts", "utf8"));
+  const createdBranch = route.slice(route.indexOf('if (stored === "created")'), route.indexOf('if (stored === "duplicate")'));
+  check("confirmation fires ONLY on a first successful join (the created branch)", createdBranch.includes('sendProWaitlistEmail(email, "confirmation")') && (route.match(/await sendProWaitlistEmail/g) ?? []).length === 1);
+  check("capture first: the join is durable before any email is attempted", route.indexOf("await storeInterest(") < route.indexOf("await sendProWaitlistEmail"));
+  check("a failed confirmation can never change the join response", /try \{\s*await sendProWaitlistEmail/.test(route) && createdBranch.includes('outcome: "created"'));
+  check("duplicate submissions still return existing with NO email", !route.slice(route.indexOf('if (stored === "duplicate")')).includes("sendProWaitlistEmail"));
+
+  const form = strip(readFileSync("src/components/lens/ProEarlyAccess.tsx", "utf8"));
+  check("signup friction unchanged — still exactly one (email) field", (form.match(/<input/g) ?? []).length === 1 && /type="email"/.test(form));
+  check("seam small print no longer promises a single email (confirmation now exists)", !/email\s+you once/.test(form) && /confirm\s+your place by email/.test(form));
+
+  const script = strip(readFileSync("scripts/send-pro-waitlist-feedback.ts", "utf8"));
+  check("one-off excludes BOTH kinds — flows can never overlap", script.includes('hasProEmail(email, "feedback")') && script.includes('hasProEmail(email, "confirmation")'));
+  check("one-off honours suppression (unsubscribed Brief subscribers skipped)", /status=eq\.unsubscribed/.test(script));
+  check("one-off fails safe when the send log is unreadable", /fail safe, skipped/.test(script) || /skipped_unverifiable/.test(script));
+  check("missed confirmations are reported, never silently lost", /PRO_FEEDBACK_FLOW_LIVE_FROM/.test(script) && /MISSED CONFIRMATIONS/.test(script));
+  check("real send is double-gated (MODE=send + CONFIRM_SEND=SEND)", /CONFIRM_SEND !== "SEND"/.test(script) && /MODE !== "send"/.test(script));
+  check("a founder-inbox test mode exists before any real send", /MODE === "test"/.test(script) && /\[TEST\] /.test(script));
+  check("recipient addresses are masked in job logs", /const mask = /.test(script) && !/\$\{m\.email\}/.test(script) && !/\$\{x\.email\}/.test(script));
+
+  const wf = readFileSync(".github/workflows/pro-waitlist-feedback.yml", "utf8");
+  check("workflow is dispatch-only with the confirm gate", /workflow_dispatch/.test(wf) && !/^\s*schedule:|^\s*push:/m.test(wf) && /CONFIRM_SEND: \$\{\{ inputs\.confirm \}\}/.test(wf));
+
+  if (failures > 0) {
+    console.error(`\n${failures} check(s) failed`);
+    process.exit(1);
+  }
+  console.log("\nAll member-growth checks passed");
+})();

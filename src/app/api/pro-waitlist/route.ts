@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { rateLimitAll, clientIp } from "@/lib/rateLimit";
 import { normalizeEmail, isValidEmail } from "@/lib/subscribeCore";
 import { PRO_SOURCE_DASHBOARD, PRO_SOURCE_BRIEF_FOOTER } from "@/lib/proWaitlist";
+import { sendProWaitlistEmail } from "@/lib/proWaitlistEmails";
 
 // Pro early-access waitlist capture (CD2) — first-class Pro intent,
 // deliberately SEPARATE from the Daily Brief subscription:
@@ -84,7 +85,20 @@ export async function POST(req: Request) {
   }
 
   const stored = await storeInterest({ email, source, created_at: new Date().toISOString() });
-  if (stored === "created") return NextResponse.json({ ok: true, outcome: "created" }, { status: 200 });
+  if (stored === "created") {
+    // Founder feedback flow (20 Sep 2026): confirm the FIRST successful join
+    // by email, with the founder's one open question. Capture-first stays the
+    // contract — the join above is already durable, and a failed/unconfigured
+    // confirmation send never changes the response. Duplicate submissions
+    // ("existing" below) never reach this, and the pro_waitlist_emails log
+    // makes the send once-per-person even across retries.
+    try {
+      await sendProWaitlistEmail(email, "confirmation");
+    } catch (e) {
+      console.error(`[pro-waitlist] confirmation email failed: ${(e as Error).message}`);
+    }
+    return NextResponse.json({ ok: true, outcome: "created" }, { status: 200 });
+  }
   if (stored === "duplicate") return NextResponse.json({ ok: true, outcome: "existing" }, { status: 200 });
 
   // Not durably captured — never presented as success.
