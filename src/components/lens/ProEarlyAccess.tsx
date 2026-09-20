@@ -121,8 +121,8 @@ export function ProEarlyAccess() {
               </button>
             </div>
             <p className="text-micro text-ink-500 leading-relaxed">
-              Early access only — nothing to pay now, and this joins nothing else. We&apos;ll email
-              you once, when Pro opens. See our{" "}
+              Early access only — nothing to pay now, and this joins nothing else. We&apos;ll confirm
+              your place by email, then email you again when Pro opens. See our{" "}
               <a href="/privacy" className="underline decoration-white/20 underline-offset-2 hover:text-ink-300">
                 Privacy policy
               </a>

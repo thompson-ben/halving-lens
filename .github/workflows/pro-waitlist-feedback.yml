@@ -1,0 +1,57 @@
+name: Pro waitlist feedback (one-off)
+
+# Founder feedback flow (20 Sep 2026): the ONE-OFF founder feedback email to
+# existing Pro-waitlist members, and its rendering/reply-routing test.
+#
+# SAFETY BY DESIGN:
+#   · workflow_dispatch ONLY — no schedule, no push trigger;
+#   · mode defaults to dry-run (reads + reports, sends nothing);
+#   · mode=test emails ONLY the founder (both templates, [TEST]-prefixed);
+#   · mode=send refuses unless confirm is exactly SEND, and every member can
+#     only ever receive the email once (pro_waitlist_emails log);
+#   · recipient addresses are masked in the job log.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run (report only) · test (founder inbox only) · send (real one-off)"
+        type: choice
+        options: [dry-run, test, send]
+        default: dry-run
+      confirm:
+        description: "Type SEND to allow mode=send"
+        required: false
+        default: ""
+
+concurrency:
+  group: pro-waitlist-feedback
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  feedback:
+    name: Pro waitlist feedback (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run (${{ inputs.mode }})
+        run: npx tsx scripts/send-pro-waitlist-feedback.ts
+        env:
+          MODE: ${{ inputs.mode }}
+          CONFIRM_SEND: ${{ inputs.confirm }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          FOUNDER_EMAIL: ${{ secrets.FOUNDER_EMAIL }}
