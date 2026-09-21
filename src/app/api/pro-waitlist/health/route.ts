@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { proConfirmationsEnabled, proReplyTo } from "@/lib/proWaitlistEmails";
 
 // Health check for the Pro waitlist pipeline. Reports whether Supabase is
 // configured AND the pro_waitlist table (supabase/pro_waitlist.sql) is
@@ -40,6 +41,10 @@ export async function GET() {
         configured: true,
         table: true,
         emailLog,
+        // Booleans only — never the addresses. Confirms the runtime env
+        // actually picked up the public Reply-To and the enable flag.
+        publicReplyTo: proReplyTo() != null,
+        confirmationsEnabled: proConfirmationsEnabled(),
         waitlistCount: count ? Number(count) : 0,
         ...(emailLog ? {} : { hint: "Apply supabase/pro_waitlist_emails.sql to enable the confirmation/feedback emails." }),
       });

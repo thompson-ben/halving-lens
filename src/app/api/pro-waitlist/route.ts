@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { rateLimitAll, clientIp } from "@/lib/rateLimit";
 import { normalizeEmail, isValidEmail } from "@/lib/subscribeCore";
 import { PRO_SOURCE_DASHBOARD, PRO_SOURCE_BRIEF_FOOTER } from "@/lib/proWaitlist";
-import { sendProWaitlistEmail } from "@/lib/proWaitlistEmails";
+import { proConfirmationsEnabled, sendProWaitlistEmail } from "@/lib/proWaitlistEmails";
 
 // Pro early-access waitlist capture (CD2) — first-class Pro intent,
 // deliberately SEPARATE from the Daily Brief subscription:
@@ -90,12 +90,21 @@ export async function POST(req: Request) {
     // by email, with the founder's one open question. Capture-first stays the
     // contract — the join above is already durable, and a failed/unconfigured
     // confirmation send never changes the response. Duplicate submissions
-    // ("existing" below) never reach this, and the pro_waitlist_emails log
-    // makes the send once-per-person even across retries.
-    try {
-      await sendProWaitlistEmail(email, "confirmation");
-    } catch (e) {
-      console.error(`[pro-waitlist] confirmation email failed: ${(e as Error).message}`);
+    // ("existing" below) never reach this, and the pro_waitlist_emails claim
+    // makes the send at-most-once even across retries. Confirmations run only
+    // behind the explicit PRO_CONFIRMATION_EMAILS enable flag (paused by
+    // default — founder hold, 21 Sep); the capture above is never affected.
+    if (proConfirmationsEnabled()) {
+      try {
+        const r = await sendProWaitlistEmail(email, "confirmation");
+        if (r.outcome !== "sent") {
+          console.error(`[pro-waitlist] confirmation not sent: ${r.outcome}${r.error ? ` (${r.error})` : ""}`);
+        }
+      } catch (e) {
+        console.error(`[pro-waitlist] confirmation email failed: ${(e as Error).message}`);
+      }
+    } else {
+      console.log("[pro-waitlist] confirmation skipped — PRO_CONFIRMATION_EMAILS not enabled (paused)");
     }
     return NextResponse.json({ ok: true, outcome: "created" }, { status: 200 });
   }

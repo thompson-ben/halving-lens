@@ -24,8 +24,9 @@
 //     which is also what keeps the one-off and the signup flow from ever
 //     overlapping.
 
+import { createHash } from "node:crypto";
 import { sendEmail, resendConfigured } from "./resend";
-import { sbSelect, sbDelete } from "./supabase";
+import { sbSelect, sbDelete, sbUpdate } from "./supabase";
 
 export type ProWaitlistEmailKind = "confirmation" | "feedback";
 
@@ -113,15 +114,24 @@ export async function hasProEmail(email: string, kind: ProWaitlistEmailKind): Pr
 
 // ── The atomic claim (AT-MOST-ONCE, arbitrated by the database) ─────────────
 //
-// The log row is written BEFORE the send, as a CLAIM: the unique index on
-// (lower(email), kind) makes exactly one concurrent claimant win — the loser
-// sees a 409 and sends nothing. sbInsert deliberately treats 409 as success,
-// so the claim uses its own conflict-aware insert. Ordering guarantee: a
-// successful send can never lose its record (the record already exists), so
-// "Resend accepted but recording failed" is impossible by construction. If
-// the send itself fails, the claim is RELEASED so a retry can re-claim; if
-// even the release fails, the claim stays (retries blocked = no duplicate —
-// always the safe direction) and the stuck state is reported loudly.
+// The log row is written BEFORE the send, as a PENDING CLAIM (sent_at stays
+// NULL until the provider confirms acceptance). The unique index on
+// lower(email) ALONE makes concurrent claims lose atomically — including
+// ACROSS KINDS, so a member can never concurrently receive both the
+// confirmation and the founder note. sbInsert deliberately treats 409 as
+// success, so the claim uses its own conflict-aware insert.
+//
+// Outcome handling after the send (founder review, 21 Sep):
+//   · provider ACCEPTED → the claim becomes status 'sent' with sent_at +
+//     the provider id (a successful send can never lose its record — the
+//     record precedes it);
+//   · DEFINITIVE rejection (4xx) → the claim is released; a retry may
+//     re-claim, and the deterministic Idempotency-Key makes even an
+//     overlapping retry dedup-safe provider-side;
+//   · AMBIGUOUS outcome (timeout / no response / 5xx — the provider MAY
+//     have accepted) → the claim is RETAINED as status 'ambiguous' for
+//     manual reconciliation. It is never released and never blindly
+//     retried: at-most-once always wins over delivery.
 
 type ClaimResult = "claimed" | "already" | "unavailable";
 
@@ -133,9 +143,9 @@ async function claimSend(email: string, kind: ProWaitlistEmailKind): Promise<Cla
     const res = await fetch(`${url}/rest/v1/pro_waitlist_emails`, {
       method: "POST",
       headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" },
-      body: JSON.stringify({ email: email.toLowerCase(), kind, sent_at: new Date().toISOString() }),
+      body: JSON.stringify({ email: email.toLowerCase(), kind, status: "pending" }),
     });
-    if (res.status === 409) return "already"; // someone (or an earlier run) holds the claim
+    if (res.status === 409) return "already"; // a claim (either kind) already exists for this member
     if (res.ok) return "claimed";
     return "unavailable"; // schema missing / store down — nothing may send
   } catch {
@@ -143,19 +153,36 @@ async function claimSend(email: string, kind: ProWaitlistEmailKind): Promise<Cla
   }
 }
 
+const claimFilter = (email: string, kind: ProWaitlistEmailKind) =>
+  `email=eq.${encodeURIComponent(email.toLowerCase())}&kind=eq.${kind}`;
+
 async function releaseClaim(email: string, kind: ProWaitlistEmailKind): Promise<boolean> {
-  return sbDelete("pro_waitlist_emails", `email=eq.${encodeURIComponent(email.toLowerCase())}&kind=eq.${kind}`);
+  return sbDelete("pro_waitlist_emails", claimFilter(email, kind));
+}
+
+/** Deterministic provider idempotency key for one logical send — stable
+ *  across processes and retries, distinct per kind, carrying no readable
+ *  address (the provider already receives the address itself). */
+export function proEmailIdempotencyKey(email: string, kind: ProWaitlistEmailKind): string {
+  return `pro-waitlist/${kind}/${createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 32)}`;
 }
 
 export interface ProEmailSendResult {
-  outcome: "sent" | "already_sent" | "skipped_unconfigured" | "skipped_unverifiable" | "send_failed" | "send_failed_claim_stuck";
+  outcome:
+    | "sent"
+    | "sent_record_incomplete"
+    | "already_sent"
+    | "skipped_unconfigured"
+    | "skipped_unverifiable"
+    | "send_failed"
+    | "send_failed_claim_stuck"
+    | "send_ambiguous_retained";
   error?: string;
 }
 
-/** Send one kind to one member, AT MOST ONCE EVER — concurrency-safe:
- *  claim (atomic unique insert) → send → on send failure, release the claim.
- *  Every failure biases toward a missed email (identifiable, retryable),
- *  never a duplicate. */
+/** Send one kind to one member, AT MOST ONCE EVER — concurrency-safe and
+ *  ambiguity-safe (see the contract above). Every failure ordering biases
+ *  toward a missed-but-identifiable email, never a duplicate. */
 export async function sendProWaitlistEmail(email: string, kind: ProWaitlistEmailKind): Promise<ProEmailSendResult> {
   const replyTo = proReplyTo();
   if (!resendConfigured || !replyTo) return { outcome: "skipped_unconfigured" };
@@ -163,10 +190,43 @@ export async function sendProWaitlistEmail(email: string, kind: ProWaitlistEmail
   if (claim === "already") return { outcome: "already_sent" };
   if (claim === "unavailable") return { outcome: "skipped_unverifiable" };
   const c = proEmailContent(kind);
-  const res = await sendEmail({ to: email, subject: c.subject, html: c.html, text: c.text, replyTo });
-  if (res.ok) return { outcome: "sent" };
+  const res = await sendEmail({
+    to: email,
+    subject: c.subject,
+    html: c.html,
+    text: c.text,
+    replyTo,
+    idempotencyKey: proEmailIdempotencyKey(email, kind),
+  });
+  if (res.ok) {
+    // Provider ACCEPTED — only now does sent_at exist.
+    const recorded = await sbUpdate("pro_waitlist_emails", claimFilter(email, kind), {
+      status: "sent",
+      sent_at: new Date().toISOString(),
+      provider_id: res.id ?? null,
+    });
+    if (recorded) return { outcome: "sent" };
+    // Accepted but the status update failed: the pending claim still blocks
+    // duplicates and will surface in the stale-claim report for
+    // reconciliation against the provider id logged here.
+    return { outcome: "sent_record_incomplete", error: `provider accepted (id ${res.id ?? "unknown"}), status update failed` };
+  }
+  if (res.ambiguous) {
+    // The provider MAY have accepted — retain the claim, never blind-retry.
+    await sbUpdate("pro_waitlist_emails", claimFilter(email, kind), { status: "ambiguous" });
+    return { outcome: "send_ambiguous_retained", error: res.error };
+  }
+  // Definitive rejection — release so a retry can re-claim (idempotency key
+  // keeps even an overlapping retry safe provider-side).
   const released = await releaseClaim(email, kind);
   return released
-    ? { outcome: "send_failed", error: res.error } // claim released — eligible again on retry
-    : { outcome: "send_failed_claim_stuck", error: res.error }; // no duplicate possible; reconcile the row before retrying
+    ? { outcome: "send_failed", error: res.error }
+    : { outcome: "send_failed_claim_stuck", error: res.error };
+}
+
+/** Signup confirmations are gated on an explicit enable flag so they can be
+ *  paused (default) without touching waitlist capture. */
+export function proConfirmationsEnabled(): boolean {
+  const v = process.env.PRO_CONFIRMATION_EMAILS;
+  return v === "1" || v === "true";
 }

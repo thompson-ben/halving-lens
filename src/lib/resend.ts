@@ -12,6 +12,12 @@ export interface SendResult {
   ok: boolean;
   id?: string;
   error?: string;
+  /** true when the outcome is UNKNOWN — the request may have reached the
+   *  provider before failing (network error/timeout, or a 5xx response), so
+   *  the email MAY have been accepted. Callers with at-most-once
+   *  requirements must retain their state for reconciliation rather than
+   *  blindly retry. A definitive rejection (4xx) is never ambiguous. */
+  ambiguous?: boolean;
 }
 
 export async function sendEmail(msg: {
@@ -21,12 +27,19 @@ export async function sendEmail(msg: {
   text: string;
   headers?: Record<string, string>;
   replyTo?: string;
+  /** Resend Idempotency-Key: a deterministic key makes any retry of the
+   *  same logical send safe provider-side (dedup window ~24h). */
+  idempotencyKey?: string;
 }): Promise<SendResult> {
   if (!KEY) return { ok: false, error: "resend_not_configured" };
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${KEY}`,
+        "Content-Type": "application/json",
+        ...(msg.idempotencyKey ? { "Idempotency-Key": msg.idempotencyKey } : {}),
+      },
       body: JSON.stringify({
         from: EMAIL_FROM,
         to: msg.to,
@@ -38,9 +51,10 @@ export async function sendEmail(msg: {
       }),
     });
     const j = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
-    if (!res.ok) return { ok: false, error: j?.message || `http_${res.status}` };
+    if (!res.ok) return { ok: false, error: j?.message || `http_${res.status}`, ambiguous: res.status >= 500 };
     return { ok: true, id: j?.id };
   } catch (e) {
-    return { ok: false, error: (e as Error).message };
+    // No response at all — the provider may still have received the request.
+    return { ok: false, error: (e as Error).message, ambiguous: true };
   }
 }
