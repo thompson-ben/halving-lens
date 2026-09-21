@@ -57,11 +57,20 @@ async function eligibleMembers(): Promise<{ eligible: WaitlistRow[]; excluded: A
     return null;
   }
   const suppressed = new Set((unsubs ?? []).map((r) => r.email.toLowerCase()));
+  // Founder decision (21 Sep): the founder's own internal address (an early
+  // form test) is excluded from the one-off — the waitlist ROW is retained
+  // untouched; only this send skips it. Derived from the existing
+  // FOUNDER_EMAIL configuration, never a hardcoded address.
+  const internal = (process.env.FOUNDER_EMAIL || "").trim().toLowerCase();
 
   const eligible: WaitlistRow[] = [];
   const excluded: Array<{ email: string; reason: string }> = [];
   for (const r of rows) {
     const email = r.email.toLowerCase();
+    if (internal && email === internal) {
+      excluded.push({ email, reason: "internal founder address — excluded from the one-off (founder decision, 21 Sep); waitlist record retained" });
+      continue;
+    }
     if (suppressed.has(email)) {
       excluded.push({ email, reason: "unsubscribed Brief subscriber (suppressed)" });
       continue;
