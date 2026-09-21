@@ -182,6 +182,8 @@ console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
   if (prevFlag != null) process.env.PRO_CONFIRMATION_EMAILS = prevFlag; else delete process.env.PRO_CONFIRMATION_EMAILS;
   const health = strip(readFileSync("src/app/api/pro-waitlist/health/route.ts", "utf8"));
   check("health exposes reply/enable state as BOOLEANS only (never an address)", /publicReplyTo: proReplyTo\(\) != null/.test(health) && /confirmationsEnabled: proConfirmationsEnabled\(\)/.test(health));
+  check("health is live on every request — never a build-time snapshot", /dynamic = "force-dynamic"/.test(health) && (health.match(/cache: "no-store"/g) ?? []).length >= 2);
+  check("failing email-log probe surfaces status + PostgREST code only (no message in the public response)", /emailLogStatus/.test(health) && /emailLogCode/.test(health) && !/message: body\.message/.test(health));
   check("duplicate submissions still return existing with NO email", !route.slice(route.indexOf('if (stored === "duplicate")')).includes("sendProWaitlistEmail"));
 
   const form = strip(readFileSync("src/components/lens/ProEarlyAccess.tsx", "utf8"));

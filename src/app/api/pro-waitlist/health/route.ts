@@ -9,6 +9,11 @@ import { proConfirmationsEnabled, proReplyTo } from "@/lib/proWaitlistEmails";
 // route can only return its retryable error — never a false success.)
 
 export const runtime = "nodejs";
+// A health check must NEVER be a build-time snapshot: without this, Next
+// statically evaluates the GET at deploy time and the response freezes —
+// schema changes made after the deploy (e.g. applying a table's SQL) then
+// never show up until the next build. Live on every request, always.
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const url = process.env.SUPABASE_URL;
@@ -29,13 +34,27 @@ export async function GET() {
   try {
     const res = await fetch(`${url}/rest/v1/pro_waitlist?select=id&limit=0`, {
       headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: "count=exact" },
+      cache: "no-store",
     });
     const range = res.headers.get("content-range");
     const count = range && range.includes("/") ? range.split("/")[1] : null;
     const logRes = await fetch(`${url}/rest/v1/pro_waitlist_emails?select=id&limit=0`, {
       headers: { apikey: key, Authorization: `Bearer ${key}` },
+      cache: "no-store",
     }).catch(() => null);
     const emailLog = logRes?.ok === true;
+    // Diagnostics on a FAILING probe only: the HTTP status and PostgREST
+    // error code (e.g. PGRST205 = table not in the API schema cache) —
+    // never credentials, addresses or row data. Full message goes to the
+    // server log only.
+    let emailLogStatus: number | null = null;
+    let emailLogCode: string | null = null;
+    if (!emailLog && logRes != null) {
+      emailLogStatus = logRes.status;
+      const body = (await logRes.json().catch(() => ({}))) as { code?: string; message?: string };
+      emailLogCode = typeof body.code === "string" ? body.code.slice(0, 24) : null;
+      console.error(`[pro-waitlist-health] email-log probe failed: http ${logRes.status} code=${body.code ?? "?"} message=${(body.message ?? "").slice(0, 200)}`);
+    }
     if (res.ok) {
       return NextResponse.json({
         configured: true,
@@ -46,7 +65,13 @@ export async function GET() {
         publicReplyTo: proReplyTo() != null,
         confirmationsEnabled: proConfirmationsEnabled(),
         waitlistCount: count ? Number(count) : 0,
-        ...(emailLog ? {} : { hint: "Apply supabase/pro_waitlist_emails.sql to enable the confirmation/feedback emails." }),
+        ...(emailLog
+          ? {}
+          : {
+              emailLogStatus,
+              emailLogCode,
+              hint: "Apply supabase/pro_waitlist_emails.sql to enable the confirmation/feedback emails.",
+            }),
       });
     }
     return NextResponse.json({
