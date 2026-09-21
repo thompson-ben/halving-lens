@@ -35,7 +35,7 @@ console.log("1 · Pro waitlist source contract");
 {
   check("canonical constants pinned", PRO_SOURCE_BRIEF_FOOTER === "brief-footer" && PRO_SOURCE_DASHBOARD === "/cycle-dashboard#pro-early-access" && PRO_SOURCE_PARAM === "pro");
   const route = strip(readFileSync("src/app/api/pro-waitlist/route.ts", "utf8"));
-  check("API allowlist derives from the canonical constants", /KNOWN_SOURCES = new Set\(\[PRO_SOURCE_DASHBOARD, PRO_SOURCE_BRIEF_FOOTER\]\)/.test(route));
+  check("API allowlist derives from the canonical constants", /KNOWN_SOURCES = new Set\(\[PRO_SOURCE_DASHBOARD, PRO_SOURCE_BRIEF_FOOTER, PRO_SOURCE_OFFER_PAGE\]\)/.test(route));
   check("no literal source strings left to drift in the API", !/"brief-footer"|"\/cycle-dashboard#pro-early-access"/.test(route));
   const form = strip(readFileSync("src/components/lens/ProEarlyAccess.tsx", "utf8"));
   check("dashboard Pro form reads the source-carrier param via the constants", /PRO_SOURCE_PARAM/.test(form) && /PRO_SOURCE_BRIEF_FOOTER/.test(form) && /setSource\(PRO_SOURCE_BRIEF_FOOTER\)/.test(form));

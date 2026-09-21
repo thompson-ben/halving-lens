@@ -139,6 +139,13 @@ jobs:
       - name: Member-growth tests
         run: npm run test-member-growth
 
+      # /pro offer page (21 Sep) — honest pre-launch copy (planned/proposed/
+      # fictional labels), price visible before the form, existing waitlist
+      # machinery reused with canonical source + honest events, mocked-provider
+      # signup exercise, no billing or alert-delivery code.
+      - name: Pro-offer tests
+        run: npm run test-pro-offer
+
       # Admin Hub navigation (navigation-hygiene micro-fix) — every Analytics
       # label routes to a genuine existing destination, anchored links have
       # real targets, the duplicate Behaviour item stays removed, and the

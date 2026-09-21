@@ -17,6 +17,12 @@
 export const PRO_SOURCE_DASHBOARD = "/cycle-dashboard#pro-early-access";
 export const PRO_SOURCE_BRIEF_FOOTER = "brief-footer";
 export const PRO_SOURCE_PARAM = "pro";
+/** The pre-launch offer page (priced-offer exposure, Sep 2026). */
+export const PRO_SOURCE_OFFER_PAGE = "/pro";
+/** The offer version shown on /pro — attached to analytics events (never to
+ *  the waitlist row) so joins made AFTER seeing the proposed price are
+ *  distinguishable from historic joins, which must never be re-labelled. */
+export const PRO_OFFER_VERSION = "pro_beta_15_v1";
 
 export type ProWaitlistOutcome = "created" | "existing" | "invalid" | "rate_limited" | "error";
 

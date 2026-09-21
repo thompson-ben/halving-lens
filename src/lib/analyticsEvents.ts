@@ -45,6 +45,14 @@ const FUNNEL = [
   // pro_waitlist capture. The table is the authoritative demand count; this
   // event exists for funnel visibility, with props.source for placement.
   "pro_waitlist_join",
+  // /pro offer page (Sep 2026): an EXISTING member re-submitting the form —
+  // tracked separately from new joins, never as a conversion, and never
+  // re-labelling their original attribution.
+  "pro_waitlist_existing",
+  // /pro offer page: a waitlist CTA click, with props.placement (hero | form)
+  // and props.offer (the offer version shown). A click is interest, never a
+  // join — joins remain pro_waitlist_join on confirmed capture only.
+  "pro_offer_cta",
 ] as const;
 
 // ── Internal navigation / journeys ──────────────────────────────────────────

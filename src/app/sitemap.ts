@@ -43,6 +43,7 @@ const STATIC_PATHS = [
   "/privacy",
   "/terms",
   "/price",
+  "/pro",
   "/price/seasonality",
   "/price/seasonality/cycles",
   "/questions",
