@@ -14,7 +14,7 @@
 
 import { readFileSync } from "node:fs";
 import { PRO_SOURCE_BRIEF_FOOTER, PRO_SOURCE_DASHBOARD, PRO_SOURCE_PARAM } from "../src/lib/proWaitlist";
-import { proFeedbackEmail, proConfirmationEmail, proReplyTo, sendProWaitlistEmail } from "../src/lib/proWaitlistEmails";
+import { proFeedbackEmail, proConfirmationEmail, proReplyTo, sendProWaitlistEmail, proEmailIdempotencyKey, proConfirmationsEnabled } from "../src/lib/proWaitlistEmails";
 import { REWARD_TIERS, nextReward, referralLink, referralCode } from "../src/lib/referral";
 import { progressLine, type RoundupPersonal } from "../src/lib/weeklyRoundup";
 
@@ -146,21 +146,42 @@ console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
   // duplicate is possible in any failure ordering.
   const sendFn = lib.slice(lib.indexOf("export async function sendProWaitlistEmail"));
   check("the claim PRECEDES the send — a successful send can never lose its record", sendFn.indexOf("await claimSend(") > 0 && sendFn.indexOf("await claimSend(") < sendFn.indexOf("await sendEmail("));
-  check("the claim is conflict-aware (409 = someone else holds it, send nothing)", /status === 409/.test(lib) && /"already"/.test(lib));
+  check("the claim is conflict-aware (409 = a claim already exists, send nothing)", /status === 409/.test(lib) && /"already"/.test(lib));
   check("an unavailable store means nothing sends (fail safe)", /skipped_unverifiable/.test(lib) && sendFn.includes('claim === "unavailable"'));
-  check("a failed send RELEASES the claim so a retry can re-claim", /releaseClaim\(email, kind\)/.test(sendFn) && /sbDelete\("pro_waitlist_emails"/.test(lib));
+  check("a DEFINITIVE rejection releases the claim so a retry can re-claim", /releaseClaim\(email, kind\)/.test(sendFn) && /sbDelete\("pro_waitlist_emails"/.test(lib));
   check("a stuck claim is loud and blocks retries in the safe direction", /send_failed_claim_stuck/.test(sendFn));
-  check("Reply-To wired on the actual send", /replyTo/.test(lib) && /sendEmail\(\{ to: email, subject: c\.subject, html: c\.html, text: c\.text, replyTo \}\)/.test(lib));
+
+  // Delivery-state v2 (founder review, 21 Sep):
+  check("claims are born 'pending' with NO sent_at — sent_at exists only on provider acceptance", /JSON\.stringify\(\{ email: email\.toLowerCase\(\), kind, status: "pending" \}\)/.test(lib) && /res\.ok/.test(sendFn) && sendFn.indexOf('status: "sent"') > sendFn.indexOf("await sendEmail("));
+  check("provider acceptance records sent_at + provider id on the claim", /sent_at: new Date\(\)\.toISOString\(\)/.test(sendFn) && /provider_id: res\.id/.test(sendFn));
+  check("an AMBIGUOUS outcome RETAINS the claim (never released, never blind-retried)", sendFn.includes("res.ambiguous") && /send_ambiguous_retained/.test(sendFn) && /status: "ambiguous"/.test(sendFn) && sendFn.indexOf("res.ambiguous") < sendFn.indexOf("releaseClaim"));
+  check("an accepted-but-unrecorded send stays claimed and is loud", /sent_record_incomplete/.test(sendFn));
+  check("every send carries a deterministic provider idempotency key", /idempotencyKey: proEmailIdempotencyKey\(email, kind\)/.test(sendFn));
+  check("the idempotency key is stable, case-insensitive and distinct per kind", proEmailIdempotencyKey("A@x.com", "feedback") === proEmailIdempotencyKey(" a@X.com ", "feedback") && proEmailIdempotencyKey("a@x.com", "feedback") !== proEmailIdempotencyKey("a@x.com", "confirmation") && !proEmailIdempotencyKey("a@x.com", "feedback").includes("a@x.com"));
+  const resendSrc = strip(readFileSync("src/lib/resend.ts", "utf8"));
+  check("the provider client marks network/5xx outcomes ambiguous and supports Idempotency-Key", /ambiguous: true/.test(resendSrc) && /Idempotency-Key/.test(resendSrc) && /res\.status >= 500/.test(resendSrc));
+  const schemaV2 = readFileSync("supabase/pro_waitlist_emails.sql", "utf8");
+  check("cross-kind exclusion is ATOMIC: one member, one founder email, ever (unique lower(email) alone)", /create unique index if not exists pro_waitlist_emails_email_idx\s*\n\s*on public\.pro_waitlist_emails \(lower\(email\)\);/.test(schemaV2) && /drop index if exists pro_waitlist_emails_email_kind_idx/.test(schemaV2));
+  check("schema: sent_at nullable, only on acceptance (rev-1 upgrade included)", /sent_at\s+timestamptz,/.test(schemaV2) && /alter column sent_at drop not null/.test(schemaV2));
+  check("Reply-To wired on the actual send", /sendEmail\(\{\s*to: email,\s*subject: c\.subject,\s*html: c\.html,\s*text: c\.text,\s*replyTo,\s*idempotencyKey/.test(lib));
 
   const schema = readFileSync("supabase/pro_waitlist_emails.sql", "utf8");
-  check("send log is once-per-person-per-kind by schema", /create unique index if not exists pro_waitlist_emails_email_kind_idx\s*\n\s*on public\.pro_waitlist_emails \(lower\(email\), kind\)/.test(schema));
   check("send log locked down (RLS), and listed in the consolidated rls.sql", /alter table public\.pro_waitlist_emails enable row level security/.test(schema) && /public\.pro_waitlist_emails\s+enable row level security/.test(readFileSync("supabase/rls.sql", "utf8")));
 
   const route = strip(readFileSync("src/app/api/pro-waitlist/route.ts", "utf8"));
   const createdBranch = route.slice(route.indexOf('if (stored === "created")'), route.indexOf('if (stored === "duplicate")'));
   check("confirmation fires ONLY on a first successful join (the created branch)", createdBranch.includes('sendProWaitlistEmail(email, "confirmation")') && (route.match(/await sendProWaitlistEmail/g) ?? []).length === 1);
   check("capture first: the join is durable before any email is attempted", route.indexOf("await storeInterest(") < route.indexOf("await sendProWaitlistEmail"));
-  check("a failed confirmation can never change the join response", /try \{\s*await sendProWaitlistEmail/.test(route) && createdBranch.includes('outcome: "created"'));
+  check("a failed confirmation can never change the join response", /try \{\s*const r = await sendProWaitlistEmail/.test(route) && createdBranch.includes('outcome: "created"'));
+  check("confirmations are PAUSED behind the explicit enable flag; capture is untouched", createdBranch.includes("proConfirmationsEnabled()") && route.indexOf("await storeInterest(") < route.indexOf("proConfirmationsEnabled()"));
+  const prevFlag = process.env.PRO_CONFIRMATION_EMAILS;
+  delete process.env.PRO_CONFIRMATION_EMAILS;
+  check("the enable flag defaults OFF (paused)", proConfirmationsEnabled() === false);
+  process.env.PRO_CONFIRMATION_EMAILS = "1";
+  check("the enable flag turns on only when explicitly set", proConfirmationsEnabled() === true);
+  if (prevFlag != null) process.env.PRO_CONFIRMATION_EMAILS = prevFlag; else delete process.env.PRO_CONFIRMATION_EMAILS;
+  const health = strip(readFileSync("src/app/api/pro-waitlist/health/route.ts", "utf8"));
+  check("health exposes reply/enable state as BOOLEANS only (never an address)", /publicReplyTo: proReplyTo\(\) != null/.test(health) && /confirmationsEnabled: proConfirmationsEnabled\(\)/.test(health));
   check("duplicate submissions still return existing with NO email", !route.slice(route.indexOf('if (stored === "duplicate")')).includes("sendProWaitlistEmail"));
 
   const form = strip(readFileSync("src/components/lens/ProEarlyAccess.tsx", "utf8"));
@@ -171,6 +192,7 @@ console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
   check("one-off excludes BOTH kinds — flows can never overlap", script.includes('hasProEmail(email, "feedback")') && script.includes('hasProEmail(email, "confirmation")'));
   check("one-off honours suppression (unsubscribed Brief subscribers skipped)", /status=eq\.unsubscribed/.test(script));
   check("one-off fails safe when the send log is unreadable", /fail safe, skipped/.test(script) || /skipped_unverifiable/.test(script));
+  check("uncertain (pending/ambiguous) claims are reported for reconciliation, and abort when unreadable", /status=neq\.sent/.test(script) && /UNCERTAIN CLAIMS/.test(script) && /uncertain == null/.test(script));
   check("missed confirmations are reported, never silently lost", /PRO_FEEDBACK_FLOW_LIVE_FROM/.test(script) && /MISSED CONFIRMATIONS/.test(script));
   check("real send is double-gated (MODE=send + CONFIRM_SEND=SEND)", /CONFIRM_SEND !== "SEND"/.test(script) && /MODE !== "send"/.test(script));
   check("a founder-inbox test mode exists before any real send", /MODE === "test"/.test(script) && /\[TEST\] /.test(script));

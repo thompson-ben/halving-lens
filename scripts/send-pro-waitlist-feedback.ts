@@ -110,6 +110,27 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Reconciliation surface (founder review, 21 Sep): claims whose sends are
+  // NOT confirmed-accepted — 'pending' (e.g. a crash after claiming but
+  // before sending) or 'ambiguous' (the provider may have accepted before a
+  // timeout). These members hold a claim, so they are EXCLUDED from any
+  // send; they must be reconciled manually (check Resend by the
+  // deterministic idempotency key / provider id) and never silently missed.
+  const uncertain = await sbSelect<{ email: string; kind: string; status: string; claimed_at: string }[]>(
+    "pro_waitlist_emails?select=email,kind,status,claimed_at&status=neq.sent&limit=1000",
+  );
+  if (uncertain == null) {
+    console.error("[feedback] cannot read the send log for uncertain claims — aborting (nothing sent).");
+    process.exitCode = 1;
+    return;
+  }
+  if (uncertain.length > 0) {
+    console.log(`[feedback] UNCERTAIN CLAIMS requiring reconciliation (pending/ambiguous — excluded from sends): ${uncertain.length}`);
+    for (const u of uncertain) console.log(`  · ${mask(u.email)} — ${u.kind} · ${u.status} · claimed ${u.claimed_at}`);
+  } else {
+    console.log("[feedback] uncertain claims: none — every logged send is provider-confirmed.");
+  }
+
   const members = await eligibleMembers();
   if (members == null) {
     process.exitCode = 1;
