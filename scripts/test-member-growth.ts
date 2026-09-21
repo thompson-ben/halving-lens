@@ -193,6 +193,7 @@ console.log("5 · Pro-waitlist founder feedback emails (commission, 20 Sep)");
   const script = strip(readFileSync("scripts/send-pro-waitlist-feedback.ts", "utf8"));
   check("one-off excludes BOTH kinds — flows can never overlap", script.includes('hasProEmail(email, "feedback")') && script.includes('hasProEmail(email, "confirmation")'));
   check("one-off honours suppression (unsubscribed Brief subscribers skipped)", /status=eq\.unsubscribed/.test(script));
+  check("one-off excludes the internal founder address (env-derived, row retained)", /email === internal/.test(script) && /waitlist record retained/.test(script) && !/bathompsonltd/.test(script));
   check("one-off fails safe when the send log is unreadable", /fail safe, skipped/.test(script) || /skipped_unverifiable/.test(script));
   check("uncertain (pending/ambiguous) claims are reported for reconciliation, and abort when unreadable", /status=neq\.sent/.test(script) && /UNCERTAIN CLAIMS/.test(script) && /uncertain == null/.test(script));
   check("missed confirmations are reported, never silently lost", /PRO_FEEDBACK_FLOW_LIVE_FROM/.test(script) && /MISSED CONFIRMATIONS/.test(script));
