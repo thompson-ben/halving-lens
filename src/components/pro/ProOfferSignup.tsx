@@ -112,7 +112,7 @@ export function ProOfferSignup() {
               aria-invalid={!!error}
               aria-describedby={error ? "pro-offer-error" : undefined}
               disabled={submitting}
-              className={`w-full sm:flex-1 sm:min-w-0 h-11 px-3.5 rounded-lg bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-500 focus:outline-none focus:border-editorial/40 transition-colors disabled:opacity-60 ${
+              className={`w-full sm:flex-1 sm:min-w-0 h-11 px-3.5 rounded-lg bg-white/[0.03] border text-[14px] text-ink-100 placeholder:text-ink-300 focus:outline-none focus:border-editorial/40 transition-colors disabled:opacity-60 ${
                 error ? "border-signal-red/50" : "border-white/[0.08]"
               }`}
             />
@@ -125,11 +125,13 @@ export function ProOfferSignup() {
               {submitting ? "Joining…" : error ? "Try again" : "Join the Pro waitlist"}
             </button>
           </div>
-          <p className="text-micro text-ink-500 leading-relaxed">
+          {/* WCAG AA on the card-glow background: ink-300 (6.1:1); ink-500/350
+              fall short of 4.5:1 there. */}
+          <p className="text-micro text-ink-300 leading-relaxed">
             Free to join. No payment details or commitment required — and this joins nothing else. We&apos;ll
             confirm your place by email, then email you again when Pro opens, with the final features and
             price confirmed before you decide. See our{" "}
-            <a href="/privacy" className="underline decoration-white/20 underline-offset-2 hover:text-ink-300">
+            <a href="/privacy" className="underline decoration-white/20 underline-offset-2 hover:text-ink-100">
               Privacy policy
             </a>
             .

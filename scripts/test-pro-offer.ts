@@ -168,6 +168,11 @@ async function main(): Promise<void> {
     check("no billing/subscription code anywhere in the feature", !/stripe|checkout|billing|card number|subscription_create/i.test(pageC + formC));
     check("no alert-delivery, preferences or history implementation", !/sendAlert|alertHistory|watchlist|preference/i.test(pageC.replace(/Preferences and alert history\./, "") + formC));
     check("no scarcity/countdown/testimonial/waitlist-count furniture", !/countdown|only \d+|spots left|testimonial|\d+ people (have )?joined/i.test(pageC));
+    // WCAG AA readability pass (founder review, 22 Sep 2026): ink-500 (~2.2:1)
+    // and ink-400 (~3.2:1) fail the 4.5:1 minimum on every /pro background, so
+    // neither may be used for text on this page. Muted text is ink-350 on the
+    // page shell (4.75:1) or ink-300 in cards/the alert body (≥6:1).
+    check("no sub-AA text colours on the offer page", !/text-ink-400|text-ink-500/.test(pageC + formC));
   }
 
   if (failures > 0) {
