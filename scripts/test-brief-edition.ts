@@ -276,7 +276,14 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
     check(`${name}: whole state table is one state-table link`, (html.match(/cta=state-table/g) ?? []).length === 1);
     check(`${name}: no UTM parameters anywhere in the email`, !/utm_/.test(html));
     check(`${name}: every link rides the signed first-party tracker (or unsubscribe)`, (html.match(/href="https?:\/\/[^"]*"/g) ?? []).every((h) => /\/api\/email\/click\?/.test(h) || /unsub/.test(h)));
-    check(`${name}: no competing secondary 'Explore' links`, !/Explore /.test(html));
+    // Pin evolution (Pro discovery, Sep 2026 — intent preserved, disclosed):
+    // the founder-approved Member pro-invite now reads "Explore the planned
+    // HalvingLens Pro beta", so the ONE sanctioned secondary instance is
+    // allowed; any OTHER competing "Explore …" link still fails.
+    check(
+      `${name}: no competing secondary 'Explore' links (the approved pro-invite is the one sanctioned instance)`,
+      (html.match(/Explore /g) ?? []).length === (html.includes("cta=pro-invite") ? 1 : 0),
+    );
     const labels = [...html.matchAll(/cta=([a-z0-9-]+(?:%[0-9A-Fa-f]{2}|[a-z0-9_-])*)/g)].map((m) => decodeURIComponent(m[1]));
     check(`${name}: attribution labels stay within the approved vocabulary`, labels.every((l) => l === "primary-cta" || l === "hero-card" || l === "state-table" || l === "referral-invite" || l === "pro-invite" || /^supporting-[a-z0-9_]+$/.test(l)), labels.join(","));
   }
@@ -358,24 +365,29 @@ console.log("5 · Renderer: hierarchy, whole-card links, attribution labels");
     const memberBlock = html.slice(html.indexOf(">Member<"), html.indexOf("cta=pro-invite") + 2000);
     check("member area is visually subordinate: no gold button, no card, small dim type", !memberBlock.includes("background:#d9b96a") && !memberBlock.includes("bgcolor=") && /font:400 12\.5px/.test(memberBlock) && !/font:[^"]*(1[5-9]|[2-9]\d)px/.test(memberBlock));
     check("referral copy is the approved wording", html.includes("Know someone who follows Bitcoin?") && html.includes("Share HalvingLens and unlock member rewards"));
-    check("Pro copy is the approved wording (no unbuilt features enumerated)", html.includes("Want to know when something meaningful changes?") && html.includes("Join the HalvingLens Pro early-access list") && !/alert|watchlist/i.test(memberBlock));
+    check("Pro copy is the approved pre-launch wording (no unbuilt features enumerated)", html.includes("Want to spend less time checking Bitcoin conditions?") && html.includes("Explore the planned HalvingLens Pro beta") && !/alert|watchlist/i.test(memberBlock));
 
     const refDest = decodedTarget(html, "referral-invite");
     check("referral destination is the MEMBER-facing referral dashboard", refDest === "https://halvinglens.com/dashboard/referrals", String(refDest));
     check("referral destination is never the friend-facing /?ref link", refDest != null && !refDest.includes("ref="));
     check("referral destination carries NO raw email/identity", refDest != null && !refDest.includes("@") && !refDest.includes("reader"));
     const proDest = decodedTarget(html, "pro-invite");
+    // Pin evolution (Pro discovery, Sep 2026): the footer now leads to the
+    // /pro offer page with the canonical acquisition carrier. The waitlist
+    // row's authoritative source becomes the signup surface ("/pro"); the
+    // brief-footer origin lives in the via analytics prop. Historic
+    // source='brief-footer' rows are never re-labelled.
     check(
-      "Pro destination is the existing landing surface with the brief-footer source carrier",
-      proDest === "https://halvinglens.com/cycle-dashboard?pro=brief-footer#pro-early-access",
+      "Pro destination is the /pro offer page with the brief-footer acquisition carrier",
+      proDest === "https://halvinglens.com/pro?via=brief-footer",
       String(proDest),
     );
 
     const src = readFileSync("src/lib/briefEditionEmail.ts", "utf8");
-    check("Pro source/param come from the canonical proWaitlist constants", /PRO_SOURCE_BRIEF_FOOTER/.test(src) && /PRO_SOURCE_PARAM/.test(src) && !/"brief-footer"/.test(src.replace(/\/\/[^\n]*/g, "")));
+    check("Pro via/param come from the canonical proWaitlist constants", /PRO_VIA\.briefFooter/.test(src) && /PRO_VIA_PARAM/.test(src) && !/"brief-footer"/.test(src.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "")));
 
     const textWith = briefEditionTextFor(fixtures.active, memberOpts);
-    check("plain-text part mirrors both member lines", textWith.includes("/dashboard/referrals") && textWith.includes("/cycle-dashboard?pro=brief-footer#pro-early-access"));
+    check("plain-text part mirrors both member lines", textWith.includes("/dashboard/referrals") && textWith.includes("/pro?via=brief-footer"));
     const textWithout = briefEditionTextFor(fixtures.active);
     check("recipient-less renders (the archive text) carry NO member content", !/member rewards|early-access list/.test(textWithout));
     const htmlWithout = briefEditionEmailHtmlFor(fixtures.active, "https://halvinglens.com/unsub", tracked);

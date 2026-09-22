@@ -146,6 +146,9 @@ jobs:
       - name: Pro-offer tests
         run: npm run test-pro-offer
 
+      - name: Pro-discovery tests
+        run: npm run test-pro-discovery
+
       # Admin Hub navigation (navigation-hygiene micro-fix) — every Analytics
       # label routes to a genuine existing destination, anchored links have
       # real targets, the duplicate Behaviour item stays removed, and the

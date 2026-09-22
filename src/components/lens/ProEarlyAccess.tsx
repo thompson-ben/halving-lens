@@ -137,7 +137,9 @@ export function ProEarlyAccess() {
         )}
         <p className="mt-4 text-caption text-ink-500">
           Curious what Pro could include?{" "}
-          <a href="/pro" className="text-editorial underline decoration-white/20 underline-offset-2 hover:text-ink-100">
+          {/* ?via=dashboard — canonical acquisition-source carrier (analytics
+              prop only; the waitlist row's source is never changed by it). */}
+          <a href="/pro?via=dashboard" className="text-editorial underline decoration-white/20 underline-offset-2 hover:text-ink-100">
             See the proposed Pro offer →
           </a>
         </p>

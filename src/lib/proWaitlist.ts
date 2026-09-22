@@ -24,6 +24,42 @@ export const PRO_SOURCE_OFFER_PAGE = "/pro";
  *  distinguishable from historic joins, which must never be re-labelled. */
 export const PRO_OFFER_VERSION = "pro_beta_15_v1";
 
+// ── Acquisition-source carrier for /pro (Pro discovery, Sep 2026) ────────────
+// Three concepts stay distinct by design:
+//   · acquisition source — WHERE the visitor came from → the `via` query param,
+//     recorded as an analytics event prop only;
+//   · signup surface     — /pro (the authoritative pro_waitlist `source`);
+//   · offer version      — PRO_OFFER_VERSION, analytics only.
+// `via` NEVER replaces the waitlist row's source and never enters the table.
+export const PRO_VIA_PARAM = "via";
+/** The canonical placement values every /pro link must use. `verify` marks
+ *  controlled release-verification activity and is EXCLUDED from all
+ *  reporting queries (see docs/pro-measurement.md). */
+export const PRO_VIA = {
+  dashboard: "dashboard",
+  nav: "nav",
+  briefFooter: "brief-footer",
+  onboarding: "onboarding-email",
+  announcement: "announcement-email",
+  verify: "verify",
+} as const;
+
+const PRO_VIA_VALUES = new Set<string>(Object.values(PRO_VIA));
+
+/** Resolve the acquisition-source prop from a location search string.
+ *  Allowlisted values pass through; any other non-empty value collapses to
+ *  "other" (so junk params can't fragment reporting); absent → undefined
+ *  (a direct or unattributed visit). */
+export function proViaFromSearch(search: string): string | undefined {
+  try {
+    const v = new URLSearchParams(search).get(PRO_VIA_PARAM);
+    if (!v) return undefined;
+    return PRO_VIA_VALUES.has(v) ? v : "other";
+  } catch {
+    return undefined;
+  }
+}
+
 export type ProWaitlistOutcome = "created" | "existing" | "invalid" | "rate_limited" | "error";
 
 export interface ProWaitlistResponseBody {

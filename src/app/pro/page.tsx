@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TrackedSection } from "@/components/TrackedSection";
-import { ProOfferCta, ProOfferSignup } from "@/components/pro/ProOfferSignup";
+import { ProOfferCta, ProOfferSignup, ProOfferViewTracker } from "@/components/pro/ProOfferSignup";
 
 // /pro — the pre-launch HalvingLens Pro offer page (founder commission,
 // 21 Sep 2026). Makes the PROPOSED paid offering tangible: what it would do,
@@ -22,6 +22,7 @@ const GOLD = "#d9b96a";
 export default function ProOfferPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-14 pb-16">
+      <ProOfferViewTracker />
       {/* 1 · HERO */}
       <header className="pt-4">
         <div className="text-[10.5px] uppercase tracking-[0.22em]" style={{ color: GOLD }}>

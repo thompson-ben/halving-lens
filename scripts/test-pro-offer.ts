@@ -70,11 +70,13 @@ async function main(): Promise<void> {
     check("form posts to the EXISTING waitlist API with email only", formC.includes('fetch("/api/pro-waitlist"') && formC.includes("JSON.stringify({ email, source: PRO_SOURCE_OFFER_PAGE })"));
     check("uses the canonical decision contract (success = durable capture only)", formC.includes("decideProWaitlist(status, body)"));
     check("join event fires ONLY on confirmed NEW capture", /if \(d\.fireJoin\) track\("pro_waitlist_join"/.test(formC));
-    check("join carries source + offer + first-touch attribution", /track\("pro_waitlist_join", \{ source: PRO_SOURCE_OFFER_PAGE, offer: PRO_OFFER_VERSION, \.\.\.getAttribution\(\) \}\)/.test(formC));
-    check("EXISTING members tracked separately, with NO attribution props", /track\("pro_waitlist_existing", \{ source: PRO_SOURCE_OFFER_PAGE, offer: PRO_OFFER_VERSION \}\)/.test(formC));
+    // Pin evolution (Pro discovery, Sep 2026): join events also carry the
+    // canonical via acquisition prop — analytics only, never the row.
+    check("join carries source + offer + via + first-touch attribution", /track\("pro_waitlist_join", \{ source: PRO_SOURCE_OFFER_PAGE, offer: PRO_OFFER_VERSION, \.\.\.currentVia\(\), \.\.\.getAttribution\(\) \}\)/.test(formC));
+    check("EXISTING members tracked separately, with NO attribution props (via is allowed — it is placement, not identity)", /track\("pro_waitlist_existing", \{ source: PRO_SOURCE_OFFER_PAGE, offer: PRO_OFFER_VERSION, \.\.\.currentVia\(\) \}\)/.test(formC) && !/pro_waitlist_existing[^)]*getAttribution/.test(formC));
     check("duplicate shows a clear already-on-the-waitlist state", form.includes("You're already on the Pro waitlist"));
     check("no email address ever reaches analytics", !/track\([^)]*email/i.test(formC));
-    check("CTA clicks carry placement + offer (hero and form)", /"pro_offer_cta", \{ placement, offer: PRO_OFFER_VERSION \}/.test(formC) && /placement: "form"/.test(formC) && /placement="hero"/.test(page));
+    check("CTA clicks carry placement + offer + via (hero and form)", /"pro_offer_cta", \{ placement, offer: PRO_OFFER_VERSION, \.\.\.currentVia\(\) \}/.test(formC) && /placement: "form"/.test(formC) && /placement="hero"/.test(page));
     check("email-only form (no questionnaire fields)", (formC.match(/<input/g) ?? []).length === 1 && /type="email"/.test(formC));
     check("commitments preserved: joins nothing else · confirm by email · Pro-launch notification", form.includes("this joins nothing else") && form.includes("confirm your place by email, then email you again when Pro opens"));
     const events = readFileSync("src/lib/analyticsEvents.ts", "utf8");
@@ -161,7 +163,7 @@ async function main(): Promise<void> {
   console.log("5 · Integration + scope guards");
   {
     const dash = strip(readFileSync("src/components/lens/ProEarlyAccess.tsx", "utf8"));
-    check("dashboard Pro section links to the offer page", /href="\/pro"/.test(dash) && dash.includes("See the proposed Pro offer"));
+    check("dashboard Pro section links to the offer page (via=dashboard carrier)", /href="\/pro\?via=dashboard"/.test(dash) && dash.includes("See the proposed Pro offer"));
     check("dashboard signup + anchor preserved", /id="pro-early-access"/.test(dash) && /\/api\/pro-waitlist/.test(dash));
     check("/pro is in the sitemap", /"\/pro",/.test(readFileSync("src/app/sitemap.ts", "utf8")));
     check("exactly one h1 on the page", (page.match(/<h1/g) ?? []).length === 1);

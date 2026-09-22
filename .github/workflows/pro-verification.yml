@@ -1,0 +1,60 @@
+name: Pro production verification
+
+# Pro discovery & measurement (Sep 2026): read-only verification of the live
+# /pro release, run from a GitHub runner (which can reach production).
+#
+#   mode=checks   — READ-ONLY page/link/health assertions; prints the
+#                   production-availability timestamp.
+#   mode=activity — the controlled analytics walkthrough (real headless
+#                   browser): every generated event carries via=verify and is
+#                   excluded from all reporting; an invalid form submission
+#                   exercises the form CTA WITHOUT creating a waitlist join or
+#                   sending any email. Prints the analytics-verification
+#                   timestamp and confirms the marked events landed.
+#
+# Dispatch-only. Sends no emails in either mode. Never touches subscribers.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "checks (read-only availability) · activity (controlled analytics walkthrough, via=verify)"
+        type: choice
+        options: [checks, activity]
+        default: checks
+
+concurrency:
+  group: pro-verification
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Pro verification (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install headless browser (activity mode only)
+        if: ${{ inputs.mode == 'activity' }}
+        run: |
+          npm i --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run (${{ inputs.mode }})
+        run: npx tsx scripts/verify-pro-production.ts
+        env:
+          MODE: ${{ inputs.mode }}
+          # Supabase (activity mode reads the events table to confirm
+          # ingestion; checks mode never uses it).
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

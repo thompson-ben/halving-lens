@@ -25,7 +25,7 @@ import { briefEdition, type BriefEdition } from "./briefEdition";
 import type { Development } from "./briefSignificance";
 import { SITE_URL, SITE_HOST } from "./site";
 import { type EmailTracking, NO_EMAIL_TRACKING, forHtmlAttr } from "./emailTracking";
-import { PRO_SOURCE_BRIEF_FOOTER, PRO_SOURCE_PARAM } from "./proWaitlist";
+import { PRO_VIA, PRO_VIA_PARAM } from "./proWaitlist";
 
 // ── Palette (dark + gold — the house email system) ──────────────────────────
 const C = {
@@ -118,9 +118,14 @@ function developmentCard(d: Development, link: (path: string, label: string) => 
 /** The referral invitation's destination: the member's referral dashboard. */
 export const REFERRAL_INVITE_PATH = "/dashboard/referrals";
 
-/** The Pro invitation's destination: the existing landing surface, plus the
- *  non-personal source-carrier param the waitlist form reads. */
-export const PRO_INVITE_PATH = `/cycle-dashboard?${PRO_SOURCE_PARAM}=${PRO_SOURCE_BRIEF_FOOTER}#pro-early-access`;
+/** The Pro invitation's destination (Pro discovery, Sep 2026): the /pro offer
+ *  page, with the canonical non-personal acquisition carrier (?via=brief-footer,
+ *  an analytics prop only — the waitlist row's source stays the signup surface,
+ *  "/pro"). The pro-invite label keeps its SEMANTIC hlb exclusion regardless of
+ *  destination. Historic joins recorded with source "brief-footer" (the old
+ *  dashboard-seam path) are never re-labelled; the switchover boundary is the
+ *  deploy of this change. */
+export const PRO_INVITE_PATH = `/pro?${PRO_VIA_PARAM}=${PRO_VIA.briefFooter}`;
 
 export interface BriefEditionEmailOpts {
   /** Render the Member footer (real sends set this; archive renders don't). */
@@ -246,7 +251,7 @@ export function briefEditionEmailHtmlFor(
         `<div style="border-top:1px solid ${C.hair};padding-top:14px;">
         <div style="font:600 10px/1.4 ${SANS};letter-spacing:.2em;text-transform:uppercase;color:${C.faint};">Member</div>
         <div style="font:400 12.5px/1.7 ${SANS};color:${C.dim};margin-top:8px;">Know someone who follows Bitcoin? <a href="${link(REFERRAL_INVITE_PATH, "referral-invite")}" style="color:${C.sub};text-decoration:underline;">Share HalvingLens and unlock member rewards&nbsp;→</a></div>
-        <div style="font:400 12.5px/1.7 ${SANS};color:${C.dim};margin-top:5px;">Want to know when something meaningful changes? <a href="${link(PRO_INVITE_PATH, "pro-invite")}" style="color:${C.sub};text-decoration:underline;">Join the HalvingLens Pro early-access list&nbsp;→</a></div>
+        <div style="font:400 12.5px/1.7 ${SANS};color:${C.dim};margin-top:5px;">Want to spend less time checking Bitcoin conditions? <a href="${link(PRO_INVITE_PATH, "pro-invite")}" style="color:${C.sub};text-decoration:underline;">Explore the planned HalvingLens Pro beta&nbsp;→</a></div>
       </div>`,
         "4px 36px 6px",
       ),
@@ -327,7 +332,7 @@ export function briefEditionTextFor(b: BriefEdition, opts: BriefEditionEmailOpts
   if (opts.member) {
     L.push("");
     L.push(`Know someone who follows Bitcoin? Share HalvingLens and unlock member rewards: ${SITE_URL}${REFERRAL_INVITE_PATH}`);
-    L.push(`Want to know when something meaningful changes? Join the HalvingLens Pro early-access list: ${SITE_URL}${PRO_INVITE_PATH}`);
+    L.push(`Want to spend less time checking Bitcoin conditions? Explore the planned HalvingLens Pro beta: ${SITE_URL}${PRO_INVITE_PATH}`);
   }
   L.push("");
   L.push(b.feedback.line);

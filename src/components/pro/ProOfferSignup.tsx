@@ -1,16 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { track } from "@/lib/track";
 import { getAttribution } from "@/lib/attribution";
 import {
   decideProWaitlist,
+  proViaFromSearch,
   PRO_OFFER_VERSION,
   PRO_SOURCE_OFFER_PAGE,
   type ProWaitlistResponseBody,
   type ProUiState,
 } from "@/lib/proWaitlist";
+
+// Acquisition source (`?via=` — canonical values in proWaitlist.ts) read at
+// event time. It is an ANALYTICS PROP ONLY: the API call and the waitlist row
+// keep the authoritative signup-surface source ("/pro"), and first-touch
+// attribution is untouched (via is not a UTM field, so captureAttribution
+// ignores it).
+function currentVia(): { via?: string } {
+  if (typeof window === "undefined") return {};
+  const via = proViaFromSearch(window.location.search);
+  return via ? { via } : {};
+}
+
+/** Fires the once-per-load pro_offer_view event (an opportunity to see the
+ *  offer, never proof of attention), carrying the acquisition source. */
+export function ProOfferViewTracker() {
+  const fired = useRef(false);
+  useEffect(() => {
+    if (fired.current) return;
+    fired.current = true;
+    track("pro_offer_view", { offer: PRO_OFFER_VERSION, ...currentVia() });
+  }, []);
+  return null;
+}
 
 // /pro offer page — the waitlist form and CTA buttons (Sep 2026).
 //
@@ -39,7 +63,7 @@ export function ProOfferCta({ placement, targetId, children, className }: {
     <a
       href={`#${targetId}`}
       className={className}
-      onClick={() => track("pro_offer_cta", { placement, offer: PRO_OFFER_VERSION })}
+      onClick={() => track("pro_offer_cta", { placement, offer: PRO_OFFER_VERSION, ...currentVia() })}
     >
       {children}
     </a>
@@ -58,7 +82,7 @@ export function ProOfferSignup() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
-    track("pro_offer_cta", { placement: "form", offer: PRO_OFFER_VERSION });
+    track("pro_offer_cta", { placement: "form", offer: PRO_OFFER_VERSION, ...currentVia() });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setState("invalid");
       setMessage("Please enter a valid email address.");
@@ -81,8 +105,8 @@ export function ProOfferSignup() {
     }
     const d = decideProWaitlist(status, body);
     // Confirmed NEW capture only — never a purchase, never a price acceptance.
-    if (d.fireJoin) track("pro_waitlist_join", { source: PRO_SOURCE_OFFER_PAGE, offer: PRO_OFFER_VERSION, ...getAttribution() });
-    if (d.state === "existing") track("pro_waitlist_existing", { source: PRO_SOURCE_OFFER_PAGE, offer: PRO_OFFER_VERSION });
+    if (d.fireJoin) track("pro_waitlist_join", { source: PRO_SOURCE_OFFER_PAGE, offer: PRO_OFFER_VERSION, ...currentVia(), ...getAttribution() });
+    if (d.state === "existing") track("pro_waitlist_existing", { source: PRO_SOURCE_OFFER_PAGE, offer: PRO_OFFER_VERSION, ...currentVia() });
     setState(d.state);
     setMessage(d.state === "existing" ? "You're already on the Pro waitlist — no need to join again." : d.message);
     setSubmitting(false);

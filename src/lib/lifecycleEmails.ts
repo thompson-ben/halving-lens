@@ -9,7 +9,9 @@
 import { SITE_URL, SITE_HOST } from "./site";
 import { unsubToken } from "./emailToken";
 import { type EmailTracking, NO_EMAIL_TRACKING } from "./emailTracking";
-import { YOUTUBE_URL, YOUTUBE_LIVE } from "./lifecycleConfig";
+import { YOUTUBE_URL, YOUTUBE_LIVE, PRO_INTRO_FROM } from "./lifecycleConfig";
+import { PRO_VIA, PRO_VIA_PARAM } from "./proWaitlist";
+import { proReplyTo } from "./proWaitlistEmails";
 import { cycleDashboardIntel } from "./cycleDashboardIntel";
 
 const C = {
@@ -48,6 +50,15 @@ export interface LifecycleStep {
   subject: string;
   build: (ctx: LifecycleCtx) => { html: string; text: string };
   enabled?: boolean; // default true
+  /** Introduction date (YYYY-MM-DD): the step never fires for a subscriber
+   *  whose due date predates it — no retrospective batch when a step is
+   *  added mid-sequence (see dueSteps). */
+  from?: string;
+  /** Subscriber replies route to this address instead of the send-only
+   *  sender (e.g. the public Pro reply address). Returning null means the
+   *  address is unconfigured — the sender then SKIPS the step rather than
+   *  sending with the wrong reply path. */
+  replyTo?: () => string | null;
 }
 
 // ── Shared layout ─────────────────────────────────────────────────────────────
@@ -61,8 +72,13 @@ function shell(opts: {
   ctaNote?: string;
   ctx: LifecycleCtx;
   preheader: string;
+  /** Footer provenance line — defaults to the onboarding welcome wording;
+   *  one-off sends (the Pro announcement) state their own honest reason. */
+  footerNote?: string;
 }): string {
   const { eyebrow, tag, title, intro, body, cta, ctaNote, ctx, preheader } = opts;
+  const footerNote =
+    opts.footerNote ?? `You're receiving this as part of your welcome to ${SITE_HOST}. Your Daily Brief continues as normal.`;
   const t = ctx.tracking;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -102,7 +118,7 @@ function shell(opts: {
         <div style="font:500 13px/1.5 ${SERIF};color:${C.sub};">The clearest view of the Bitcoin cycle.</div>
         <div style="font:400 11px/1.7 ${SANS};color:${C.faint};margin-top:12px;">
           Historical context, not a prediction. Educational analysis — not financial advice, no price targets.<br>
-          You're receiving this as part of your welcome to ${SITE_HOST}. Your Daily Brief continues as normal.
+          ${esc(footerNote)}
           <a href="${ctx.tracking.link(ctx.unsubUrl, "lc_unsub")}" style="color:${C.dim};text-decoration:underline;">Unsubscribe</a>.
         </div>
       </td></tr>
@@ -461,6 +477,37 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
       };
     },
   },
+
+  // Day 18 — the Pro introduction (Pro discovery, Sep 2026). Placed AFTER the
+  // whole getting-started arc and the day-14 feedback ask: by now the
+  // subscriber has had the Brief daily for two and a half weeks and met the
+  // Cycle Dashboard on day 3, so the free-vs-planned-Pro distinction lands on
+  // experience, not promises. +4 days continues the sequence's widening rhythm
+  // (6 → 10 → 14 → 18) and keeps the two asks (feedback, then this) apart.
+  // `from` guarantees NO retrospective batch; `replyTo` routes replies to the
+  // public Pro address (unconfigured → the sender skips, never mis-routes).
+  {
+    id: "pro_intro",
+    dayOffset: 18,
+    subject: "Spend less time checking charts",
+    from: PRO_INTRO_FROM,
+    replyTo: proReplyTo,
+    build: (ctx) => ({
+      html: shell({
+        eyebrow: "HalvingLens Pro · Planned beta",
+        tag: "A look ahead",
+        title: "Spend less time checking charts.",
+        intro:
+          "You&rsquo;ve had the Daily Brief each morning for a while now — the quick answer to whether anything changed. I&rsquo;m designing the next layer for people who want the checking done for them: HalvingLens Pro.",
+        body: proIntroBody(),
+        cta: { label: "Explore the Pro plan", url: PRO_INTRO_URL, track: "pro_intro_cta" },
+        ctaNote: "Free to join the waitlist. No payment details, no commitment.",
+        ctx,
+        preheader: "A look at the planned HalvingLens Pro beta — proposed £15/month.",
+      }),
+      text: proIntroText(PRO_INTRO_URL, ctx),
+    }),
+  },
 ];
 
 // ── Plain-text fallbacks ──────────────────────────────────────────────────────
@@ -483,6 +530,87 @@ function tourText(ctx: LifecycleCtx): string {
     ],
     ctx,
   );
+}
+
+
+// ── The Pro introduction (shared by the day-18 onboarding step and the
+// one-time existing-subscriber announcement) ─────────────────────────────────
+// Founder commission (Pro discovery, Sep 2026). One introduction per address,
+// EVER: both senders record lifecycle_sends step "pro_intro", so whichever
+// reaches a subscriber first blocks the other. Copy rules (CI-scanned): a
+// PROPOSED £15/month beta, not an available subscription; no payment or
+// commitment to join the waitlist; one clearly-fictional illustrative example;
+// no questionnaire, predictions, performance claims or urgency; the free
+// experience and Founding Member commitments stay untouched.
+
+function proIntroBody(): string {
+  return `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;">
+          <tr><td style="padding:0 0 10px;">
+            <div style="border:1px solid ${C.border};border-radius:12px;padding:15px 17px;">
+              <div style="font:700 10px/1.3 ${SANS};letter-spacing:.14em;text-transform:uppercase;color:${C.dim};">Your free Daily Brief</div>
+              <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:6px;">A general overview each morning — the one thing that matters, with the full dashboard a tap away. This stays free, exactly as it is.</div>
+            </div>
+          </td></tr>
+          <tr><td>
+            <div style="border:1px solid ${C.goldBorder};border-radius:12px;padding:15px 17px;background:${C.cardHi};">
+              <div style="font:700 10px/1.3 ${SANS};letter-spacing:.14em;text-transform:uppercase;color:${C.gold};">Planned Pro</div>
+              <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:6px;">Monitoring of the supported readings you choose, with an email when a defined condition changes — what triggered, why it matters, and a link to the evidence.</div>
+            </div>
+          </td></tr>
+        </table>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:12px;margin-top:14px;">
+          <tr><td style="padding:14px 17px;">
+            <div style="font:700 10px/1.3 ${SANS};letter-spacing:.1em;text-transform:uppercase;color:#f5b942;">Illustrative example — fictional values, not a live alert</div>
+            <div style="font:600 16px/1.4 ${SERIF};color:${C.ink};margin-top:7px;">Bitcoin has crossed below its 200-day average</div>
+            <div style="font:400 13.5px/1.6 ${SANS};color:${C.dim};margin-top:6px;">You&rsquo;d get a short note: what crossed, why it matters, and a link to the live chart. A crossing can reverse and does not, by itself, establish a lasting trend.</div>
+          </td></tr>
+        </table>
+        <div style="font:400 15px/1.65 ${SANS};color:${C.sub};margin-top:16px;">
+          Pro isn&rsquo;t available yet — this is a look at what I&rsquo;m planning, at a <span style="color:${C.ink};font-weight:600;">proposed &pound;15/month beta</span> price. Joining the waitlist takes no payment and no commitment: you&rsquo;ll see the final features and price before you decide, and the free experience stays as it is.
+        </div>
+        <div style="font:400 13.5px/1.6 ${SANS};color:${C.dim};margin-top:12px;">
+          Have a thought on what Pro should watch first? Just reply — replies come straight to me. — Ben
+        </div>`;
+}
+
+const PRO_INTRO_URL = `${SITE_URL}/pro?${PRO_VIA_PARAM}=${PRO_VIA.onboarding}`;
+const PRO_ANNOUNCEMENT_URL = `${SITE_URL}/pro?${PRO_VIA_PARAM}=${PRO_VIA.announcement}`;
+
+function proIntroText(ctaUrl: string, ctx: LifecycleCtx): string {
+  return simpleText(
+    "Spend less time checking charts",
+    [
+      "Your free Daily Brief stays exactly as it is: a general overview each morning.",
+      "Planned Pro would monitor the supported readings you choose and email you when a defined condition changes — what triggered, why it matters, and a link to the evidence.",
+      "Illustrative example (fictional values, not a live alert): \"Bitcoin has crossed below its 200-day average\" — a short note explaining the crossing, with a link to the live chart. A crossing can reverse and does not, by itself, establish a lasting trend.",
+      "Pro isn't available yet. The proposed beta price is £15/month. Joining the waitlist takes no payment and no commitment — you'll see the final features and price before you decide.",
+      "Have a thought on what Pro should watch first? Just reply — replies come straight to me. — Ben",
+      `Explore the Pro plan: ${ctaUrl}`,
+    ],
+    ctx,
+  );
+}
+
+/** The ONE-TIME existing-subscriber announcement (dispatch-only script; never
+ *  part of the drip). Same substance as the onboarding step, adapted for
+ *  people who already know HalvingLens, with an honest one-off footer. */
+export function buildProAnnouncementEmail(ctx: LifecycleCtx): { subject: string; html: string; text: string } {
+  const subject = "What I'm planning next: HalvingLens Pro";
+  const html = shell({
+    eyebrow: "HalvingLens Pro · Planned beta",
+    tag: "A one-time note from Ben",
+    title: "Spend less time checking charts.",
+    intro:
+      "You&rsquo;ve been reading HalvingLens for a while, so I wanted to share what I&rsquo;m planning next: HalvingLens Pro — for the days you&rsquo;d rather not check the charts at all, without losing sight of the moments that matter.",
+    body: proIntroBody(),
+    cta: { label: "Explore the Pro plan", url: PRO_ANNOUNCEMENT_URL, track: "pro_announcement_cta" },
+    ctaNote: "Free to join the waitlist. No payment details, no commitment.",
+    ctx,
+    preheader: "A look at the planned HalvingLens Pro beta — proposed £15/month.",
+    footerNote: `You're receiving this one-time note as a ${SITE_HOST} Daily Brief subscriber. Your Daily Brief continues as normal.`,
+  });
+  return { subject, html, text: proIntroText(PRO_ANNOUNCEMENT_URL, ctx) };
 }
 
 // Convenience for admin previews (no tracking).

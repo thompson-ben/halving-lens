@@ -1,0 +1,43 @@
+name: Pro discovery report
+
+# Pro discovery & measurement (Sep 2026): the reusable checkpoint report —
+# READ-ONLY (queries analytics, prints the report, changes nothing, sends
+# nothing). Dispatch-only BY DESIGN: monitoring is deliberate, not automated;
+# no schedule exists (docs/pro-measurement.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Window start (YYYY-MM-DD) — the VERIFIED tracking-availability date from the pro-verification activity run"
+        required: true
+      days:
+        description: "Window length in days"
+        required: false
+        default: "7"
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Pro discovery report (since ${{ inputs.since }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate the checkpoint report (read-only)
+        run: npx tsx scripts/pro-discovery-report.ts
+        env:
+          REPORT_SINCE: ${{ inputs.since }}
+          REPORT_DAYS: ${{ inputs.days }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}

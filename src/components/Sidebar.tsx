@@ -70,11 +70,13 @@ function NavItem({
   label,
   icon: Icon,
   muted,
+  badge,
 }: {
   href: string;
   label: string;
   icon: LucideIcon;
   muted?: boolean;
+  badge?: string;
 }) {
   return (
     <Link
@@ -89,6 +91,11 @@ function NavItem({
         className={`${muted ? "text-ink-500" : "text-ink-400"} group-hover:text-accent transition-colors`}
       />
       <span>{label}</span>
+      {badge && (
+        <span className="ml-auto text-[9px] uppercase tracking-[0.12em] text-editorial/90 border border-editorial/30 rounded px-1.5 py-0.5">
+          {badge}
+        </span>
+      )}
     </Link>
   );
 }
