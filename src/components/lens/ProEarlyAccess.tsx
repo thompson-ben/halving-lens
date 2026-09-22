@@ -135,6 +135,12 @@ export function ProEarlyAccess() {
             <AlertCircle size={13} className="shrink-0" /> {error}
           </p>
         )}
+        <p className="mt-4 text-caption text-ink-500">
+          Curious what Pro could include?{" "}
+          <a href="/pro" className="text-editorial underline decoration-white/20 underline-offset-2 hover:text-ink-100">
+            See the proposed Pro offer →
+          </a>
+        </p>
       </div>
     </section>
   );
