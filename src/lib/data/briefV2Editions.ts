@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-09-22",
+    "subject": "Fear & Greed ↔ Accumulation Index: the tension worth reading today",
+    "activity": "active",
+    "storyKind": "divergence",
+    "text": "HALVINGLENS DAILY BRIEF — 22 Sep 2026\nBTC $86,505 · +6.5% since yesterday's 08:00 London snapshot\n\nTHE VERDICT: Crowd enthusiasm is heating up while the accumulation window remains open. That tension — not any single reading — is today's story across the 15 monitored readings.\n8 of 15 monitored readings held within their own ordinary 7-day ranges — 7 moved materially.\n\nA TENSION FORMED: Crowd enthusiasm is heating up while the accumulation window remains open.\nSentiment ↔ Accumulation (D1) shifted today — a qualifying leg changed state.\nJoint observable record begins 2022-07.\nWindow: today · as of 22 Sep 2026\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Attractive · 37/100 · weekly · since 4 Jul 2026\n· Sentiment: Extreme greed · 78/100 · since 22 Sep 2026\n· ETF demand: 3-day inflow streak · +$991.88M over 7 trading days · as of 21 Sep 2026\n\nSee today's tension in full context → https://halvinglens.com/cycle-dashboard#dashboard-state-strip\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-edition-v1"
+  },
+  {
     "slug": "2026-09-21",
     "subject": "Nothing crossed a line today — all 15 readings held",
     "activity": "active",
