@@ -269,6 +269,8 @@ async function main(): Promise<void> {
     check("uncertain pro_intro claims are reported; send refuses if unreadable", /uncertainProIntroClaims/.test(sc) && /refusing to send without a readable claim state/.test(script));
     check("never writes to pro_waitlist (no auto-enrolment)", !/sbInsert\("pro_waitlist"/.test(sc));
     check("engagement segments reported separately, opens labelled estimated", /segments/.test(sc) && /ESTIMATED/i.test(script));
+    check("confirmed clicks include the signed-redirect email_click evidence (no new tracking)",
+      /name=eq\.email_click/.test(sc) && /clickedConfirmed60d/.test(sc) && /openedOnlyEstimated60d/.test(sc));
     check("recipient addresses are masked in logs", /mask\(/.test(sc) && !/console\.(log|error)\(`[^`]*\$\{m\.email\}/.test(sc));
     check("public Reply-To required, no fallback", /PRO_REPLY_TO_EMAIL \(the public Reply-To\) — refusing/.test(script));
 

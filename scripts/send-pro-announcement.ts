@@ -68,7 +68,7 @@ interface Sub {
 interface Audience {
   eligible: Sub[];
   excluded: Array<{ email: string; reason: string }>;
-  segments: { clicked60d: number; openedOnly60d: number; noRecordedEngagement: number };
+  segments: { clickedConfirmed60d: number; openedOnlyEstimated60d: number; noRecordedEngagement: number };
 }
 
 async function buildAudience(): Promise<Audience | null> {
@@ -116,33 +116,45 @@ async function buildAudience(): Promise<Audience | null> {
   }
 
   // Engagement segments — reported SEPARATELY, never used to shrink the
-  // audience: a confirmed click is real engagement; an open is only an
-  // ESTIMATE (Apple MPP and image proxies inflate it); absence of both is
-  // "no recorded engagement", not proof of disinterest.
+  // audience. CONFIRMED clicks combine two existing sources (no new
+  // tracking): the site's signed-redirect email_click events (server-side,
+  // complete for every tracked link) and any provider-reported clicks in
+  // the webhook table. Provider OPENS stay separately labelled as an
+  // ESTIMATE (Apple MPP and image proxies inflate them, and webhook
+  // coverage may not ingest them at all). Absence of both is "no recorded
+  // engagement" — a coverage statement, never proof of disinterest.
   const since = new Date(Date.now() - 60 * 86_400_000).toISOString();
-  const events = await sbSelect<{ email_hash: string | null; category: string }[]>(
+  const provider = await sbSelect<{ email_hash: string | null; category: string }[]>(
     `email_events?select=email_hash,category&category=in.(opened,clicked)&occurred_at=gte.${since}&limit=200000`,
+  );
+  const redirect = await sbSelect<{ props: Record<string, unknown> | null }[]>(
+    `events?select=props&name=eq.email_click&created_at=gte.${since}&limit=200000`,
   );
   const clicked = new Set<string>();
   const opened = new Set<string>();
-  for (const e of events ?? []) {
+  for (const e of provider ?? []) {
     if (!e.email_hash) continue;
     if (e.category === "clicked") clicked.add(e.email_hash);
     else opened.add(e.email_hash);
   }
-  let clicked60d = 0;
-  let openedOnly60d = 0;
+  for (const e of redirect ?? []) {
+    const sub = e.props?.sub;
+    if (typeof sub === "string" && sub) clicked.add(sub);
+  }
+  let clickedConfirmed60d = 0;
+  let openedOnlyEstimated60d = 0;
   for (const m of eligible) {
     const h = emailHash(m.email);
-    if (clicked.has(h)) clicked60d += 1;
-    else if (opened.has(h)) openedOnly60d += 1;
+    if (clicked.has(h)) clickedConfirmed60d += 1;
+    else if (opened.has(h)) openedOnlyEstimated60d += 1;
   }
   const segments = {
-    clicked60d,
-    openedOnly60d,
-    noRecordedEngagement: eligible.length - clicked60d - openedOnly60d,
+    clickedConfirmed60d,
+    openedOnlyEstimated60d,
+    noRecordedEngagement: eligible.length - clickedConfirmed60d - openedOnlyEstimated60d,
   };
-  if (events == null) console.log("[announce] note: engagement events unreadable — segments reported as zero, audience unaffected.");
+  if (provider == null) console.log("[announce] note: provider engagement events unreadable — provider opens/clicks reported as zero, audience unaffected.");
+  if (redirect == null) console.log("[announce] note: signed-redirect click events unreadable — redirect clicks reported as zero, audience unaffected.");
   return { eligible, excluded, segments };
 }
 
@@ -202,7 +214,7 @@ async function main(): Promise<void> {
   console.log(`[announce] active subscribers considered: ${eligible.length + excluded.length}`);
   console.log(`[announce] ELIGIBLE for the one-time announcement: ${eligible.length}`);
   console.log(
-    `[announce] engagement segments (informational — opens are ESTIMATED, absence is not disinterest): confirmed click in 60d=${segments.clicked60d} · opened-only in 60d=${segments.openedOnly60d} · no recorded engagement=${segments.noRecordedEngagement}`,
+    `[announce] engagement segments (informational; audience unaffected): CONFIRMED click in 60d=${segments.clickedConfirmed60d} (signed-redirect + provider) · provider-open only in 60d=${segments.openedOnlyEstimated60d} (ESTIMATED — inflated by mail proxies, and webhook coverage may miss opens entirely) · no recorded engagement=${segments.noRecordedEngagement} (a coverage statement, not disinterest)`,
   );
   console.log(`[announce] excluded: ${excluded.length}`);
   const byReason = new Map<string, number>();
