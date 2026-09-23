@@ -92,7 +92,18 @@ async function activity(): Promise<void> {
     chromium: { launch: () => Promise<{ newPage: (o: unknown) => Promise<Record<string, any>>; close: () => Promise<void> }> };
   };
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  // A normal browser User-Agent: production's /api/track correctly drops
+  // bot/headless UAs (botCheck.ts — behaviour we must NOT weaken), and the
+  // default headless UA contains "HeadlessChrome", so the walkthrough's
+  // events would be filtered at ingestion and the pipeline would go
+  // unverified (run 2 finding, 23 Sep). Overriding the UA on OUR OWN
+  // controlled, via=verify-marked walkthrough exercises the real ingestion
+  // path end to end; the production filter itself is untouched.
+  const page = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    userAgent:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36",
+  });
   await page.goto(`${BASE}/pro?via=verify`, { waitUntil: "networkidle" });
 
   const sid = await page.evaluate(() => sessionStorage.getItem("hl.sid"));
@@ -146,7 +157,9 @@ async function activity(): Promise<void> {
   const joins = await sbSelect<{ name: string }[]>(
     `events?select=name&created_at=gte.${encodeURIComponent(startedAt)}&name=eq.pro_waitlist_join&limit=10`,
   );
-  check("no waitlist join was created by the walkthrough", (joins ?? []).length === 0);
+  // An unreadable query must not pass as "no joins" — that would verify
+  // nothing. null fails loudly; only an actual empty result passes.
+  check("no waitlist join was created by the walkthrough (query readable)", joins != null && joins.length === 0, joins == null ? "events query unreadable" : undefined);
 
   console.log(
     `[verify] ANALYTICS VERIFICATION ${failures === 0 ? "CONFIRMED" : "FAILED"} at ${new Date().toISOString()} — events carry via=verify and are excluded from reporting.`,
