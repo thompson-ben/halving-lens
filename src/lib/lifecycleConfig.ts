@@ -20,13 +20,16 @@ export const YOUTUBE_LIVE = YOUTUBE_URL.length > 0;
 // already well past a step's due date, that step is skipped rather than fired.
 export const LIFECYCLE_CATCHUP_DAYS = Number(process.env.LIFECYCLE_CATCHUP_DAYS) || 30;
 
-// When the onboarding Pro introduction (step pro_intro) joined the sequence.
-// The step NEVER fires for a subscriber whose due date falls before this —
-// stricter than the general catch-up window — so inserting it triggers no
-// retrospective batch to members already past that point in the sequence.
-// In-flight subscribers who reach day 18 after this date get it as ordinary
-// drip. Set to the deploy date at merge (LIFECYCLE_PRO_INTRO_FROM overrides).
-export const PRO_INTRO_FROM = process.env.LIFECYCLE_PRO_INTRO_FROM || "2026-09-24";
+// When the onboarding Pro introduction (step pro_intro) joined the sequence
+// (the ACTIVATION date — the merge/deploy day). UTC ELIGIBILITY BOUNDARY:
+// the step fires only for subscribers whose due date (enrolment anchor,
+// floored to its UTC day, + 18 days) falls ON OR AFTER
+// PRO_INTRO_FROM 00:00:00 UTC. Anyone whose day-18 due date predates that
+// instant is permanently skipped — stricter than the general catch-up
+// window, so activation produces NO retrospective batch; in-flight
+// subscribers who reach day 18 afterwards get it as ordinary drip.
+// LIFECYCLE_PRO_INTRO_FROM overrides (used if the merge slips past this date).
+export const PRO_INTRO_FROM = process.env.LIFECYCLE_PRO_INTRO_FROM || "2026-09-23";
 
 // The one-time existing-subscriber Pro announcement's campaign id — shared by
 // the dispatch script (send tracking) and the checkpoint report (click

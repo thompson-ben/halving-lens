@@ -10,6 +10,14 @@ import { unsubToken } from "./emailToken";
 import { emailTracking } from "./emailTracking";
 import { absoluteUrl, SITE_URL } from "./site";
 import { referralCode } from "./referral";
+import {
+  claimProIntro,
+  markProIntroSent,
+  proIntroIdempotencyKey,
+  releaseProIntroClaim,
+  retainProIntroAmbiguous,
+  PRO_INTRO_STEP,
+} from "./lifecycleClaims";
 
 export interface LifecycleSummary {
   ok: boolean;
@@ -20,9 +28,14 @@ export interface LifecycleSummary {
   failed: number;
   byStep: Record<string, number>;
   /** pro_intro send-time gates (Pro discovery): steps withheld because the
-   *  subscriber is already on the Pro waitlist (never solicited twice), or
-   *  because the public reply address is unconfigured (never mis-routed). */
-  skipped: { proWaitlisted: number; proNoReplyTo: number };
+   *  subscriber is already on the Pro waitlist (never solicited twice),
+   *  because the public reply address is unconfigured (never mis-routed),
+   *  or because the cross-channel claim was already held / unavailable
+   *  (the announcement got there first, or the store failed closed). */
+  skipped: { proWaitlisted: number; proNoReplyTo: number; proClaimHeld: number };
+  /** pro_intro sends whose provider outcome is UNKNOWN — the claim is
+   *  retained as 'ambiguous' for manual reconciliation, never retried. */
+  ambiguousRetained: number;
 }
 
 interface Subscriber {
@@ -31,7 +44,7 @@ interface Subscriber {
   signup_at: string | null;
 }
 
-const EMPTY: LifecycleSummary = { ok: false, eligible: 0, sent: 0, delivered: 0, failed: 0, byStep: {}, skipped: { proWaitlisted: 0, proNoReplyTo: 0 } };
+const EMPTY: LifecycleSummary = { ok: false, eligible: 0, sent: 0, delivered: 0, failed: 0, byStep: {}, skipped: { proWaitlisted: 0, proNoReplyTo: 0, proClaimHeld: 0 }, ambiguousRetained: 0 };
 
 export async function sendLifecycleEmails(opts: { limit?: number } = {}): Promise<LifecycleSummary> {
   if (!supabaseConfigured) return { ...EMPTY, reason: "supabase_not_configured" };
@@ -64,7 +77,8 @@ export async function sendLifecycleEmails(opts: { limit?: number } = {}): Promis
   let failed = 0;
   let sent = 0;
   const byStep: Record<string, number> = {};
-  const skipped = { proWaitlisted: 0, proNoReplyTo: 0 };
+  const skipped = { proWaitlisted: 0, proNoReplyTo: 0, proClaimHeld: 0 };
+  let ambiguousRetained = 0;
   const logs: Record<string, unknown>[] = [];
 
   for (const sub of subs) {
@@ -102,12 +116,29 @@ export async function sendLifecycleEmails(opts: { limit?: number } = {}): Promis
     };
     const { html, text } = step.build(ctx);
 
+    // Cross-channel at-most-once (founder review, 23 Sep): pro_intro is
+    // CLAIMED before sending — the unique lower(email)+step index arbitrates
+    // a concurrent announcement run, and the deterministic provider
+    // idempotency key covers retried deliveries of the same claim. Other
+    // steps keep the single-job record-on-success model unchanged.
+    const crossChannel = step.id === PRO_INTRO_STEP;
+    if (crossChannel) {
+      const claim = await claimProIntro(email);
+      if (claim !== "claimed") {
+        // "already": the announcement (or an earlier run) holds it.
+        // "unavailable": store/migration problem — fail closed, no send.
+        skipped.proClaimHeld += 1;
+        continue;
+      }
+    }
+
     const res = await sendEmail({
       to: email,
       subject: step.subject,
       html,
       text,
       replyTo,
+      idempotencyKey: crossChannel ? proIntroIdempotencyKey(email) : undefined,
       headers: { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
     });
 
@@ -115,10 +146,23 @@ export async function sendLifecycleEmails(opts: { limit?: number } = {}): Promis
     byStep[step.id] = (byStep[step.id] ?? 0) + 1;
     if (res.ok) {
       delivered += 1;
-      // Record only on success, so a transient failure retries next run.
-      await sbInsert("lifecycle_sends", { email, step: step.id });
+      if (crossChannel) {
+        // The claim becomes the permanent record on provider acceptance.
+        await markProIntroSent(email);
+      } else {
+        // Record only on success, so a transient failure retries next run.
+        await sbInsert("lifecycle_sends", { email, step: step.id });
+      }
+    } else if (crossChannel && res.ambiguous) {
+      // The provider MAY have accepted (timeout/5xx): retain the claim as
+      // 'ambiguous' — suppresses both channels, reconciled manually.
+      ambiguousRetained += 1;
+      failed += 1;
+      await retainProIntroAmbiguous(email);
     } else {
       failed += 1;
+      // Definitive rejection: release the claim so a later run may retry.
+      if (crossChannel) await releaseProIntroClaim(email);
     }
     logs.push({
       date: new Date(now).toISOString().slice(0, 10),
@@ -132,5 +176,5 @@ export async function sendLifecycleEmails(opts: { limit?: number } = {}): Promis
 
   for (let i = 0; i < logs.length; i += 500) await sbInsert("email_sends", logs.slice(i, i + 500));
 
-  return { ok: true, eligible: sent, sent, delivered, failed, byStep, skipped };
+  return { ok: true, eligible: sent, sent, delivered, failed, byStep, skipped, ambiguousRetained };
 }

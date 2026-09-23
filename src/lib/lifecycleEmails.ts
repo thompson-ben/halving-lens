@@ -498,14 +498,14 @@ export const LIFECYCLE_STEPS: LifecycleStep[] = [
         tag: "A look ahead",
         title: "Spend less time checking charts.",
         intro:
-          "You&rsquo;ve had the Daily Brief each morning for a while now — the quick answer to whether anything changed. I&rsquo;m designing the next layer for people who want the checking done for them: HalvingLens Pro.",
+          "Thanks for joining HalvingLens. The free Daily Brief gives you a general overview of Bitcoin conditions. I&rsquo;m planning an additional service for people who want selected readings monitored for them: HalvingLens Pro.",
         body: proIntroBody(),
         cta: { label: "Explore the Pro plan", url: PRO_INTRO_URL, track: "pro_intro_cta" },
         ctaNote: "Free to join the waitlist. No payment details, no commitment.",
         ctx,
         preheader: "A look at the planned HalvingLens Pro beta — proposed £15/month.",
       }),
-      text: proIntroText(PRO_INTRO_URL, ctx),
+      text: proIntroText(PRO_INTRO_URL, ctx, "Thanks for joining HalvingLens. The free Daily Brief gives you a general overview of Bitcoin conditions. I'm planning an additional service for people who want selected readings monitored for them: HalvingLens Pro."),
     }),
   },
 ];
@@ -577,10 +577,11 @@ function proIntroBody(): string {
 const PRO_INTRO_URL = `${SITE_URL}/pro?${PRO_VIA_PARAM}=${PRO_VIA.onboarding}`;
 const PRO_ANNOUNCEMENT_URL = `${SITE_URL}/pro?${PRO_VIA_PARAM}=${PRO_VIA.announcement}`;
 
-function proIntroText(ctaUrl: string, ctx: LifecycleCtx): string {
+function proIntroText(ctaUrl: string, ctx: LifecycleCtx, opening: string): string {
   return simpleText(
     "Spend less time checking charts",
     [
+      opening,
       "Your free Daily Brief stays exactly as it is: a general overview each morning.",
       "Planned Pro would monitor the supported readings you choose and email you when a defined condition changes — what triggered, why it matters, and a link to the evidence.",
       "Illustrative example (fictional values, not a live alert): \"Bitcoin has crossed below its 200-day average\" — a short note explaining the crossing, with a link to the live chart. A crossing can reverse and does not, by itself, establish a lasting trend.",
@@ -602,7 +603,7 @@ export function buildProAnnouncementEmail(ctx: LifecycleCtx): { subject: string;
     tag: "A one-time note from Ben",
     title: "Spend less time checking charts.",
     intro:
-      "You&rsquo;ve been reading HalvingLens for a while, so I wanted to share what I&rsquo;m planning next: HalvingLens Pro — for the days you&rsquo;d rather not check the charts at all, without losing sight of the moments that matter.",
+      "As a HalvingLens subscriber, I wanted to give you a look at what I&rsquo;m planning next: HalvingLens Pro&mdash;for people who want to spend less time checking charts while keeping meaningful changes in view.",
     body: proIntroBody(),
     cta: { label: "Explore the Pro plan", url: PRO_ANNOUNCEMENT_URL, track: "pro_announcement_cta" },
     ctaNote: "Free to join the waitlist. No payment details, no commitment.",
@@ -610,7 +611,7 @@ export function buildProAnnouncementEmail(ctx: LifecycleCtx): { subject: string;
     preheader: "A look at the planned HalvingLens Pro beta — proposed £15/month.",
     footerNote: `You're receiving this one-time note as a ${SITE_HOST} Daily Brief subscriber. Your Daily Brief continues as normal.`,
   });
-  return { subject, html, text: proIntroText(PRO_ANNOUNCEMENT_URL, ctx) };
+  return { subject, html, text: proIntroText(PRO_ANNOUNCEMENT_URL, ctx, "As a HalvingLens subscriber, I wanted to give you a look at what I'm planning next: HalvingLens Pro — for people who want to spend less time checking charts while keeping meaningful changes in view.") };
 }
 
 // Convenience for admin previews (no tracking).

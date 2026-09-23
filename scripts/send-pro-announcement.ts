@@ -14,11 +14,15 @@
 //   MODE=send — the real one-off. Refuses unless CONFIRM_SEND=SEND.
 //
 // OVERLAP RULE (one Pro introduction per address, EVER): this send and the
-// day-18 onboarding step share the lifecycle_sends step key "pro_intro".
-// Whichever reaches a subscriber first permanently blocks the other — the
-// onboarding engine already skips recorded steps, and this script excludes
-// recorded addresses. Re-runs are therefore safe no-ops for anyone already
-// sent.
+// day-18 onboarding step share the lifecycle_sends step key "pro_intro",
+// and BOTH claim the row atomically BEFORE sending (conflict-aware insert
+// against the unique lower(email)+step index), so even fully concurrent
+// runs cannot both send — the database arbitrates, the loser skips. A
+// deterministic, channel-independent provider Idempotency-Key backs this
+// up at the provider. Ambiguous provider outcomes (timeout/5xx) RETAIN the
+// claim as 'ambiguous' for manual reconciliation — never released, never
+// blindly retried; only a definitive 4xx releases it. Re-runs are safe
+// no-ops for anyone already claimed or sent.
 //
 // ELIGIBILITY (checked fresh at send time, all exclusions reported):
 //   · an ACTIVE Daily Brief subscriber (status active/null — the existing
@@ -30,6 +34,14 @@
 // Nothing here ever writes to pro_waitlist — no one is auto-enrolled.
 
 import { sbSelect, sbInsert } from "../src/lib/supabase";
+import {
+  claimProIntro,
+  markProIntroSent,
+  proIntroIdempotencyKey,
+  releaseProIntroClaim,
+  retainProIntroAmbiguous,
+  uncertainProIntroClaims,
+} from "../src/lib/lifecycleClaims";
 import { resendConfigured, sendEmail } from "../src/lib/resend";
 import { proReplyTo } from "../src/lib/proWaitlistEmails";
 import { buildProAnnouncementEmail, type LifecycleCtx } from "../src/lib/lifecycleEmails";
@@ -97,7 +109,7 @@ async function buildAudience(): Promise<Audience | null> {
       continue;
     }
     if (alreadyIntroduced.has(email)) {
-      excluded.push({ email, reason: "already received a Pro introduction (pro_intro recorded)" });
+      excluded.push({ email, reason: "pro_intro already recorded (sent, or a pending/ambiguous claim — blocks both channels)" });
       continue;
     }
     eligible.push({ ...s, email });
@@ -161,6 +173,26 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Reconciliation surface: pro_intro claims whose sends are NOT
+  // provider-confirmed. These addresses are excluded from any send (the
+  // claim row blocks them) and must be reconciled manually — check the
+  // provider by the deterministic idempotency key, then either mark the
+  // row 'sent' or delete it. Unreadable → nothing may send blind.
+  const uncertain = await uncertainProIntroClaims();
+  if (uncertain == null) {
+    console.log("[announce] uncertain pro_intro claims UNREADABLE — has the rev-2 lifecycle_sends migration (status column) been applied?");
+    if (MODE === "send") {
+      console.error("[announce] refusing to send without a readable claim state.");
+      process.exitCode = 1;
+      return;
+    }
+  } else if (uncertain.length > 0) {
+    console.log(`[announce] UNCERTAIN pro_intro claims requiring reconciliation (excluded from sends): ${uncertain.length}`);
+    for (const u of uncertain) console.log(`  · ${mask(u.email)} — ${u.status} · claimed ${u.sent_at}`);
+  } else {
+    console.log("[announce] uncertain pro_intro claims: none — every recorded introduction is provider-confirmed.");
+  }
+
   const audience = await buildAudience();
   if (audience == null) {
     process.exitCode = 1;
@@ -196,8 +228,17 @@ async function main(): Promise<void> {
 
   let sent = 0;
   let failed = 0;
+  let claimHeld = 0;
+  let ambiguous = 0;
   const logs: Record<string, unknown>[] = [];
   for (const m of eligible) {
+    // CLAIM FIRST — the database arbitrates a concurrent onboarding run.
+    const claim = await claimProIntro(m.email);
+    if (claim !== "claimed") {
+      claimHeld += 1;
+      console.log(`  · ${mask(m.email)} skipped — ${claim === "already" ? "claim already held (other channel or earlier run)" : "claim store unavailable (fail closed)"}`);
+      continue;
+    }
     const ctx = ctxFor(m.email);
     const c = buildProAnnouncementEmail(ctx);
     const res = await sendEmail({
@@ -206,17 +247,27 @@ async function main(): Promise<void> {
       html: c.html,
       text: c.text,
       replyTo,
+      idempotencyKey: proIntroIdempotencyKey(m.email),
       headers: { "List-Unsubscribe": `<${ctx.unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
     });
     if (res.ok) {
       sent += 1;
-      // Recorded ONLY on provider acceptance — a transient failure stays
-      // eligible for a founder-approved re-run; a recorded address is
-      // permanently blocked here AND in the onboarding drip (shared key).
-      await sbInsert("lifecycle_sends", { email: m.email, step: "pro_intro" });
+      // The claim becomes the permanent record on provider acceptance —
+      // permanently blocking this address here AND in the onboarding drip.
+      await markProIntroSent(m.email);
       console.log(`  ✓ ${mask(m.email)} sent`);
+    } else if (res.ambiguous) {
+      // The provider MAY have accepted (timeout/5xx): RETAIN the claim as
+      // 'ambiguous' — never released, never blindly retried; reconcile via
+      // the provider dashboard using the deterministic idempotency key.
+      ambiguous += 1;
+      failed += 1;
+      await retainProIntroAmbiguous(m.email);
+      console.error(`  ? ${mask(m.email)} AMBIGUOUS (${res.error}) — claim retained for reconciliation`);
     } else {
       failed += 1;
+      // Definitive rejection: release the claim so a re-run may retry.
+      await releaseProIntroClaim(m.email);
       console.error(`  ✗ ${mask(m.email)} FAILED (${res.error})`);
     }
     logs.push({
@@ -229,7 +280,7 @@ async function main(): Promise<void> {
     });
   }
   for (let i = 0; i < logs.length; i += 500) await sbInsert("email_sends", logs.slice(i, i + 500));
-  console.log(`[announce] RESULT: recipients=${eligible.length} sent=${sent} failed=${failed}`);
+  console.log(`[announce] RESULT: recipients=${eligible.length} sent=${sent} failed=${failed} ambiguousRetained=${ambiguous} claimHeld=${claimHeld}`);
   if (failed > 0) process.exitCode = 1;
 }
 

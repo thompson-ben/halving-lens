@@ -125,6 +125,8 @@ async function main(): Promise<void> {
     const preview = previewLifecycleStep("pro_intro");
     const html = preview?.html ?? "";
     check("subject leads with the benefit", preview?.subject === "Spend less time checking charts");
+    check("approved opening — no assumption every Brief was read (founder copy, 23 Sep)",
+      html.includes("Thanks for joining HalvingLens. The free Daily Brief gives you a general overview of Bitcoin conditions."));
     check("distinction: free Brief stays free, exactly as it is", html.includes("Your free Daily Brief") && html.includes("This stays free, exactly as it is."));
     check("distinction: planned Pro = monitoring chosen readings with explanations", html.includes("Planned Pro") && html.includes("readings you choose") && html.includes("why it matters"));
     check("one clearly-fictional illustrative example", html.includes("Illustrative example — fictional values, not a live alert") && html.includes("crossed below its 200-day average"));
@@ -138,6 +140,8 @@ async function main(): Promise<void> {
     // Sender gates (source contract; the mocked exercise below proves them live).
     const send = readFileSync("src/lib/lifecycleSend.ts", "utf8");
     check("sender excludes Pro-waitlist members from pro_intro at send time", /pro_waitlist\?select=email/.test(send) && /proWaitlisted\.has\(email\)/.test(send));
+    check("sender CLAIMS pro_intro before sending (cross-channel arbitration)", /claimProIntro\(email\)/.test(send) && send.indexOf("claimProIntro") < send.indexOf("await sendEmail"));
+    check("ambiguous provider outcomes RETAIN the claim; definitive failures release it", /retainProIntroAmbiguous/.test(send) && /releaseProIntroClaim/.test(send) && /res\.ambiguous/.test(send));
     check("sender skips (never mis-routes) when the public reply address is unconfigured", /proNoReplyTo/.test(send));
     check("a withheld pro_intro never blocks later steps (iterates dueSteps)", /for \(const candidate of dueSteps\(/.test(send));
     check("replyTo is passed through to the provider", /replyTo,\n/.test(send));
@@ -153,8 +157,13 @@ async function main(): Promise<void> {
     const signup = new Date(now - 19 * DAY).toISOString(); // day 18 due yesterday, inside catch-up, after from
     const otherSteps = LIFECYCLE_STEPS.filter((s) => s.id !== "pro_intro").map((s) => s.id);
     const sentRows = ["waitlisted@example.com", "clean@example.com"].flatMap((email) => otherSteps.map((step) => ({ email, step })));
-    const resendCalls: { url: string; body: Record<string, unknown> }[] = [];
-    const inserts: { table: string; body: unknown }[] = [];
+    let seq = 0;
+    const resendCalls: { url: string; body: Record<string, unknown>; headers: Record<string, string>; at: number; status: number }[] = [];
+    const inserts: { table: string; body: Record<string, unknown>; at: number }[] = [];
+    const patches: { url: string; body: Record<string, unknown> }[] = [];
+    // Per-scenario switches for the mock provider/store.
+    let claimResponse: number = 201; // lifecycle_sends claim insert status
+    let resendStatus: number = 200; // provider acceptance vs 5xx (ambiguous)
 
     const realFetch = global.fetch;
     global.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -162,33 +171,43 @@ async function main(): Promise<void> {
       const method = (init?.method ?? "GET").toUpperCase();
       const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
       if (url.includes("api.resend.com")) {
-        resendCalls.push({ url, body: JSON.parse(String(init?.body ?? "{}")) });
-        return json({ id: `mock-${resendCalls.length}` });
+        resendCalls.push({ url, body: JSON.parse(String(init?.body ?? "{}")), headers: (init?.headers ?? {}) as Record<string, string>, at: (seq += 1), status: resendStatus });
+        return resendStatus === 200 ? json({ id: `mock-${resendCalls.length}` }) : json({ message: "mock outage" }, resendStatus);
       }
       if (url.includes("brief_subscribers")) return json([
         { id: 1, email: "waitlisted@example.com", signup_at: signup },
         { id: 2, email: "clean@example.com", signup_at: signup },
       ]);
       if (url.includes("lifecycle_sends") && method === "GET") return json(sentRows);
+      if (url.includes("lifecycle_sends") && method === "PATCH") {
+        patches.push({ url, body: JSON.parse(String(init?.body ?? "{}")) });
+        return json([]);
+      }
       if (url.includes("pro_waitlist")) return json([{ email: "waitlisted@example.com" }]);
       if (method === "POST") {
-        inserts.push({ table: url.split("/rest/v1/")[1]?.split("?")[0] ?? url, body: JSON.parse(String(init?.body ?? "{}")) });
-        return json([], 201);
+        inserts.push({ table: url.split("/rest/v1/")[1]?.split("?")[0] ?? url, body: JSON.parse(String(init?.body ?? "{}")), at: (seq += 1) });
+        return json([], claimResponse);
       }
       return json([]);
     }) as typeof fetch;
 
     try {
+      // A · happy path: claim → send → mark sent.
       const summary = await sendLifecycleEmails();
       check("exactly one pro_intro sent — to the non-waitlisted subscriber only", summary.byStep["pro_intro"] === 1 && resendCalls.length === 1 && String(resendCalls[0].body.to).includes("clean@example.com"));
       check("the waitlisted subscriber was skipped and counted", summary.skipped.proWaitlisted === 1);
       check("the send carries the PUBLIC reply address", resendCalls[0].body.reply_to === "ben@halvinglens.com");
       check("the subject is the approved benefit lead", resendCalls[0].body.subject === "Spend less time checking charts");
-      const recorded = inserts.filter((i) => i.table === "lifecycle_sends");
-      check("recorded under the shared pro_intro key (blocks the announcement)", recorded.length === 1 && (recorded[0].body as { step?: string }).step === "pro_intro");
+      const claims = inserts.filter((i) => i.table === "lifecycle_sends");
+      check("the pro_intro CLAIM (status pending) is written BEFORE the provider is called",
+        claims.length === 1 && claims[0].body.step === "pro_intro" && claims[0].body.status === "pending" && claims[0].at < resendCalls[0].at);
+      check("the send carries the deterministic cross-channel Idempotency-Key",
+        String(resendCalls[0].headers["Idempotency-Key"] ?? "").startsWith("lifecycle/pro_intro/"));
+      check("provider acceptance marks the claim 'sent' (the permanent record)",
+        patches.some((pt) => pt.url.includes("lifecycle_sends") && pt.body.status === "sent"));
 
-      // Reply address unconfigured → the step is withheld, nothing mis-routed.
-      resendCalls.length = 0;
+      // B · reply address unconfigured → the step is withheld, nothing mis-routed.
+      resendCalls.length = 0; inserts.length = 0; patches.length = 0;
       const saved = process.env.PRO_REPLY_TO_EMAIL;
       delete process.env.PRO_REPLY_TO_EMAIL;
       const summary2 = await sendLifecycleEmails();
@@ -199,6 +218,24 @@ async function main(): Promise<void> {
         resendCalls.length === 0 && summary2.skipped.proNoReplyTo === 1 && summary2.skipped.proWaitlisted === 1,
       );
       process.env.PRO_REPLY_TO_EMAIL = saved;
+
+      // C · concurrent-claim race: the other channel already holds the claim
+      // (insert conflicts) → skipped WITHOUT sending.
+      resendCalls.length = 0; inserts.length = 0; patches.length = 0;
+      claimResponse = 409;
+      const summary3 = await sendLifecycleEmails();
+      check("claim conflict (announcement got there first) → zero sends, counted",
+        resendCalls.length === 0 && summary3.skipped.proClaimHeld === 1);
+      claimResponse = 201;
+
+      // D · ambiguous provider outcome (5xx) → claim RETAINED as ambiguous,
+      // never released, never blindly retried.
+      resendCalls.length = 0; inserts.length = 0; patches.length = 0;
+      resendStatus = 500;
+      const summary4 = await sendLifecycleEmails();
+      check("ambiguous outcome → claim retained as 'ambiguous' for reconciliation",
+        summary4.ambiguousRetained === 1 && patches.some((pt) => pt.body.status === "ambiguous") && !patches.some((pt) => pt.body.status === "sent"));
+      resendStatus = 200;
     } finally {
       global.fetch = realFetch;
     }
@@ -217,6 +254,8 @@ async function main(): Promise<void> {
     check("announcement CTA → /pro via announcement-email", a.html.includes(`/pro?${PRO_VIA_PARAM}=${PRO_VIA.announcement}`) && a.html.includes("Explore the Pro plan"));
     check("announcement footer states the one-time reason honestly", a.html.includes("one-time note") && a.html.includes("Daily Brief continues as normal"));
     check("announcement subject is personal, no urgency", a.subject === "What I'm planning next: HalvingLens Pro" && !/hurry|last|limited|now or/i.test(a.subject));
+    check("approved announcement opening (founder copy, 23 Sep)",
+      a.html.includes("As a HalvingLens subscriber, I wanted to give you a look at what I&rsquo;m planning next"));
 
     const script = readFileSync("scripts/send-pro-announcement.ts", "utf8");
     const sc = strip(script);
@@ -224,7 +263,10 @@ async function main(): Promise<void> {
     check("audience excludes waitlist members, prior pro_intro recipients and the internal address",
       /pro_waitlist\?select=email/.test(sc) && /step=eq\.pro_intro/.test(sc) && /FOUNDER_EMAIL/.test(sc));
     check("active = the existing subscription-status definition", sc.includes("or=(status.is.null,status.eq.active)"));
-    check("records the shared pro_intro key ONLY on provider acceptance", /if \(res\.ok\) \{[\s\S]{0,400}lifecycle_sends[\s\S]{0,80}pro_intro/.test(sc));
+    check("announcement CLAIMS pro_intro atomically BEFORE sending", /claimProIntro\(m\.email\)/.test(sc) && sc.indexOf("claimProIntro(m.email)") < sc.indexOf("await sendEmail({\n      to: m.email"));
+    check("acceptance marks 'sent'; ambiguous RETAINS; definitive failure releases", /markProIntroSent/.test(sc) && /retainProIntroAmbiguous/.test(sc) && /releaseProIntroClaim/.test(sc) && /res\.ambiguous/.test(sc));
+    check("announcement sends carry the same cross-channel Idempotency-Key", /idempotencyKey: proIntroIdempotencyKey\(m\.email\)/.test(sc));
+    check("uncertain pro_intro claims are reported; send refuses if unreadable", /uncertainProIntroClaims/.test(sc) && /refusing to send without a readable claim state/.test(script));
     check("never writes to pro_waitlist (no auto-enrolment)", !/sbInsert\("pro_waitlist"/.test(sc));
     check("engagement segments reported separately, opens labelled estimated", /segments/.test(sc) && /ESTIMATED/i.test(script));
     check("recipient addresses are masked in logs", /mask\(/.test(sc) && !/console\.(log|error)\(`[^`]*\$\{m\.email\}/.test(sc));
@@ -239,7 +281,7 @@ async function main(): Promise<void> {
     const v = readFileSync("scripts/verify-pro-production.ts", "utf8");
     check("walkthrough is marked via=verify and excluded from reporting", v.includes("/pro?via=verify") && v.includes("excluded from all reporting"));
     check("walkthrough can never create a join or send email (invalid address, client-side stop)", v.includes("not-an-email") && v.includes("no waitlist join was created"));
-    check("records production-availability and analytics-verification timestamps distinctly", v.includes("PRODUCTION AVAILABILITY") && v.includes("ANALYTICS VERIFICATION"));
+    check("records first-verified-available and analytics-verification timestamps distinctly", v.includes("PRODUCTION FIRST VERIFIED AVAILABLE") && v.includes("ANALYTICS VERIFICATION"));
     const vw = readFileSync(".github/workflows/pro-verification.yml", "utf8");
     check("verification workflow is dispatch-only", /workflow_dispatch/.test(vw) && !/^\s*(schedule|push):/m.test(vw));
 
@@ -254,6 +296,19 @@ async function main(): Promise<void> {
     check("report workflow is dispatch-only (monitoring is deliberate, not automated)", /workflow_dispatch/.test(rw) && !/^\s*(schedule|push):/m.test(rw));
     check("measurement conventions documented", readFileSync("docs/pro-measurement.md", "utf8").includes("Acquisition source"));
     check("campaign id shared from one constant", PRO_ANNOUNCEMENT_CAMPAIGN === "pro-announcement-2026-09" && r.includes("PRO_ANNOUNCEMENT_CAMPAIGN"));
+    // The controlled invalid-email walkthrough depends on the submit handler
+    // actually running: the form carries noValidate (native validation can't
+    // swallow the submit), the CTA event fires FIRST in the handler, and the
+    // handler's own regex validation is intact — never weakened for testing.
+    const proForm = readFileSync("src/components/pro/ProOfferSignup.tsx", "utf8");
+    check("form carries noValidate — the invalid-address walkthrough exercises the handler",
+      /<form onSubmit=\{submit\}[^>]*noValidate>/.test(proForm));
+    check("handler fires the form CTA BEFORE its own (unweakened) regex validation",
+      proForm.indexOf('track("pro_offer_cta", { placement: "form"') < proForm.indexOf("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"));
+    check("rev-2 lifecycle_sends migration present (status column, idempotent)",
+      /add column if not exists status text not null default 'sent'/.test(readFileSync("supabase/lifecycle.sql", "utf8")));
+    check("production check labelled 'first verified available', never the release time",
+      v.includes("PRODUCTION FIRST VERIFIED AVAILABLE") && v.includes("not the original release time"));
   }
 
   if (failures > 0) {

@@ -4,7 +4,9 @@
 //
 //   MODE=checks (default) — READ-ONLY: fetches production pages and asserts
 //     the release is actually serving (page + links + health). Records the
-//     PRODUCTION-AVAILABILITY timestamp (distinct from CI completion).
+//     "production first verified available" timestamp — when serving was
+//     PROVEN, which is neither the original release/deploy time nor CI
+//     completion.
 //   MODE=activity — the CONTROLLED analytics walkthrough: a real headless
 //     browser loads /pro?via=verify, clicks the hero CTA, scrolls to the
 //     form and submits an INVALID address (fires the form CTA event but is
@@ -39,7 +41,7 @@ async function get(path: string): Promise<{ status: number; body: string }> {
 
 async function checks(): Promise<void> {
   const startedAt = new Date().toISOString();
-  console.log(`[verify] PRODUCTION AVAILABILITY CHECK started ${startedAt} against ${BASE}`);
+  console.log(`[verify] production availability check started ${startedAt} against ${BASE}`);
 
   const pro = await get("/pro");
   check("/pro responds 200", pro.status === 200, `status ${pro.status}`);
@@ -72,7 +74,11 @@ async function checks(): Promise<void> {
     check("health endpoint returns JSON", false, health.body.slice(0, 120));
   }
 
-  console.log(`[verify] PRODUCTION AVAILABILITY ${failures === 0 ? "CONFIRMED" : "FAILED"} at ${new Date().toISOString()}`);
+  console.log(
+    failures === 0
+      ? `[verify] PRODUCTION FIRST VERIFIED AVAILABLE at ${new Date().toISOString()} (verification time — not the original release time)`
+      : `[verify] production availability check FAILED at ${new Date().toISOString()}`,
+  );
 }
 
 async function activity(): Promise<void> {
@@ -102,6 +108,10 @@ async function activity(): Promise<void> {
 
   // Form CTA: an INVALID address fires pro_offer_cta (placement form) and is
   // stopped by client-side validation — no API call, no join, no email.
+  // This works because the form carries noValidate (pre-existing): native
+  // browser validation cannot swallow the submit, so the handler runs, the
+  // CTA event fires FIRST, and the handler's own regex (unweakened) rejects
+  // the address. The event-landing assertions below prove it end to end.
   await page.locator("#pro-offer-email").fill("not-an-email");
   await page.locator('button[type="submit"]').click();
   await page.waitForTimeout(400);

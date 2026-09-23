@@ -87,8 +87,8 @@ from events where name = 'email_click' and created_at >= :since
 
 1. **`Pro production verification`** (`pro-verification.yml`)
    - `mode=checks` — read-only availability run; its log line
-     `PRODUCTION AVAILABILITY CONFIRMED at <ts>` is the release-availability
-     timestamp (distinct from CI completion).
+     `PRODUCTION FIRST VERIFIED AVAILABLE at <ts>` records when serving was
+     PROVEN — not the original release time, and not CI completion.
    - `mode=activity` — the controlled walkthrough (`via=verify`); its log line
      `ANALYTICS VERIFICATION CONFIRMED at <ts>` is the tracking-verified
      timestamp. Run it once after each relevant deploy.
@@ -107,9 +107,34 @@ from events where name = 'email_click' and created_at >= :since
 
 ## Overlap rule (one Pro introduction per address, ever)
 
-The day-18 onboarding step and the one-time announcement both record
-`lifecycle_sends` step `pro_intro` on provider acceptance; each excludes
-addresses the other has recorded. Existing Pro waitlist members are excluded
-from both at send time. The `pro_intro` step also carries an introduction
-date (`PRO_INTRO_FROM`): subscribers whose day-18 due date predates it are
-never caught up — adding the step produced no retrospective batch.
+The day-18 onboarding step and the one-time announcement share the
+`lifecycle_sends` `pro_intro` key with the full delivery-state discipline
+(rev-2 migration required — status column):
+
+1. **Claim before send.** Both channels insert the row (status `pending`)
+   BEFORE sending, arbitrated by the unique `lower(email)+step` index —
+   fully concurrent runs cannot both send; the loser gets a conflict and
+   skips. If the claim store is unreadable, sends fail closed.
+2. **Provider idempotency.** Every send carries the deterministic,
+   channel-independent key `lifecycle/pro_intro/<hash>`, so a retried
+   delivery of the same logical send cannot double-send at the provider.
+3. **Outcomes.** Acceptance → status `sent` (the permanent record).
+   Definitive 4xx → the claim is released for a safe later retry.
+   AMBIGUOUS (network/timeout/5xx) → the claim is RETAINED as `ambiguous` —
+   never released, never blindly retried; both dry-runs report every
+   `pro_intro` row with status ≠ `sent` for manual reconciliation (check
+   the provider by the idempotency key, then mark `sent` or delete).
+4. Any row — pending, ambiguous or sent — blocks BOTH channels
+   (at-most-once bias). Existing Pro waitlist members are additionally
+   excluded from both at send time.
+
+The `pro_intro` step also carries its activation date (`PRO_INTRO_FROM`,
+2026-09-23). UTC eligibility boundary: the step fires only when the
+subscriber's due date (UTC-floored enrolment anchor + 18 days) falls on or
+after `PRO_INTRO_FROM` 00:00:00 UTC — earlier due dates are permanently
+skipped, so activation produced no retrospective batch.
+
+Timestamp vocabulary: "production first verified available" = when the
+checks run PROVED production serving (not the release/deploy time, not CI
+completion); the analytics-verification timestamp is recorded separately by
+the activity run.
