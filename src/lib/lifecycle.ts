@@ -41,6 +41,15 @@ export function dueSteps(signupISO: string | null, sentIds: Set<string>, nowMs: 
   return LIFECYCLE_STEPS.filter((s) => (s.enabled ?? true) && !sentIds.has(s.id))
     .map((s) => ({ s, due: anchor + s.dayOffset * DAY }))
     .filter(({ due }) => nowMs >= due && nowMs <= due + catchup)
+    // A step may carry an introduction date (`from`): it never fires for a
+    // subscriber whose due date predates it. Stricter than the catch-up
+    // window — adding a step mid-life triggers NO retrospective batch at all;
+    // only subscribers who reach that day afterwards receive it.
+    .filter(({ s, due }) => {
+      if (!s.from) return true;
+      const from = Date.parse(`${s.from}T00:00:00Z`);
+      return !Number.isFinite(from) || due >= from;
+    })
     .sort((a, b) => a.due - b.due)
     .map(({ s }) => s);
 }

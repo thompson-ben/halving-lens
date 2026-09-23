@@ -1,0 +1,63 @@
+name: Pro announcement (one-time)
+
+# Pro discovery & measurement (Sep 2026): the ONE-TIME Pro introduction to
+# eligible existing free subscribers, and its audience report / rendering test.
+#
+# SAFETY BY DESIGN:
+#   · workflow_dispatch ONLY — no schedule, no push trigger;
+#   · mode defaults to dry-run (read-only audience count + exclusion reasons +
+#     engagement segments; sends nothing, writes nothing);
+#   · mode=test emails ONLY the founder ([TEST]-prefixed, production Reply-To);
+#   · mode=send refuses unless confirm is exactly SEND, and every address can
+#     only ever receive ONE Pro introduction — this send and the day-18
+#     onboarding step share the lifecycle_sends "pro_intro" key;
+#   · recipient addresses are masked in the job log;
+#   · nothing here ever writes to pro_waitlist (no auto-enrolment).
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run (audience report only) · test (founder inbox only) · send (real one-time announcement)"
+        type: choice
+        options: [dry-run, test, send]
+        default: dry-run
+      confirm:
+        description: "Type SEND to allow mode=send"
+        required: false
+        default: ""
+
+concurrency:
+  group: pro-announcement
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  announce:
+    name: Pro announcement (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run (${{ inputs.mode }})
+        run: npx tsx scripts/send-pro-announcement.ts
+        env:
+          MODE: ${{ inputs.mode }}
+          CONFIRM_SEND: ${{ inputs.confirm }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          FOUNDER_EMAIL: ${{ secrets.FOUNDER_EMAIL }}
+          PRO_REPLY_TO_EMAIL: ${{ secrets.PRO_REPLY_TO_EMAIL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}

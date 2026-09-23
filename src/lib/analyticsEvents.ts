@@ -53,6 +53,13 @@ const FUNNEL = [
   // and props.offer (the offer version shown). A click is interest, never a
   // join — joins remain pro_waitlist_join on confirmed capture only.
   "pro_offer_cta",
+  // /pro offer page (Pro discovery, Sep 2026): one view of the offer page,
+  // with props.via (canonical acquisition placement: dashboard | nav |
+  // brief-footer | onboarding-email | announcement-email | verify | other)
+  // and props.offer. A view is an OPPORTUNITY to see the proposed price —
+  // never proof of attention. via=verify is controlled release-verification
+  // activity, excluded from all reporting.
+  "pro_offer_view",
 ] as const;
 
 // ── Internal navigation / journeys ──────────────────────────────────────────

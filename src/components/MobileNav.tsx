@@ -94,7 +94,9 @@ export function MobileNav() {
                     {section.label}
                   </SectionLabel>
                   {section.items.map((item) => (
-                    <MobileNavItem key={item.href} item={item} active={pathname === item.href} muted={section.muted} />
+                    // Active-state matches on the path alone: an href may carry
+                    // a query (e.g. /pro?via=nav) that usePathname never returns.
+                    <MobileNavItem key={item.href} item={item} active={pathname === item.href.split("?")[0]} muted={section.muted} />
                   ))}
                 </div>
               ))}
@@ -124,7 +126,7 @@ function MobileNavItem({
   active: boolean;
   muted?: boolean;
 }) {
-  const { href, label, icon: Icon } = item;
+  const { href, label, icon: Icon, badge } = item;
   return (
     <Link
       href={href}
@@ -142,6 +144,11 @@ function MobileNavItem({
         className={`${active ? "text-accent" : muted ? "text-ink-500" : "text-ink-400"} group-hover:text-accent transition-colors`}
       />
       <span>{label}</span>
+      {badge && (
+        <span className="ml-auto text-[9px] uppercase tracking-[0.12em] text-editorial/90 border border-editorial/30 rounded px-1.5 py-0.5">
+          {badge}
+        </span>
+      )}
     </Link>
   );
 }

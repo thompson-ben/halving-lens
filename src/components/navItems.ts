@@ -1,5 +1,6 @@
 import {
   Activity,
+  Bell,
   Award,
   BookMarked,
   BookOpen,
@@ -32,6 +33,9 @@ export interface NavLink {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Small status tag rendered after the label (e.g. "Planned beta") — for
+   *  honestly marking a link to a proposed, not-yet-available service. */
+  badge?: string;
 }
 
 export interface NavSection {
@@ -73,6 +77,12 @@ const INVEST: readonly NavLink[] = [
   // and on-page eyebrow — so no route, link or magic-link target changes.
   { href: "/dashboard", label: "Your HalvingLens", icon: LayoutDashboard },
   { href: "/similar-moments", label: "Similar moments", icon: History },
+  // The pre-launch Pro offer page (Pro discovery, Sep 2026). The badge keeps
+  // the link honest — a PROPOSED service, not an available subscription — and
+  // ?via=nav is the canonical acquisition-source carrier (analytics prop only;
+  // it never changes the waitlist row's source). Modest by design: one entry,
+  // after the free journey's own links.
+  { href: "/pro?via=nav", label: "Pro", icon: Bell, badge: "Planned beta" },
 ];
 
 const RESEARCH: readonly NavLink[] = [

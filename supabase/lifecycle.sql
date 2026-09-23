@@ -39,3 +39,17 @@ begin
     on conflict do nothing;
   end if;
 end $$;
+
+-- ── Rev 2 (Pro discovery, 23 Sep 2026): cross-channel delivery state for the
+-- shared 'pro_intro' key. The day-18 onboarding job and the one-time
+-- announcement CLAIM the row before sending (conflict-aware insert against
+-- the unique lower(email)+step index above), so concurrent runs cannot both
+-- send. status records the outcome: 'pending' (claimed, sending),
+-- 'sent' (provider-accepted) or 'ambiguous' (provider outcome unknown —
+-- retained for manual reconciliation, never blindly retried). Legacy rows
+-- (recorded only after success) default to 'sent'. Idempotent; safe to
+-- re-run.
+alter table public.lifecycle_sends
+  add column if not exists status text not null default 'sent';
+create index if not exists lifecycle_sends_status_idx
+  on public.lifecycle_sends (status);

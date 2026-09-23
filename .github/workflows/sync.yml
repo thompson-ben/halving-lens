@@ -211,6 +211,10 @@ jobs:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          # Public reply address for the day-18 Pro introduction (pro_intro).
+          # Unset → that step is SKIPPED (never sent with a wrong reply path);
+          # every other onboarding email is unaffected.
+          PRO_REPLY_TO_EMAIL: ${{ secrets.PRO_REPLY_TO_EMAIL }}
           # Onboarding sequence config (optional). LIFECYCLE_YOUTUBE_URL makes the
           # day-4 email link the real channel; LIFECYCLE_LAUNCH sets the
           # back-enrolment date for existing subscribers.
