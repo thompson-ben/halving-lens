@@ -129,9 +129,9 @@ The day-18 onboarding step and the one-time announcement share the
    excluded from both at send time.
 
 The `pro_intro` step also carries its eligibility date (`PRO_INTRO_FROM`,
-2026-09-25 — moved from 23 Sep because migration readiness fell later; due
-dates in between are permanently skipped). UTC eligibility boundary: the
-step fires only when the
+2026-09-27 — moved from 23 Sep as migration readiness slipped; it was
+confirmed 26 Sep, so due dates from 23–26 Sep are permanently skipped).
+UTC eligibility boundary: the step fires only when the
 subscriber's due date (UTC-floored enrolment anchor + 18 days) falls on or
 after `PRO_INTRO_FROM` 00:00:00 UTC — earlier due dates are permanently
 skipped, so activation produced no retrospective batch.
