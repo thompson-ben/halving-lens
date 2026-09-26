@@ -250,12 +250,26 @@ async function main(): Promise<void> {
       referralLink: "https://halvinglens.com/?ref=preview",
     };
     const a = buildProAnnouncementEmail(ctx);
-    check("announcement shares the Pro-introduction substance", a.html.includes("Planned Pro") && /proposed &pound;15\/month beta/.test(a.html) && a.html.includes("Illustrative example — fictional values, not a live alert"));
+    check("announcement carries the approved substance (free stays free · planned Pro · fictional example · proposed £15)",
+      a.html.includes("Your Daily Brief stays free") &&
+        a.html.includes("Follow the changes that matter to you") &&
+        a.html.includes("Illustrative example — fictional values, not a live alert") &&
+        a.html.includes("Pro isn&rsquo;t available yet. The proposed beta price is &pound;15/month."));
     check("announcement CTA → /pro via announcement-email", a.html.includes(`/pro?${PRO_VIA_PARAM}=${PRO_VIA.announcement}`) && a.html.includes("Explore the Pro plan"));
     check("announcement footer states the one-time reason honestly", a.html.includes("one-time note") && a.html.includes("Daily Brief continues as normal"));
     check("announcement subject is personal, no urgency", a.subject === "What I'm planning next: HalvingLens Pro" && !/hurry|last|limited|now or/i.test(a.subject));
-    check("approved announcement opening (founder copy, 23 Sep)",
-      a.html.includes("As a HalvingLens subscriber, I wanted to give you a look at what I&rsquo;m planning next"));
+    check("approved announcement opening + preheader (founder copy, 26 Sep)",
+      a.html.includes("Knowing what changed shouldn&rsquo;t mean checking the same charts throughout the day.") &&
+        a.html.includes("A first look at planned Bitcoin monitoring, with clear explanations when conditions change."));
+    check("reply invitation sits BELOW the CTA, signed by Ben",
+      a.html.indexOf("What do you find yourself checking most often?") > a.html.indexOf("Explore the Pro plan") &&
+        a.html.includes("Founder, HalvingLens"));
+    check("CTA follows the price/availability text; button note verbatim",
+      a.html.indexOf("Explore the Pro plan") > a.html.indexOf("proposed beta price is &pound;15/month") &&
+        a.html.includes("Free to join the waitlist. No payment details or commitment."));
+    check("rendering robustness: bgcolor attributes survive CSS-stripping clients (button + body)",
+      a.html.includes('bgcolor="#d9b96a"') && a.html.includes('bgcolor="#0a0c10"'));
+    check("plain-text mirrors the new order", a.text.indexOf("checking the same charts") < a.text.indexOf("£15/month") && a.text.indexOf("Explore the Pro plan:") < a.text.indexOf("checking most often"));
 
     const script = readFileSync("scripts/send-pro-announcement.ts", "utf8");
     const sc = strip(script);

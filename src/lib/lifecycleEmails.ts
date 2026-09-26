@@ -75,8 +75,11 @@ function shell(opts: {
   /** Footer provenance line — defaults to the onboarding welcome wording;
    *  one-off sends (the Pro announcement) state their own honest reason. */
   footerNote?: string;
+  /** Content rendered AFTER the CTA block, before the footer (e.g. the
+   *  announcement's reply invitation + signature). */
+  afterCta?: string;
 }): string {
-  const { eyebrow, tag, title, intro, body, cta, ctaNote, ctx, preheader } = opts;
+  const { eyebrow, tag, title, intro, body, cta, ctaNote, ctx, preheader, afterCta } = opts;
   const footerNote =
     opts.footerNote ?? `You're receiving this as part of your welcome to ${SITE_HOST}. Your Daily Brief continues as normal.`;
   const t = ctx.tracking;
@@ -85,9 +88,9 @@ function shell(opts: {
 <meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:${C.bg};">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg};padding:30px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0c10" style="background:${C.bg};padding:30px 12px;">
   <tr><td align="center">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:${C.bg};">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" bgcolor="#0a0c10" style="width:100%;max-width:600px;background:${C.bg};">
       <tr><td style="padding:8px 36px 24px;">
         <table role="presentation" width="100%"><tr>
           <td style="font:700 15px/1 ${SANS};letter-spacing:.26em;text-transform:uppercase;color:${C.ink};">
@@ -106,14 +109,15 @@ function shell(opts: {
         cta
           ? `<tr><td style="padding:22px 36px 28px;">
         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-          <td style="border-radius:10px;background:${C.gold};">
-            <a href="${t.link(cta.url, cta.track ?? "lc_cta")}" style="display:inline-block;padding:13px 26px;font:600 14px/1 ${SANS};color:#15120a;text-decoration:none;border-radius:10px;">${esc(cta.label)} →</a>
+          <td bgcolor="#d9b96a" style="border-radius:10px;background:${C.gold};">
+            <a href="${t.link(cta.url, cta.track ?? "lc_cta")}" style="display:inline-block;padding:13px 26px;font:600 14px/1 ${SANS};color:#15120a;background:${C.gold};text-decoration:none;border-radius:10px;">${esc(cta.label)} →</a>
           </td>
         </tr></table>
-        ${ctaNote ? `<div style="font:400 12.5px/1.6 ${SANS};color:${C.faint};margin-top:12px;">${esc(ctaNote)}</div>` : ""}
+        ${ctaNote ? `<div style="font:400 12.5px/1.6 ${SANS};color:${C.dim};margin-top:12px;">${esc(ctaNote)}</div>` : ""}
       </td></tr>`
           : ""
       }
+      ${afterCta ? `<tr><td style="padding:0 36px 26px;">${afterCta}</td></tr>` : ""}
       <tr><td style="padding:24px 36px 30px;border-top:1px solid ${C.hair};">
         <div style="font:500 13px/1.5 ${SERIF};color:${C.sub};">The clearest view of the Bitcoin cycle.</div>
         <div style="font:400 11px/1.7 ${SANS};color:${C.faint};margin-top:12px;">
@@ -596,6 +600,40 @@ function proIntroText(ctaUrl: string, ctx: LifecycleCtx, opening: string): strin
 /** The ONE-TIME existing-subscriber announcement (dispatch-only script; never
  *  part of the drip). Same substance as the onboarding step, adapted for
  *  people who already know HalvingLens, with an honest one-off footer. */
+// The announcement body — founder's final marketing pass (26 Sep 2026):
+// benefit-led and concrete, persuasive through clarity and relevance only;
+// no urgency, no exaggerated claims, never implying Pro is available.
+// Order: Free-stays-free → planned Pro → labelled fictional example →
+// price + availability (the CTA follows immediately in the shell).
+function announcementBody(): string {
+  return `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;">
+          <tr><td style="padding:0 0 10px;">
+            <div style="border:1px solid ${C.border};border-radius:12px;padding:15px 17px;">
+              <div style="font:700 10px/1.3 ${SANS};letter-spacing:.14em;text-transform:uppercase;color:${C.dim};">Your Daily Brief stays free</div>
+              <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:6px;">Your morning overview of Bitcoin conditions, with the dashboard a tap away. This stays free.</div>
+            </div>
+          </td></tr>
+          <tr><td>
+            <div style="border:1px solid ${C.goldBorder};border-radius:12px;padding:15px 17px;background:${C.cardHi};">
+              <div style="font:700 10px/1.3 ${SANS};letter-spacing:.14em;text-transform:uppercase;color:${C.gold};">Follow the changes that matter to you</div>
+              <div style="font:400 14px/1.6 ${SANS};color:${C.sub};margin-top:6px;">Choose from the indicators supported in the beta. Pro is being designed to monitor those readings and explain what triggered an alert, why it matters and where to explore the underlying data.</div>
+            </div>
+          </td></tr>
+        </table>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:12px;margin-top:14px;">
+          <tr><td style="padding:14px 17px;">
+            <div style="font:700 10px/1.3 ${SANS};letter-spacing:.1em;text-transform:uppercase;color:#f5b942;">Illustrative example — fictional values, not a live alert</div>
+            <div style="font:600 16px/1.4 ${SERIF};color:${C.ink};margin-top:7px;">Bitcoin has crossed below its 200-day average</div>
+            <div style="font:400 13.5px/1.6 ${SANS};color:${C.dim};margin-top:6px;">You&rsquo;d get a short note: what crossed, why it matters, and a link to the live chart. A crossing can reverse and does not, by itself, establish a lasting trend.</div>
+          </td></tr>
+        </table>
+        <div style="font:400 15px/1.65 ${SANS};color:${C.sub};margin-top:16px;">
+          <span style="color:${C.ink};font-weight:600;">Pro isn&rsquo;t available yet. The proposed beta price is &pound;15/month.</span><br>
+          Join the free waitlist to hear when it opens&mdash;you&rsquo;ll see the final features and price before deciding whether to subscribe.
+        </div>`;
+}
+
 export function buildProAnnouncementEmail(ctx: LifecycleCtx): { subject: string; html: string; text: string } {
   const subject = "What I'm planning next: HalvingLens Pro";
   const html = shell({
@@ -603,15 +641,43 @@ export function buildProAnnouncementEmail(ctx: LifecycleCtx): { subject: string;
     tag: "A one-time note from Ben",
     title: "Spend less time checking charts.",
     intro:
-      "As a HalvingLens subscriber, I wanted to give you a look at what I&rsquo;m planning next: HalvingLens Pro&mdash;for people who want to spend less time checking charts while keeping meaningful changes in view.",
-    body: proIntroBody(),
+      `<div>Knowing what changed shouldn&rsquo;t mean checking the same charts throughout the day.</div>` +
+      `<div style="margin-top:12px;">I&rsquo;m planning HalvingLens Pro to monitor selected Bitcoin indicators for you&mdash;and email you when a defined condition changes, with a clear explanation and a link to the evidence.</div>`,
+    body: announcementBody(),
     cta: { label: "Explore the Pro plan", url: PRO_ANNOUNCEMENT_URL, track: "pro_announcement_cta" },
-    ctaNote: "Free to join the waitlist. No payment details, no commitment.",
+    ctaNote: "Free to join the waitlist. No payment details or commitment.",
+    afterCta:
+      `<div style="font:400 14.5px/1.65 ${SANS};color:${C.sub};border-top:1px solid ${C.hair};padding-top:18px;">What do you find yourself checking most often? Just reply&mdash;I&rsquo;d like to understand what would make Pro useful to you.</div>` +
+      `<div style="font:600 14px/1.5 ${SANS};color:${C.ink};margin-top:14px;">Ben</div>` +
+      `<div style="font:400 12.5px/1.5 ${SANS};color:${C.dim};">Founder, HalvingLens</div>`,
     ctx,
-    preheader: "A look at the planned HalvingLens Pro beta — proposed £15/month.",
+    preheader: "A first look at planned Bitcoin monitoring, with clear explanations when conditions change.",
     footerNote: `You're receiving this one-time note as a ${SITE_HOST} Daily Brief subscriber. Your Daily Brief continues as normal.`,
   });
-  return { subject, html, text: proIntroText(PRO_ANNOUNCEMENT_URL, ctx, "As a HalvingLens subscriber, I wanted to give you a look at what I'm planning next: HalvingLens Pro — for people who want to spend less time checking charts while keeping meaningful changes in view.") };
+  const text = simpleText(
+    "Spend less time checking charts",
+    [
+      "Knowing what changed shouldn't mean checking the same charts throughout the day.",
+      "I'm planning HalvingLens Pro to monitor selected Bitcoin indicators for you — and email you when a defined condition changes, with a clear explanation and a link to the evidence.",
+      "",
+      "YOUR DAILY BRIEF STAYS FREE — your morning overview of Bitcoin conditions, with the dashboard a tap away. This stays free.",
+      "FOLLOW THE CHANGES THAT MATTER TO YOU — choose from the indicators supported in the beta. Pro is being designed to monitor those readings and explain what triggered an alert, why it matters and where to explore the underlying data.",
+      "",
+      "Illustrative example (fictional values, not a live alert): \"Bitcoin has crossed below its 200-day average\" — a short note explaining the crossing, with a link to the live chart. A crossing can reverse and does not, by itself, establish a lasting trend.",
+      "",
+      "Pro isn't available yet. The proposed beta price is £15/month.",
+      "Join the free waitlist to hear when it opens — you'll see the final features and price before deciding whether to subscribe.",
+      `Explore the Pro plan: ${PRO_ANNOUNCEMENT_URL}`,
+      "Free to join the waitlist. No payment details or commitment.",
+      "",
+      "What do you find yourself checking most often? Just reply — I'd like to understand what would make Pro useful to you.",
+      "",
+      "Ben",
+      "Founder, HalvingLens",
+    ],
+    ctx,
+  );
+  return { subject, html, text };
 }
 
 // Convenience for admin previews (no tracking).
