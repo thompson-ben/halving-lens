@@ -41,3 +41,13 @@ export const PRO_INTRO_FROM = process.env.LIFECYCLE_PRO_INTRO_FROM || "2026-09-2
 // the dispatch script (send tracking) and the checkpoint report (click
 // queries) so the two can never drift.
 export const PRO_ANNOUNCEMENT_CAMPAIGN = "pro-announcement-2026-09";
+
+// The announcement's actual dispatch batch (founder-approved send, executed
+// once on 2026-09-27, 12:51–12:53 UTC; its email_sends rows — the only ones
+// with a NULL subscriber_id — were inserted in a single batch at ~12:53:32Z).
+// Used ONLY by the read-only checkpoint report to scope provider delivery
+// events to exactly this batch's logged provider message ids. Never used to
+// select audiences or send anything.
+export const PRO_ANNOUNCEMENT_SENT_DATE = "2026-09-27";
+export const PRO_ANNOUNCEMENT_BATCH_FROM = "2026-09-27T12:45:00Z";
+export const PRO_ANNOUNCEMENT_BATCH_TO = "2026-09-27T13:10:00Z";
