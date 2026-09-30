@@ -21,7 +21,12 @@
 //   · email opens are estimated; only clicks are confirmed engagement.
 
 import { sbSelect, sbCount } from "../src/lib/supabase";
-import { PRO_ANNOUNCEMENT_CAMPAIGN } from "../src/lib/lifecycleConfig";
+import {
+  PRO_ANNOUNCEMENT_CAMPAIGN,
+  PRO_ANNOUNCEMENT_SENT_DATE,
+  PRO_ANNOUNCEMENT_BATCH_FROM,
+  PRO_ANNOUNCEMENT_BATCH_TO,
+} from "../src/lib/lifecycleConfig";
 
 const SINCE = (process.env.REPORT_SINCE || "").trim();
 const DAYS = Number(process.env.REPORT_DAYS) || 7;
@@ -47,6 +52,71 @@ function tally<T>(rows: T[], key: (r: T) => string): Array<[string, number]> {
 }
 
 const pct = (n: number, d: number): string => (d > 0 ? `${((100 * n) / d).toFixed(1)}% (${n}/${d})` : `n/a (denominator 0)`);
+
+// ── Announcement delivery outcomes (founder commission, 27 Sep 2026) ─────────
+// READ-ONLY, counts only — no addresses, no hashes, no per-recipient rows in
+// the output. Scoped to the one-time announcement batch via its logged
+// provider message ids (email_sends rows: NULL subscriber_id, inserted in one
+// batch inside the dispatch window), matched against provider webhook events
+// (email_events). Definitions and honesty rules are printed with the numbers.
+async function announcementDelivery(): Promise<void> {
+  console.log(`\nANNOUNCEMENT DELIVERY (one-time batch of ${PRO_ANNOUNCEMENT_SENT_DATE}; provider-reported outcomes, counts only):`);
+
+  const batch = await sbSelect<Array<{ email_status: string; provider_message_id: string | null }>>(
+    `email_sends?select=email_status,provider_message_id&date=eq.${PRO_ANNOUNCEMENT_SENT_DATE}` +
+      `&subscriber_id=is.null&sent_at=gte.${PRO_ANNOUNCEMENT_BATCH_FROM}&sent_at=lt.${PRO_ANNOUNCEMENT_BATCH_TO}&limit=5000`,
+  );
+  if (batch == null) {
+    console.log("  send log UNREADABLE this run — delivery outcomes unavailable (provider acceptance was already reported at dispatch; nothing here implies failure).");
+    return;
+  }
+  // In the send log, email_status 'delivered' means PROVIDER-ACCEPTED at
+  // dispatch (the API call succeeded) — not delivery to an inbox.
+  const acceptedIds = batch.filter((r) => r.email_status === "delivered" && r.provider_message_id).map((r) => r.provider_message_id as string);
+  const loggedFailed = batch.filter((r) => r.email_status !== "delivered").length;
+  if (batch.length === 0) {
+    console.log("  no batch rows found in the send log — check the environment; delivery outcomes unavailable.");
+    return;
+  }
+
+  // Fetch this batch's provider events in id chunks (never a broad scan).
+  const categories = new Map<string, Set<string>>();
+  for (let i = 0; i < acceptedIds.length; i += 60) {
+    const chunk = acceptedIds.slice(i, i + 60);
+    const rows = await sbSelect<Array<{ provider_message_id: string | null; category: string }>>(
+      `email_events?select=provider_message_id,category&provider_message_id=in.(${chunk.join(",")})&limit=10000`,
+    );
+    if (rows == null) {
+      console.log("  provider event store UNREADABLE this run — delivery outcomes unavailable rather than partially reported.");
+      return;
+    }
+    for (const r of rows) {
+      if (!r.provider_message_id) continue;
+      const set = categories.get(r.provider_message_id) ?? new Set<string>();
+      set.add(r.category);
+      categories.set(r.provider_message_id, set);
+    }
+  }
+
+  const withCat = (c: string): number => acceptedIds.filter((id) => categories.get(id)?.has(c)).length;
+  const delivered = withCat("delivered");
+  const bounced = withCat("bounced");
+  const complained = withCat("complained");
+  const delayed = withCat("delayed");
+  const unknown = acceptedIds.filter((id) => !categories.get(id)?.has("delivered") && !categories.get(id)?.has("bounced")).length;
+
+  console.log(`  accepted:   ${acceptedIds.length} — the provider accepted the message at dispatch (API-level acceptance; the batch denominator)`);
+  console.log(`  delivered:  ${delivered} — the provider's webhook reported delivery to the recipient's mail server (not necessarily read)`);
+  console.log(`  bounced:    ${bounced} — the provider reported the message could not be delivered`);
+  console.log(`  complained: ${complained} — the recipient marked it as spam (a complaint usually FOLLOWS a delivery, so this overlaps with delivered)`);
+  if (delayed > 0) console.log(`  delayed:    ${delayed} — transient deferral reported; may later resolve to delivered or bounced (overlaps with both)`);
+  console.log(`  no recorded delivery outcome: ${unknown} — UNKNOWN, not failed: absence of a webhook event is absence of evidence, not a bounce.`);
+  if (loggedFailed > 0) console.log(`  (send log also holds ${loggedFailed} dispatch-time failure row(s) — those were reported at dispatch and are outside the accepted denominator.)`);
+  console.log(`  reporting cutoff: ${new Date().toISOString()} — events arrive over days; these counts can rise after this instant.`);
+  console.log(
+    "  coverage: categories are per-message flags that OVERLAP and do not necessarily sum to the accepted count; outcomes exist only where the provider webhook was configured, reachable and forwarded the event — the provider dashboard remains the complete record.",
+  );
+}
 
 async function main(): Promise<void> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(SINCE)) {
@@ -133,6 +203,8 @@ async function main(): Promise<void> {
   console.log("\nEMAIL PLACEMENTS (clicks are confirmed; opens are estimated and deliberately not used here):");
   console.log(`  Pro introductions recorded in window (onboarding + announcement share the pro_intro key): ${introSent ?? "UNREADABLE"}`);
   console.log(`  confirmed clicks — onboarding pro_intro: ${proIntroClicks.length} · announcement: ${annClicks.length}`);
+
+  await announcementDelivery();
 
   // ── Rates (consistent denominators, stated inline) ─────────────────────
   console.log("\nRATES (each denominator stated — never mix denominators across rates):");

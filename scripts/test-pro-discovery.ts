@@ -325,6 +325,26 @@ async function main(): Promise<void> {
       /add column if not exists status text not null default 'sent'/.test(readFileSync("supabase/lifecycle.sql", "utf8")));
     check("production check labelled 'first verified available', never the release time",
       v.includes("PRODUCTION FIRST VERIFIED AVAILABLE") && v.includes("not the original release time"));
+
+    // ── Announcement delivery section (founder commission, 27 Sep 2026) ────
+    // Read-only provider-outcome reporting, scoped to the one-time batch.
+    check("delivery section scopes by the batch's LOGGED provider message ids (chunked in-list, never a broad scan)",
+      r.includes("provider_message_id=in.(") && r.includes("select=email_status,provider_message_id"));
+    check("batch selected by NULL subscriber_id inside the dispatch window, from shared config constants",
+      r.includes("subscriber_id=is.null") && r.includes("PRO_ANNOUNCEMENT_BATCH_FROM") && r.includes("PRO_ANNOUNCEMENT_BATCH_TO") && r.includes("PRO_ANNOUNCEMENT_SENT_DATE"));
+    check("send-log 'delivered' explicitly glossed as PROVIDER-ACCEPTED, distinct from inbox delivery",
+      r.includes("PROVIDER-ACCEPTED") && r.includes("not delivery to an inbox"));
+    check("accepted/delivered/bounced/complained each defined inline; overlap named; never summed to accepted",
+      r.includes("API-level acceptance") && r.includes("recipient's mail server") && r.includes("could not be delivered") &&
+      r.includes("FOLLOWS a delivery") && r.includes("OVERLAP and do not necessarily sum"));
+    check("messages with no recorded outcome reported UNKNOWN, never failed",
+      r.includes("UNKNOWN, not failed") && r.includes("absence of evidence"));
+    check("reporting cutoff and webhook coverage limits stated with the numbers",
+      r.includes("reporting cutoff") && r.includes("can rise after this instant") && r.includes("provider webhook was configured"));
+    check("delivery output is counts only — no addresses, hashes or per-recipient rows",
+      r.includes("counts only — no addresses, no hashes, no per-recipient rows"));
+    check("unreadable stores degrade to an explicit 'unavailable' statement, never partial numbers",
+      r.includes("delivery outcomes unavailable") && r.includes("rather than partially reported"));
   }
 
   if (failures > 0) {
