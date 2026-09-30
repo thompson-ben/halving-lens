@@ -201,7 +201,19 @@ assert(archiveIsFresh("2026-07-31", "2026-08-01T05:00:00Z"), "freshness: 1-day g
 assert(!archiveIsFresh("2026-07-25", "2026-08-01T05:00:00Z"), "freshness: 7-day gap is stale");
 assert(!archiveIsFresh(null, "2026-08-01T05:00:00Z") && !archiveIsFresh("2026-07-31", null), "freshness: missing dates are never fresh");
 
-const staleReads = gatherReads({ fetchedAt: "2026-09-30T00:00:00Z" });
+// The stale scenario must be stale BY CONSTRUCTION — an explicit archive
+// whose last close sits more than 3 days behind its fetchedAt — exactly like
+// the malformed/empty fixtures below. (The original fixture pinned a
+// then-future fetchedAt against the LIVE archive; the daily data sync caught
+// up with that date on 2026-09-30 and the scenario silently went fresh,
+// failing these four checks in CI. Same contract, now deterministic forever.)
+const staleReads = gatherReads({
+  archive: [
+    { date: "2026-07-24", value: 108_000 },
+    { date: "2026-07-31", value: 111_000 },
+  ],
+  fetchedAt: "2026-08-08T00:00:00Z",
+});
 assert(!staleReads.peak.available && !staleReads.ath.available, "stale archive: archive-fed reads become unavailable");
 const staleTokens = buildTokens(staleReads);
 assert(staleTokens["es:peak.status"].includes("temporarily unavailable"), "stale archive: peak sentence falls back — no stale figure can render as current");
