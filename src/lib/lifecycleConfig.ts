@@ -51,3 +51,7 @@ export const PRO_ANNOUNCEMENT_CAMPAIGN = "pro-announcement-2026-09";
 export const PRO_ANNOUNCEMENT_SENT_DATE = "2026-09-27";
 export const PRO_ANNOUNCEMENT_BATCH_FROM = "2026-09-27T12:45:00Z";
 export const PRO_ANNOUNCEMENT_BATCH_TO = "2026-09-27T13:10:00Z";
+// When the dispatch loop finished (last provider acceptance logged). Campaign
+// elapsed time is always computed from THIS instant to the report's query
+// cutoff — never from report generation time.
+export const PRO_ANNOUNCEMENT_DISPATCH_COMPLETED = "2026-09-27T12:53:32Z";

@@ -251,7 +251,7 @@ export default function ProOfferPage() {
 
       {/* 6 · FINAL WAITLIST FORM — the proposed price stays visible beside the
           form, so it is on screen even for visitors arriving via #join. */}
-      <TrackedSection id="pro-offer-form">
+      <TrackedSection id="pro-offer-form" markVia>
         <section id="join" aria-labelledby="join-heading" className="card-glow p-6 sm:p-8 scroll-mt-6">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 id="join-heading" className="font-display text-[24px] text-ink-50 tracking-tight-2">

@@ -345,6 +345,31 @@ async function main(): Promise<void> {
       r.includes("counts only — no addresses, no hashes, no per-recipient rows"));
     check("unreadable stores degrade to an explicit 'unavailable' statement, never partial numbers",
       r.includes("delivery outcomes unavailable") && r.includes("rather than partially reported"));
+
+    // ── Measurement reconciliation (founder commission, 30 Sep 2026) ───────
+    // The form-visibility defect: the tracker emits props.section; the report
+    // had queried props.id and read 0 while events were stored correctly.
+    // Pin BOTH sides so the key can never silently drift again.
+    const trackedSection = readFileSync("src/components/TrackedSection.tsx", "utf8");
+    check("section tracker emits props.section — and the report filters the SAME key",
+      trackedSection.includes('track("section_view", { section: id') &&
+      r.includes('props?.section === "pro-offer-form"') && !r.includes('props?.id === "pro-offer-form"'));
+    check("/pro form section opts into via marking (verification traffic excludable)",
+      readFileSync("src/app/pro/page.tsx", "utf8").includes('<TrackedSection id="pro-offer-form" markVia>') &&
+      trackedSection.includes("proViaFromSearch"));
+    check("form-visibility metric excludes marked verify traffic and discloses the unmarked-era caveat",
+      r.includes("unmarked verification walkthroughs"));
+    check("walkthrough asserts the marked form-section view reached the events table",
+      v.includes('r.name === "section_view" && r.props?.section === "pro-offer-form"'));
+    check("email clicks reported as events AND distinct recipients (dedup by sub hash)",
+      r.includes("distinct recipients") && r.includes("unique-recipient click rate") && r.includes("props?.sub"));
+    check("joins reconciled against authoritative table rows per signup surface; /pro rate uses /pro rows only",
+      r.includes("by signup surface") && r.includes("verified /pro joins") &&
+      r.includes("authoritative /pro table rows ÷ /pro offer views"));
+    check("every event metric's query cutoff stated as the window end, never generation time",
+      r.includes("NOT report generation time"));
+    check("campaign elapsed computed from dispatch completion to the query cutoff",
+      r.includes("PRO_ANNOUNCEMENT_DISPATCH_COMPLETED") && r.includes("campaign elapsed at the query cutoff"));
   }
 
   if (failures > 0) {

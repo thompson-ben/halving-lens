@@ -142,13 +142,25 @@ async function activity(): Promise<void> {
   for (let attempt = 0; attempt < 6; attempt += 1) {
     await new Promise((r) => setTimeout(r, 5000));
     rows = await sbSelect<{ name: string; props: Record<string, unknown> }[]>(
-      `events?select=name,props&created_at=gte.${encodeURIComponent(startedAt)}&name=in.(pro_offer_view,pro_offer_cta)&limit=200`,
+      `events?select=name,props&created_at=gte.${encodeURIComponent(startedAt)}&name=in.(pro_offer_view,pro_offer_cta,section_view)&limit=200`,
     );
     const marked = (rows ?? []).filter((r) => r.props?.via === "verify");
-    if (marked.some((r) => r.name === "pro_offer_view") && marked.filter((r) => r.name === "pro_offer_cta").length >= 2) break;
+    if (
+      marked.some((r) => r.name === "pro_offer_view") &&
+      marked.filter((r) => r.name === "pro_offer_cta").length >= 2 &&
+      marked.some((r) => r.name === "section_view" && r.props?.section === "pro-offer-form")
+    )
+      break;
   }
   const marked = (rows ?? []).filter((r) => r.props?.via === "verify");
   check("pro_offer_view (via=verify) reached the events table", marked.some((r) => r.name === "pro_offer_view"));
+  // The form section's visibility marker (30 Sep defect review): the tracker
+  // emits props.section, and on /pro it now carries via so THIS controlled
+  // walkthrough is excludable from form-visibility reporting.
+  check(
+    "form-section view (section=pro-offer-form, via=verify) reached the events table",
+    marked.some((r) => r.name === "section_view" && r.props?.section === "pro-offer-form"),
+  );
   check(
     "both pro_offer_cta clicks (hero + form, via=verify) reached the events table",
     new Set(marked.filter((r) => r.name === "pro_offer_cta").map((r) => String(r.props?.placement))).size >= 2,

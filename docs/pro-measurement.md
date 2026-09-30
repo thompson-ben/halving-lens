@@ -27,7 +27,7 @@ attributed interest appears as `via = brief-footer` on events with
 | --- | --- | --- |
 | `page_view` (path `/pro`) | a page load; sessions are SESSIONS, not people | `path`, `session_id` |
 | `pro_offer_view` | one offer-page view — an OPPORTUNITY to see the price, not attention | `via`, `offer` |
-| `section_view` (id `pro-offer-form`) | the price+form section became visible | `id` |
+| `section_view` (section `pro-offer-form`) | the price+form section became visible | `section` (NOT `id` — a 30 Sep report defect queried `id` and read 0 while events were stored correctly); on /pro also `via`, so verification traffic is excludable |
 | `pro_offer_cta` | a CTA click — interest, never a join | `placement` (hero/form), `via`, `offer` |
 | `pro_waitlist_join` | confirmed NEW capture (fires only on API "created") — INTEREST, never a purchase or price acceptance | `source`, `via`, `offer`, first-touch attribution |
 | `pro_waitlist_existing` | an existing member re-submitting — counted separately, no attribution props | `source`, `via`, `offer` |
@@ -58,9 +58,11 @@ select coalesce(props->>'via','(direct)') as via, count(*)
 from events where name = 'pro_offer_view' and created_at >= :since
   and coalesce(props->>'via','') <> 'verify' group by 1 order by 2 desc;
 
--- form-section visibility
+-- form-section visibility (the tracker emits props->>'section'; verify excluded
+-- from the via marking's deploy — earlier walkthroughs are unmarked)
 select count(*) from events
-where name = 'section_view' and props->>'id' = 'pro-offer-form' and created_at >= :since;
+where name = 'section_view' and props->>'section' = 'pro-offer-form'
+  and coalesce(props->>'via','') <> 'verify' and created_at >= :since;
 
 -- CTA clicks by placement and source (verify excluded)
 select props->>'placement' as placement, coalesce(props->>'via','(direct)') as via, count(*)
@@ -77,11 +79,29 @@ from events where name = 'pro_waitlist_join' and created_at >= :since
 -- existing-member re-submissions (separate; never conversions)
 select count(*) from events where name = 'pro_waitlist_existing' and created_at >= :since;
 
--- email placements: confirmed clicks per campaign
-select props->>'campaign' as campaign, count(*)
+-- email placements: confirmed clicks per campaign — EVENTS and DISTINCT
+-- RECIPIENTS (props->>'sub' is the recipient hash; a unique-recipient click
+-- rate may only be stated from the distinct count, never from events)
+select props->>'campaign' as campaign, count(*) as click_events,
+       count(distinct props->>'sub') as distinct_recipients
 from events where name = 'email_click' and created_at >= :since
   and props->>'campaign' in ('lifecycle-pro_intro','pro-announcement-2026-09') group by 1;
+
+-- joins reconciliation: the pro_waitlist TABLE is authoritative PER SURFACE —
+-- pro_waitlist_join events fire on every signup surface, so event counts must
+-- never share the /pro-only denominator. /pro rates use source='/pro' rows.
+select source, count(*) from pro_waitlist
+where created_at >= :since group by 1 order by 2 desc;
 ```
+
+Time-window conventions: every checkpoint metric's query cutoff is the
+window END printed by the report (never report generation time; the window
+starts at 00:00 UTC on the `since` date, which can predate the day's
+verified-tracking timestamp — the report discloses this). Campaign elapsed
+time is computed from the dispatch-completion instant
+(`PRO_ANNOUNCEMENT_DISPATCH_COMPLETED`, 2026-09-27T12:53:32Z) to that query
+cutoff. The announcement-delivery section alone reads live webhook state, so
+it prints its own cutoff.
 
 ## Workflows (all dispatch-only — nothing here is scheduled or automated)
 
