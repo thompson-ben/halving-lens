@@ -125,14 +125,78 @@ tags on sends (webhook `campaign` is currently always null).
 
 ## 2. Candidate beta — three alert types
 
-Historical frequencies below were computed on 1 Oct 2026 from the committed
-series (price archive 2010-07-18→2026-09-29, 5,918 daily closes; Fear &
-Greed 2018-02-01→2026-09-30, 3,160 points), applying the existing
-Metric-Watch-style gate (prior state held ≥30 days). Limitations: daily
-closes only; gate semantics approximate `stateRunFrom` (full-history scan
-rather than its anchored walk); past frequency does not predict future
+### Exact rules used in the historical analysis (validation record, 1 Oct)
+
+All analysis uses the committed daily series (price archive from
+2010-07-18; Fear & Greed from 2018-02-01), evaluated on daily closes.
+
+- **A — 200-day-average crossing.** Trigger: the daily close moves to the
+  opposite side of the 200-day simple moving average of closes. Noise
+  gate: the prior side must have held ≥30 consecutive daily closes.
+  Re-arming: automatic — the next alert requires the NEW side to hold ≥30
+  closes before a later flip counts; sub-30-day whipsaws reset the run and
+  produce no alert.
+- **B — sentiment band change.** Trigger: the daily value enters a new
+  canonical band (`bandFor`: <25 / <45 / <55 / <75). Noise gate and
+  re-arming: identical ≥30-day prior-run rule.
+- **C — new all-time high.** **Definition: a breakout EPISODE, not each
+  new high.** Trigger: a daily close above every prior close, when more
+  than 30 days have passed since the most recent ATH close. Subsequent ATH
+  closes within 30 days extend the episode silently (historically 250 ATH
+  days collapse into 19 episodes). Re-arming: a >30-day gap with no new
+  ATH close.
+
+Limitations stated: daily closes only; the gate reproduces Metric Watch's
+≥30-day prior-run rule but as a full-history scan rather than
+`stateRunFrom`'s anchored walk; past frequency does not predict future
 frequency. **No events are manufactured — in a quiet period these alerts
 are silent, and the product must be honest about that.**
+
+### Counts — per alert and combined over one common period
+
+Common observation period **2018-02-01 → 2026-09-30 (8.66 years)** — the
+span where all three series exist:
+
+| Alert | Full-period count | Common-period count | Common rate |
+| --- | --- | --- | --- |
+| A — 200d crossing | 27 (2011-02-03→) | 18 | 2.08/yr |
+| B — sentiment band change | 12 (2018-02-01→) | 12 | 1.39/yr |
+| C — ATH breakout episode | 19 (2010-07-18→) | 9 | 1.04/yr |
+| **Combined (union)** | — | **39 alerts on 38 distinct days** | **4.50/yr** |
+
+(A and B coincided once, on 2026-08-19 — the price crossed above its
+200-day average the same day sentiment left the fear band.) The longest
+combined alert-free gap in the common period was **285 days**.
+
+### Trial-window probabilities — observed, with the approximation labelled
+
+Method: slide a 7-day (and 14-day) window one day at a time across every
+possible start date in the common period and count the fraction of windows
+containing ≥1 combined alert. This is **observed rolling-window
+coverage**, not a model:
+
+- 7-day windows: **8.0%** contained an alert (253 of 3,157 windows).
+- 14-day windows: **15.7%** (496 of 3,150).
+- For comparison, the Poisson approximation at 4.50/yr gives 8.3% and
+  15.9% — labelled an approximation; the observed figures govern.
+
+### Why these three (and not others)
+
+Chosen from the existing indicator capabilities because they are the only
+candidates that simultaneously: (1) run on the product's two freshest,
+deepest series (daily price, 16 years; Fear & Greed, 8.7 years) with no
+observation lag; (2) already have gated detection logic and stable event
+identities in Metric Watch; (3) have public evidence pages to link each
+alert to. The excluded alternatives each fail one of those tests:
+on-chain metrics currently arrive ~7 days behind the anchor (a lagging
+paid alert is a trust risk), ETF flows sit behind an unresolved licence,
+and custom thresholds require an engine that does not exist. **They were
+not chosen for frequency, and none should be added merely to make the
+service look active**: at ~4.5 combined alerts/year the product's value is
+monitoring — the confidence that silence means nothing changed — plus
+rare, well-evidenced interruptions. That is a statement of technical
+feasibility and honest shape, not of demonstrated customer value; demand
+evidence comes from the 4 October review and announcement replies.
 
 ### A. Price crosses its 200-day average
 
@@ -238,6 +302,28 @@ CoinMetrics tier would be required and its price. **No plans were purchased
 and no providers were contacted** (per instruction). Public availability of
 an endpoint has not been treated as permission anywhere in this audit.
 
+### Compact source checklist (candidates A–C; review attempted 1 Oct 2026)
+
+| # | Source | Official terms link | Proposed uses requiring permission | Account-specific questions | Status |
+| --- | --- | --- | --- | --- | --- |
+| 1 | CoinMetrics community (daily `PriceUSD` + derived 200d-average/ATH) | https://coinmetrics.io/community-network-data/ (terms linked from it) | (a) permanent archival of the daily close series in a commercial product; (b) computing derived indicators (200d average, ATH, Mayer); (c) displaying values on a public site and in free emails; (d) **using values as trigger inputs for, and quoting them inside, PAID alert emails** | Does the community licence permit any commercial use? If not, which tier covers (a)–(d) and at what price? Attribution form required? | **UNVERIFIED** — terms page unreachable from the audit environment (egress-blocked); neither permission nor prohibition inferred |
+| 2 | alternative.me Crypto Fear & Greed (candidate B) | https://alternative.me/crypto/fear-and-greed-index/ | (a) permanent archival of the index history; (b) re-display with attribution on a public site and in free emails; (c) **band-change triggers for, and values quoted inside, PAID alert emails** | Formal commercial-use terms? Required attribution wording/link in emails as well as pages? | **UNVERIFIED** — same egress block; not inferred either way |
+| 3 | Not required by A–C: BGeometrics, SoSoValue, mempool.space, CryptoCompare/CoinGecko fallbacks | per `docs/data-licensing.md` §§2,4,5,6 | n/a for the candidate beta (documented there for the wider product) | SoSoValue: which plan is the current key on? | REQUIRES REVIEW (unchanged) |
+
+**Draft provider questions (prepared only — not sent; no contact made, no
+plans purchased):**
+
+- *To CoinMetrics:* "We publish a Bitcoin analytics site using community
+  `PriceUSD`. We are considering a paid email-alert feature (~£15/month)
+  whose triggers are computed from that series and whose emails would
+  quote the closing price and a derived 200-day average. Does the
+  community data licence cover this? If not, which product tier does, and
+  what attribution do you require?"
+- *To alternative.me:* "We display your Crypto Fear & Greed index with
+  attribution on our site and in a free daily email. We are considering a
+  paid alert emailed when the index changes band, quoting the value. Is
+  that within your terms, and what attribution do you require in emails?"
+
 Additional findings the licensing record should absorb (also flagged by
 this audit's source inventory): a browser-side CryptoCompare `histohour`
 call on `/price` (`src/components/BtcPriceChart.tsx:31-39`) and the
@@ -292,10 +378,11 @@ page's evidence card says **"Greed"** while the scorecard on the same page
 says **"Calm"**; the brief that day says "Greed building". At 55–69 the
 canonical label is "Greed" while `whatChanged` says "neutral territory".
 
-**Smallest correction:** route every sentiment description through
-`bandFor` (delete the local thresholds at the nine sites), and add one CI
-pin banning numeric F&G comparisons outside `sentiment.ts`. No design
-change; wording-only diffs on older surfaces.
+**Correction PREPARED (1 Oct, PR #238 — held for approval):** every
+sentiment description now derives from `bandFor`; deliberate numeric gates
+survive only as prominence gates, documented as such; a 16-check CI suite
+(`scripts/test-sentiment-unification.ts`) pins the rule and the canonical
+boundaries. Until that PR merges, production retains the contradiction.
 
 ### 4.2 Cycle-phase vs historical-window explanations — **no record found of the original concern; the conflation is present**
 
@@ -330,14 +417,30 @@ composite toward that reading" (false: they remove it). The paragraph
 arrived with PR #184 (Aug 2026), which changed no math; no test covers the
 cancellation.
 
-**Smallest correction:** fix the methodology paragraph to state the true
-effect (the complementary pair contributes a fixed midpoint and the heat
-reading does not move the composite; Price structure's scale reads hotter-
-higher). That is copy-only and changes no published number. The founder may
-instead prefer the *scoring* fix (score Price structure as
-100 − percentile so both read calmer-higher and heat genuinely informs the
-composite) — that is a behaviour change to a published score and therefore
-a founder decision, not undertaken here.
+**Documentation correction PREPARED (1 Oct, PR #238 — held for approval):**
+the methodology and market-health pages now describe the actual behaviour
+(fixed-midpoint contribution; the heat reading does not move the composite;
+price structure reads hotter-higher), labelled a limitation of
+cycle-scorecard-v1, CI-pinned, with the scorecard math untouched.
+**This corrects the description only — it does not resolve the model
+concern.**
+
+**Practical effect of the cancellation:** with all six factors present,
+the complementary pair occupies 2/6 of the average at a fixed combined
+value of ~100, so it (a) contributes a constant ~16.7 points to the
+composite regardless of market heat, (b) compresses the composite's range
+toward the middle, and (c) removes price-heat information from the one
+number the page leads with — the composite moves only on cycle timing,
+ETF demand, sentiment and miner health.
+
+**Separate recommendation on a scoring redesign: warranted.** A composite
+that silently ignores its own heat reading will eventually be noticed by
+exactly the readers Pro hopes to charge. The smallest redesign is to score
+price structure as 100 − heat percentile (both factors then genuinely read
+calmer-higher and heat informs the composite) or to drop one factor of the
+pair. Either changes published scores, so it requires: a founder decision,
+a version bump (`cycle-scorecard-v2`), and a visible changelog note. Not
+undertaken in this work.
 
 ---
 
@@ -379,6 +482,20 @@ promised publicly):**
 
 ---
 
+## 5a. Product decisions record (founder, 1 October 2026)
+
+1. **Trial duration:** 14 days is the preferred first-subscription trial —
+   **not yet a public commitment**; nothing is promised anywhere
+   user-facing.
+2. **Billing:** provider, card-collection policy and expiry terms remain
+   **undecided** (§5 lists the decision set).
+3. **Trial experience:** the day-0 baseline and clearly dated historical
+   examples are **candidate experiences, not approved features**.
+4. **Alert ledger vs history page:** an internal per-member, per-event
+   alert ledger is **necessary infrastructure** for reliable delivery and
+   support; a customer-facing history page is a **separate scope
+   decision**.
+
 ## 6. Delivery plan — the smallest reliable beta
 
 ### Recommended smallest beta
@@ -407,7 +524,7 @@ no push/SMS, no intraday evaluation, no new dashboards.
 (ledger, evaluation step, template, gates, tests) — small-to-medium, the
 best-understood work in this plan; member/preferences/trial state — medium;
 billing + trial — medium, dominated by decisions and testing, not code;
-trust-concern corrections (§4, smallest versions) — small. The dominant
+trust-concern corrections (§4) — prepared (PR #238). The dominant
 uncertainties are **data rights** and **billing decisions**, not
 engineering.
 
@@ -418,9 +535,10 @@ engineering.
    unverifiable from this environment (egress-blocked). Founder-side review
    — or a session environment allowed to reach the terms pages — is
    required before any paid use.
-2. **Trust concerns §4.1 and §4.3** should be corrected before charging for
-   indicator-based alerts; §4.3's scoring-vs-copy choice is a founder
-   decision.
+2. **Trust concerns §4.1 and §4.3:** corrections PREPARED in PR #238 (held
+   for approval). The §4.3 documentation fix does not resolve the model
+   concern — the scoring-redesign decision (§4.3) remains open and is the
+   founder's.
 3. **Billing decisions** (§5) precede any trial implementation.
 4. **Adjacent reliability finding:** the daily Brief's re-send exposure
    (guard row written after the loop) doesn't block the beta (alerts will
