@@ -9,7 +9,7 @@
 
 import { format, subDays } from "date-fns";
 import { cycleSummary, cycleScorecard, HEAT_LABEL, type HeatLevel } from "./cycleSummary";
-import { currentSentiment, SENTIMENT_AVAILABLE } from "./sentiment";
+import { bandFor, currentSentiment, SENTIMENT_AVAILABLE } from "./sentiment";
 import { etfStats, ETF } from "./etf";
 import { STORED_BRIEFS } from "./data/briefs";
 import { priorBrief, briefDate } from "./briefArchive";
@@ -169,11 +169,13 @@ export function dailyChange(): DailyChange {
       momentum: momentumOf(impact, d7 != null ? Math.sign(d7) * Math.min(1, Math.abs(d7) / 20) : null),
       sevenDayLabel: d7 != null ? `${signed(d7, 0, " pts")} over 7d` : null,
       why: "Extremes matter most — euphoria near tops, deep fear near lows. A contrarian read.",
+      // Adjectives from the canonical mapping only (sentiment unification,
+      // Oct 2026): 75+ IS extreme greed, not "approaching" it.
       context:
-        sentiment.value >= 75
-          ? "Approaching greedy territory — worth watching as a contrarian signal."
-          : sentiment.value <= 25
-            ? "Deep fear has historically marked calmer, contrarian zones."
+        bandFor(sentiment.value).band === "extreme-greed"
+          ? "Sentiment reads extreme greed — worth watching as a contrarian signal."
+          : bandFor(sentiment.value).band === "extreme-fear"
+            ? "Extreme fear has historically marked calmer, contrarian zones."
             : null,
     });
   }

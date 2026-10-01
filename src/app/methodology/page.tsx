@@ -70,18 +70,23 @@ export default function MethodologyPage() {
         </h2>
         <p className="text-[14px] text-ink-300 leading-relaxed">
           The Cycle Scorecard (also shown as Market Health) is the unweighted mean of up to six
-          factor scores, each 0–100 where higher reads historically calmer: cycle timing, price
-          structure, ETF demand, sentiment, miner health and historical risk. Factors that depend
-          on a live feed drop out when that feed is unavailable, and the average is taken over the
-          factors actually present — so the composite is always an average of what can honestly be
-          measured that day, never a guess for what can&apos;t.
+          factor scores, each 0–100: cycle timing, price structure, ETF demand, sentiment, miner
+          health and historical risk. For most factors higher reads historically calmer; price
+          structure is the exception — it scores the heat percentile directly, so for that factor
+          higher reads hotter. Factors that depend on a live feed drop out when that feed is
+          unavailable, and the average is taken over the factors actually present — so the
+          composite is always an average of what can honestly be measured that day, never a guess
+          for what can&apos;t.
         </p>
         <p className="text-[14px] text-ink-300 leading-relaxed">
-          Two factors are deliberately related: price structure scores the heat percentile and
-          historical risk scores its complement (100 minus it). They answer different reader
-          questions — &ldquo;how stretched is price?&rdquo; and &ldquo;how does that compare with
-          past risk?&rdquo; — but they are two views of the same underlying reading, and together
-          they anchor the composite toward that reading. We state this rather than hide it.
+          Two factors are computed from the same underlying reading: price structure scores the
+          heat percentile and historical risk scores its complement (100 minus it). Because the
+          two always sum to 100, together they contribute a fixed midpoint to the average — so
+          while both are present, the heat reading itself does not move the composite either way.
+          Each factor still reads correctly on its own card; it is the combined score that the
+          pair leaves unchanged. We state this plainly as a limitation of the current calculation
+          (cycle-scorecard-v1), not a design virtue; any change to how the pair is scored would
+          change published scores and is tracked as a separate decision.
         </p>
         <p className="text-[14px] text-ink-300 leading-relaxed">
           The score maps to its band through one canonical scale, used identically everywhere the

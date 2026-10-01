@@ -436,15 +436,17 @@ function providers(): RawStory[] {
     const sr = sentimentRead();
     if (sr) {
       const fg = sr.value;
-      const mood = fg <= 25 ? "Extreme Fear" : fg >= 75 ? "Extreme Greed" : sr.band.label;
-      const extreme = fg <= 25 || fg >= 75;
+      // The canonical band label IS the mood — no local re-banding
+      // (sentiment unification, Oct 2026; 25 is canonically Fear, 75 Extreme greed).
+      const mood = sr.band.label;
+      const extreme = sr.band.band === "extreme-fear" || sr.band.band === "extreme-greed";
       out.push({
         key: "sentiment",
         category: "sentiment",
         metricId: "sentiment",
         heroCard: "fear_greed_vs_price",
         headlineCandidates: [
-          fg <= 25 ? "Fear Is Rising Again" : fg >= 75 ? "Greed Is Back" : "What Is The Market Feeling?",
+          sr.band.band === "extreme-fear" ? "Fear Is Rising Again" : sr.band.band === "extreme-greed" ? "Greed Is Back" : "What Is The Market Feeling?",
           `Fear & Greed Sits At ${fg}`,
           "Mood Versus Price — Do They Agree?",
         ],

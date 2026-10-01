@@ -19,7 +19,17 @@ import {
   recentChange,
 } from "./cycleIntel";
 import { etfStats, ETF } from "./etf";
-import { sentimentRead, sentimentChange, currentSentiment, SENTIMENT_AVAILABLE } from "./sentiment";
+import { sentimentRead, sentimentChange, currentSentiment, bandFor, SENTIMENT_AVAILABLE } from "./sentiment";
+
+// One sentence per canonical sentiment band — the only place this module
+// turns a Fear & Greed value into words. Thresholds live in sentiment.ts
+// alone (sentiment unification, Oct 2026).
+function sentimentWhy(v: number): string {
+  const b = bandFor(v);
+  if (b.band === "greed" || b.band === "extreme-greed") return `Sentiment reads ${b.label.toLowerCase()} — worth watching as a contrarian signal.`;
+  if (b.band === "fear" || b.band === "extreme-fear") return `Sentiment reads ${b.label.toLowerCase()} — historically a calmer, contrarian zone.`;
+  return "Sentiment is in the neutral band.";
+}
 import { metricBySlug, zoneFor } from "./metrics";
 import { halvingStats } from "./halvingStats";
 import { fmtUsd } from "./format";
@@ -181,11 +191,10 @@ function buildWatchSignals(div: ReturnType<typeof cycleDivergence>, heat: HeatLe
       out.push({
         signal: "Sentiment approaching euphoric territory",
         why: "Extremes are the signal: euphoria has often appeared near cycle tops, deep fear near lows. It's a contrarian read, not a timing tool.",
-        status: approachingEuphoria
-          ? `Greed building — Fear & Greed at ${v}${ch ? `, ${ch.direction} over 30d` : ""}`
-          : deepFear
-            ? `Deep fear — Fear & Greed at ${v}`
-            : `Measured — Fear & Greed at ${v}${ch ? `, ${ch.direction} over 30d` : ""}`,
+        // Sentiment adjectives come ONLY from the canonical bandFor mapping
+        // (sentiment.ts) — the numeric gates above decide prominence, never
+        // the wording. (Sentiment unification, Oct 2026.)
+        status: `${bandFor(v).label} — Fear & Greed at ${v}${ch ? `, ${ch.direction} over 30d` : ""}`,
         level: approachingEuphoria ? "elevated" : deepFear ? "watch" : "calm",
         confidence: "high",
         href: "/sentiment",
@@ -448,13 +457,8 @@ export function whatChanged(prior: StoredBrief | null): WhatChanged {
           dir === "flat"
             ? `Fear & Greed steady at ${cur.value}.`
             : `Fear & Greed moved from ${prior.sentimentValue} to ${cur.value}.`,
-        why:
-          cur.value < 45
-            ? "Sentiment remains fearful — historically a calmer, contrarian zone."
-            : cur.value >= 70
-              ? "Sentiment is approaching greedy territory — worth watching as a contrarian signal."
-              : "Sentiment is in neutral territory.",
-        level: cur.value >= 75 ? "watch" : "calm",
+        why: sentimentWhy(cur.value),
+        level: bandFor(cur.value).band === "extreme-greed" ? "watch" : "calm",
       });
     }
   }
@@ -583,14 +587,12 @@ export function cycleScorecard(): Scorecard {
       const score = Math.round(100 - Math.abs(v - 50) * 1.4);
       factors.push({
         factor: "Sentiment",
-        status: v >= 75 ? "Greed" : v <= 25 ? "Fear" : "Calm",
+        // The status is the canonical band label — the same vocabulary every
+        // other surface uses — so "Calm" can never sit beside "Greed" for
+        // one reading again. The SCORE formula is unchanged.
+        status: bandFor(v).label,
         score: Math.max(10, Math.min(100, score)),
-        explanation:
-          v >= 75
-            ? "Sentiment is elevated — worth watching as a contrarian signal."
-            : v <= 25
-              ? "Sentiment is fearful — historically a calmer, contrarian zone."
-              : "Fear & Greed remains below euphoric levels.",
+        explanation: sentimentWhy(v),
         confidence: "high",
       });
     }

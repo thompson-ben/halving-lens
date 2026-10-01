@@ -75,8 +75,12 @@ function reads() {
   const top = similarMoments(1)[0] ?? null;
   const cheap = acc.band.key === "deep_value" || acc.band.key === "attractive";
   const rich = acc.band.key === "elevated" || acc.band.key === "overheated";
-  const fear = sr != null && sr.value <= 25;
-  const greed = sr != null && sr.value >= 75;
+  // "fear"/"greed" here mean the EXTREME bands, and the canonical mapping
+  // decides membership (sentiment unification, Oct 2026): value 25 is
+  // canonically Fear, not Extreme fear — the old <=25 / >=75 numeric gates
+  // disagreed with every band label at exactly 25 and 75.
+  const fear = sr != null && sr.band.band === "extreme-fear";
+  const greed = sr != null && sr.band.band === "extreme-greed";
   const etfNeg = etfWk != null && etfWk < 0;
   const etfPos = etfWk != null && etfWk > 0;
   const cheaper = 100 - acc.historicalPercentile;
@@ -242,7 +246,7 @@ function marketHealth(): { label: string; value: string; color: string; strength
   const momWord = mom == null ? "Neutral" : mom > 1.5 ? "Positive" : mom < -1.5 ? "Negative" : "Neutral";
   const momTone = mom == null ? C.dim : mom > 1.5 ? C.green : mom < -1.5 ? C.red : C.dim;
   const momStr = mom == null ? 1 : Math.abs(mom) > 4 ? 3 : Math.abs(mom) > 1.5 ? 2 : 1;
-  const sentStr = sr ? (sr.value <= 25 || sr.value >= 75 ? 3 : sr.value < 45 || sr.value >= 55 ? 2 : 1) : 1;
+  const sentStr = sr ? (sr.band.band === "extreme-fear" || sr.band.band === "extreme-greed" ? 3 : sr.band.band === "neutral" ? 1 : 2) : 1;
 
   // Concrete reading behind each row, in its natural unit.
   const minus = (n: number) => (n < 0 ? "−" : "+") + fmtUsd(Math.abs(n), { compact: true });

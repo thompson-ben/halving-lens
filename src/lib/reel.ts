@@ -264,15 +264,15 @@ function sentimentAngle({ s, sentValue, sentDelta }: Ctx): AngleContent {
     insight: extremeLow
       ? `The crowd is in ${label.toLowerCase()} (Fear & Greed ${v}/100) — historically near where lows have formed.`
       : extremeHigh
-        ? `Greed is back (Fear & Greed ${v}/100) — the zone that's tended to appear late in cycles.`
+        ? `The crowd is in ${label.toLowerCase()} (Fear & Greed ${v}/100) — the zone that's tended to appear late in cycles.`
         : `Sentiment swung ${sentDelta != null && sentDelta >= 0 ? "up" : "down"} ${Math.abs(sentDelta ?? 0)} points in a month to ${v}/100.`,
     title: extremeLow ? "When Everyone Is Afraid" : extremeHigh ? "Greed Is Creeping Back In" : "The Mood Just Shifted Fast",
     hook: extremeLow ? "EXTREME FEAR HAS MARKED PAST LOWS" : extremeHigh ? "GREED IS BUILDING AGAIN" : "SENTIMENT JUST MOVED FAST",
     voHook: "Crowd psychology is loudest exactly when it's least reliable.",
     voInsight: extremeLow
-      ? `The Fear and Greed index reads ${v} out of 100 — deep fear. Historically, that's clustered closer to lows than tops.`
+      ? `The Fear and Greed index reads ${v} out of 100 — ${label.toLowerCase()}. Historically, that's clustered closer to lows than tops.`
       : extremeHigh
-        ? `The Fear and Greed index reads ${v} out of 100 — greed. That's the territory that's tended to show up late in past cycles.`
+        ? `The Fear and Greed index reads ${v} out of 100 — ${label.toLowerCase()}. That's the territory that's tended to show up late in past cycles.`
         : `The Fear and Greed index has moved sharply this month, now at ${v} out of 100.`,
     voExplain:
       "It's a contrarian read, not a timing tool — most useful at the extremes, where emotion and price tend to part ways.",

@@ -74,7 +74,8 @@
     "test-cycle-dashboard": "tsx scripts/test-cycle-dashboard.ts",
     "test-metric-watch": "tsx scripts/test-metric-watch.ts",
     "test-dashboard-intel": "tsx scripts/test-dashboard-intel.ts",
-    "test-pro-discovery": "tsx scripts/test-pro-discovery.ts"
+    "test-pro-discovery": "tsx scripts/test-pro-discovery.ts",
+    "test-sentiment-unification": "tsx scripts/test-sentiment-unification.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",
