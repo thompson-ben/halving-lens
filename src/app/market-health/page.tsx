@@ -94,9 +94,12 @@ export default function MarketHealthPage() {
       <section>
         <h2 className="text-[11px] uppercase tracking-[0.2em] text-accent mb-1.5">What drives the score?</h2>
         <p className="text-[12.5px] text-ink-400 mb-4 max-w-2xl">
-          The health score is the average of the factors below — each a 0–100 condition reading (higher =
-          calmer). Factors are weighted equally and drop out cleanly when their data isn&apos;t available,
-          so the number never leans on a metric it doesn&apos;t have.
+          The health score is the average of the factors below — each a 0–100 condition reading
+          (higher = calmer, except price structure, which reads hotter the higher it is). Factors are
+          weighted equally and drop out cleanly when their data isn&apos;t available, so the number never
+          leans on a metric it doesn&apos;t have. One stated limitation: price structure and historical
+          risk always sum to 100, so as a pair they hold the average at a fixed midpoint — the full
+          methodology page explains this.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {h.factors.map((f) => (

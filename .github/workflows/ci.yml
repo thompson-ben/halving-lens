@@ -149,6 +149,9 @@ jobs:
       - name: Pro-discovery tests
         run: npm run test-pro-discovery
 
+      - name: Sentiment unification + scorecard methodology pins
+        run: npm run test-sentiment-unification
+
       # Admin Hub navigation (navigation-hygiene micro-fix) — every Analytics
       # label routes to a genuine existing destination, anchored links have
       # real targets, the duplicate Behaviour item stays removed, and the

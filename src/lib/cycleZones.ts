@@ -119,7 +119,10 @@ export function cycleContextInsight(): DynamicInsight {
   // 2. Sentiment extreme.
   if (fg != null && fg <= 20) {
     const pct = sentimentPercentile(fg);
-    return { metric: "Fear & Greed", value: String(fg), headline: pct != null ? `Sentiment is in deep fear — only about ${Math.round(pct)}% of recorded history has been this fearful or lower.` : "Sentiment is in deep fear by historical standards." };
+    // Wording from the canonical vocabulary ("extreme fear"); the 20/80
+    // gates stay deliberately STRICTER than the bands — they decide when the
+    // hero leads with sentiment, never what the reading is called.
+    return { metric: "Fear & Greed", value: String(fg), headline: pct != null ? `Sentiment is in extreme fear — only about ${Math.round(pct)}% of recorded history has been this fearful or lower.` : "Sentiment is in extreme fear by historical standards." };
   }
   if (fg != null && fg >= 80) {
     const pct = sentimentPercentile(fg);
