@@ -9,11 +9,11 @@ export const WEEKLIES: WeeklyReport[] = [
     "slug": "2026-W41",
     "edition": 71,
     "weekLabel": "Week of 5–11 Oct 2026",
-    "generatedAt": "2026-10-08",
+    "generatedAt": "2026-10-09",
     "executiveSummary": [
       "Bitcoin is attractive by historical standards, at the 52th percentile of its range.",
       "Context Score is 48/100 — moderate context.",
-      "Sentiment sits in greed (Fear & Greed 64).",
+      "Sentiment sits in greed (Fear & Greed 59).",
       "This week most resembles Apr 2022 (84% match).",
       "The cycle continues to run later-running mid-cycle expansion."
     ],
@@ -38,7 +38,7 @@ export const WEEKLIES: WeeklyReport[] = [
       {
         "label": "Fear & Greed",
         "from": "65",
-        "to": "64",
+        "to": "59",
         "dir": "down"
       },
       {
@@ -61,7 +61,7 @@ export const WEEKLIES: WeeklyReport[] = [
         "value": "Greed",
         "color": "#5fd0a0",
         "strength": 2,
-        "metric": "64/100"
+        "metric": "59/100"
       },
       {
         "label": "Cycle position",
@@ -75,14 +75,14 @@ export const WEEKLIES: WeeklyReport[] = [
         "value": "Weak",
         "color": "#e8786f",
         "strength": 2,
-        "metric": "−$248.08M/wk"
+        "metric": "−$558.40M/wk"
       },
       {
         "label": "Momentum",
         "value": "Negative",
         "color": "#e8786f",
         "strength": 2,
-        "metric": "-2.6%"
+        "metric": "-1.9%"
       }
     ],
     "similar": {
@@ -90,7 +90,7 @@ export const WEEKLIES: WeeklyReport[] = [
       "similarity": 84,
       "body": "Today most closely resembles Apr 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. What followed then is context, not a forecast."
     },
-    "historicalInsight": "Bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far.",
+    "historicalInsight": "Its 200-week moving average has never closed a full cycle below where that cycle began.",
     "researchDesk": "The week's tape invited strong opinions; the data invited fewer. Bitcoin sits near the middle of its historical range, and the honest read of a middling environment is patience — watch the extremes, don't chase the centre. The closest historical rhyme this week is Apr 2022, a 84% match. The resemblance is structural — a comparable position in the cycle and a similar valuation backdrop — not a promise that the same script plays out. The throughline of every HalvingLens edition holds here too: judge the present against Bitcoin's own history, not against expectations. The ETF era has changed the market's plumbing; it has not changed the behaviour that runs through it.",
     "weekAhead": [
       "ETF flows — whether institutional demand confirms or diverges from price.",
@@ -98,23 +98,23 @@ export const WEEKLIES: WeeklyReport[] = [
       "Cycle timing — how this cycle's pace compares with prior ones.",
       "Historical divergence — where today keeps breaking from the 2016/2020 template."
     ],
-    "longView": "In the arc of the current cycle, this week reads as attractive territory — day 900 from the halving, with the cycle running slower and flatter than its predecessors. Zoomed out, the signal is less about any single week and more about how persistently this cycle has diverged from the template that came before it.",
-    "education": "Bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far.",
+    "longView": "In the arc of the current cycle, this week reads as attractive territory — day 901 from the halving, with the cycle running slower and flatter than its predecessors. Zoomed out, the signal is less about any single week and more about how persistently this cycle has diverged from the template that came before it.",
+    "education": "Its 200-week moving average has never closed a full cycle below where that cycle began.",
     "contextScore": {
       "score": 48,
       "label": "Moderate context",
       "stars": 2
     },
     "metrics": {
-      "price": 83273.724376,
-      "fearGreed": 64,
+      "price": 81731.880137,
+      "fearGreed": 59,
       "accumulationScore": 39,
       "accumulationBand": "Historically Attractive",
       "contextScore": 48,
-      "cycleDay": 900,
+      "cycleDay": 901,
       "sentiment": "Greed"
     },
-    "search": "bitcoin is attractive by historical standards, at the 52th percentile of its range. context score is 48/100 — moderate context. sentiment sits in greed (fear & greed 64). this week most resembles apr 2022 (84% match). the cycle continues to run later-running mid-cycle expansion. a week of consolidation no single development dominated the week. bitcoin held the middle of its historical range while the cycle continued to diverge — slower and flatter — from its predecessors. weeks like this are where context, not noise, does the work. the week's tape invited strong opinions; the data invited fewer. bitcoin sits near the middle of its historical range, and the honest read of a middling environment is patience — watch the extremes, don't chase the centre. the closest historical rhyme this week is apr 2022, a 84% match. the resemblance is structural — a comparable position in the cycle and a similar valuation backdrop — not a promise that the same script plays out. the throughline of every halvinglens edition holds here too: judge the present against bitcoin's own history, not against expectations. the etf era has changed the market's plumbing; it has not changed the behaviour that runs through it. in the arc of the current cycle, this week reads as attractive territory — day 900 from the halving, with the cycle running slower and flatter than its predecessors. zoomed out, the signal is less about any single week and more about how persistently this cycle has diverged from the template that came before it. today most closely resembles apr 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. what followed then is context, not a forecast. bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far. greed historically attractive"
+    "search": "bitcoin is attractive by historical standards, at the 52th percentile of its range. context score is 48/100 — moderate context. sentiment sits in greed (fear & greed 59). this week most resembles apr 2022 (84% match). the cycle continues to run later-running mid-cycle expansion. a week of consolidation no single development dominated the week. bitcoin held the middle of its historical range while the cycle continued to diverge — slower and flatter — from its predecessors. weeks like this are where context, not noise, does the work. the week's tape invited strong opinions; the data invited fewer. bitcoin sits near the middle of its historical range, and the honest read of a middling environment is patience — watch the extremes, don't chase the centre. the closest historical rhyme this week is apr 2022, a 84% match. the resemblance is structural — a comparable position in the cycle and a similar valuation backdrop — not a promise that the same script plays out. the throughline of every halvinglens edition holds here too: judge the present against bitcoin's own history, not against expectations. the etf era has changed the market's plumbing; it has not changed the behaviour that runs through it. in the arc of the current cycle, this week reads as attractive territory — day 901 from the halving, with the cycle running slower and flatter than its predecessors. zoomed out, the signal is less about any single week and more about how persistently this cycle has diverged from the template that came before it. today most closely resembles apr 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop. what followed then is context, not a forecast. its 200-week moving average has never closed a full cycle below where that cycle began. greed historically attractive"
   },
   {
     "slug": "2026-W40",
