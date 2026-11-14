@@ -9,11 +9,11 @@ export const WEEKLIES: WeeklyReport[] = [
     "slug": "2026-W46",
     "edition": 76,
     "weekLabel": "Week of 9–15 Nov 2026",
-    "generatedAt": "2026-11-13",
+    "generatedAt": "2026-11-14",
     "executiveSummary": [
       "Bitcoin is attractive by historical standards, at the 36th percentile of its range.",
       "Context Score is 59/100 — moderate context.",
-      "Sentiment sits in extreme fear (Fear & Greed 20).",
+      "Sentiment sits in extreme fear (Fear & Greed 13).",
       "This week most resembles Apr 2022 (84% match).",
       "The cycle continues to run later-running mid-cycle expansion."
     ],
@@ -21,7 +21,7 @@ export const WEEKLIES: WeeklyReport[] = [
       "title": "Value and fear arrived together",
       "body": "The week's defining feature was the rare overlap of a attractive valuation — cheaper than 64% of Bitcoin's history — with sentiment in extreme fear. Historically, the crowd has been most fearful precisely when, by the numbers, conditions were most constructive. This week sat squarely in that pattern."
     },
-    "chartNarrative": "similar",
+    "chartNarrative": "position",
     "whatChanged": [
       {
         "label": "Context Score",
@@ -38,7 +38,7 @@ export const WEEKLIES: WeeklyReport[] = [
       {
         "label": "Fear & Greed",
         "from": "28",
-        "to": "20",
+        "to": "13",
         "dir": "down"
       },
       {
@@ -61,7 +61,7 @@ export const WEEKLIES: WeeklyReport[] = [
         "value": "Extreme fear",
         "color": "#e8786f",
         "strength": 3,
-        "metric": "20/100"
+        "metric": "13/100"
       },
       {
         "label": "Cycle position",
@@ -81,8 +81,8 @@ export const WEEKLIES: WeeklyReport[] = [
         "label": "Momentum",
         "value": "Negative",
         "color": "#e8786f",
-        "strength": 2,
-        "metric": "-3.4%"
+        "strength": 3,
+        "metric": "-4.5%"
       }
     ],
     "similar": {
@@ -90,7 +90,7 @@ export const WEEKLIES: WeeklyReport[] = [
       "similarity": 84,
       "body": "Today most closely resembles Apr 2022. The resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop, with sentiment in extreme fear. What followed then is context, not a forecast."
     },
-    "historicalInsight": "Bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far.",
+    "historicalInsight": "Its 200-week moving average has never closed a full cycle below where that cycle began.",
     "researchDesk": "Step back from the week's candles and a simple fact remains: Bitcoin is trading cheaper than 64% of its recorded history. That doesn't predict anything — history never does — but it changes the question a serious observer asks. The question stops being \"what will it do next week?\" and becomes \"how often has the setup looked like this, and what tended to follow over the cycle?\" The closest historical rhyme this week is Apr 2022, a 84% match. The resemblance is structural — a comparable position in the cycle and a similar valuation backdrop — not a promise that the same script plays out. The throughline of every HalvingLens edition holds here too: judge the present against Bitcoin's own history, not against expectations. The ETF era has changed the market's plumbing; it has not changed the behaviour that runs through it.",
     "weekAhead": [
       "ETF flows — whether institutional demand confirms or diverges from price.",
@@ -98,23 +98,23 @@ export const WEEKLIES: WeeklyReport[] = [
       "Cycle timing — how this cycle's pace compares with prior ones.",
       "Historical divergence — where today keeps breaking from the 2016/2020 template."
     ],
-    "longView": "In the arc of the current cycle, this week reads as attractive territory — day 936 from the halving, with the cycle running slower and flatter than its predecessors. Zoomed out, the signal is less about any single week and more about how persistently this cycle has diverged from the template that came before it.",
-    "education": "Bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far.",
+    "longView": "In the arc of the current cycle, this week reads as attractive territory — day 937 from the halving, with the cycle running slower and flatter than its predecessors. Zoomed out, the signal is less about any single week and more about how persistently this cycle has diverged from the template that came before it.",
+    "education": "Its 200-week moving average has never closed a full cycle below where that cycle began.",
     "contextScore": {
       "score": 59,
       "label": "Moderate context",
       "stars": 3
     },
     "metrics": {
-      "price": 71280.41579,
-      "fearGreed": 20,
+      "price": 68096.312506,
+      "fearGreed": 13,
       "accumulationScore": 31,
       "accumulationBand": "Historically Attractive",
       "contextScore": 59,
-      "cycleDay": 936,
+      "cycleDay": 937,
       "sentiment": "Extreme fear"
     },
-    "search": "bitcoin is attractive by historical standards, at the 36th percentile of its range. context score is 59/100 — moderate context. sentiment sits in extreme fear (fear & greed 20). this week most resembles apr 2022 (84% match). the cycle continues to run later-running mid-cycle expansion. value and fear arrived together the week's defining feature was the rare overlap of a attractive valuation — cheaper than 64% of bitcoin's history — with sentiment in extreme fear. historically, the crowd has been most fearful precisely when, by the numbers, conditions were most constructive. this week sat squarely in that pattern. step back from the week's candles and a simple fact remains: bitcoin is trading cheaper than 64% of its recorded history. that doesn't predict anything — history never does — but it changes the question a serious observer asks. the question stops being \"what will it do next week?\" and becomes \"how often has the setup looked like this, and what tended to follow over the cycle?\" the closest historical rhyme this week is apr 2022, a 84% match. the resemblance is structural — a comparable position in the cycle and a similar valuation backdrop — not a promise that the same script plays out. the throughline of every halvinglens edition holds here too: judge the present against bitcoin's own history, not against expectations. the etf era has changed the market's plumbing; it has not changed the behaviour that runs through it. in the arc of the current cycle, this week reads as attractive territory — day 936 from the halving, with the cycle running slower and flatter than its predecessors. zoomed out, the signal is less about any single week and more about how persistently this cycle has diverged from the template that came before it. today most closely resembles apr 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop, with sentiment in extreme fear. what followed then is context, not a forecast. bitcoin has fallen 30% or more from a high more than a dozen times — and gone on to a new cycle high every time so far. extreme fear historically attractive"
+    "search": "bitcoin is attractive by historical standards, at the 36th percentile of its range. context score is 59/100 — moderate context. sentiment sits in extreme fear (fear & greed 13). this week most resembles apr 2022 (84% match). the cycle continues to run later-running mid-cycle expansion. value and fear arrived together the week's defining feature was the rare overlap of a attractive valuation — cheaper than 64% of bitcoin's history — with sentiment in extreme fear. historically, the crowd has been most fearful precisely when, by the numbers, conditions were most constructive. this week sat squarely in that pattern. step back from the week's candles and a simple fact remains: bitcoin is trading cheaper than 64% of its recorded history. that doesn't predict anything — history never does — but it changes the question a serious observer asks. the question stops being \"what will it do next week?\" and becomes \"how often has the setup looked like this, and what tended to follow over the cycle?\" the closest historical rhyme this week is apr 2022, a 84% match. the resemblance is structural — a comparable position in the cycle and a similar valuation backdrop — not a promise that the same script plays out. the throughline of every halvinglens edition holds here too: judge the present against bitcoin's own history, not against expectations. the etf era has changed the market's plumbing; it has not changed the behaviour that runs through it. in the arc of the current cycle, this week reads as attractive territory — day 937 from the halving, with the cycle running slower and flatter than its predecessors. zoomed out, the signal is less about any single week and more about how persistently this cycle has diverged from the template that came before it. today most closely resembles apr 2022. the resemblance isn't the date — it's the setup: a similar position in the cycle, a comparable drawdown from the high, and a attractive valuation backdrop, with sentiment in extreme fear. what followed then is context, not a forecast. its 200-week moving average has never closed a full cycle below where that cycle began. extreme fear historically attractive"
   },
   {
     "slug": "2026-W45",
