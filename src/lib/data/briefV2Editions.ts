@@ -6,6 +6,14 @@ import type { BriefV2Edition } from "../briefV2Archive";
 
 export const BRIEF_V2_EDITIONS: BriefV2Edition[] = [
   {
+    "slug": "2026-11-24",
+    "subject": "A top-5% move in Fear & Greed",
+    "activity": "active",
+    "storyKind": "historical_extreme",
+    "text": "HALVINGLENS DAILY BRIEF — 24 Nov 2026\nBTC $61,253 · +0.2% since yesterday's 08:00 London snapshot\n\nTHE VERDICT: Fear & Greed just made a top-5% 30-day move for its own record. Capitulation and loss realisation being absorbed.\n9 of 15 monitored readings held within their own ordinary 7-day ranges — 6 moved materially.\n\nA TOP-5% MOVE FOR ITS OWN RECORD: Fear & Greed just made a top-5% 30-day move for its own record.\n−43 points — Larger than 95% of 30-day moves · 3,185 observations since Feb 2018.\nFear & Greed moved from Neutral to Extreme fear.\nNow 11 · Extreme fear.\nWindow: 30 days · as of 24 Nov 2026\n\nSTATE OF THE CYCLE\n· Accumulation: Historically Deep Value · 17/100 · weekly · since 21 Nov 2026\n· Sentiment: Extreme fear · 11/100 · since 13 Nov 2026\n· ETF demand: 1-day outflow streak · −$556.66M over 7 trading days · as of 12 Oct 2026\n\nSee Fear & Greed in full context → https://halvinglens.com/cycle-dashboard#dashboard-market-board\n\nWhat would make this Brief more useful? Reply and tell us.\nHistorical context, not a prediction. Educational analysis, not financial advice.",
+    "version": "brief-edition-v1"
+  },
+  {
     "slug": "2026-11-23",
     "subject": "A quiet day for the 15 monitored readings",
     "activity": "active",
